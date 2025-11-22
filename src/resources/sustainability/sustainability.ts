@@ -19,8 +19,8 @@ export class Sustainability extends APIResource {
    * const response =
    *   await client.sustainability.purchaseCarbonOffsets({
    *     amountKgCO2e: 500,
-   *     offsetProject: 'Verified Carbon Standard Project X',
    *     paymentAccountId: 'acc_chase_checking_4567',
+   *     offsetProject: 'Verified Carbon Standard Project X',
    *   });
    * ```
    */
@@ -61,7 +61,7 @@ export interface SustainabilityPurchaseCarbonOffsetsResponse {
   projectSupported: string;
 
   /**
-   * Date and time of the carbon offset purchase.
+   * Date and time of the offset purchase.
    */
   purchaseDate: string;
 
@@ -71,34 +71,35 @@ export interface SustainabilityPurchaseCarbonOffsetsResponse {
   purchaseId: string;
 
   /**
-   * Total cost of the carbon offset purchase in USD.
+   * The total cost of the carbon offset purchase in USD.
    */
   totalCostUSD: number;
 
   /**
-   * URL to the official carbon offset certificate.
+   * URL to the carbon offset certificate.
    */
   certificateUrl?: string | null;
 
   /**
-   * The ID of the corresponding financial transaction for the purchase.
+   * The ID of the associated financial transaction.
    */
   transactionId?: string | null;
 }
 
 export interface SustainabilityRetrieveCarbonFootprintResponse {
   /**
-   * AI-driven insights and recommendations for reducing carbon footprint.
+   * AI-generated insights and recommendations for reducing carbon footprint.
    */
   aiInsights: Array<InsightsAPI.AIInsight>;
 
   /**
-   * Breakdown of the carbon footprint by spending category.
+   * Breakdown of the carbon footprint by categories (e.g., Transportation, Food,
+   * Housing).
    */
   breakdownByCategory: Array<SustainabilityRetrieveCarbonFootprintResponse.BreakdownByCategory>;
 
   /**
-   * The reporting period for the carbon footprint.
+   * The time period covered by the report.
    */
   period: string;
 
@@ -113,7 +114,7 @@ export interface SustainabilityRetrieveCarbonFootprintResponse {
   totalCarbonFootprintKgCO2e: number;
 
   /**
-   * Recommendations for carbon offset projects.
+   * Recommendations for purchasing carbon offsets.
    */
   offsetRecommendations?: Array<SustainabilityRetrieveCarbonFootprintResponse.OffsetRecommendation> | null;
 }
@@ -145,20 +146,14 @@ export interface SustainabilityPurchaseCarbonOffsetsParams {
   amountKgCO2e: number;
 
   /**
-   * Optional: Name or ID of a preferred carbon offset project. If null, AI will
-   * select an optimal project.
-   */
-  offsetProject: string | null;
-
-  /**
-   * The ID of the user's account to debit for the purchase.
+   * The ID of the account to use for payment.
    */
   paymentAccountId: string;
 
   /**
-   * If true, sets up a recurring carbon offset purchase.
+   * Optional: A specific carbon offset project or standard to support.
    */
-  recurring?: boolean;
+  offsetProject?: string | null;
 }
 
 Sustainability.Investments = Investments;

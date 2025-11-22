@@ -116,10 +116,9 @@ export interface QuantumWeaverState {
   pitchId: string;
 
   /**
-   * Current stage of the business pitch within Quantum Weaver's incubation pipeline.
+   * The current stage of the business pitch in the incubation process.
    */
   stage:
-    | 'submitted'
     | 'initial_review'
     | 'ai_analysis'
     | 'feedback_required'
@@ -130,74 +129,85 @@ export interface QuantumWeaverState {
     | 'incubated_graduated';
 
   /**
-   * A descriptive message about the current status of the pitch.
+   * A human-readable message detailing the current status.
    */
   statusMessage: string;
 
   /**
-   * Estimated seed funding amount offered by Quantum Weaver (if applicable).
+   * If approved, the estimated seed funding amount offered (in USD).
    */
   estimatedFundingOffer?: number | null;
 
   /**
-   * A summary of AI-generated feedback or key findings from the current stage.
+   * A high-level summary of AI feedback if available.
    */
   feedbackSummary?: string | null;
 
   /**
-   * Guidance on what the entrepreneur should do next.
+   * Recommended next actions for the user.
    */
   nextSteps?: string | null;
 
   /**
-   * A list of specific questions from Quantum Weaver requiring the entrepreneur's
-   * input.
+   * Specific questions from the AI that require user input to proceed.
    */
   questions?: Array<QuantumWeaverState.Question> | null;
 }
 
 export namespace QuantumWeaverState {
   export interface Question {
-    id?: string;
+    /**
+     * Unique identifier for the question.
+     */
+    id: string;
 
-    category?: string;
+    /**
+     * The category the question relates to.
+     */
+    category: 'technology' | 'market' | 'finance' | 'team' | 'operations' | 'legal';
 
-    isRequired?: boolean;
+    /**
+     * Indicates if answering this question is mandatory to proceed.
+     */
+    isRequired: boolean;
 
-    question?: string;
+    /**
+     * The full question asked by Quantum Weaver AI.
+     */
+    question: string;
   }
 }
 
 export interface PitchRetrieveDetailsResponse extends QuantumWeaverState {
   /**
-   * An AI-generated strategic coaching plan for the entrepreneur.
+   * An AI-generated coaching plan to guide the entrepreneur.
    */
   aiCoachingPlan?: PitchRetrieveDetailsResponse.AICoachingPlan | null;
 
   /**
-   * AI-generated financial model and analysis.
+   * AI-generated detailed financial model and projections.
    */
   aiFinancialModel?: PitchRetrieveDetailsResponse.AIFinancialModel | null;
 
   /**
-   * AI-driven market opportunity analysis and competitive landscape.
+   * AI-driven analysis of market opportunity, competition, and growth.
    */
   aiMarketAnalysis?: PitchRetrieveDetailsResponse.AIMarketAnalysis | null;
 
   /**
-   * AI's assessment of various risk factors for the venture.
+   * AI-driven assessment of various risks associated with the venture.
    */
   aiRiskAssessment?: PitchRetrieveDetailsResponse.AIRiskAssessment | null;
 
   /**
-   * AI's score on how well the pitch aligns with investor criteria.
+   * AI's score indicating the potential match with our investment thesis.
    */
   investorMatchScore?: number | null;
 }
 
 export namespace PitchRetrieveDetailsResponse {
   /**
-   * An AI-generated strategic coaching plan for the entrepreneur.
+   * An AI-generated coaching plan to guide the entrepreneur.
    */
   export interface AICoachingPlan {
     steps?: Array<AICoachingPlan.Step>;
@@ -230,16 +240,16 @@ export namespace PitchRetrieveDetailsResponse {
   }
 
   /**
-   * AI-generated financial model and analysis.
+   * AI-generated detailed financial model and projections.
    */
   export interface AIFinancialModel {
     breakevenPoint?: string;
 
     capitalRequirements?: number;
 
-    costStructureAnalysis?: unknown;
+    costStructureAnalysis?: { [key: string]: string };
 
-    revenueBreakdown?: unknown;
+    revenueBreakdown?: { [key: string]: string };
 
     sensitivityAnalysis?: Array<AIFinancialModel.SensitivityAnalysis>;
   }
@@ -255,7 +265,7 @@ export namespace PitchRetrieveDetailsResponse {
   }
 
   /**
-   * AI-driven market opportunity analysis and competitive landscape.
+   * AI-driven analysis of market opportunity, competition, and growth.
    */
   export interface AIMarketAnalysis {
     competitiveAdvantages?: Array<string>;
@@ -268,7 +278,7 @@ export namespace PitchRetrieveDetailsResponse {
   }
 
   /**
-   * AI's assessment of various risk factors for the venture.
+   * AI-driven assessment of various risks associated with the venture.
    */
   export interface AIRiskAssessment {
     marketRisk?: string;
@@ -350,10 +360,13 @@ export namespace PitchSubmitParams {
 }
 
 export interface PitchSubmitFeedbackParams {
-  answers?: Array<PitchSubmitFeedbackParams.Answer>;
+  /**
+   * Structured answers to specific questions posed by Quantum Weaver.
+   */
+  answers?: Array<PitchSubmitFeedbackParams.Answer> | null;
 
   /**
-   * General feedback or additional information provided by the entrepreneur.
+   * General feedback or additional narrative for Quantum Weaver.
    */
   feedback?: string | null;
 }
@@ -361,13 +374,10 @@ export interface PitchSubmitFeedbackParams {
 export namespace PitchSubmitFeedbackParams {
   export interface Answer {
     /**
-     * The entrepreneur's answer to the question.
+     * The answer to the specific AI question.
      */
     answer: string;
 
-    /**
-     * The ID of the question being answered.
-     */
     questionId: string;
   }
 }

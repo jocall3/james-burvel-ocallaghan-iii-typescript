@@ -37,6 +37,7 @@ describe('resource corporate', () => {
         zip: '90210',
       },
       dateOfBirth: '1970-01-01',
+      identificationNumber: 'identificationNumber',
     });
   });
 });

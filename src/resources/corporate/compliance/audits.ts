@@ -67,17 +67,17 @@ export interface AuditRetrieveReportResponse {
   auditId: string;
 
   /**
-   * Detailed findings, including violations, observations, and recommendations.
+   * Detailed findings, observations, and recommendations.
    */
   findings: Array<AuditRetrieveReportResponse.Finding>;
 
   /**
-   * Overall compliance score (0-100), indicating adherence to regulations.
+   * An overall score (0-100) indicating the level of compliance.
    */
   overallComplianceScore: number;
 
   /**
-   * The time period covered by the audit.
+   * The date range covered by the audit.
    */
   periodCovered: AuditRetrieveReportResponse.PeriodCovered;
 
@@ -87,31 +87,34 @@ export interface AuditRetrieveReportResponse {
   recommendedActions: Array<InsightsAPI.AIInsight>;
 
   /**
-   * Current status of the audit.
+   * Current status of the audit generation.
    */
-  status: 'processing' | 'completed' | 'failed';
+  status: 'initiated' | 'processing' | 'completed' | 'failed';
 
   /**
-   * A summary of the audit findings.
+   * A high-level summary of the audit findings.
    */
   summary: string;
+
+  /**
+   * Specific adherence status for each regulatory framework audited.
+   */
+  regulatoryAdherence?: { [key: string]: string } | null;
 }
 
 export namespace AuditRetrieveReportResponse {
   export interface Finding {
     description?: string;
 
-    regulatoryBreach?: string | null;
-
-    relatedEntities?: Array<string> | null;
+    relatedEntities?: Array<string>;
 
     severity?: 'Low' | 'Medium' | 'High' | 'Critical';
 
-    type?: 'violation' | 'observation' | 'recommendation';
+    type?: 'finding' | 'observation' | 'recommendation';
   }
 
   /**
-   * The time period covered by the audit.
+   * The date range covered by the audit.
    */
   export interface PeriodCovered {
     endDate?: string;
@@ -127,30 +130,29 @@ export interface AuditRequestParams {
   auditScope:
     | 'all_transactions'
     | 'corporate_cards'
+    | 'specific_accounts'
     | 'international_payments'
-    | 'user_onboarding'
-    | 'specific_accounts';
+    | 'user_onboarding';
 
   /**
-   * End date for the audit period (inclusive).
+   * The end date for the audit period (inclusive).
    */
   endDate: string;
 
   /**
-   * List of regulatory frameworks to audit against.
+   * List of regulatory frameworks against which to audit.
    */
-  regulatoryFrameworks: Array<'AML' | 'KYC' | 'PCI-DSS' | 'GDPR' | 'CCPA' | 'SOX'>;
+  regulatoryFrameworks: Array<'AML' | 'KYC' | 'PCI-DSS' | 'GDPR' | 'PSD2' | 'SOX' | 'CCPA'>;
 
   /**
-   * Start date for the audit period (inclusive).
+   * The start date for the audit period (inclusive).
    */
   startDate: string;
 
   /**
-   * Optional: List of specific account IDs to include if `auditScope` is
-   * 'specific_accounts'.
+   * Any additional notes or specific areas of focus for the audit.
    */
-  specificAccountIds?: Array<string> | null;
+  additionalNotes?: string | null;
 }
 
 export declare namespace Audits {

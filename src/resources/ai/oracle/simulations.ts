@@ -83,12 +83,12 @@ export interface SimulationListResponse {
 export namespace SimulationListResponse {
   export interface Data {
     /**
-     * Timestamp when the simulation was created.
+     * Timestamp when the simulation request was created.
      */
     creationDate: string;
 
     /**
-     * Timestamp when the simulation status or results were last updated.
+     * Timestamp when the simulation status was last updated.
      */
     lastUpdated: string;
 
@@ -100,15 +100,15 @@ export namespace SimulationListResponse {
     /**
      * Current status of the simulation.
      */
-    status: 'processing' | 'completed' | 'failed';
+    status: 'pending' | 'processing' | 'completed' | 'failed';
 
     /**
-     * A brief summary of the simulation's purpose or key finding.
+     * A brief summary of what the simulation entailed.
      */
     summary: string;
 
     /**
-     * User-friendly title of the simulation.
+     * A user-friendly title for the simulation.
      */
     title: string;
   }

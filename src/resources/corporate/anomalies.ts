@@ -57,23 +57,22 @@ export interface FinancialAnomaly {
   id: string;
 
   /**
-   * AI's confidence score (0-1) in the anomaly detection.
+   * AI's confidence in the detection and classification of this anomaly.
    */
   aiConfidenceScore: number;
 
   /**
-   * A concise summary of the anomaly.
+   * A brief, human-readable description of the anomaly.
    */
   description: string;
 
   /**
-   * The ID of the specific entity (e.g., transaction ID, user ID) related to the
-   * anomaly.
+   * The ID of the primary entity related to this anomaly.
    */
   entityId: string;
 
   /**
-   * The type of financial entity or activity the anomaly relates to.
+   * The type of financial entity this anomaly is related to.
    */
   entityType:
     | 'PaymentOrder'
@@ -82,10 +81,10 @@ export interface FinancialAnomaly {
     | 'CorporateCard'
     | 'Invoice'
     | 'User'
-    | 'Account';
+    | 'System';
 
   /**
-   * AI-calculated risk score (0-100) for the anomaly.
+   * AI-calculated risk score (0-100) for this anomaly.
    */
   riskScore: number;
 
@@ -105,22 +104,22 @@ export interface FinancialAnomaly {
   timestamp: string;
 
   /**
-   * Detailed description of the anomaly, including contributing factors.
+   * Detailed explanation of the anomaly, including relevant context.
    */
   details?: string | null;
 
   /**
-   * AI-recommended immediate action to address the anomaly.
+   * AI-suggested immediate action for the anomaly.
    */
   recommendedAction?: string | null;
 
   /**
-   * List of IDs of other transactions potentially related to this anomaly.
+   * List of IDs of other transactions or entities related to this anomaly.
    */
   relatedTransactions?: Array<string> | null;
 
   /**
-   * Notes provided by an analyst or the AI upon resolving or dismissing the anomaly.
+   * Notes added by a compliance officer upon resolving or dismissing the anomaly.
    */
   resolutionNotes?: string | null;
 }
@@ -146,7 +145,7 @@ export interface AnomalyListResponse {
 
 export interface AnomalyListParams {
   /**
-   * Filter results up to this date (inclusive, YYYY-MM-DD).
+   * Retrieve items up to this date (inclusive).
    */
   endDate?: string;
 
@@ -171,7 +170,7 @@ export interface AnomalyListParams {
   severity?: 'Low' | 'Medium' | 'High' | 'Critical';
 
   /**
-   * Filter results from this date (inclusive, YYYY-MM-DD).
+   * Retrieve items from this date (inclusive).
    */
   startDate?: string;
 

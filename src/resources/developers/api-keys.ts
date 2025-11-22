@@ -66,12 +66,12 @@ export interface APIKey {
   createdAt: string;
 
   /**
-   * The visible prefix of the API key (the full key is secret and not exposed).
+   * A short, non-sensitive prefix of the API key for identification.
    */
   prefix: string;
 
   /**
-   * List of OAuth2 scopes associated with this API key.
+   * A list of OAuth2 scopes granted to this API key.
    */
   scopes: Array<string>;
 
@@ -81,17 +81,17 @@ export interface APIKey {
   status: 'active' | 'revoked' | 'expired';
 
   /**
-   * Timestamp when the API key will expire, if set.
+   * Optional: Timestamp when the API key will expire.
    */
   expiresAt?: string | null;
 
   /**
-   * Timestamp of the last successful use of this API key.
+   * Timestamp of the last successful API call made with this key.
    */
   lastUsed?: string | null;
 
   /**
-   * A friendly name given to the API key for identification.
+   * A user-defined name or description for the API key.
    */
   name?: string | null;
 }
@@ -100,17 +100,18 @@ export type APIKeyListResponse = Array<APIKey>;
 
 export interface APIKeyCreateParams {
   /**
-   * A friendly name for the new API key.
+   * A descriptive name for the new API key.
    */
   name: string;
 
   /**
-   * List of OAuth2 scopes that this API key should have access to.
+   * A list of OAuth2 scopes to grant to this API key.
    */
   scopes: Array<string>;
 
   /**
-   * Optional: Number of days until the API key expires. If null, it does not expire.
+   * Optional: Number of days until the API key expires. If omitted, the key does not
+   * expire.
    */
   expiresInDays?: number | null;
 }

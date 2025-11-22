@@ -57,49 +57,49 @@ export interface LoanApplicationStatus {
   applicationId: string;
 
   /**
-   * The amount originally requested in the application.
+   * The original loan amount requested by the user.
    */
   loanAmountRequested: number;
 
   /**
-   * The stated purpose of the loan.
+   * The purpose of the loan.
    */
   loanPurpose: string;
 
   /**
-   * Guidance on what the user should do next.
-   */
-  nextSteps: string;
-
-  /**
    * Current status of the loan application.
    */
-  status: 'pending' | 'underwriting' | 'approved' | 'declined' | 'withdrawn' | 'funded';
+  status: 'underwriting' | 'approved' | 'declined' | 'withdrawn';
 
   /**
-   * Outcome and details from the AI underwriting process.
+   * Result of the AI's underwriting process.
    */
   aiUnderwritingResult?: LoanApplicationStatus.AIUnderwritingResult | null;
 
   /**
-   * Specific reasons for loan decline, adhering to regulatory requirements.
+   * Timestamp when the application status was last updated.
    */
-  declineReasonDetails?: Array<string> | null;
+  lastUpdated?: string;
 
   /**
-   * Details of the loan offer if the application is approved.
+   * Next steps for the user based on the application status.
+   */
+  nextSteps?: string | null;
+
+  /**
+   * Details of the approved loan offer, if applicable.
    */
   offerDetails?: OffersAPI.LoanOffer | null;
 }
 
 export namespace LoanApplicationStatus {
   /**
-   * Outcome and details from the AI underwriting process.
+   * Result of the AI's underwriting process.
    */
   export interface AIUnderwritingResult {
     aiConfidence?: number;
 
-    decision?: 'approved' | 'declined' | 'referred';
+    decision?: 'approved' | 'declined';
 
     maxApprovedAmount?: number | null;
 
@@ -116,23 +116,23 @@ export interface ApplicationSubmitParams {
   loanAmount: number;
 
   /**
-   * The purpose of the loan.
+   * The purpose for which the loan is requested.
    */
   loanPurpose:
     | 'debt_consolidation'
     | 'home_improvement'
-    | 'medical_expenses'
+    | 'medical_expense'
     | 'education'
     | 'business_startup'
     | 'other';
 
   /**
-   * Desired repayment term in months.
+   * The desired repayment term in months.
    */
   repaymentTermMonths: number;
 
   /**
-   * Any additional information for the underwriting process.
+   * Any additional relevant information for the loan application.
    */
   additionalNotes?: string | null;
 
@@ -142,9 +142,10 @@ export interface ApplicationSubmitParams {
   coApplicant?: ApplicationSubmitParams.CoApplicant | null;
 
   /**
-   * Optional details about collateral for secured loans.
+   * Optional: User's desired interest rate (AI will try to match or offer best
+   * possible).
    */
-  collateralDetails?: ApplicationSubmitParams.CollateralDetails | null;
+  desiredInterestRate?: number | null;
 }
 
 export namespace ApplicationSubmitParams {
@@ -159,17 +160,6 @@ export namespace ApplicationSubmitParams {
     income?: number;
 
     name?: string;
-  }
-
-  /**
-   * Optional details about collateral for secured loans.
-   */
-  export interface CollateralDetails {
-    description?: string;
-
-    type?: string;
-
-    value?: number;
   }
 }
 

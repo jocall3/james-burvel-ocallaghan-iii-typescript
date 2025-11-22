@@ -22,22 +22,24 @@ export class Offers extends APIResource {
 
 export interface LoanOffer {
   /**
-   * The principal amount of the loan offered.
+   * AI's score indicating how well this offer is tailored to the user's financial
+   * profile.
+   */
+  aiPersonalizationScore: number;
+
+  /**
+   * The principal amount of the loan offer.
    */
   amount: number;
 
   /**
-   * Date the offer expires.
-   */
-  expirationDate: string;
-
-  /**
-   * Annual interest rate offered.
+   * Annual interest rate of the loan.
    */
   interestRate: number;
 
   /**
-   * True if this is a pre-approved offer, false if from an application.
+   * True if this is a pre-approved offer, false if it's a response to an
+   * application.
    */
   isPreApproved: boolean;
 
@@ -47,33 +49,37 @@ export interface LoanOffer {
   offerId: string;
 
   /**
-   * Type of loan offered.
+   * Type of loan being offered.
    */
-  offerType: 'personal_loan' | 'credit_line' | 'mortgage' | 'auto_loan' | 'microloan';
+  offerType: 'personal_loan' | 'business_loan' | 'credit_line' | 'mortgage' | 'auto_loan' | 'microloan';
 
   /**
-   * AI's score for how well this offer matches the user's financial profile and
-   * needs.
+   * Date when the offer expires.
    */
-  aiPersonalizationScore?: number | null;
+  expirationDate?: string | null;
 
   /**
-   * Estimated monthly payment (if applicable).
+   * Estimated monthly payment.
    */
   monthlyPayment?: number | null;
 
   /**
-   * Any one-time origination fee.
+   * Any upfront origination fees.
    */
-  originationFee?: number | null;
+  originationFee?: number;
 
   /**
-   * Repayment term in months (if applicable).
+   * Repayment term in months. Null for credit lines.
    */
   repaymentTermMonths?: number | null;
 
   /**
-   * Total amount repayable over the life of the loan.
+   * URL to the full terms and conditions of the loan offer.
+   */
+  termsAndConditionsUrl?: string | null;
+
+  /**
+   * Total amount repayable over the loan term (principal + interest + fees).
    */
   totalRepayable?: number | null;
 }

@@ -24,7 +24,7 @@ describe('resource chat', () => {
     // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
     await expect(
       client.ai.advisor.chat.retrieveHistory(
-        { limit: 50, offset: 0, sessionId: 'session-quantum-xyz-789-alpha' },
+        { limit: 10, offset: 0, sessionId: 'session-quantum-xyz-789-alpha' },
         { path: '/_stainless_unknown_path' },
       ),
     ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);

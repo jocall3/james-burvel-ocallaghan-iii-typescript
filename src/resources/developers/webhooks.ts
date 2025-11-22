@@ -89,28 +89,28 @@ export interface WebhookSubscription {
   id: string;
 
   /**
-   * The URL to which webhook events are sent.
+   * The URL where webhook events will be sent.
    */
   callbackUrl: string;
 
   /**
-   * List of event types subscribed to (e.g., 'transaction.created',
-   * 'account.updated').
+   * A list of event types this webhook is subscribed to (e.g.,
+   * 'transaction.created', 'account.updated').
    */
   events: Array<string>;
 
   /**
-   * Consecutive failure count for webhook deliveries (resets on success).
+   * Number of consecutive failed delivery attempts.
    */
   failureCount: number;
 
   /**
-   * Current status of the subscription.
+   * Current status of the webhook subscription.
    */
   status: 'active' | 'paused' | 'suspended';
 
   /**
-   * Timestamp when the subscription was created.
+   * Timestamp when the webhook was created.
    */
   createdAt?: string;
 
@@ -118,47 +118,51 @@ export interface WebhookSubscription {
    * Timestamp of the last successful webhook delivery.
    */
   lastTriggered?: string | null;
+
+  /**
+   * Optional: A secret key used to sign webhook payloads for verification. Not
+   * returned on GET.
+   */
+  secret?: string | null;
 }
 
 export type WebhookListResponse = Array<WebhookSubscription>;
 
 export interface WebhookCreateParams {
   /**
-   * The URL to which webhook events should be sent.
+   * The URL where webhook events will be sent.
    */
   callbackUrl: string;
 
   /**
-   * List of event types to subscribe to.
+   * A list of event types to subscribe to (e.g., 'transaction.created',
+   * 'account.updated').
    */
   events: Array<string>;
 
   /**
-   * Optional: A secret string used to sign webhook payloads, verifying origin.
+   * Optional: A secret string to use for signing webhook payloads, ensuring
+   * authenticity. If not provided, one will be generated.
    */
   secret?: string | null;
 }
 
 export interface WebhookUpdateParams {
   /**
-   * The updated URL for webhook deliveries.
+   * The new URL where webhook events should be sent.
    */
   callbackUrl?: string;
 
   /**
-   * The new list of event types to subscribe to. Overwrites existing list.
+   * The updated list of event types to subscribe to. Sending an empty array might
+   * disable all events.
    */
   events?: Array<string>;
 
   /**
-   * Optional: A new secret string to update or set for webhook payload signing.
+   * The new status for the webhook subscription (e.g., 'active', 'paused').
    */
-  secret?: string | null;
-
-  /**
-   * Updated status of the subscription.
-   */
-  status?: 'active' | 'paused';
+  status?: 'active' | 'paused' | 'suspended';
 }
 
 export declare namespace Webhooks {

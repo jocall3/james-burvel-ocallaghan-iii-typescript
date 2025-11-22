@@ -62,12 +62,12 @@ export class Corporate extends APIResource {
 
 export interface CorporatePerformSanctionScreeningResponse {
   /**
-   * True if any potential matches were found, false otherwise.
+   * True if a potential match was found on any sanction list.
    */
   matchFound: boolean;
 
   /**
-   * Unique identifier for this screening operation.
+   * Unique identifier for this screening request.
    */
   screeningId: string;
 
@@ -77,27 +77,29 @@ export interface CorporatePerformSanctionScreeningResponse {
   screeningTimestamp: string;
 
   /**
-   * Overall status of the sanction screening.
+   * Overall status of the screening result.
    */
-  status: 'clear' | 'potential_match' | 'confirmed_match' | 'error';
+  status: 'clear' | 'potential_match' | 'high_match' | 'error';
 
   /**
-   * AI-calculated risk score (0-100) based on screening results.
+   * AI-generated recommendation based on the screening result.
+   */
+  aiRecommendation?: string | null;
+
+  /**
+   * AI-calculated risk score for the screened entity (0-100).
    */
   aiRiskScore?: number | null;
 
   /**
-   * Details of any potential matches found during screening.
+   * Details of any potential matches found.
    */
   matchDetails?: Array<CorporatePerformSanctionScreeningResponse.MatchDetail> | null;
 }
 
 export namespace CorporatePerformSanctionScreeningResponse {
   export interface MatchDetail {
-    /**
-     * Additional data from the sanctions list entry.
-     */
-    additionalInfo?: unknown | null;
+    additionalInfo?: string | null;
 
     listName?: string;
 
@@ -111,29 +113,34 @@ export namespace CorporatePerformSanctionScreeningResponse {
 
 export interface CorporatePerformSanctionScreeningParams {
   /**
-   * Country of residence or operation (ISO 3166-1 alpha-2 code).
+   * ISO 3166-1 alpha-2 country code relevant to the individual/entity.
    */
   country: string;
 
   /**
-   * The type of entity being screened.
+   * Type of entity being screened.
    */
   entityType: 'individual' | 'organization';
 
   /**
-   * Full name of the individual or organization to screen.
+   * The full name of the individual or entity to screen.
    */
   name: string;
 
   /**
-   * Full address for enhanced screening.
+   * Optional: Address details for enhanced screening accuracy.
    */
   address?: UsersAPI.Address | null;
 
   /**
-   * Date of birth for individual screening (YYYY-MM-DD).
+   * Date of birth, if screening an individual.
    */
   dateOfBirth?: string | null;
+
+  /**
+   * Optional: Any identification number (e.g., passport, EIN).
+   */
+  identificationNumber?: string | null;
 }
 
 Corporate.Cards = Cards;

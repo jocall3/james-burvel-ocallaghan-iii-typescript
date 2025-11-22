@@ -24,28 +24,28 @@ export class Investments extends APIResource {
 
 export interface InvestmentAnalyzeImpactResponse {
   /**
-   * AI-driven recommendations to improve the ESG profile of the portfolio.
+   * AI-generated recommendations to improve the portfolio's ESG impact.
    */
   aiRecommendations: Array<InsightsAPI.AIInsight>;
 
   /**
-   * Average ESG score for a comparable market benchmark.
+   * ESG score of a relevant market benchmark for comparison.
    */
   benchmarkESGScore: number;
 
   /**
-   * Breakdown of the portfolio's ESG score into environmental, social, and
-   * governance components.
+   * Breakdown of the portfolio's ESG score by Environmental, Social, and Governance
+   * factors.
    */
   breakdownByESGFactors: InvestmentAnalyzeImpactResponse.BreakdownByEsgFactors;
 
   /**
-   * List of lowest-scoring holdings by their individual ESG score.
+   * Top 3 holdings with the lowest ESG scores (potential areas for improvement).
    */
   lowestESGHoldings: Array<InvestmentAnalyzeImpactResponse.LowestEsgHolding>;
 
   /**
-   * Overall aggregated ESG score for the entire portfolio.
+   * Overall ESG score of the entire portfolio.
    */
   overallESGScore: number;
 
@@ -55,15 +55,20 @@ export interface InvestmentAnalyzeImpactResponse {
   portfolioId: string;
 
   /**
-   * List of top holdings by their individual ESG score.
+   * Top 3 holdings with the highest ESG scores.
    */
   topESGHoldings: Array<InvestmentAnalyzeImpactResponse.TopEsgHolding>;
+
+  /**
+   * Timestamp when the ESG analysis was last performed.
+   */
+  lastAnalyzed?: string;
 }
 
 export namespace InvestmentAnalyzeImpactResponse {
   /**
-   * Breakdown of the portfolio's ESG score into environmental, social, and
-   * governance components.
+   * Breakdown of the portfolio's ESG score by Environmental, Social, and Governance
+   * factors.
    */
   export interface BreakdownByEsgFactors {
     environmentalScore?: number;

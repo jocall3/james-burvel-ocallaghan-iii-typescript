@@ -83,17 +83,18 @@ export namespace ProductListResponse {
     id: string;
 
     /**
-     * AI's personalized recommendation score for the user (0-1).
+     * AI's recommendation score (0-1) indicating relevance and suitability for the
+     * user.
      */
     aiRecommendationScore: number;
 
     /**
-     * Category of the product.
+     * Category of the product (e.g., 'Smart Home Devices', 'Financial Education').
      */
     category: string;
 
     /**
-     * Currency of the product price.
+     * Currency of the product's price (ISO 4217 code).
      */
     currency: string;
 
@@ -103,7 +104,7 @@ export namespace ProductListResponse {
     description: string;
 
     /**
-     * URL to the product's image.
+     * URL to the product's main image.
      */
     imageUrl: string;
 
@@ -113,39 +114,34 @@ export namespace ProductListResponse {
     name: string;
 
     /**
-     * AI-generated explanation for why this product is recommended.
+     * AI-generated explanation of why this product is recommended to the user.
      */
     personalizationReason: string;
 
     /**
-     * Price of the product.
+     * Current price of the product.
      */
     price: number;
 
     /**
-     * Name of the product vendor or manufacturer.
+     * Name of the product vendor or brand.
      */
     vendor: string;
 
     /**
-     * AI's estimated financial impact if the user purchases this product.
+     * AI-estimated financial impact of the product on the user's budget.
      */
     estimatedImpactOnBudget?: ProductListResponseItem.EstimatedImpactOnBudget | null;
 
     /**
-     * Details of any exclusive offer available for this product.
+     * Details of any exclusive offers available for this product.
      */
     exclusiveOffer?: ProductListResponseItem.ExclusiveOffer | null;
-
-    /**
-     * Direct URL to the product page.
-     */
-    productUrl?: string | null;
   }
 
   export namespace ProductListResponseItem {
     /**
-     * AI's estimated financial impact if the user purchases this product.
+     * AI-estimated financial impact of the product on the user's budget.
      */
     export interface EstimatedImpactOnBudget {
       monthlySavings?: number;
@@ -154,21 +150,21 @@ export namespace ProductListResponse {
     }
 
     /**
-     * Details of any exclusive offer available for this product.
+     * Details of any exclusive offers available for this product.
      */
     export interface ExclusiveOffer {
       description?: string;
 
-      discountPercentage?: number;
+      expiresDate?: string;
 
-      expiresAt?: string;
+      title?: string;
     }
   }
 }
 
 export interface ProductClaimOfferResponse {
   /**
-   * A descriptive message for the user about the claimed offer.
+   * A confirmation message with redemption instructions.
    */
   message: string;
 
@@ -178,34 +174,39 @@ export interface ProductClaimOfferResponse {
   offerId: string;
 
   /**
-   * The ID of the product the offer applies to.
+   * The ID of the product related to the offer.
    */
   productId: string;
 
   /**
    * Current status of the offer.
    */
-  status: 'claimed' | 'redeemed' | 'expired';
+  status: 'claimed' | 'redeemed' | 'expired' | 'cancelled';
 
   /**
-   * The date and time when the offer expires.
+   * Timestamp when the offer was claimed.
+   */
+  claimDate?: string;
+
+  /**
+   * The date and time the offer expires.
    */
   expirationDate?: string | null;
 
   /**
-   * A code to be used for redemption (if applicable).
+   * The code needed to redeem the offer, if applicable.
    */
   redemptionCode?: string | null;
 
   /**
-   * A direct link for redeeming the offer (if applicable).
+   * A direct link to redeem the offer, if applicable.
    */
   redemptionLink?: string | null;
 }
 
 export interface ProductSimulatePurchaseResponse {
   /**
-   * AI-driven recommendations based on the simulation results.
+   * Actionable recommendations or further insights from the AI.
    */
   aiRecommendations: Array<InsightsAPI.AIInsight>;
 
@@ -215,19 +216,24 @@ export interface ProductSimulatePurchaseResponse {
   keyImpacts: Array<ProductSimulatePurchaseResponse.KeyImpact>;
 
   /**
-   * The ID of the product for which the simulation was run.
+   * The ID of the product for which the purchase was simulated.
    */
   productId: string;
 
   /**
-   * The purchase option that was simulated.
+   * The payment option that was simulated.
    */
   purchaseOption: 'full_payment' | 'financed_12_months' | 'financed_24_months';
 
   /**
-   * A natural language summary of the simulation results.
+   * A natural language summary of the financial impact.
    */
   simulationSummary: string;
+
+  /**
+   * Timestamp when the simulation was performed.
+   */
+  simulationDate?: string;
 }
 
 export namespace ProductSimulatePurchaseResponse {

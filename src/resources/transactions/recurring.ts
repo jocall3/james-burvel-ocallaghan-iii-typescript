@@ -48,7 +48,7 @@ export interface RecurringTransaction {
   id: string;
 
   /**
-   * Amount of each recurring payment.
+   * Typical amount of the recurring transaction.
    */
   amount: number;
 
@@ -58,7 +58,7 @@ export interface RecurringTransaction {
   category: string;
 
   /**
-   * Currency of the recurring transaction.
+   * Currency of the transaction.
    */
   currency: string;
 
@@ -68,33 +68,33 @@ export interface RecurringTransaction {
   description: string;
 
   /**
-   * Frequency of the recurring transaction.
+   * How often the transaction occurs.
    */
   frequency: 'daily' | 'weekly' | 'bi_weekly' | 'monthly' | 'quarterly' | 'semi_annually' | 'annually';
 
   /**
-   * Next scheduled payment date.
+   * The next expected date for this recurring transaction.
    */
-  nextDueDate: string;
+  nextDueDate: string | null;
 
   /**
    * Current status of the recurring transaction.
    */
-  status: 'active' | 'paused' | 'cancelled' | 'completed';
+  status: 'active' | 'inactive' | 'cancelled';
 
   /**
-   * AI's confidence score (0-1) for its detection or categorization of this
-   * recurring pattern.
+   * AI's confidence in accurately identifying this as a recurring transaction.
    */
   aiConfidenceScore?: number | null;
 
   /**
-   * Last date the transaction was paid.
+   * The date the last recurring transaction occurred.
    */
   lastPaidDate?: string | null;
 
   /**
-   * The account associated with this recurring transaction.
+   * Optional: The account from which this recurring transaction is typically paid or
+   * received.
    */
   linkedAccountId?: string | null;
 }
@@ -103,37 +103,38 @@ export type RecurringListResponse = Array<RecurringTransaction>;
 
 export interface RecurringCreateParams {
   /**
-   * Amount of each recurring payment.
+   * The expected amount of the recurring transaction.
    */
   amount: number;
 
   /**
-   * Category of the new recurring transaction.
+   * Category of the recurring transaction.
    */
   category: string;
 
   /**
-   * Currency of the recurring transaction.
+   * The currency of the transaction (ISO 4217 code).
    */
   currency: string;
 
   /**
-   * Description of the new recurring transaction.
+   * Description for the new recurring transaction.
    */
   description: string;
 
   /**
-   * Frequency of the recurring transaction.
+   * How often the transaction is expected to occur.
    */
   frequency: 'daily' | 'weekly' | 'bi_weekly' | 'monthly' | 'quarterly' | 'semi_annually' | 'annually';
 
   /**
-   * The date the first payment is expected or scheduled.
+   * The date the first recurring transaction is expected.
    */
   startDate: string;
 
   /**
-   * Optional: The account to associate with this recurring transaction.
+   * Optional: The account from which this recurring transaction will be paid or
+   * received.
    */
   linkedAccountId?: string | null;
 }

@@ -1,7 +1,6 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
 import { APIResource } from '../../../core/resource';
-import * as ChatAPI from './chat';
 import * as InsightsAPI from '../../transactions/insights';
 import { APIPromise } from '../../../core/api-promise';
 import { RequestOptions } from '../../../internal/request-options';
@@ -46,43 +45,46 @@ export class Chat extends APIResource {
 
 export interface AIFunctionCall {
   /**
-   * Unique identifier for this specific function call.
+   * A unique ID for this specific function call instance.
    */
   id: string;
 
   /**
-   * A JSON object containing the arguments for the function call.
+   * Arguments to pass to the tool function.
    */
-  args: unknown;
+  args: { [key: string]: unknown };
 
   /**
-   * The name of the tool function to be called.
+   * The name of the tool function to be invoked.
    */
   name: string;
 }
 
 export interface ChatRetrieveHistoryResponse {
-  data?: Array<ChatRetrieveHistoryResponse.Data>;
+  /**
+   * The list of chat messages for the current page.
+   */
+  data: Array<ChatRetrieveHistoryResponse.Data>;
 
   /**
    * The maximum number of items returned per page.
    */
-  limit?: number;
-
-  /**
-   * The offset to use for the next page of results. Null if no more pages.
-   */
-  nextOffset?: number | null;
+  limit: number;
 
   /**
    * The starting index of the list for pagination.
    */
-  offset?: number;
+  offset: number;
 
   /**
-   * The total number of available items.
+   * The total number of available items across all pages.
    */
-  total?: number;
+  total: number;
+
+  /**
+   * The offset to use for the next page of results, if available.
+   */
+  nextOffset?: number | null;
 }
 
 export namespace ChatRetrieveHistoryResponse {
@@ -93,36 +95,36 @@ export namespace ChatRetrieveHistoryResponse {
     content: string;
 
     /**
-     * The role of the sender of the message.
+     * The role of the message sender.
      */
-    role: 'user' | 'assistant' | 'tool';
+    role: 'user' | 'assistant' | 'system';
 
     /**
-     * The timestamp when the message was sent/generated.
+     * The timestamp when the message was sent/received.
      */
     timestamp: string;
 
     /**
-     * If the role is 'assistant' and this is a tool call.
+     * Optional: Any additional metadata associated with the message, e.g., tool calls,
+     * insights.
      */
-    functionCall?: ChatAPI.AIFunctionCall | null;
-
-    /**
-     * If the role is 'tool', the output of the function call.
-     */
-    functionResponse?: unknown | null;
+    metadata?: { [key: string]: unknown } | null;
   }
 }
 
 export interface ChatSendMessageResponse {
   /**
-   * Suggestions for next conversational turns or clarifications needed by the AI.
+   * The ID of the current conversation session.
    */
-  followUpQuestions?: Array<string> | null;
+  sessionId: string;
 
   /**
-   * Requests for the client application to execute specific tool functions on behalf
-   * of the AI.
+   * The AI Advisor's natural language response.
+   */
+  text: string;
+
+  /**
+   * If the AI intends to use a tool, this provides the function call details.
    */
   functionCalls?: Array<AIFunctionCall> | null;
 
@@ -130,16 +132,6 @@ export interface ChatSendMessageResponse {
    * AI-generated proactive insights or recommendations.
    */
   proactiveInsights?: Array<InsightsAPI.AIInsight> | null;
-
-  /**
-   * The ID of the current conversation session.
-   */
-  sessionId?: string;
-
-  /**
-   * The AI Advisor's textual response.
-   */
-  text?: string;
 }
 
 export interface ChatRetrieveHistoryParams {
@@ -162,13 +154,13 @@ export interface ChatRetrieveHistoryParams {
 
 export interface ChatSendMessageParams {
   /**
-   * The user's natural language input to the AI Advisor.
+   * The user's natural language message or query for the AI Advisor.
    */
   message: string;
 
   /**
-   * Optional: The output from a tool function that the AI previously requested to be
-   * executed by the client.
+   * Optional: If the user is responding to a tool call, this contains the output
+   * from the tool's execution.
    */
   functionResponse?: ChatSendMessageParams.FunctionResponse | null;
 
@@ -180,17 +172,17 @@ export interface ChatSendMessageParams {
 
 export namespace ChatSendMessageParams {
   /**
-   * Optional: The output from a tool function that the AI previously requested to be
-   * executed by the client.
+   * Optional: If the user is responding to a tool call, this contains the output
+   * from the tool's execution.
    */
   export interface FunctionResponse {
     /**
-     * The name of the function that was called.
+     * The name of the tool function that was executed.
      */
     name?: string;
 
     /**
-     * The JSON object containing the result of the function call.
+     * The structured output/result from the tool function execution.
      */
     response?: unknown;
   }

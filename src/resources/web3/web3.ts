@@ -42,12 +42,12 @@ export type Web3RetrieveNFTsResponse = Array<Web3RetrieveNFTsResponse.Web3Retrie
 export namespace Web3RetrieveNFTsResponse {
   export interface Web3RetrieveNFTsResponseItem {
     /**
-     * Unique identifier for the NFT (often a combination of contract and token ID).
+     * Unique identifier for the NFT within .
      */
     id: string;
 
     /**
-     * The blockchain network on which the NFT exists.
+     * The blockchain network where the NFT resides.
      */
     blockchainNetwork: 'Ethereum' | 'Solana' | 'Polygon' | 'other';
 
@@ -62,12 +62,12 @@ export namespace Web3RetrieveNFTsResponse {
     contractAddress: string;
 
     /**
-     * URL to the NFT's image.
+     * URL to the NFT's image or media.
      */
     imageUrl: string;
 
     /**
-     * Name of the specific NFT.
+     * Name or title of the specific NFT.
      */
     name: string;
 
@@ -77,12 +77,12 @@ export namespace Web3RetrieveNFTsResponse {
     ownerAddress: string;
 
     /**
-     * The unique token ID within the collection.
+     * The unique ID of the NFT within its contract.
      */
     tokenId: string;
 
     /**
-     * List of traits and attributes of the NFT.
+     * List of traits/attributes of the NFT.
      */
     attributes?: Array<Web3RetrieveNFTsResponseItem.Attribute> | null;
 
@@ -97,7 +97,7 @@ export namespace Web3RetrieveNFTsResponse {
     estimatedValueUSD?: number | null;
 
     /**
-     * Last known sale price of this specific NFT in USD.
+     * The last known sale price of the NFT in USD.
      */
     lastSalePriceUSD?: number | null;
   }

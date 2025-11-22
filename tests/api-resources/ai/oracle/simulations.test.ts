@@ -35,7 +35,7 @@ describe('resource simulations', () => {
   test.skip('list: request options and params are passed correctly', async () => {
     // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
     await expect(
-      client.ai.oracle.simulations.list({ limit: 50, offset: 0 }, { path: '/_stainless_unknown_path' }),
+      client.ai.oracle.simulations.list({ limit: 10, offset: 0 }, { path: '/_stainless_unknown_path' }),
     ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);
   });
 

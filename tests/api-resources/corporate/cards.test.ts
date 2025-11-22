@@ -92,7 +92,7 @@ describe('resource cards', () => {
     await expect(
       client.corporate.cards.listTransactions(
         'corp_card_xyz987654',
-        { endDate: '2024-12-31', limit: 50, offset: 0, startDate: '2024-01-01' },
+        { endDate: '2024-12-31', limit: 10, offset: 0, startDate: '2024-01-01' },
         { path: '/_stainless_unknown_path' },
       ),
     ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);

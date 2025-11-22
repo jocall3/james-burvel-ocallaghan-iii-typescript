@@ -127,12 +127,12 @@ export interface CorporateCard {
   id: string;
 
   /**
-   * Masked card number for display purposes.
+   * Masked card number for display.
    */
   cardNumberMask: string;
 
   /**
-   * Type of the corporate card.
+   * Type of card (physical or virtual).
    */
   cardType: 'physical' | 'virtual';
 
@@ -142,49 +142,54 @@ export interface CorporateCard {
   controls: CorporateCardControls;
 
   /**
-   * Date when the card was created/issued.
+   * Date and time the card was created.
    */
   createdDate: string;
 
   /**
-   * Expiration date of the card.
+   * Card expiration date.
    */
   expirationDate: string;
 
   /**
-   * True if the card is currently frozen, preventing transactions.
+   * True if the card is temporarily frozen and cannot be used.
    */
   frozen: boolean;
 
   /**
-   * Name of the cardholder or purpose.
+   * Name of the cardholder (employee or campaign name).
    */
   holderName: string;
 
   /**
    * Current status of the card.
    */
-  status: 'Active' | 'Suspended' | 'Cancelled' | 'Expired';
+  status: 'Active' | 'Suspended' | 'Deactivated' | 'Expired';
 
   /**
-   * Employee ID associated with the card (if applicable).
+   * Optional: Employee ID if associated with a specific individual.
    */
   associatedEmployeeId?: string | null;
 
   /**
-   * ID of the corporate spending policy this card adheres to (if any).
+   * Optional: ID of the overarching corporate spending policy this card adheres to.
    */
   spendingPolicyId?: string | null;
+
+  /**
+   * A description of the card's intended use or purpose.
+   */
+  usagePurpose?: string | null;
 }
 
 export interface CorporateCardControls {
   /**
-   * Allow ATM withdrawals.
+   * Allow or disallow ATM cash withdrawals.
    */
   atmWithdrawals?: boolean;
 
   /**
-   * Allow contactless payments.
+   * Allow or disallow contactless (NFC) payments.
    */
   contactlessPayments?: boolean;
 
@@ -194,12 +199,13 @@ export interface CorporateCardControls {
   dailyLimit?: number | null;
 
   /**
-   * Allow international transactions.
+   * Allow or disallow transactions outside the primary country.
    */
   internationalTransactions?: boolean;
 
   /**
-   * List of allowed or disallowed merchant categories.
+   * List of allowed or disallowed merchant categories (e.g., 'Restaurants',
+   * 'Travel').
    */
   merchantCategoryRestrictions?: Array<string> | null;
 
@@ -209,7 +215,7 @@ export interface CorporateCardControls {
   monthlyLimit?: number | null;
 
   /**
-   * Allow online transactions.
+   * Allow or disallow online purchases.
    */
   onlineTransactions?: boolean;
 
@@ -219,7 +225,8 @@ export interface CorporateCardControls {
   singleTransactionLimit?: number | null;
 
   /**
-   * List of specific allowed or disallowed vendors/merchants.
+   * List of allowed or disallowed specific vendors/merchants (e.g., 'Amazon',
+   * 'Uber').
    */
   vendorRestrictions?: Array<string> | null;
 }
@@ -233,22 +240,22 @@ export interface CardCreateVirtualParams {
   controls: CorporateCardControls;
 
   /**
-   * Expiration date for the virtual card.
+   * The expiration date for the virtual card.
    */
   expirationDate: string;
 
   /**
-   * Name for the virtual card holder or its purpose.
+   * Name for the virtual card holder (can be a campaign, project, or individual).
    */
   holderName: string;
 
   /**
-   * Brief description of the virtual card's intended use.
+   * Clear purpose of the virtual card's use.
    */
   purpose: string;
 
   /**
-   * Optional: Employee ID to associate with this virtual card.
+   * Optional: Employee ID if associated with an individual.
    */
   associatedEmployeeId?: string | null;
 }
@@ -262,7 +269,7 @@ export interface CardFreezeParams {
 
 export interface CardListTransactionsParams {
   /**
-   * Filter results up to this date (inclusive, YYYY-MM-DD).
+   * Retrieve items up to this date (inclusive).
    */
   endDate?: string;
 
@@ -277,19 +284,19 @@ export interface CardListTransactionsParams {
   offset?: number;
 
   /**
-   * Filter results from this date (inclusive, YYYY-MM-DD).
+   * Retrieve items from this date (inclusive).
    */
   startDate?: string;
 }
 
 export interface CardUpdateControlsParams {
   /**
-   * Allow ATM withdrawals.
+   * Allow or disallow ATM cash withdrawals.
    */
   atmWithdrawals?: boolean;
 
   /**
-   * Allow contactless payments.
+   * Allow or disallow contactless (NFC) payments.
    */
   contactlessPayments?: boolean;
 
@@ -299,12 +306,13 @@ export interface CardUpdateControlsParams {
   dailyLimit?: number | null;
 
   /**
-   * Allow international transactions.
+   * Allow or disallow transactions outside the primary country.
    */
   internationalTransactions?: boolean;
 
   /**
-   * List of allowed or disallowed merchant categories.
+   * List of allowed or disallowed merchant categories (e.g., 'Restaurants',
+   * 'Travel').
    */
   merchantCategoryRestrictions?: Array<string> | null;
 
@@ -314,7 +322,7 @@ export interface CardUpdateControlsParams {
   monthlyLimit?: number | null;
 
   /**
-   * Allow online transactions.
+   * Allow or disallow online purchases.
    */
   onlineTransactions?: boolean;
 
@@ -324,7 +332,8 @@ export interface CardUpdateControlsParams {
   singleTransactionLimit?: number | null;
 
   /**
-   * List of specific allowed or disallowed vendors/merchants.
+   * List of allowed or disallowed specific vendors/merchants (e.g., 'Amazon',
+   * 'Uber').
    */
   vendorRestrictions?: Array<string> | null;
 }
