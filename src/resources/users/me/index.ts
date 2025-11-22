@@ -7,6 +7,12 @@ export {
   type BiometricEnrollParams,
   type BiometricVerifyParams,
 } from './biometrics';
-export { Devices, type Device, type DeviceListResponse, type DeviceRegisterParams } from './devices';
+export {
+  Devices,
+  type Device,
+  type DeviceListResponse,
+  type DeviceListParams,
+  type DeviceRegisterParams,
+} from './devices';
 export { Me, type MeUpdateParams } from './me';
 export { Preferences, type UserPreferences, type PreferenceUpdateParams } from './preferences';

@@ -11,7 +11,9 @@ import * as WalletsAPI from './wallets';
 import {
   CryptoWalletConnection,
   WalletConnectParams,
+  WalletListParams,
   WalletListResponse,
+  WalletRetrieveBalancesParams,
   WalletRetrieveBalancesResponse,
   Wallets,
 } from './wallets';
@@ -32,24 +34,49 @@ export class Web3 extends APIResource {
    * const response = await client.web3.retrieveNFTs();
    * ```
    */
-  retrieveNFTs(options?: RequestOptions): APIPromise<Web3RetrieveNFTsResponse> {
-    return this._client.get('/web3/nfts', options);
+  retrieveNFTs(
+    query: Web3RetrieveNFTsParams | null | undefined = {},
+    options?: RequestOptions,
+  ): APIPromise<Web3RetrieveNFTsResponse> {
+    return this._client.get('/web3/nfts', { query, ...options });
   }
 }
 
-export type Web3RetrieveNFTsResponse = Array<Web3RetrieveNFTsResponse.Web3RetrieveNFTsResponseItem>;
+export interface Web3RetrieveNFTsResponse {
+  /**
+   * The maximum number of items returned in the current page.
+   */
+  limit: number;
+
+  /**
+   * The number of items skipped before the current page.
+   */
+  offset: number;
+
+  /**
+   * The total number of items available across all pages.
+   */
+  total: number;
+
+  data?: Array<Web3RetrieveNFTsResponse.Data>;
+
+  /**
+   * The offset for the next page of results, if available. Null if no more pages.
+   */
+  nextOffset?: number | null;
+}
 
 export namespace Web3RetrieveNFTsResponse {
-  export interface Web3RetrieveNFTsResponseItem {
+  export interface Data {
     /**
-     * Unique identifier for the NFT within .
+     * Unique identifier for the NFT within the system.
      */
     id: string;
 
     /**
-     * The blockchain network the NFT resides on.
+     * Blockchain network on which the NFT exists.
      */
-    blockchainNetwork: 'Ethereum' | 'Solana' | 'Polygon' | 'Binance Smart Chain';
+    blockchainNetwork: string;
 
     /**
      * Name of the NFT collection.
@@ -57,34 +84,34 @@ export namespace Web3RetrieveNFTsResponse {
     collectionName: string;
 
     /**
-     * The contract address of the NFT collection.
+     * Blockchain contract address of the NFT collection.
      */
     contractAddress: string;
 
     /**
-     * URL to the NFT's image or metadata.
+     * URL to the NFT's image.
      */
     imageUrl: string;
 
     /**
-     * Specific name or title of the NFT.
+     * Name of the specific NFT.
      */
     name: string;
 
     /**
-     * The blockchain address of the current owner.
+     * Blockchain address of the current owner.
      */
     ownerAddress: string;
 
     /**
-     * The unique token ID of the NFT within its collection.
+     * Unique ID of the token within its contract.
      */
     tokenId: string;
 
     /**
-     * List of traits/attributes of the NFT.
+     * Key-value attributes of the NFT (e.g., rarity traits).
      */
-    attributes?: Array<Web3RetrieveNFTsResponseItem.Attribute> | null;
+    attributes?: Array<Data.Attribute> | null;
 
     /**
      * Description of the NFT.
@@ -92,48 +119,54 @@ export namespace Web3RetrieveNFTsResponse {
     description?: string | null;
 
     /**
-     * AI's estimated current market value of the NFT in USD.
+     * AI-estimated current market value in USD.
      */
     estimatedValueUSD?: number | null;
 
     /**
-     * Last known sale price of this NFT in USD.
+     * Last known sale price in USD.
      */
     lastSalePriceUSD?: number | null;
-
-    /**
-     * URL to the NFT's metadata JSON.
-     */
-    metadataUrl?: string | null;
   }
 
-  export namespace Web3RetrieveNFTsResponseItem {
+  export namespace Data {
     export interface Attribute {
-      /**
-       * The type of trait.
-       */
       trait_type?: string;
 
-      /**
-       * The value of the trait.
-       */
       value?: string;
     }
   }
+}
+
+export interface Web3RetrieveNFTsParams {
+  /**
+   * Maximum number of items to return in a single page.
+   */
+  limit?: number;
+
+  /**
+   * Number of items to skip before starting to collect the result set.
+   */
+  offset?: number;
 }
 
 Web3.Wallets = Wallets;
 Web3.Transactions = Transactions;
 
 export declare namespace Web3 {
-  export { type Web3RetrieveNFTsResponse as Web3RetrieveNFTsResponse };
+  export {
+    type Web3RetrieveNFTsResponse as Web3RetrieveNFTsResponse,
+    type Web3RetrieveNFTsParams as Web3RetrieveNFTsParams,
+  };
 
   export {
     Wallets as Wallets,
     type CryptoWalletConnection as CryptoWalletConnection,
     type WalletListResponse as WalletListResponse,
     type WalletRetrieveBalancesResponse as WalletRetrieveBalancesResponse,
+    type WalletListParams as WalletListParams,
     type WalletConnectParams as WalletConnectParams,
+    type WalletRetrieveBalancesParams as WalletRetrieveBalancesParams,
   };
 
   export {

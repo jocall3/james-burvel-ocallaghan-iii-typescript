@@ -24,43 +24,9 @@ describe('resource products', () => {
     // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
     await expect(
       client.marketplace.products.list(
-        { category: 'Smart Home Devices', limit: 2, offset: 0 },
+        { aiPersonalizationLevel: 'high', category: 'insurance', limit: 1, minRating: 4, offset: 0 },
         { path: '/_stainless_unknown_path' },
       ),
     ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);
-  });
-
-  // Prism tests are disabled
-  test.skip('claimOffer', async () => {
-    const responsePromise = client.marketplace.products.claimOffer('prod_smart_thermostat_001', {});
-    const rawResponse = await responsePromise.asResponse();
-    expect(rawResponse).toBeInstanceOf(Response);
-    const response = await responsePromise;
-    expect(response).not.toBeInstanceOf(Response);
-    const dataAndResponse = await responsePromise.withResponse();
-    expect(dataAndResponse.data).toBe(response);
-    expect(dataAndResponse.response).toBe(rawResponse);
-  });
-
-  // Prism tests are disabled
-  test.skip('simulatePurchase: only required params', async () => {
-    const responsePromise = client.marketplace.products.simulatePurchase('prod_smart_thermostat_001', {
-      purchaseOption: 'financed_12_months',
-    });
-    const rawResponse = await responsePromise.asResponse();
-    expect(rawResponse).toBeInstanceOf(Response);
-    const response = await responsePromise;
-    expect(response).not.toBeInstanceOf(Response);
-    const dataAndResponse = await responsePromise.withResponse();
-    expect(dataAndResponse.data).toBe(response);
-    expect(dataAndResponse.response).toBe(rawResponse);
-  });
-
-  // Prism tests are disabled
-  test.skip('simulatePurchase: required and optional params', async () => {
-    const response = await client.marketplace.products.simulatePurchase('prod_smart_thermostat_001', {
-      purchaseOption: 'financed_12_months',
-      targetAccountId: 'acc_chase_checking_4567',
-    });
   });
 });

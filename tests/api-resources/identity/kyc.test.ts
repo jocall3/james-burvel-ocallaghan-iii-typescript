@@ -23,7 +23,6 @@ describe('resource kyc', () => {
   test.skip('submit: only required params', async () => {
     const responsePromise = client.identity.kyc.submit({
       countryOfIssue: 'US',
-      documentFrontImage: 'U3RhaW5sZXNzIHJvY2tz',
       documentNumber: 'ABC12345',
       documentType: 'drivers_license',
       expirationDate: '2030-01-01',
@@ -42,14 +41,13 @@ describe('resource kyc', () => {
   test.skip('submit: required and optional params', async () => {
     const response = await client.identity.kyc.submit({
       countryOfIssue: 'US',
-      documentFrontImage: 'U3RhaW5sZXNzIHJvY2tz',
       documentNumber: 'ABC12345',
       documentType: 'drivers_license',
       expirationDate: '2030-01-01',
       issueDate: '2020-01-01',
-      additionalNotes: 'additionalNotes',
-      addressProofImage: 'U3RhaW5sZXNzIHJvY2tz',
+      additionalDocuments: ['U3RhaW5sZXNzIHJvY2tz'],
       documentBackImage: 'U3RhaW5sZXNzIHJvY2tz',
+      documentFrontImage: 'U3RhaW5sZXNzIHJvY2tz',
     });
   });
 });

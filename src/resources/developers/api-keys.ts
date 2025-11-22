@@ -32,8 +32,11 @@ export class APIKeys extends APIResource {
    * const apiKeys = await client.developers.apiKeys.list();
    * ```
    */
-  list(options?: RequestOptions): APIPromise<APIKeyListResponse> {
-    return this._client.get('/developers/api-keys', options);
+  list(
+    query: APIKeyListParams | null | undefined = {},
+    options?: RequestOptions,
+  ): APIPromise<APIKeyListResponse> {
+    return this._client.get('/developers/api-keys', { query, ...options });
   }
 
   /**
@@ -66,13 +69,12 @@ export interface APIKey {
   createdAt: string;
 
   /**
-   * The visible prefix of the API key, indicating its type (e.g., public/secret,
-   * test/prod).
+   * The non-secret prefix of the API key, used for identification.
    */
   prefix: string;
 
   /**
-   * List of permissions (scopes) granted to this API key.
+   * List of permissions granted to this API key.
    */
   scopes: Array<string>;
 
@@ -87,40 +89,63 @@ export interface APIKey {
   expiresAt?: string | null;
 
   /**
-   * Timestamp of the last successful use of this API key.
+   * Timestamp of the last time this API key was used.
    */
   lastUsed?: string | null;
-
-  /**
-   * User-friendly name for the API key.
-   */
-  name?: string | null;
 }
 
-export type APIKeyListResponse = Array<APIKey>;
+export interface APIKeyListResponse {
+  /**
+   * The maximum number of items returned in the current page.
+   */
+  limit: number;
+
+  /**
+   * The number of items skipped before the current page.
+   */
+  offset: number;
+
+  /**
+   * The total number of items available across all pages.
+   */
+  total: number;
+
+  data?: Array<APIKey>;
+
+  /**
+   * The offset for the next page of results, if available. Null if no more pages.
+   */
+  nextOffset?: number | null;
+}
 
 export interface APIKeyCreateParams {
   /**
-   * A descriptive name for the new API key.
+   * A descriptive name for the API key.
    */
   name: string;
 
   /**
-   * List of desired permissions (scopes) for the API key.
+   * List of permissions to grant to this API key.
    */
   scopes: Array<string>;
 
   /**
-   * Optional: Number of days until the API key expires. If not provided, it will not
+   * Optional: Number of days until the API key expires. If omitted, it will not
    * expire.
    */
   expiresInDays?: number | null;
+}
+
+export interface APIKeyListParams {
+  /**
+   * Maximum number of items to return in a single page.
+   */
+  limit?: number;
 
   /**
-   * If true, generates a secret key (suitable for server-to-server) with a 'db*sk*'
-   * prefix. Otherwise, generates a public key ('db*pk*').
+   * Number of items to skip before starting to collect the result set.
    */
-  isSecretKey?: boolean;
+  offset?: number;
 }
 
 export declare namespace APIKeys {
@@ -128,5 +153,6 @@ export declare namespace APIKeys {
     type APIKey as APIKey,
     type APIKeyListResponse as APIKeyListResponse,
     type APIKeyCreateParams as APIKeyCreateParams,
+    type APIKeyListParams as APIKeyListParams,
   };
 }

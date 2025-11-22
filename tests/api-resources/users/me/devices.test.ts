@@ -20,6 +20,14 @@ describe('resource devices', () => {
   });
 
   // Prism tests are disabled
+  test.skip('list: request options and params are passed correctly', async () => {
+    // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
+    await expect(
+      client.users.me.devices.list({ limit: 1, offset: 0 }, { path: '/_stainless_unknown_path' }),
+    ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);
+  });
+
+  // Prism tests are disabled
   test.skip('deregister', async () => {
     const responsePromise = client.users.me.devices.deregister('dev_mobile_ios_aabbcc');
     const rawResponse = await responsePromise.asResponse();

@@ -55,29 +55,14 @@ export class Users extends APIResource {
 }
 
 export interface Address {
-  /**
-   * City.
-   */
   city?: string;
 
-  /**
-   * Country.
-   */
   country?: string;
 
-  /**
-   * State or province (if applicable).
-   */
-  state?: string | null;
+  state?: string;
 
-  /**
-   * Street name and number.
-   */
   street?: string;
 
-  /**
-   * Postal or ZIP code.
-   */
   zip?: string;
 }
 
@@ -88,69 +73,66 @@ export interface User {
   id: string;
 
   /**
-   * Unique email address of the user.
+   * Primary email address of the user.
    */
   email: string;
+
+  /**
+   * Indicates if the user's identity has been verified (e.g., via KYC).
+   */
+  identityVerified: boolean;
 
   /**
    * Full name of the user.
    */
   name: string;
 
-  /**
-   * User's residential address.
-   */
   address?: Address;
 
   /**
-   * AI-assigned financial persona based on user behavior and preferences.
+   * AI-identified financial persona for tailored advice.
    */
   aiPersona?: string;
 
   /**
-   * User's date of birth.
+   * Date of birth of the user (YYYY-MM-DD).
    */
   dateOfBirth?: string | null;
 
   /**
-   * Current gamification level of the user.
+   * Current gamification level.
    */
   gamificationLevel?: number;
 
   /**
-   * Indicates if the user's identity has been fully verified (KYC/AML).
-   */
-  identityVerified?: boolean;
-
-  /**
-   * Total loyalty points accumulated by the user.
+   * Current balance of loyalty points.
    */
   loyaltyPoints?: number;
 
   /**
-   * Current loyalty tier of the user.
+   * Current loyalty program tier.
    */
-  loyaltyTier?: 'Bronze' | 'Silver' | 'Gold' | 'Platinum' | 'Zenith Platinum';
+  loyaltyTier?: string;
 
   /**
-   * Phone number of the user.
+   * Primary phone number of the user.
    */
   phone?: string | null;
 
   /**
-   * User's personalization and experience preferences.
+   * User's personalized preferences for the platform.
    */
   preferences?: PreferencesAPI.UserPreferences;
 
   /**
-   * Current security status and settings for the user.
+   * Security-related status for the user account.
    */
   securityStatus?: User.SecurityStatus;
 }
 
 export namespace User {
   /**
-   * Current security status and settings for the user.
+   * Security-related status for the user account.
    */
   export interface SecurityStatus {
     /**
@@ -159,17 +141,17 @@ export namespace User {
     biometricsEnrolled?: boolean;
 
     /**
-     * Timestamp of the user's last successful login.
+     * Timestamp of the last successful login.
      */
     lastLogin?: string;
 
     /**
-     * IP address from which the last successful login occurred.
+     * IP address of the last successful login.
      */
     lastLoginIp?: string;
 
     /**
-     * Indicates if two-factor authentication is enabled.
+     * Indicates if two-factor authentication (2FA) is enabled.
      */
     twoFactorEnabled?: boolean;
   }
@@ -177,24 +159,24 @@ export namespace User {
 
 export interface UserLoginResponse {
   /**
-   * JWT access token for authenticated API requests.
+   * JWT access token to authenticate subsequent API requests.
    */
-  accessToken?: string;
+  accessToken: string;
 
   /**
    * Lifetime of the access token in seconds.
    */
-  expiresIn?: number;
+  expiresIn: number;
 
   /**
-   * Token used to obtain a new access token without re-authenticating.
+   * Token used to obtain new access tokens without re-authenticating.
    */
-  refreshToken?: string;
+  refreshToken: string;
 
   /**
-   * Type of the token, usually 'Bearer'.
+   * Type of the access token.
    */
-  tokenType?: string;
+  tokenType: string;
 }
 
 export interface UserLoginParams {
@@ -209,14 +191,14 @@ export interface UserLoginParams {
   password: string;
 
   /**
-   * Multi-factor authentication code, if required.
+   * Optional: Multi-factor authentication code, if required.
    */
   mfaCode?: string | null;
 }
 
 export interface UserRegisterParams {
   /**
-   * Unique email address for the user.
+   * Email address for registration and login.
    */
   email: string;
 
@@ -226,24 +208,24 @@ export interface UserRegisterParams {
   name: string;
 
   /**
-   * Secure password for the user account.
+   * User's chosen password.
    */
   password: string;
 
   /**
-   * Phone number for SMS verification and communication.
-   */
-  phone: string;
-
-  /**
-   * User's residential address (optional for initial registration).
+   * Optional initial address details.
    */
   address?: Address;
 
   /**
-   * User's date of birth (optional for initial registration).
+   * Optional date of birth (YYYY-MM-DD).
    */
   dateOfBirth?: string | null;
+
+  /**
+   * Optional phone number for MFA or recovery.
+   */
+  phone?: string | null;
 }
 
 Users.PasswordReset = PasswordReset;

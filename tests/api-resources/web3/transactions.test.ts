@@ -33,7 +33,6 @@ describe('resource transactions', () => {
       blockchainNetwork: 'Ethereum',
       recipientAddress: '0xdef4567890abcdef1234567890abcdef1234567890',
       sourceWalletId: 'wallet_conn_eth_0xabc123',
-      gasLimit: 21000,
       gasPriceGwei: 50,
       memo: 'Payment for services',
     });

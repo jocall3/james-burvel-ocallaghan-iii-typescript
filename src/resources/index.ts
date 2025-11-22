@@ -7,7 +7,9 @@ export {
   type AccountLinkNewInstitutionResponse,
   type AccountListLinkedAccountsResponse,
   type AccountRetrieveAccountDetailsResponse,
+  type AccountRetrieveAccountStatementsResponse,
   type AccountLinkNewInstitutionParams,
+  type AccountListLinkedAccountsParams,
   type AccountRetrieveAccountStatementsParams,
 } from './accounts/accounts';
 export {
@@ -16,6 +18,7 @@ export {
   type BudgetListResponse,
   type BudgetCreateParams,
   type BudgetUpdateParams,
+  type BudgetListParams,
 } from './budgets';
 export {
   Corporate,
@@ -29,6 +32,7 @@ export {
   type GoalListResponse,
   type GoalCreateParams,
   type GoalUpdateParams,
+  type GoalListParams,
 } from './goals';
 export { Identity } from './identity/identity';
 export { Investments } from './investments/investments';
@@ -59,4 +63,4 @@ export {
   type UserLoginParams,
   type UserRegisterParams,
 } from './users/users';
-export { Web3, type Web3RetrieveNFTsResponse } from './web3/web3';
+export { Web3, type Web3RetrieveNFTsResponse, type Web3RetrieveNFTsParams } from './web3/web3';

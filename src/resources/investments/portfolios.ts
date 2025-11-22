@@ -73,12 +73,15 @@ export class Portfolios extends APIResource {
    *
    * @example
    * ```ts
-   * const investmentPortfolios =
+   * const portfolios =
    *   await client.investments.portfolios.list();
    * ```
    */
-  list(options?: RequestOptions): APIPromise<PortfolioListResponse> {
-    return this._client.get('/investments/portfolios', options);
+  list(
+    query: PortfolioListParams | null | undefined = {},
+    options?: RequestOptions,
+  ): APIPromise<PortfolioListResponse> {
+    return this._client.get('/investments/portfolios', { query, ...options });
   }
 
   /**
@@ -114,12 +117,12 @@ export interface InvestmentPortfolio {
   id: string;
 
   /**
-   * The base currency of the portfolio.
+   * ISO 4217 currency code of the portfolio.
    */
   currency: string;
 
   /**
-   * Timestamp when the portfolio data was last synced/updated.
+   * Timestamp when the portfolio data was last updated.
    */
   lastUpdated: string;
 
@@ -129,9 +132,14 @@ export interface InvestmentPortfolio {
   name: string;
 
   /**
-   * User-defined or AI-assessed risk tolerance for this portfolio.
+   * User's stated or AI-assessed risk tolerance for this portfolio.
    */
-  riskTolerance: 'conservative' | 'balanced' | 'medium' | 'aggressive' | 'speculative';
+  riskTolerance: 'conservative' | 'moderate' | 'aggressive' | 'very_aggressive';
+
+  /**
+   * Daily gain or loss on the portfolio.
+   */
+  todayGainLoss: number;
 
   /**
    * Current total market value of the portfolio.
@@ -139,40 +147,35 @@ export interface InvestmentPortfolio {
   totalValue: number;
 
   /**
-   * Type or strategy of the investment portfolio.
+   * General type or strategy of the portfolio.
    */
-  type: 'equities' | 'bonds' | 'diversified' | 'retirement' | 'crypto' | 'custom';
+  type: 'equities' | 'bonds' | 'diversified' | 'crypto' | 'retirement' | 'other';
 
   /**
-   * AI-generated insights and recommendations related to portfolio performance.
+   * Total unrealized gain or loss on the portfolio.
+   */
+  unrealizedGainLoss: number;
+
+  /**
+   * AI-driven insights into portfolio performance and market outlook.
    */
   aiPerformanceInsights?: Array<InsightsAPI.AIInsight> | null;
 
   /**
-   * Frequency at which the AI is configured to suggest or perform rebalancing.
+   * Frequency at which AI-driven rebalancing is set to occur.
    */
-  aiRebalancingFrequency?: 'never' | 'monthly' | 'quarterly' | 'annually' | null;
+  aiRebalancingFrequency?: 'monthly' | 'quarterly' | 'semi_annually' | 'annually' | 'never' | null;
 
   /**
-   * Detailed list of assets held within the portfolio.
+   * List of individual assets held in the portfolio.
    */
-  holdings?: Array<InvestmentPortfolio.Holding> | null;
-
-  /**
-   * Gain or loss for the current trading day.
-   */
-  todayGainLoss?: number | null;
-
-  /**
-   * Total unrealized gain or loss for the portfolio.
-   */
-  unrealizedGainLoss?: number | null;
+  holdings?: Array<InvestmentPortfolio.Holding>;
 }
 
 export namespace InvestmentPortfolio {
   export interface Holding {
     /**
-     * Average cost per unit of the asset.
+     * Average cost per unit.
      */
     averageCost: number;
 
@@ -182,14 +185,19 @@ export namespace InvestmentPortfolio {
     currentPrice: number;
 
     /**
-     * Current total market value of this holding.
+     * Total market value of the holding.
      */
     marketValue: number;
 
     /**
-     * Full name of the asset.
+     * Full name of the investment asset.
      */
     name: string;
+
+    /**
+     * Percentage of the total portfolio value this holding represents.
+     */
+    percentageOfPortfolio: number;
 
     /**
      * Number of units held.
@@ -197,103 +205,105 @@ export namespace InvestmentPortfolio {
     quantity: number;
 
     /**
-     * Ticker symbol or identifier of the asset.
+     * Stock ticker or asset symbol.
      */
     symbol: string;
 
     /**
-     * ESG (Environmental, Social, Governance) score of the holding, if available.
+     * Overall ESG (Environmental, Social, Governance) score of the asset (0-10).
      */
     esgScore?: number | null;
-
-    /**
-     * Unrealized gain or loss for this specific holding.
-     */
-    gainLoss?: number | null;
-
-    /**
-     * Percentage of the total portfolio value represented by this holding.
-     */
-    percentageOfPortfolio?: number;
   }
 }
 
-export type PortfolioListResponse = Array<InvestmentPortfolio>;
+export interface PortfolioListResponse {
+  /**
+   * The maximum number of items returned in the current page.
+   */
+  limit: number;
+
+  /**
+   * The number of items skipped before the current page.
+   */
+  offset: number;
+
+  /**
+   * The total number of items available across all pages.
+   */
+  total: number;
+
+  data?: Array<InvestmentPortfolio>;
+
+  /**
+   * The offset for the next page of results, if available. Null if no more pages.
+   */
+  nextOffset?: number | null;
+}
 
 export interface PortfolioRebalanceResponse {
   /**
-   * The ID of the portfolio being rebalanced.
+   * ID of the portfolio being rebalanced.
    */
   portfolioId: string;
 
   /**
-   * Unique ID for the rebalancing operation.
+   * Unique identifier for the rebalancing operation.
    */
   rebalanceId: string;
 
   /**
    * Current status of the rebalancing operation.
    */
-  status: 'analyzing' | 'proposed' | 'pending_confirmation' | 'executing' | 'completed' | 'failed';
+  status: 'analyzing' | 'pending_confirmation' | 'executing_trades' | 'completed' | 'failed';
 
   /**
-   * A descriptive message about the current status.
+   * A descriptive message about the current rebalance status.
    */
   statusMessage: string;
 
   /**
-   * Timestamp when the proposed trades will expire if not confirmed.
+   * Timestamp when the rebalance confirmation expires, if `confirmationRequired` is
+   * true.
    */
   confirmationExpiresAt?: string | null;
 
   /**
-   * Indicates if user confirmation is pending for proposed trades.
+   * Indicates if user confirmation is required to proceed with trades.
    */
-  confirmationRequired?: boolean;
+  confirmationRequired?: boolean | null;
 
   /**
-   * AI's estimated impact of the rebalancing on portfolio metrics.
+   * AI-estimated impact of the rebalance on the portfolio.
    */
   estimatedImpact?: string | null;
 
   /**
-   * A list of proposed trades, if status is 'proposed' or 'pending_confirmation'.
+   * List of proposed trades if `dryRun` was true and status is
+   * `pending_confirmation`.
    */
   proposedTrades?: Array<PortfolioRebalanceResponse.ProposedTrade> | null;
 }
 
 export namespace PortfolioRebalanceResponse {
   export interface ProposedTrade {
-    /**
-     * Action to perform (buy/sell).
-     */
     action?: 'buy' | 'sell';
 
-    /**
-     * Symbol of the asset to trade.
-     */
-    assetSymbol?: string;
-
-    /**
-     * Estimated price per unit.
-     */
     estimatedPrice?: number;
 
-    /**
-     * Quantity of shares/units.
-     */
     quantity?: number;
+
+    symbol?: string;
   }
 }
 
 export interface PortfolioCreateParams {
   /**
-   * The base currency of the portfolio.
+   * ISO 4217 currency code of the portfolio.
    */
   currency: string;
 
   /**
-   * Initial amount to invest in this portfolio.
+   * Initial amount to invest into the portfolio.
    */
   initialInvestment: number;
 
@@ -305,21 +315,21 @@ export interface PortfolioCreateParams {
   /**
    * Desired risk tolerance for this portfolio.
    */
-  riskTolerance: 'conservative' | 'balanced' | 'medium' | 'aggressive' | 'speculative';
+  riskTolerance: 'conservative' | 'moderate' | 'aggressive' | 'very_aggressive';
 
   /**
-   * Type or strategy of the investment portfolio.
+   * General type or strategy of the portfolio.
    */
-  type: 'equities' | 'bonds' | 'diversified' | 'retirement' | 'crypto' | 'custom';
+  type: 'equities' | 'bonds' | 'diversified' | 'crypto' | 'retirement' | 'other';
 
   /**
-   * If true, AI will automatically suggest and allocate assets based on risk
+   * If true, AI will automatically allocate initial investment based on risk
    * tolerance.
    */
   aiAutoAllocate?: boolean;
 
   /**
-   * Optional: The ID of a linked bank account to draw initial investment from.
+   * Optional: ID of a linked account to fund the initial investment.
    */
   linkedAccountId?: string | null;
 }
@@ -328,7 +338,7 @@ export interface PortfolioUpdateParams {
   /**
    * Updated frequency for AI-driven rebalancing.
    */
-  aiRebalancingFrequency?: 'never' | 'monthly' | 'quarterly' | 'annually';
+  aiRebalancingFrequency?: 'monthly' | 'quarterly' | 'semi_annually' | 'annually' | 'never' | null;
 
   /**
    * Updated name of the portfolio.
@@ -336,24 +346,38 @@ export interface PortfolioUpdateParams {
   name?: string;
 
   /**
-   * Updated risk tolerance for this portfolio.
+   * Updated risk tolerance for this portfolio. May trigger rebalancing.
    */
-  riskTolerance?: 'conservative' | 'balanced' | 'medium' | 'aggressive' | 'speculative';
+  riskTolerance?: 'conservative' | 'moderate' | 'aggressive' | 'very_aggressive';
+}
+
+export interface PortfolioListParams {
+  /**
+   * Maximum number of items to return in a single page.
+   */
+  limit?: number;
+
+  /**
+   * Number of items to skip before starting to collect the result set.
+   */
+  offset?: number;
 }
 
 export interface PortfolioRebalanceParams {
   /**
-   * The desired risk tolerance for the portfolio after rebalancing.
+   * The desired risk tolerance for rebalancing the portfolio.
    */
-  targetRiskTolerance: 'conservative' | 'balanced' | 'medium' | 'aggressive' | 'speculative';
+  targetRiskTolerance: 'conservative' | 'moderate' | 'aggressive' | 'very_aggressive';
 
   /**
-   * If true, explicit user confirmation is required before trades are executed.
+   * If true, user confirmation is required before executing actual trades after a
+   * dry run.
    */
   confirmationRequired?: boolean;
 
   /**
-   * If true, the AI will only propose trades without executing them.
+   * If true, only simulate the rebalance without executing trades. Returns proposed
+   * trades.
    */
   dryRun?: boolean;
 }
@@ -365,6 +389,7 @@ export declare namespace Portfolios {
     type PortfolioRebalanceResponse as PortfolioRebalanceResponse,
     type PortfolioCreateParams as PortfolioCreateParams,
     type PortfolioUpdateParams as PortfolioUpdateParams,
+    type PortfolioListParams as PortfolioListParams,
     type PortfolioRebalanceParams as PortfolioRebalanceParams,
   };
 }

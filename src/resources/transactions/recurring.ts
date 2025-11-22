@@ -32,15 +32,21 @@ export class Recurring extends APIResource {
    *
    * @example
    * ```ts
-   * const recurringTransactions =
+   * const recurrings =
    *   await client.transactions.recurring.list();
    * ```
    */
-  list(options?: RequestOptions): APIPromise<RecurringListResponse> {
-    return this._client.get('/transactions/recurring', options);
+  list(
+    query: RecurringListParams | null | undefined = {},
+    options?: RequestOptions,
+  ): APIPromise<RecurringListResponse> {
+    return this._client.get('/transactions/recurring', { query, ...options });
   }
 }
 
+/**
+ * Details of a detected or user-defined recurring transaction.
+ */
 export interface RecurringTransaction {
   /**
    * Unique identifier for the recurring transaction.
@@ -48,7 +54,7 @@ export interface RecurringTransaction {
   id: string;
 
   /**
-   * The amount of each recurring transaction.
+   * Amount of the recurring transaction.
    */
   amount: number;
 
@@ -58,7 +64,7 @@ export interface RecurringTransaction {
   category: string;
 
   /**
-   * The currency of the recurring transaction.
+   * ISO 4217 currency code.
    */
   currency: string;
 
@@ -68,41 +74,63 @@ export interface RecurringTransaction {
   description: string;
 
   /**
-   * How often the transaction occurs.
+   * Frequency of the recurring transaction.
    */
-  frequency: 'daily' | 'weekly' | 'bi-weekly' | 'monthly' | 'quarterly' | 'annually';
-
-  /**
-   * The next expected date for this transaction to occur.
-   */
-  nextDueDate: string | null;
+  frequency: 'daily' | 'weekly' | 'bi_weekly' | 'monthly' | 'quarterly' | 'semi_annually' | 'annually';
 
   /**
    * Current status of the recurring transaction.
    */
-  status: 'active' | 'paused' | 'cancelled' | 'completed';
+  status: 'active' | 'inactive' | 'cancelled' | 'paused';
 
   /**
-   * AI's confidence score (0-1) that this is indeed a recurring transaction.
+   * AI confidence score that this is a recurring transaction (0-1).
    */
   aiConfidenceScore?: number | null;
 
   /**
-   * The date the last recurring payment was made.
+   * Date of the last payment for this recurring transaction.
    */
   lastPaidDate?: string | null;
 
   /**
-   * The ID of the account from which this recurring transaction typically occurs.
+   * ID of the account typically used for this recurring transaction.
    */
   linkedAccountId?: string | null;
+
+  /**
+   * Next scheduled due date for the transaction.
+   */
+  nextDueDate?: string | null;
 }
 
-export type RecurringListResponse = Array<RecurringTransaction>;
+export interface RecurringListResponse {
+  /**
+   * The maximum number of items returned in the current page.
+   */
+  limit: number;
+
+  /**
+   * The number of items skipped before the current page.
+   */
+  offset: number;
+
+  /**
+   * The total number of items available across all pages.
+   */
+  total: number;
+
+  data?: Array<RecurringTransaction>;
+
+  /**
+   * The offset for the next page of results, if available. Null if no more pages.
+   */
+  nextOffset?: number | null;
+}
 
 export interface RecurringCreateParams {
   /**
-   * The amount of each recurring transaction.
+   * Amount of the recurring transaction.
    */
   amount: number;
 
@@ -112,34 +140,41 @@ export interface RecurringCreateParams {
   category: string;
 
   /**
-   * The currency of the recurring transaction.
+   * ISO 4217 currency code.
    */
   currency: string;
 
   /**
-   * Description of the new recurring transaction.
+   * Description of the recurring transaction.
    */
   description: string;
 
   /**
-   * How often the transaction occurs.
+   * Frequency of the recurring transaction.
    */
-  frequency: 'daily' | 'weekly' | 'bi-weekly' | 'monthly' | 'quarterly' | 'annually';
+  frequency: 'daily' | 'weekly' | 'bi_weekly' | 'monthly' | 'quarterly' | 'semi_annually' | 'annually';
 
   /**
-   * The ID of the account from which this recurring transaction typically occurs.
+   * ID of the account to associate with this recurring transaction.
    */
   linkedAccountId: string;
 
   /**
-   * The date the recurring transaction is expected to start.
+   * The date when this recurring transaction is expected to start.
    */
   startDate: string;
+}
+
+export interface RecurringListParams {
+  /**
+   * Maximum number of items to return in a single page.
+   */
+  limit?: number;
 
   /**
-   * Initial status of the recurring transaction.
+   * Number of items to skip before starting to collect the result set.
    */
-  status?: 'active' | 'paused';
+  offset?: number;
 }
 
 export declare namespace Recurring {
@@ -147,5 +182,6 @@ export declare namespace Recurring {
     type RecurringTransaction as RecurringTransaction,
     type RecurringListResponse as RecurringListResponse,
     type RecurringCreateParams as RecurringCreateParams,
+    type RecurringListParams as RecurringListParams,
   };
 }

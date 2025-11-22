@@ -12,6 +12,7 @@ export {
   type CorporateCard,
   type CorporateCardControls,
   type CardListResponse,
+  type CardListParams,
   type CardCreateVirtualParams,
   type CardFreezeParams,
   type CardListTransactionsParams,

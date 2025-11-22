@@ -19,6 +19,7 @@ import { APIPromise } from './core/api-promise';
 import {
   Budget,
   BudgetCreateParams,
+  BudgetListParams,
   BudgetListResponse,
   BudgetUpdateParams,
   Budgets,
@@ -26,6 +27,7 @@ import {
 import {
   FinancialGoal,
   GoalCreateParams,
+  GoalListParams,
   GoalListResponse,
   GoalUpdateParams,
   Goals,
@@ -33,9 +35,11 @@ import {
 import {
   AccountLinkNewInstitutionParams,
   AccountLinkNewInstitutionResponse,
+  AccountListLinkedAccountsParams,
   AccountListLinkedAccountsResponse,
   AccountRetrieveAccountDetailsResponse,
   AccountRetrieveAccountStatementsParams,
+  AccountRetrieveAccountStatementsResponse,
   Accounts,
   LinkedAccount,
 } from './resources/accounts/accounts';
@@ -75,7 +79,7 @@ import {
   UserRegisterParams,
   Users,
 } from './resources/users/users';
-import { Web3, Web3RetrieveNFTsResponse } from './resources/web3/web3';
+import { Web3, Web3RetrieveNFTsParams, Web3RetrieveNFTsResponse } from './resources/web3/web3';
 import { type Fetch } from './internal/builtin-types';
 import { HeadersLike, NullableHeaders, buildHeaders } from './internal/headers';
 import { FinalRequestOptions, RequestOptions } from './internal/request-options';
@@ -863,7 +867,9 @@ export declare namespace JamesBurvelOcallaghanIii {
     type AccountLinkNewInstitutionResponse as AccountLinkNewInstitutionResponse,
     type AccountListLinkedAccountsResponse as AccountListLinkedAccountsResponse,
     type AccountRetrieveAccountDetailsResponse as AccountRetrieveAccountDetailsResponse,
+    type AccountRetrieveAccountStatementsResponse as AccountRetrieveAccountStatementsResponse,
     type AccountLinkNewInstitutionParams as AccountLinkNewInstitutionParams,
+    type AccountListLinkedAccountsParams as AccountListLinkedAccountsParams,
     type AccountRetrieveAccountStatementsParams as AccountRetrieveAccountStatementsParams,
   };
 
@@ -884,6 +890,7 @@ export declare namespace JamesBurvelOcallaghanIii {
     type BudgetListResponse as BudgetListResponse,
     type BudgetCreateParams as BudgetCreateParams,
     type BudgetUpdateParams as BudgetUpdateParams,
+    type BudgetListParams as BudgetListParams,
   };
 
   export { Investments as Investments };
@@ -896,7 +903,11 @@ export declare namespace JamesBurvelOcallaghanIii {
     type CorporatePerformSanctionScreeningParams as CorporatePerformSanctionScreeningParams,
   };
 
-  export { Web3 as Web3, type Web3RetrieveNFTsResponse as Web3RetrieveNFTsResponse };
+  export {
+    Web3 as Web3,
+    type Web3RetrieveNFTsResponse as Web3RetrieveNFTsResponse,
+    type Web3RetrieveNFTsParams as Web3RetrieveNFTsParams,
+  };
 
   export { Payments as Payments };
 
@@ -919,6 +930,7 @@ export declare namespace JamesBurvelOcallaghanIii {
     type GoalListResponse as GoalListResponse,
     type GoalCreateParams as GoalCreateParams,
     type GoalUpdateParams as GoalUpdateParams,
+    type GoalListParams as GoalListParams,
   };
 
   export { Marketplace as Marketplace };

@@ -20,17 +20,17 @@ describe('resource cards', () => {
   });
 
   // Prism tests are disabled
+  test.skip('list: request options and params are passed correctly', async () => {
+    // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
+    await expect(
+      client.corporate.cards.list({ limit: 1, offset: 0 }, { path: '/_stainless_unknown_path' }),
+    ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);
+  });
+
+  // Prism tests are disabled
   test.skip('createVirtual: only required params', async () => {
     const responsePromise = client.corporate.cards.createVirtual({
-      controls: {
-        atmWithdrawals: false,
-        contactlessPayments: false,
-        dailyLimit: 500,
-        internationalTransactions: false,
-        monthlyLimit: 1000,
-        onlineTransactions: true,
-        singleTransactionLimit: 200,
-      },
+      controls: {},
       expirationDate: '2025-12-31',
       holderName: 'Marketing Campaign Q4',
       purpose: 'Online advertising for Q4 campaigns',
@@ -52,22 +52,17 @@ describe('resource cards', () => {
         contactlessPayments: false,
         dailyLimit: 500,
         internationalTransactions: false,
+        merchantCategoryRestrictions: ['Advertising'],
         monthlyLimit: 1000,
         onlineTransactions: true,
         singleTransactionLimit: 200,
-        merchantCategoryRestrictions: ['Advertising'],
-        timeBasedRestrictions: {
-          dailyEndTime: '18:11:19.117Z',
-          dailyStartTime: '18:11:19.117Z',
-          weekdaysOnly: true,
-        },
         vendorRestrictions: ['Facebook Ads', 'Google Ads'],
       },
       expirationDate: '2025-12-31',
       holderName: 'Marketing Campaign Q4',
       purpose: 'Online advertising for Q4 campaigns',
       associatedEmployeeId: 'emp_marketing_01',
-      currency: 'USD',
+      spendingPolicyId: 'policy_marketing_fixed',
     });
   });
 
@@ -106,23 +101,15 @@ describe('resource cards', () => {
     await expect(
       client.corporate.cards.listTransactions(
         'corp_card_xyz987654',
-        { endDate: '2024-12-31', limit: 2, offset: 0, startDate: '2024-01-01' },
+        { endDate: '2024-12-31', limit: 1, offset: 0, startDate: '2024-01-01' },
         { path: '/_stainless_unknown_path' },
       ),
     ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);
   });
 
   // Prism tests are disabled
-  test.skip('updateControls: only required params', async () => {
-    const responsePromise = client.corporate.cards.updateControls('corp_card_xyz987654', {
-      atmWithdrawals: true,
-      contactlessPayments: true,
-      dailyLimit: 750,
-      internationalTransactions: true,
-      monthlyLimit: 3000,
-      onlineTransactions: true,
-      singleTransactionLimit: 1000,
-    });
+  test.skip('updateControls', async () => {
+    const responsePromise = client.corporate.cards.updateControls('corp_card_xyz987654', {});
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
     const response = await responsePromise;
@@ -130,25 +117,5 @@ describe('resource cards', () => {
     const dataAndResponse = await responsePromise.withResponse();
     expect(dataAndResponse.data).toBe(response);
     expect(dataAndResponse.response).toBe(rawResponse);
-  });
-
-  // Prism tests are disabled
-  test.skip('updateControls: required and optional params', async () => {
-    const response = await client.corporate.cards.updateControls('corp_card_xyz987654', {
-      atmWithdrawals: true,
-      contactlessPayments: true,
-      dailyLimit: 750,
-      internationalTransactions: true,
-      monthlyLimit: 3000,
-      onlineTransactions: true,
-      singleTransactionLimit: 1000,
-      merchantCategoryRestrictions: ['Software Subscriptions', 'Conferences'],
-      timeBasedRestrictions: {
-        dailyEndTime: '18:11:19.117Z',
-        dailyStartTime: '18:11:19.117Z',
-        weekdaysOnly: true,
-      },
-      vendorRestrictions: ['Amazon', 'Uber'],
-    });
   });
 });

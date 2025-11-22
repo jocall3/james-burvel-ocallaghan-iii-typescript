@@ -20,9 +20,12 @@ export class Insights extends APIResource {
   }
 }
 
+/**
+ * An AI-generated insight, alert, or recommendation.
+ */
 export interface AIInsight {
   /**
-   * Unique identifier for the insight.
+   * Unique identifier for the AI insight.
    */
   id: string;
 
@@ -33,19 +36,21 @@ export interface AIInsight {
     | 'spending'
     | 'saving'
     | 'investing'
-    | 'budget'
+    | 'budgeting'
     | 'security'
+    | 'financial_goals'
     | 'sustainability'
-    | 'financial_health'
-    | 'corporate';
+    | 'corporate_treasury'
+    | 'compliance'
+    | 'other';
 
   /**
-   * Detailed description of the insight.
+   * Detailed explanation of the insight.
    */
   description: string;
 
   /**
-   * The severity or urgency of the insight.
+   * AI-assessed severity or importance of the insight.
    */
   severity: 'low' | 'medium' | 'high' | 'critical';
 
@@ -60,25 +65,35 @@ export interface AIInsight {
   title: string;
 
   /**
-   * A concrete, actionable step the user can take based on the insight.
+   * Optional: A concrete action the user can take based on the insight.
    */
   actionableRecommendation?: string | null;
+
+  /**
+   * Optional: A programmatic trigger or deep link to initiate the recommended
+   * action.
+   */
+  actionTrigger?: string | null;
 }
 
 export interface InsightGetSpendingTrendsResponse {
   /**
-   * AI-generated insights and alerts related to spending patterns.
+   * AI-driven insights and recommendations related to spending.
    */
   aiInsights: Array<AIInsight>;
 
   /**
-   * Overall spending trend for the period.
+   * AI-projected total spending for the next month.
+   */
+  forecastNextMonth: number;
+
+  /**
+   * Overall trend of spending (increasing, decreasing, stable).
    */
   overallTrend: 'increasing' | 'decreasing' | 'stable';
 
   /**
-   * Percentage change in overall spending compared to the previous equivalent
-   * period.
+   * Percentage change in spending over the period.
    */
   percentageChange: number;
 
@@ -91,28 +106,14 @@ export interface InsightGetSpendingTrendsResponse {
    * Categories with the most significant changes in spending.
    */
   topCategoriesByChange: Array<InsightGetSpendingTrendsResponse.TopCategoriesByChange>;
-
-  /**
-   * AI's projected total spending for the upcoming month.
-   */
-  forecastNextMonth?: number | null;
 }
 
 export namespace InsightGetSpendingTrendsResponse {
   export interface TopCategoriesByChange {
-    /**
-     * Absolute change in spending for this category.
-     */
     absoluteChange?: number;
 
-    /**
-     * Category name.
-     */
     category?: string;
 
-    /**
-     * Percentage change in spending for this category.
-     */
     percentageChange?: number;
   }
 }

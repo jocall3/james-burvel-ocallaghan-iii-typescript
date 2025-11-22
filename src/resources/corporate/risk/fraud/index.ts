@@ -7,4 +7,5 @@ export {
   type RuleListResponse,
   type RuleCreateParams,
   type RuleUpdateParams,
+  type RuleListParams,
 } from './rules';

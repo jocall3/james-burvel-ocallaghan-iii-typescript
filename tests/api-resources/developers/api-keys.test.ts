@@ -28,7 +28,6 @@ describe('resource apiKeys', () => {
       name: 'My Analytics Service Key',
       scopes: ['read:accounts', 'read:transactions'],
       expiresInDays: 90,
-      isSecretKey: false,
     });
   });
 
@@ -42,6 +41,14 @@ describe('resource apiKeys', () => {
     const dataAndResponse = await responsePromise.withResponse();
     expect(dataAndResponse.data).toBe(response);
     expect(dataAndResponse.response).toBe(rawResponse);
+  });
+
+  // Prism tests are disabled
+  test.skip('list: request options and params are passed correctly', async () => {
+    // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
+    await expect(
+      client.developers.apiKeys.list({ limit: 1, offset: 0 }, { path: '/_stainless_unknown_path' }),
+    ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);
   });
 
   // Prism tests are disabled

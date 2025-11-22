@@ -20,6 +20,14 @@ describe('resource wallets', () => {
   });
 
   // Prism tests are disabled
+  test.skip('list: request options and params are passed correctly', async () => {
+    // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
+    await expect(
+      client.web3.wallets.list({ limit: 1, offset: 0 }, { path: '/_stainless_unknown_path' }),
+    ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);
+  });
+
+  // Prism tests are disabled
   test.skip('connect: only required params', async () => {
     const responsePromise = client.web3.wallets.connect({
       blockchainNetwork: 'Ethereum',
@@ -45,7 +53,7 @@ describe('resource wallets', () => {
         '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
       walletAddress: '0x123abc456def7890...',
       walletProvider: 'MetaMask',
-      grantWriteAccess: false,
+      requestWriteAccess: true,
     });
   });
 
@@ -59,5 +67,17 @@ describe('resource wallets', () => {
     const dataAndResponse = await responsePromise.withResponse();
     expect(dataAndResponse.data).toBe(response);
     expect(dataAndResponse.response).toBe(rawResponse);
+  });
+
+  // Prism tests are disabled
+  test.skip('retrieveBalances: request options and params are passed correctly', async () => {
+    // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
+    await expect(
+      client.web3.wallets.retrieveBalances(
+        'wallet_conn_eth_0xabc123',
+        { limit: 1, offset: 0 },
+        { path: '/_stainless_unknown_path' },
+      ),
+    ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);
   });
 });

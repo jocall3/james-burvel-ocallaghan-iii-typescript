@@ -21,27 +21,49 @@ export class Assets extends APIResource {
   }
 }
 
-export type AssetSearchResponse = Array<AssetSearchResponse.AssetSearchResponseItem>;
+export interface AssetSearchResponse {
+  /**
+   * The maximum number of items returned in the current page.
+   */
+  limit: number;
+
+  /**
+   * The number of items skipped before the current page.
+   */
+  offset: number;
+
+  /**
+   * The total number of items available across all pages.
+   */
+  total: number;
+
+  data?: Array<AssetSearchResponse.Data>;
+
+  /**
+   * The offset for the next page of results, if available. Null if no more pages.
+   */
+  nextOffset?: number | null;
+}
 
 export namespace AssetSearchResponse {
-  export interface AssetSearchResponseItem {
+  export interface Data {
     /**
-     * Full name of the asset.
+     * Full name of the investment asset.
      */
     assetName: string;
 
     /**
-     * Ticker symbol or identifier of the asset.
+     * Symbol of the investment asset.
      */
     assetSymbol: string;
 
     /**
-     * Type of investment asset.
+     * Type of the investment asset.
      */
     assetType: 'stock' | 'etf' | 'mutual_fund' | 'bond';
 
     /**
-     * Currency of the asset.
+     * Currency of the asset's price.
      */
     currency: string;
 
@@ -51,37 +73,37 @@ export namespace AssetSearchResponse {
     currentPrice: number;
 
     /**
-     * Overall ESG score (typically 0-10, higher is better).
+     * Overall ESG score (0-10), higher is better.
      */
     overallESGScore: number;
 
     /**
-     * AI-generated commentary on the asset's ESG profile.
+     * AI-generated insight summarizing the ESG profile.
      */
     aiESGInsight?: string | null;
 
     /**
-     * Specific environmental component score.
+     * Environmental component of the ESG score.
      */
     environmentalScore?: number | null;
 
     /**
-     * List of notable ESG controversies associated with the asset.
+     * List of any significant ESG-related controversies associated with the asset.
      */
     esgControversies?: Array<string> | null;
 
     /**
-     * The provider of the ESG rating (e.g., MSCI, Sustainalytics).
+     * Provider of the ESG rating (e.g., MSCI, Sustainalytics).
      */
     esgRatingProvider?: string | null;
 
     /**
-     * Specific governance component score.
+     * Governance component of the ESG score.
      */
     governanceScore?: number | null;
 
     /**
-     * Specific social component score.
+     * Social component of the ESG score.
      */
     socialScore?: number | null;
   }
@@ -94,9 +116,19 @@ export interface AssetSearchParams {
   query: string;
 
   /**
+   * Maximum number of items to return in a single page.
+   */
+  limit?: number;
+
+  /**
    * Minimum desired ESG score (0-10).
    */
   minESGScore?: number;
+
+  /**
+   * Number of items to skip before starting to collect the result set.
+   */
+  offset?: number;
 }
 
 export declare namespace Assets {

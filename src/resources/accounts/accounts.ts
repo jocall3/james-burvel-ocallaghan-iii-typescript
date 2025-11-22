@@ -4,9 +4,12 @@ import { APIResource } from '../../core/resource';
 import * as OverdraftSettingsAPI from './overdraft-settings';
 import { OverdraftSettingUpdateSettingsParams, OverdraftSettings } from './overdraft-settings';
 import * as TransactionsAPI from './transactions';
-import { TransactionListPendingTransactionsResponse, Transactions } from './transactions';
+import {
+  TransactionListPendingTransactionsParams,
+  TransactionListPendingTransactionsResponse,
+  Transactions,
+} from './transactions';
 import { APIPromise } from '../../core/api-promise';
-import { buildHeaders } from '../../internal/headers';
 import { RequestOptions } from '../../internal/request-options';
 import { path } from '../../internal/utils/path';
 
@@ -43,12 +46,14 @@ export class Accounts extends APIResource {
    *
    * @example
    * ```ts
-   * const linkedAccounts =
-   *   await client.accounts.listLinkedAccounts();
+   * const response = await client.accounts.listLinkedAccounts();
    * ```
    */
-  listLinkedAccounts(options?: RequestOptions): APIPromise<AccountListLinkedAccountsResponse> {
-    return this._client.get('/accounts/me', options);
+  listLinkedAccounts(
+    query: AccountListLinkedAccountsParams | null | undefined = {},
+    options?: RequestOptions,
+  ): APIPromise<AccountListLinkedAccountsResponse> {
+    return this._client.get('/accounts/me', { query, ...options });
   }
 
   /**
@@ -82,25 +87,20 @@ export class Accounts extends APIResource {
    *     'acc_chase_checking_4567',
    *     { month: 7, year: 2024 },
    *   );
-   *
-   * const content = await response.blob();
-   * console.log(content);
    * ```
    */
   retrieveAccountStatements(
     accountID: string,
     query: AccountRetrieveAccountStatementsParams,
     options?: RequestOptions,
-  ): APIPromise<Response> {
-    return this._client.get(path`/accounts/${accountID}/statements`, {
-      query,
-      ...options,
-      headers: buildHeaders([{ Accept: 'application/pdf' }, options?.headers]),
-      __binaryResponse: true,
-    });
+  ): APIPromise<AccountRetrieveAccountStatementsResponse> {
+    return this._client.get(path`/accounts/${accountID}/statements`, { query, ...options });
   }
 }
 
+/**
+ * Summary information for a linked financial account.
+ */
 export interface LinkedAccount {
   /**
    * Unique identifier for the linked account within .
@@ -108,180 +108,233 @@ export interface LinkedAccount {
   id: string;
 
   /**
-   * The currency of the account (ISO 4217 code).
+   * ISO 4217 currency code of the account.
    */
   currency: string;
 
   /**
-   * The current balance of the account.
+   * Current balance of the account.
    */
   currentBalance: number;
 
   /**
-   * Name of the financial institution holding the account.
+   * Name of the financial institution where the account is held.
    */
   institutionName: string;
 
   /**
-   * Timestamp when the account balance and details were last synced.
+   * Timestamp when the account balance was last synced.
    */
   lastUpdated: string;
 
   /**
-   * User-friendly name of the account.
+   * Display name of the account.
    */
   name: string;
 
   /**
-   * High-level type of the financial account.
+   * General type of the account.
    */
-  type: 'depository' | 'credit' | 'investment' | 'loan' | 'other';
+  type: 'depository' | 'credit' | 'loan' | 'investment' | 'other';
 
   /**
-   * Current status of the connection to the external institution.
-   */
-  accountLinkStatus?: 'active' | 'inactive' | 'reconnect_required' | 'error';
-
-  /**
-   * Full account number (sensitive, typically only accessible with explicit
-   * permissions).
-   */
-  accountNumber?: string | null;
-
-  /**
-   * The available balance of the account (may differ from current due to pending
-   * transactions).
+   * Available balance (after pending transactions) of the account.
    */
   availableBalance?: number | null;
 
   /**
-   * Optional: Identifier from the external financial institution (e.g., Plaid
-   * account ID).
+   * Optional: Identifier from the external data provider (e.g., Plaid).
    */
   externalId?: string | null;
 
   /**
-   * Last 4 digits of the account number for display purposes (masked).
+   * Masked account number (e.g., last 4 digits).
    */
   mask?: string | null;
 
   /**
-   * Bank routing number (sensitive, typically only accessible with explicit
-   * permissions).
-   */
-  routingNumber?: string | null;
-
-  /**
-   * Specific subtype of the account (e.g., checking, savings, IRA, credit card).
+   * Specific subtype of the account (e.g., checking, savings, IRA, 401k).
    */
   subtype?: string | null;
 }
 
 export interface AccountLinkNewInstitutionResponse {
   /**
-   * The URI to which the user should be redirected to complete the external
-   * institution's authentication flow.
+   * The URI to redirect the user to complete authentication with the external
+   * institution.
    */
   authUri: string;
 
   /**
-   * A unique identifier for the account linking session.
+   * Unique session ID for the account linking process.
    */
   linkSessionId: string;
 
   /**
    * Current status of the linking process.
    */
-  status: 'pending_user_action' | 'linking_in_progress' | 'completed' | 'failed';
+  status: 'pending_user_action' | 'completed' | 'failed';
 
   /**
-   * A descriptive message regarding the next steps or status.
+   * A descriptive message regarding the next steps.
    */
   message?: string | null;
 }
 
-export type AccountListLinkedAccountsResponse = Array<LinkedAccount>;
+export interface AccountListLinkedAccountsResponse {
+  /**
+   * The maximum number of items returned in the current page.
+   */
+  limit: number;
 
+  /**
+   * The number of items skipped before the current page.
+   */
+  offset: number;
+
+  /**
+   * The total number of items available across all pages.
+   */
+  total: number;
+
+  data?: Array<LinkedAccount>;
+
+  /**
+   * The offset for the next page of results, if available. Null if no more pages.
+   */
+  nextOffset?: number | null;
+}
+
+/**
+ * Summary information for a linked financial account.
+ */
 export interface AccountRetrieveAccountDetailsResponse extends LinkedAccount {
   /**
-   * The name of the primary holder of the account.
+   * Name of the primary holder for this account.
    */
   accountHolder?: string;
 
   /**
-   * Historical daily balances for the account over a recent period.
+   * Historical daily balance data.
    */
   balanceHistory?: Array<AccountRetrieveAccountDetailsResponse.BalanceHistory>;
 
   /**
-   * Annual interest rate for the account (e.g., APY for savings, APR for credit).
+   * Annual interest rate (if applicable).
    */
   interestRate?: number | null;
 
   /**
-   * The date the account was opened.
+   * Date the account was opened.
    */
   openedDate?: string | null;
 
   projectedCashFlow?: AccountRetrieveAccountDetailsResponse.ProjectedCashFlow;
 
   /**
-   * Total number of transactions recorded for this account.
+   * Total number of transactions in this account.
    */
   transactionsCount?: number;
 }
 
 export namespace AccountRetrieveAccountDetailsResponse {
   export interface BalanceHistory {
-    /**
-     * Balance on that date.
-     */
     balance?: number;
 
-    /**
-     * Date of the balance snapshot.
-     */
     date?: string;
   }
 
   export interface ProjectedCashFlow {
     /**
-     * AI's confidence score (0-100) in the accuracy of the cash flow projection.
+     * AI confidence score for the cash flow projection (0-100).
      */
     confidenceScore?: number;
 
     /**
-     * Projected net cash flow for the next 30 days.
+     * Projected cash flow for the next 30 days.
      */
     days30?: number;
 
     /**
-     * Projected net cash flow for the next 90 days.
+     * Projected cash flow for the next 90 days.
      */
     days90?: number;
   }
 }
 
+export interface AccountRetrieveAccountStatementsResponse {
+  /**
+   * The account ID the statement belongs to.
+   */
+  accountId: string;
+
+  /**
+   * Map of available download URLs for different formats.
+   */
+  downloadUrls: AccountRetrieveAccountStatementsResponse.DownloadURLs;
+
+  /**
+   * The period covered by the statement.
+   */
+  period: string;
+
+  /**
+   * Unique identifier for the statement.
+   */
+  statementId: string;
+}
+
+export namespace AccountRetrieveAccountStatementsResponse {
+  /**
+   * Map of available download URLs for different formats.
+   */
+  export interface DownloadURLs {
+    /**
+     * Signed URL to download the statement in CSV format.
+     */
+    csv?: string;
+
+    /**
+     * Signed URL to download the statement in PDF format.
+     */
+    pdf?: string;
+  }
+}
+
 export interface AccountLinkNewInstitutionParams {
   /**
-   * The ISO 3166-1 alpha-2 country code of the institution.
+   * Two-letter ISO country code of the institution.
    */
   countryCode: string;
 
   /**
-   * The name of the financial institution to link.
+   * Name of the financial institution to link.
    */
   institutionName: string;
 
   /**
-   * Optional: Additional provider-specific metadata for linking.
+   * Optional: Specific identifier for a third-party linking provider (e.g., 'plaid',
+   * 'finicity').
    */
-  metadata?: unknown | null;
+  providerIdentifier?: string | null;
 
   /**
-   * Optional: The type of third-party linking provider to use.
+   * Optional: URI to redirect the user after completing the external authentication
+   * flow.
    */
-  providerType?: 'plaid' | 'mx' | 'finicity' | 'other' | null;
+  redirectUri?: string | null;
+}
+
+export interface AccountListLinkedAccountsParams {
+  /**
+   * Maximum number of items to return in a single page.
+   */
+  limit?: number;
+
+  /**
+   * Number of items to skip before starting to collect the result set.
+   */
+  offset?: number;
 }
 
 export interface AccountRetrieveAccountStatementsParams {
@@ -296,7 +349,8 @@ export interface AccountRetrieveAccountStatementsParams {
   year: number;
 
   /**
-   * Desired format for the statement.
+   * Desired format for the statement. Use 'application/json' Accept header for
+   * download links.
    */
   format?: 'pdf' | 'csv';
 }
@@ -309,13 +363,16 @@ export declare namespace Accounts {
     type AccountLinkNewInstitutionResponse as AccountLinkNewInstitutionResponse,
     type AccountListLinkedAccountsResponse as AccountListLinkedAccountsResponse,
     type AccountRetrieveAccountDetailsResponse as AccountRetrieveAccountDetailsResponse,
+    type AccountRetrieveAccountStatementsResponse as AccountRetrieveAccountStatementsResponse,
     type AccountLinkNewInstitutionParams as AccountLinkNewInstitutionParams,
+    type AccountListLinkedAccountsParams as AccountListLinkedAccountsParams,
     type AccountRetrieveAccountStatementsParams as AccountRetrieveAccountStatementsParams,
   };
 
   export {
     Transactions as Transactions,
     type TransactionListPendingTransactionsResponse as TransactionListPendingTransactionsResponse,
+    type TransactionListPendingTransactionsParams as TransactionListPendingTransactionsParams,
   };
 
   export {

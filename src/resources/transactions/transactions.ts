@@ -4,7 +4,13 @@ import { APIResource } from '../../core/resource';
 import * as InsightsAPI from './insights';
 import { AIInsight, InsightGetSpendingTrendsResponse, Insights } from './insights';
 import * as RecurringAPI from './recurring';
-import { Recurring, RecurringCreateParams, RecurringListResponse, RecurringTransaction } from './recurring';
+import {
+  Recurring,
+  RecurringCreateParams,
+  RecurringListParams,
+  RecurringListResponse,
+  RecurringTransaction,
+} from './recurring';
 import * as UsersAPI from '../users/users';
 import { APIPromise } from '../../core/api-promise';
 import { RequestOptions } from '../../internal/request-options';
@@ -124,27 +130,24 @@ export class Transactions extends APIResource {
 
 export interface PaginatedTransactions {
   /**
-   * The list of transactions for the current page.
-   */
-  data: Array<Transaction>;
-
-  /**
-   * The maximum number of items returned per page.
+   * The maximum number of items returned in the current page.
    */
   limit: number;
 
   /**
-   * The starting index of the list for pagination.
+   * The number of items skipped before the current page.
    */
   offset: number;
 
   /**
-   * The total number of available items.
+   * The total number of items available across all pages.
    */
   total: number;
 
+  data?: Array<Transaction>;
+
   /**
-   * The offset to use for the next page of results. Null if no more pages.
+   * The offset for the next page of results, if available. Null if no more pages.
    */
   nextOffset?: number | null;
 }
@@ -156,88 +159,83 @@ export interface Transaction {
   id: string;
 
   /**
-   * The ID of the account the transaction belongs to.
+   * ID of the account from which the transaction occurred.
    */
   accountId: string;
 
   /**
-   * The amount of the transaction.
+   * Amount of the transaction.
    */
   amount: number;
 
   /**
-   * AI-assigned or user-defined category for the transaction.
+   * AI-assigned or user-defined category of the transaction (e.g., 'Groceries',
+   * 'Utilities').
    */
   category: string;
 
   /**
-   * The currency of the transaction (ISO 4217 code).
+   * ISO 4217 currency code of the transaction.
    */
   currency: string;
 
   /**
-   * The date the transaction occurred (transaction date).
+   * Date the transaction occurred (local date).
    */
   date: string;
 
   /**
-   * Detailed description of the transaction (merchant name, etc.).
+   * Detailed description of the transaction.
    */
   description: string;
 
   /**
-   * Current status of any dispute related to this transaction.
+   * Type of the transaction.
    */
-  disputeStatus:
-    | 'none'
-    | 'pending'
-    | 'under_review'
-    | 'resolved_in_favor_user'
-    | 'resolved_in_favor_merchant'
-    | 'rejected';
+  type: 'income' | 'expense' | 'transfer' | 'investment' | 'refund' | 'bill_payment';
 
   /**
-   * Type of the transaction (e.g., income, expense).
-   */
-  type: 'income' | 'expense' | 'transfer' | 'investment' | 'refund' | 'bill_payment' | 'fee';
-
-  /**
-   * AI's confidence score (0-1) for its category assignment.
+   * AI confidence score for the assigned category (0-1).
    */
   aiCategoryConfidence?: number | null;
 
   /**
-   * Estimated carbon footprint (in Kg CO2e) associated with the transaction.
+   * Estimated carbon footprint in kg CO2e for this transaction, derived by AI.
    */
   carbonFootprint?: number | null;
 
   /**
-   * Geographic location where the transaction took place.
+   * Current dispute status of the transaction.
    */
-  location?: Transaction.Location | null;
+  disputeStatus?: 'none' | 'pending' | 'under_review' | 'resolved' | 'rejected';
 
   /**
-   * Detailed information about the merchant involved in the transaction.
+   * Geographic location details for a transaction.
    */
-  merchantDetails?: Transaction.MerchantDetails | null;
+  location?: Transaction.Location;
 
   /**
-   * User-added personal notes for the transaction.
+   * Detailed information about a merchant associated with a transaction.
+   */
+  merchantDetails?: Transaction.MerchantDetails;
+
+  /**
+   * Personal notes added by the user to the transaction.
    */
   notes?: string | null;
 
   /**
-   * The channel through which the payment was made.
+   * Channel through which the payment was made.
    */
-  paymentChannel?: 'in_store' | 'online' | 'atm' | 'transfer' | 'bill_payment' | 'recurring' | null;
+  paymentChannel?: 'in_store' | 'online' | 'mobile' | 'ATM' | 'bill_payment' | 'transfer' | 'other' | null;
 
   /**
-   * The date the transaction was posted to the account (cleared date).
+   * Date the transaction was posted to the account (local date).
    */
   postedDate?: string | null;
 
   /**
-   * URL to a digital receipt if available.
+   * URL to a digital receipt for the transaction.
    */
   receiptUrl?: string | null;
 
@@ -249,43 +247,43 @@ export interface Transaction {
 
 export namespace Transaction {
   /**
-   * Geographic location where the transaction took place.
+   * Geographic location details for a transaction.
    */
   export interface Location {
     /**
-     * City name of the location.
+     * City where the transaction occurred.
      */
     city?: string | null;
 
     /**
-     * Country of the location.
-     */
-    country?: string | null;
-
-    /**
-     * Latitude coordinate.
+     * Latitude coordinate of the transaction.
      */
     latitude?: number;
 
     /**
-     * Longitude coordinate.
+     * Longitude coordinate of the transaction.
      */
     longitude?: number;
 
     /**
-     * State or province of the location.
+     * State where the transaction occurred.
      */
     state?: string | null;
+
+    /**
+     * Zip code where the transaction occurred.
+     */
+    zip?: string | null;
   }
 
   /**
-   * Detailed information about the merchant involved in the transaction.
+   * Detailed information about a merchant associated with a transaction.
    */
   export interface MerchantDetails {
     /**
      * Physical address of the merchant.
      */
-    address?: UsersAPI.Address | null;
+    address?: UsersAPI.Address;
 
     /**
      * URL to the merchant's logo.
@@ -293,9 +291,14 @@ export namespace Transaction {
     logoUrl?: string | null;
 
     /**
-     * Full name of the merchant.
+     * Official name of the merchant.
      */
     name?: string;
+
+    /**
+     * Merchant's phone number.
+     */
+    phone?: string | null;
 
     /**
      * Merchant's website URL.
@@ -316,19 +319,14 @@ export interface TransactionDisputeResponse {
   lastUpdated: string;
 
   /**
+   * Guidance on what to expect next in the dispute process.
+   */
+  nextSteps: string;
+
+  /**
    * Current status of the dispute.
    */
-  status: 'pending' | 'under_review' | 'accepted' | 'rejected' | 'resolved';
-
-  /**
-   * Guidance on what will happen next or what action the user needs to take.
-   */
-  nextSteps?: string | null;
-
-  /**
-   * If the dispute was rejected, the reason for rejection.
-   */
-  rejectionReason?: string | null;
+  status: 'pending' | 'under_review' | 'requires_more_info' | 'resolved' | 'rejected';
 }
 
 export interface TransactionListParams {
@@ -343,7 +341,7 @@ export interface TransactionListParams {
   endDate?: string;
 
   /**
-   * Maximum number of items to return in the response.
+   * Maximum number of items to return in a single page.
    */
   limit?: number;
 
@@ -380,13 +378,13 @@ export interface TransactionListParams {
 
 export interface TransactionCategorizeParams {
   /**
-   * The new category to assign to the transaction. Supports hierarchical categories.
+   * The new category for the transaction. Can be hierarchical.
    */
   category: string;
 
   /**
-   * If true, the AI will learn from this correction and apply it to similar future
-   * transactions.
+   * If true, the AI will learn from this correction and try to apply it to similar
+   * future transactions.
    */
   applyToFuture?: boolean;
 
@@ -405,16 +403,10 @@ export interface TransactionDisputeParams {
   /**
    * The primary reason for disputing the transaction.
    */
-  reason:
-    | 'unauthorized'
-    | 'duplicate'
-    | 'incorrect_amount'
-    | 'service_not_received'
-    | 'damaged_goods'
-    | 'other';
+  reason: 'unauthorized' | 'duplicate_charge' | 'incorrect_amount' | 'product_service_issue' | 'other';
 
   /**
-   * Optional URLs to supporting documents (e.g., screenshots, photos).
+   * URLs to supporting documents (e.g., receipts, communication).
    */
   supportingDocuments?: Array<string> | null;
 }
@@ -445,6 +437,7 @@ export declare namespace Transactions {
     type RecurringTransaction as RecurringTransaction,
     type RecurringListResponse as RecurringListResponse,
     type RecurringCreateParams as RecurringCreateParams,
+    type RecurringListParams as RecurringListParams,
   };
 
   export {

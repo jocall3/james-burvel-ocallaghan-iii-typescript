@@ -51,17 +51,12 @@ export class Sustainability extends APIResource {
 
 export interface SustainabilityPurchaseCarbonOffsetsResponse {
   /**
-   * Amount of CO2 equivalent offset in kilograms.
+   * The amount of carbon dioxide equivalent offset by this purchase.
    */
   amountOffsetKgCO2e: number;
 
   /**
-   * Name of the carbon offset project supported.
-   */
-  projectSupported: string;
-
-  /**
-   * Date and time of the purchase.
+   * Timestamp of the purchase.
    */
   purchaseDate: string;
 
@@ -76,24 +71,29 @@ export interface SustainabilityPurchaseCarbonOffsetsResponse {
   totalCostUSD: number;
 
   /**
-   * URL to the carbon offset certificate.
+   * URL to the official carbon offset certificate.
    */
   certificateUrl?: string | null;
 
   /**
-   * The ID of the internal transaction recording the purchase.
+   * The carbon offset project supported.
+   */
+  projectSupported?: string | null;
+
+  /**
+   * The ID of the internal financial transaction for this purchase.
    */
   transactionId?: string | null;
 }
 
 export interface SustainabilityRetrieveCarbonFootprintResponse {
   /**
-   * AI-generated insights and recommendations for reducing carbon footprint.
+   * AI-driven insights and recommendations for reducing carbon footprint.
    */
   aiInsights: Array<InsightsAPI.AIInsight>;
 
   /**
-   * Breakdown of the carbon footprint by category (e.g., transportation, food).
+   * Breakdown of carbon footprint by spending categories.
    */
   breakdownByCategory: Array<SustainabilityRetrieveCarbonFootprintResponse.BreakdownByCategory>;
 
@@ -113,77 +113,46 @@ export interface SustainabilityRetrieveCarbonFootprintResponse {
   totalCarbonFootprintKgCO2e: number;
 
   /**
-   * Suggestions for carbon offset projects.
+   * Recommendations for purchasing carbon offsets.
    */
   offsetRecommendations?: Array<SustainabilityRetrieveCarbonFootprintResponse.OffsetRecommendation> | null;
 }
 
 export namespace SustainabilityRetrieveCarbonFootprintResponse {
   export interface BreakdownByCategory {
-    /**
-     * Carbon footprint for this category in Kg CO2e.
-     */
-    carbonFootprintKgCO2e: number;
+    carbonFootprintKgCO2e?: number;
 
-    /**
-     * Name of the spending category.
-     */
-    category: string;
+    category?: string;
 
-    /**
-     * Percentage of the total carbon footprint for this category.
-     */
-    percentage: number;
+    percentage?: number;
   }
 
   export interface OffsetRecommendation {
-    /**
-     * Cost per ton of CO2e offset in USD.
-     */
-    costPerTonUSD: number;
+    costPerTonUSD?: number;
 
-    /**
-     * Amount of CO2e to offset (e.g., matching user's footprint).
-     */
-    offsetAmountKgCO2e: number;
+    offsetAmountKgCO2e?: number;
 
-    /**
-     * Recommended carbon offset project name.
-     */
-    project: string;
+    project?: string;
 
-    /**
-     * Total estimated cost to purchase the recommended offset amount.
-     */
-    totalCostUSD: number;
-
-    /**
-     * URL for more information about the project.
-     */
-    projectDetailsUrl?: string | null;
+    totalCostUSD?: number;
   }
 }
 
 export interface SustainabilityPurchaseCarbonOffsetsParams {
   /**
-   * Amount of CO2 equivalent (in kilograms) to offset.
+   * The amount of carbon dioxide equivalent to offset in kilograms.
    */
   amountKgCO2e: number;
 
   /**
-   * The name or ID of the carbon offset project to support.
+   * Optional: The specific carbon offset project to support.
    */
-  offsetProject: string;
+  offsetProject: string | null;
 
   /**
-   * The ID of the user's account to debit for the purchase.
+   * The ID of the user's account to use for payment.
    */
   paymentAccountId: string;
-
-  /**
-   * If true, automatically purchase offsets monthly based on estimated footprint.
-   */
-  autoOffsetMonthly?: boolean;
 }
 
 Sustainability.Investments = Investments;

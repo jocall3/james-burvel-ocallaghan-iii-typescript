@@ -13,12 +13,14 @@ export class Wallets extends APIResource {
    *
    * @example
    * ```ts
-   * const cryptoWalletConnections =
-   *   await client.web3.wallets.list();
+   * const wallets = await client.web3.wallets.list();
    * ```
    */
-  list(options?: RequestOptions): APIPromise<WalletListResponse> {
-    return this._client.get('/web3/wallets', options);
+  list(
+    query: WalletListParams | null | undefined = {},
+    options?: RequestOptions,
+  ): APIPromise<WalletListResponse> {
+    return this._client.get('/web3/wallets', { query, ...options });
   }
 
   /**
@@ -53,8 +55,12 @@ export class Wallets extends APIResource {
    * );
    * ```
    */
-  retrieveBalances(walletID: string, options?: RequestOptions): APIPromise<WalletRetrieveBalancesResponse> {
-    return this._client.get(path`/web3/wallets/${walletID}/balances`, options);
+  retrieveBalances(
+    walletID: string,
+    query: WalletRetrieveBalancesParams | null | undefined = {},
+    options?: RequestOptions,
+  ): APIPromise<WalletRetrieveBalancesResponse> {
+    return this._client.get(path`/web3/wallets/${walletID}/balances`, { query, ...options });
   }
 }
 
@@ -65,34 +71,28 @@ export interface CryptoWalletConnection {
   id: string;
 
   /**
-   * The blockchain network this wallet connection is primarily on.
+   * The blockchain network this wallet is primarily connected to (e.g., Ethereum,
+   * Solana, Polygon).
    */
-  blockchainNetwork:
-    | 'Ethereum'
-    | 'Solana'
-    | 'Polygon'
-    | 'Binance Smart Chain'
-    | 'Avalanche'
-    | 'Arbitrum'
-    | 'Optimism';
+  blockchainNetwork: string;
 
   /**
-   * Timestamp of the last successful synchronization with the wallet.
+   * Timestamp when the wallet's data was last synchronized.
    */
   lastSynced: string;
 
   /**
-   * Indicates if read-only access to wallet data (balances, NFTs) is granted.
+   * Indicates if read access (balances, NFTs) is granted.
    */
   readAccessGranted: boolean;
 
   /**
    * Current status of the wallet connection.
    */
-  status: 'connected' | 'disconnected' | 'reconnect_required' | 'revoked';
+  status: 'connected' | 'disconnected' | 'pending_verification' | 'error';
 
   /**
-   * The primary public address of the connected wallet.
+   * Public address of the connected cryptocurrency wallet.
    */
   walletAddress: string;
 
@@ -102,30 +102,69 @@ export interface CryptoWalletConnection {
   walletProvider: string;
 
   /**
-   * Indicates if write access (e.g., to initiate transactions) is granted.
+   * Indicates if write access (transactions) is granted. Requires higher
+   * permission/security.
    */
   writeAccessGranted: boolean;
-
-  /**
-   * The technical method used for connecting the wallet.
-   */
-  connectionType?: 'direct' | 'walletconnect' | 'oauth' | 'api_key' | null;
 }
 
-export type WalletListResponse = Array<CryptoWalletConnection>;
+export interface WalletListResponse {
+  /**
+   * The maximum number of items returned in the current page.
+   */
+  limit: number;
 
-export type WalletRetrieveBalancesResponse =
-  Array<WalletRetrieveBalancesResponse.WalletRetrieveBalancesResponseItem>;
+  /**
+   * The number of items skipped before the current page.
+   */
+  offset: number;
+
+  /**
+   * The total number of items available across all pages.
+   */
+  total: number;
+
+  data?: Array<CryptoWalletConnection>;
+
+  /**
+   * The offset for the next page of results, if available. Null if no more pages.
+   */
+  nextOffset?: number | null;
+}
+
+export interface WalletRetrieveBalancesResponse {
+  /**
+   * The maximum number of items returned in the current page.
+   */
+  limit: number;
+
+  /**
+   * The number of items skipped before the current page.
+   */
+  offset: number;
+
+  /**
+   * The total number of items available across all pages.
+   */
+  total: number;
+
+  data?: Array<WalletRetrieveBalancesResponse.Data>;
+
+  /**
+   * The offset for the next page of results, if available. Null if no more pages.
+   */
+  nextOffset?: number | null;
+}
 
 export namespace WalletRetrieveBalancesResponse {
-  export interface WalletRetrieveBalancesResponseItem {
+  export interface Data {
     /**
-     * Full name of the cryptocurrency.
+     * Full name of the crypto asset.
      */
     assetName: string;
 
     /**
-     * Ticker symbol of the cryptocurrency.
+     * Symbol of the crypto asset (e.g., ETH, BTC, USDC).
      */
     assetSymbol: string;
 
@@ -135,64 +174,73 @@ export namespace WalletRetrieveBalancesResponse {
     balance: number;
 
     /**
-     * Estimated USD value of the balance.
+     * Current USD value of the asset balance.
      */
-    usdValue: number | null;
+    usdValue: number;
 
     /**
-     * The blockchain network of the asset.
-     */
-    blockchainNetwork?:
-      | 'Ethereum'
-      | 'Solana'
-      | 'Polygon'
-      | 'Binance Smart Chain'
-      | 'Avalanche'
-      | 'Arbitrum'
-      | 'Optimism'
-      | null;
-
-    /**
-     * The contract address for ERC-20 tokens, if applicable.
+     * The contract address for ERC-20 tokens or similar.
      */
     contractAddress?: string | null;
+
+    /**
+     * The blockchain network the asset resides on (if different from wallet's
+     * primary).
+     */
+    network?: string | null;
   }
+}
+
+export interface WalletListParams {
+  /**
+   * Maximum number of items to return in a single page.
+   */
+  limit?: number;
+
+  /**
+   * Number of items to skip before starting to collect the result set.
+   */
+  offset?: number;
 }
 
 export interface WalletConnectParams {
   /**
-   * The blockchain network the wallet is on.
+   * The blockchain network for this wallet (e.g., Ethereum, Solana).
    */
-  blockchainNetwork:
-    | 'Ethereum'
-    | 'Solana'
-    | 'Polygon'
-    | 'Binance Smart Chain'
-    | 'Avalanche'
-    | 'Arbitrum'
-    | 'Optimism';
+  blockchainNetwork: string;
 
   /**
-   * A cryptographic signature proving ownership of the wallet address (e.g., EIP-191
-   * signature).
+   * A message cryptographically signed by the wallet owner to prove
+   * ownership/intent.
    */
   signedMessage: string;
 
   /**
-   * The public address of the wallet to connect.
+   * The public address of the cryptocurrency wallet.
    */
   walletAddress: string;
 
   /**
-   * The provider/type of the wallet.
+   * The name of the wallet provider (e.g., MetaMask, Phantom).
    */
-  walletProvider: 'MetaMask' | 'Phantom' | 'Ledger' | 'TrustWallet' | 'CoinbaseWallet' | 'Other';
+  walletProvider: string;
 
   /**
-   * If true, requests write access to initiate transactions (requires additional
-   * user confirmation).
+   * If true, requests write access to initiate transactions from this wallet.
    */
-  grantWriteAccess?: boolean;
+  requestWriteAccess?: boolean;
+}
+
+export interface WalletRetrieveBalancesParams {
+  /**
+   * Maximum number of items to return in a single page.
+   */
+  limit?: number;
+
+  /**
+   * Number of items to skip before starting to collect the result set.
+   */
+  offset?: number;
 }
 
 export declare namespace Wallets {
@@ -200,6 +248,8 @@ export declare namespace Wallets {
     type CryptoWalletConnection as CryptoWalletConnection,
     type WalletListResponse as WalletListResponse,
     type WalletRetrieveBalancesResponse as WalletRetrieveBalancesResponse,
+    type WalletListParams as WalletListParams,
     type WalletConnectParams as WalletConnectParams,
+    type WalletRetrieveBalancesParams as WalletRetrieveBalancesParams,
   };
 }

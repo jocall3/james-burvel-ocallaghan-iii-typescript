@@ -37,7 +37,6 @@ describe('resource users', () => {
       email: 'alice.w@example.com',
       name: 'Alice Wonderland',
       password: 'SecureP@ssw0rd2024!',
-      phone: '+1-555-987-6543',
     });
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -54,15 +53,9 @@ describe('resource users', () => {
       email: 'alice.w@example.com',
       name: 'Alice Wonderland',
       password: 'SecureP@ssw0rd2024!',
+      address: { city: 'Anytown', country: 'USA', state: 'CA', street: '123 Main St', zip: '90210' },
+      dateOfBirth: '1990-05-10',
       phone: '+1-555-987-6543',
-      address: {
-        city: 'Quantumville',
-        country: 'USA',
-        state: 'CA',
-        street: '100 Innovation Drive',
-        zip: '90210',
-      },
-      dateOfBirth: '1990-01-01',
     });
   });
 });

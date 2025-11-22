@@ -37,7 +37,6 @@ describe('resource recurring', () => {
       frequency: 'monthly',
       linkedAccountId: 'acc_chase_checking_4567',
       startDate: '2024-09-01',
-      status: 'active',
     });
   });
 
@@ -51,5 +50,13 @@ describe('resource recurring', () => {
     const dataAndResponse = await responsePromise.withResponse();
     expect(dataAndResponse.data).toBe(response);
     expect(dataAndResponse.response).toBe(rawResponse);
+  });
+
+  // Prism tests are disabled
+  test.skip('list: request options and params are passed correctly', async () => {
+    // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
+    await expect(
+      client.transactions.recurring.list({ limit: 1, offset: 0 }, { path: '/_stainless_unknown_path' }),
+    ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);
   });
 });

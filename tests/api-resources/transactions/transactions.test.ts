@@ -39,7 +39,7 @@ describe('resource transactions', () => {
         {
           category: 'Groceries',
           endDate: '2024-12-31',
-          limit: 2,
+          limit: 1,
           maxAmount: 100,
           minAmount: 20,
           offset: 0,

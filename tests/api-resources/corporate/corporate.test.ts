@@ -29,15 +29,9 @@ describe('resource corporate', () => {
       country: 'US',
       entityType: 'individual',
       name: 'John Doe',
-      address: {
-        city: 'Quantumville',
-        country: 'USA',
-        state: 'CA',
-        street: '100 Innovation Drive',
-        zip: '90210',
-      },
+      address: { city: 'Anytown', country: 'USA', state: 'CA', street: '123 Main St', zip: '90210' },
       dateOfBirth: '1970-01-01',
-      idNumber: 'idNumber',
+      identificationNumber: 'identificationNumber',
     });
   });
 });

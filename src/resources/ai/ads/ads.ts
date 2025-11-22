@@ -53,7 +53,7 @@ export class Ads extends APIResource {
 
 export interface VideoOperationStatus {
   /**
-   * A descriptive message about the current stage or status.
+   * A descriptive status message.
    */
   message: string;
 
@@ -63,53 +63,59 @@ export interface VideoOperationStatus {
   operationId: string;
 
   /**
-   * Current progress of the operation as a percentage.
+   * Estimated completion percentage (0-100).
    */
   progressPercentage: number;
 
   /**
    * Current status of the video generation job.
    */
-  status: 'queued' | 'processing' | 'rendering' | 'done' | 'error';
+  status: 'queued' | 'generating' | 'rendering' | 'done' | 'error';
 
   /**
-   * If an error occurred, a message describing the error.
+   * Error message if the operation failed.
    */
   errorMessage?: string | null;
 
   /**
-   * URL to a preview image/thumbnail of the video.
+   * Temporary, signed URL to a preview image/thumbnail of the video.
    */
   previewImageUri?: string | null;
 
   /**
-   * URL to the final generated video asset (available when status is 'done').
+   * Temporary, signed URL to the generated video asset (available when status is
+   * 'done').
    */
   videoUri?: string | null;
 }
 
 export interface AdListGeneratedResponse {
+  /**
+   * The maximum number of items returned in the current page.
+   */
+  limit: number;
+
+  /**
+   * The number of items skipped before the current page.
+   */
+  offset: number;
+
+  /**
+   * The total number of items available across all pages.
+   */
+  total: number;
+
   data?: Array<VideoOperationStatus>;
 
   /**
-   * The maximum number of items returned per page.
+   * The offset for the next page of results, if available. Null if no more pages.
    */
-  limit?: number;
-
-  /**
-   * The starting index of the list for pagination.
-   */
-  offset?: number;
-
-  /**
-   * The total number of available items.
-   */
-  total?: number;
+  nextOffset?: number | null;
 }
 
 export interface AdListGeneratedParams {
   /**
-   * Maximum number of items to return in the response.
+   * Maximum number of items to return in a single page.
    */
   limit?: number;
 

@@ -76,14 +76,17 @@ export class Biometrics extends APIResource {
   }
 }
 
+/**
+ * Current biometric enrollment status for a user.
+ */
 export interface BiometricStatus {
   /**
-   * True if any biometric data is currently enrolled for the user.
+   * Overall status indicating if any biometrics are enrolled.
    */
   biometricsEnrolled: boolean;
 
   /**
-   * List of currently enrolled biometric methods and their associated devices.
+   * List of specific biometric types and devices enrolled.
    */
   enrolledBiometrics: Array<BiometricStatus.EnrolledBiometric>;
 
@@ -117,39 +120,39 @@ export interface BiometricVerifyResponse {
 
 export interface BiometricEnrollParams {
   /**
-   * Base64 encoded biometric template or proof for enrollment.
+   * Base64 encoded representation of the biometric template or proof.
    */
   biometricSignature: string;
 
   /**
-   * Type of biometric data to enroll.
+   * The type of biometric data being enrolled.
    */
   biometricType: 'fingerprint' | 'facial_recognition' | 'voice_recognition';
 
   /**
-   * The ID of the device on which the biometric data is being enrolled.
+   * The ID of the device on which the biometric is being enrolled.
    */
   deviceId: string;
 
   /**
-   * Optional: A friendly name for the device enrolling biometrics.
+   * Optional: A friendly name for the device, if not already linked.
    */
   deviceName?: string | null;
 }
 
 export interface BiometricVerifyParams {
   /**
-   * One-time, base64 encoded biometric proof for verification.
+   * Base64 encoded representation of the one-time biometric proof for verification.
    */
   biometricSignature: string;
 
   /**
-   * Type of biometric data for verification.
+   * The type of biometric data being verified.
    */
   biometricType: 'fingerprint' | 'facial_recognition' | 'voice_recognition';
 
   /**
-   * The ID of the device from which the biometric verification attempt is made.
+   * The ID of the device initiating the biometric verification.
    */
   deviceId: string;
 }

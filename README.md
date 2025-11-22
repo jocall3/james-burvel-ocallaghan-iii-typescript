@@ -28,7 +28,6 @@ const user = await client.users.register({
   email: 'alice.w@example.com',
   name: 'Alice Wonderland',
   password: 'SecureP@ssw0rd2024!',
-  phone: '+1-555-987-6543',
 });
 
 console.log(user.id);
@@ -48,7 +47,6 @@ const params: JamesBurvelOcallaghanIii.UserRegisterParams = {
   email: 'alice.w@example.com',
   name: 'Alice Wonderland',
   password: 'SecureP@ssw0rd2024!',
-  phone: '+1-555-987-6543',
 };
 const user: JamesBurvelOcallaghanIii.User = await client.users.register(params);
 ```
@@ -64,12 +62,7 @@ a subclass of `APIError` will be thrown:
 <!-- prettier-ignore -->
 ```ts
 const user = await client.users
-  .register({
-    email: 'alice.w@example.com',
-    name: 'Alice Wonderland',
-    password: 'SecureP@ssw0rd2024!',
-    phone: '+1-555-987-6543',
-  })
+  .register({ email: 'alice.w@example.com', name: 'Alice Wonderland', password: 'SecureP@ssw0rd2024!' })
   .catch(async (err) => {
     if (err instanceof JamesBurvelOcallaghanIii.APIError) {
       console.log(err.status); // 400
@@ -110,7 +103,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 // Or, configure per-request:
-await client.users.register({ email: 'alice.w@example.com', name: 'Alice Wonderland', password: 'SecureP@ssw0rd2024!', phone: '+1-555-987-6543' }, {
+await client.users.register({ email: 'alice.w@example.com', name: 'Alice Wonderland', password: 'SecureP@ssw0rd2024!' }, {
   maxRetries: 5,
 });
 ```
@@ -127,7 +120,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 // Override per-request:
-await client.users.register({ email: 'alice.w@example.com', name: 'Alice Wonderland', password: 'SecureP@ssw0rd2024!', phone: '+1-555-987-6543' }, {
+await client.users.register({ email: 'alice.w@example.com', name: 'Alice Wonderland', password: 'SecureP@ssw0rd2024!' }, {
   timeout: 5 * 1000,
 });
 ```
@@ -151,23 +144,13 @@ Unlike `.asResponse()` this method consumes the body, returning once it is parse
 const client = new JamesBurvelOcallaghanIii();
 
 const response = await client.users
-  .register({
-    email: 'alice.w@example.com',
-    name: 'Alice Wonderland',
-    password: 'SecureP@ssw0rd2024!',
-    phone: '+1-555-987-6543',
-  })
+  .register({ email: 'alice.w@example.com', name: 'Alice Wonderland', password: 'SecureP@ssw0rd2024!' })
   .asResponse();
 console.log(response.headers.get('X-My-Header'));
 console.log(response.statusText); // access the underlying Response object
 
 const { data: user, response: raw } = await client.users
-  .register({
-    email: 'alice.w@example.com',
-    name: 'Alice Wonderland',
-    password: 'SecureP@ssw0rd2024!',
-    phone: '+1-555-987-6543',
-  })
+  .register({ email: 'alice.w@example.com', name: 'Alice Wonderland', password: 'SecureP@ssw0rd2024!' })
   .withResponse();
 console.log(raw.headers.get('X-My-Header'));
 console.log(user.id);
