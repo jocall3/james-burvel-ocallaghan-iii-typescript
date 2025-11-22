@@ -12,18 +12,7 @@ describe('resource simulate', () => {
     const responsePromise = client.ai.oracle.simulate.runAdvanced({
       prompt:
         'Evaluate the long-term impact of a sudden job loss combined with a variable market downturn, analyzing worst-case and best-case recovery scenarios over a decade.',
-      scenarios: [
-        {
-          events: [
-            {
-              details: { durationMonths: 'bar', severanceAmount: 'bar', unemploymentBenefits: 'bar' },
-              type: 'job_loss',
-            },
-            { details: { impactPercentage: 'bar', recoveryYears: 'bar' }, type: 'market_downturn' },
-          ],
-          name: 'Job Loss & Mild Market Recovery',
-        },
-      ],
+      scenarios: [{ durationYears: 10, name: 'Job Loss & Mild Market Recovery' }],
     });
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -41,26 +30,32 @@ describe('resource simulate', () => {
         'Evaluate the long-term impact of a sudden job loss combined with a variable market downturn, analyzing worst-case and best-case recovery scenarios over a decade.',
       scenarios: [
         {
+          durationYears: 10,
+          name: 'Job Loss & Mild Market Recovery',
+          description:
+            'Simulates a job loss event for 6 months, followed by a mild market recovery over 3 years.',
           events: [
             {
-              details: { durationMonths: 'bar', severanceAmount: 'bar', unemploymentBenefits: 'bar' },
               type: 'job_loss',
-              startMonth: 1,
+              details: {
+                durationMonths: 6,
+                severanceAmount: 10000,
+                newJobSalaryMultiplier: 0.9,
+                unemploymentBenefits: 2000,
+              },
+              yearInSimulation: 1,
             },
             {
-              details: { impactPercentage: 'bar', recoveryYears: 'bar' },
               type: 'market_downturn',
-              startMonth: 1,
+              details: { impactPercentage: 0.15, recoveryYears: 3 },
+              yearInSimulation: 1,
             },
           ],
-          name: 'Job Loss & Mild Market Recovery',
-          durationYears: 10,
+          marketConditions: { averageAnnualReturn: 0.07, volatility: 0.15 },
           sensitivityAnalysisParams: [{ max: 0.07, min: 0.03, paramName: 'marketRecoveryRate', step: 0.01 }],
         },
       ],
-      durationYears: 10,
-      initialState: { monthlyIncomeOverride: 8000, netWorthOverride: 500000 },
-      sensitivityAnalysisParams: [{ max: 0.07, min: 0.03, paramName: 'marketRecoveryRate', step: 0.01 }],
+      globalParameters: {},
     });
   });
 
@@ -84,7 +79,7 @@ describe('resource simulate', () => {
     const response = await client.ai.oracle.simulate.runStandard({
       prompt:
         'What if I invest an additional $1,000 per month into my aggressive growth portfolio for the next 5 years?',
-      parameters: { durationYears: 'bar', monthlyInvestmentAmount: 'bar', riskTolerance: 'bar' },
+      parameters: { durationYears: 5, monthlyInvestmentAmount: 1000, riskTolerance: 'aggressive' },
     });
   });
 });

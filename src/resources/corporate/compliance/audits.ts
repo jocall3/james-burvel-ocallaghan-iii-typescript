@@ -57,22 +57,23 @@ export interface AuditRequestResponse {
 
 export interface AuditRetrieveReportResponse {
   /**
-   * Date and time when the audit report was generated.
+   * Date when the audit report was generated.
    */
   auditDate: string;
 
   /**
-   * Unique identifier for the audit report.
+   * Unique identifier for the compliance audit.
    */
   auditId: string;
 
   /**
-   * Detailed findings, observations, and recommendations.
+   * Detailed list of findings, including observations, recommendations, and
+   * potential violations.
    */
   findings: Array<AuditRetrieveReportResponse.Finding>;
 
   /**
-   * An overall score (0-100) indicating the level of compliance.
+   * Overall compliance score (0-100), indicating adherence to rules.
    */
   overallComplianceScore: number;
 
@@ -82,57 +83,75 @@ export interface AuditRetrieveReportResponse {
   periodCovered: AuditRetrieveReportResponse.PeriodCovered;
 
   /**
-   * AI-generated actionable recommendations to improve compliance.
-   */
-  recommendedActions: Array<InsightsAPI.AIInsight>;
-
-  /**
-   * Current status of the audit generation.
+   * Current status of the audit.
    */
   status: 'initiated' | 'processing' | 'completed' | 'failed';
 
   /**
-   * A high-level summary of the audit findings.
+   * A summary of the audit findings.
    */
   summary: string;
 
   /**
-   * Specific adherence status for each regulatory framework audited.
+   * AI-generated actionable recommendations to improve compliance.
    */
-  regulatoryAdherence?: { [key: string]: string } | null;
+  recommendedActions?: Array<InsightsAPI.AIInsight> | null;
 }
 
 export namespace AuditRetrieveReportResponse {
   export interface Finding {
-    description?: string;
+    /**
+     * Detailed description of the finding.
+     */
+    description: string;
 
-    relatedEntities?: Array<string>;
+    /**
+     * Severity of the finding.
+     */
+    severity: 'Low' | 'Medium' | 'High' | 'Critical';
 
-    severity?: 'Low' | 'Medium' | 'High' | 'Critical';
+    /**
+     * Type of finding (e.g., observation, recommendation).
+     */
+    type: 'observation' | 'recommendation' | 'potential_violation';
 
-    type?: 'finding' | 'observation' | 'recommendation';
+    /**
+     * AI's confidence score or relevance score for this finding.
+     */
+    aiScore?: number | null;
+
+    /**
+     * Reference to specific regulatory requirement, if applicable.
+     */
+    regulatoryReference?: string | null;
+
+    /**
+     * List of IDs of entities (transactions, cards, etc.) related to this finding.
+     */
+    relatedEntities?: Array<string> | null;
   }
 
   /**
    * The date range covered by the audit.
    */
   export interface PeriodCovered {
-    endDate?: string;
+    /**
+     * End date of the audit period.
+     */
+    endDate: string;
 
-    startDate?: string;
+    /**
+     * Start date of the audit period.
+     */
+    startDate: string;
   }
 }
 
 export interface AuditRequestParams {
   /**
-   * The scope of the compliance audit.
+   * The scope of the audit (e.g., all transactions, specific accounts).
    */
-  auditScope:
-    | 'all_transactions'
-    | 'corporate_cards'
-    | 'specific_accounts'
-    | 'international_payments'
-    | 'user_onboarding';
+  auditScope: 'all_transactions' | 'corporate_cards' | 'global_payments' | 'specific_accounts';
 
   /**
    * The end date for the audit period (inclusive).
@@ -140,9 +159,9 @@ export interface AuditRequestParams {
   endDate: string;
 
   /**
-   * List of regulatory frameworks against which to audit.
+   * List of regulatory frameworks or internal policies to audit against.
    */
-  regulatoryFrameworks: Array<'AML' | 'KYC' | 'PCI-DSS' | 'GDPR' | 'PSD2' | 'SOX' | 'CCPA'>;
+  regulatoryFrameworks: Array<'AML' | 'PCI-DSS' | 'GDPR' | 'CCPA' | 'SOX' | 'internal_policy'>;
 
   /**
    * The start date for the audit period (inclusive).
@@ -150,9 +169,9 @@ export interface AuditRequestParams {
   startDate: string;
 
   /**
-   * Any additional notes or specific areas of focus for the audit.
+   * Optional: List of specific account IDs to include in the audit.
    */
-  additionalNotes?: string | null;
+  specificAccounts?: Array<string> | null;
 }
 
 export declare namespace Audits {

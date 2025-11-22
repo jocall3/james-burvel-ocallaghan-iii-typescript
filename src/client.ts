@@ -271,10 +271,10 @@ export class JamesBurvelOcallaghanIii {
   }
 
   protected validateHeaders({ values, nulls }: NullableHeaders) {
-    if (this.apiKey && values.get('authorization')) {
+    if (this.apiKey && values.get('x-api-key')) {
       return;
     }
-    if (nulls.has('authorization')) {
+    if (nulls.has('x-api-key')) {
       return;
     }
 
@@ -286,7 +286,7 @@ export class JamesBurvelOcallaghanIii {
     }
 
     throw new Error(
-      'Could not resolve authentication method. Expected either apiKey or bearerToken to be set. Or for one of the "Authorization" or "Authorization" headers to be explicitly omitted',
+      'Could not resolve authentication method. Expected either apiKey or bearerToken to be set. Or for one of the "X-API-Key" or "Authorization" headers to be explicitly omitted',
     );
   }
 
@@ -298,7 +298,7 @@ export class JamesBurvelOcallaghanIii {
     if (this.apiKey == null) {
       return undefined;
     }
-    return buildHeaders([{ Authorization: `Bearer ${this.apiKey}` }]);
+    return buildHeaders([{ 'X-API-Key': this.apiKey }]);
   }
 
   protected async biometricAuth(opts: FinalRequestOptions): Promise<NullableHeaders | undefined> {

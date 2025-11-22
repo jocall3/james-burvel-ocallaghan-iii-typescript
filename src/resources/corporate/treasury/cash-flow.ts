@@ -27,12 +27,12 @@ export class CashFlow extends APIResource {
 
 export interface CashFlowForecastResponse {
   /**
-   * AI-generated actionable recommendations for treasury optimization.
+   * AI-generated recommendations for treasury optimization.
    */
   aiRecommendations: Array<InsightsAPI.AIInsight>;
 
   /**
-   * The primary currency of the forecast (ISO 4217 code).
+   * The primary currency of the forecast.
    */
   currency: string;
 
@@ -42,83 +42,130 @@ export interface CashFlowForecastResponse {
   forecastId: string;
 
   /**
-   * Detailed forecast of expected cash inflows.
+   * Forecasted cash inflows.
    */
   inflowForecast: CashFlowForecastResponse.InflowForecast;
 
   /**
-   * AI-assessed risk score (0-100) for liquidity issues during the forecast period.
+   * AI-assessed score for liquidity risk (0-100, higher is riskier).
    */
   liquidityRiskScore: number;
 
   /**
-   * Detailed forecast of expected cash outflows.
+   * Forecasted cash outflows.
    */
   outflowForecast: CashFlowForecastResponse.OutflowForecast;
 
   /**
-   * Overall assessment of the forecasted cash flow.
+   * Overall assessment of the cash flow outlook.
    */
-  overallStatus: 'positive_outlook' | 'stable' | 'potential_deficit' | 'critical_deficit';
+  overallStatus: 'positive_outlook' | 'neutral' | 'potential_deficit' | 'critical_risk';
 
   /**
-   * The time period covered by the forecast.
+   * The period covered by the forecast.
    */
   period: string;
 
   /**
-   * Projected cash balances at various points in the forecast horizon, possibly
-   * across scenarios.
+   * Time-series of projected cash balances under different scenarios.
    */
   projectedBalances: Array<CashFlowForecastResponse.ProjectedBalance>;
 
   /**
    * Timestamp when the forecast was generated.
    */
-  generatedOn?: string;
+  forecastTimestamp?: string;
+
+  /**
+   * Summary of 'what-if' scenario analysis included in the forecast.
+   */
+  scenarioAnalysisSummary?: string | null;
 }
 
 export namespace CashFlowForecastResponse {
   /**
-   * Detailed forecast of expected cash inflows.
+   * Forecasted cash inflows.
    */
   export interface InflowForecast {
-    bySource?: Array<InflowForecast.BySource>;
+    /**
+     * Breakdown of inflows by source.
+     */
+    bySource: Array<InflowForecast.BySource>;
 
-    totalProjected?: number;
+    /**
+     * Total projected inflows.
+     */
+    totalProjected: number;
   }
 
   export namespace InflowForecast {
     export interface BySource {
+      /**
+       * AI's confidence score for this inflow source.
+       */
+      aiConfidence?: number | null;
+
+      /**
+       * Projected amount from this source.
+       */
       amount?: number;
 
+      /**
+       * Source of inflow.
+       */
       source?: string;
     }
   }
 
   /**
-   * Detailed forecast of expected cash outflows.
+   * Forecasted cash outflows.
    */
   export interface OutflowForecast {
-    byCategory?: Array<OutflowForecast.ByCategory>;
+    /**
+     * Breakdown of outflows by category.
+     */
+    byCategory: Array<OutflowForecast.ByCategory>;
 
-    totalProjected?: number;
+    /**
+     * Total projected outflows.
+     */
+    totalProjected: number;
   }
 
   export namespace OutflowForecast {
     export interface ByCategory {
+      /**
+       * AI's confidence score for this outflow category.
+       */
+      aiConfidence?: number | null;
+
+      /**
+       * Projected amount for this category.
+       */
       amount?: number;
 
+      /**
+       * Category of outflow.
+       */
       category?: string;
     }
   }
 
   export interface ProjectedBalance {
-    date?: string;
+    /**
+     * Date of the projected balance.
+     */
+    date: string;
 
-    projectedCash?: number;
+    /**
+     * Projected cash balance on this date.
+     */
+    projectedCash: number;
 
-    scenario?: 'most_likely' | 'worst_case' | 'best_case';
+    /**
+     * The scenario for this projection.
+     */
+    scenario: 'most_likely' | 'best_case' | 'worst_case' | 'custom';
   }
 }
 
@@ -129,8 +176,7 @@ export interface CashFlowForecastParams {
   forecastHorizonDays?: number;
 
   /**
-   * If true, the forecast will include best-case and worst-case scenarios in
-   * addition to most likely.
+   * If true, the forecast will include best-case and worst-case scenarios.
    */
   includeScenarioAnalysis?: boolean;
 }

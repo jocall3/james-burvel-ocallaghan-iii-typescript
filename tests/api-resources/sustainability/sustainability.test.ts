@@ -11,6 +11,7 @@ describe('resource sustainability', () => {
   test.skip('purchaseCarbonOffsets: only required params', async () => {
     const responsePromise = client.sustainability.purchaseCarbonOffsets({
       amountKgCO2e: 500,
+      offsetProject: 'Verified Carbon Standard Project X',
       paymentAccountId: 'acc_chase_checking_4567',
     });
     const rawResponse = await responsePromise.asResponse();
@@ -26,8 +27,9 @@ describe('resource sustainability', () => {
   test.skip('purchaseCarbonOffsets: required and optional params', async () => {
     const response = await client.sustainability.purchaseCarbonOffsets({
       amountKgCO2e: 500,
-      paymentAccountId: 'acc_chase_checking_4567',
       offsetProject: 'Verified Carbon Standard Project X',
+      paymentAccountId: 'acc_chase_checking_4567',
+      autoOffsetMonthly: false,
     });
   });
 

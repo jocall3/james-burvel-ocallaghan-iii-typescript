@@ -28,6 +28,7 @@ describe('resource apiKeys', () => {
       name: 'My Analytics Service Key',
       scopes: ['read:accounts', 'read:transactions'],
       expiresInDays: 90,
+      isSecretKey: false,
     });
   });
 

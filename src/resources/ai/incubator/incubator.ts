@@ -53,7 +53,7 @@ export interface IncubatorListPitchesResponse {
 
 export interface IncubatorListPitchesParams {
   /**
-   * Maximum number of items to return.
+   * Maximum number of items to return in the response.
    */
   limit?: number;
 

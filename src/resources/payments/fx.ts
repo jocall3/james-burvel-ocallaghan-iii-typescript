@@ -50,61 +50,71 @@ export interface FxConvertResponse {
   conversionId: string;
 
   /**
-   * Timestamp when the conversion was completed.
+   * Timestamp of the conversion.
    */
   conversionTimestamp: string;
 
   /**
-   * The foreign exchange rate applied (targetCurrency per sourceCurrency).
+   * Any fees charged for the conversion.
+   */
+  feesApplied: number;
+
+  /**
+   * The exchange rate applied (targetCurrency / sourceCurrency).
    */
   fxRateApplied: number;
 
   /**
-   * Amount converted from the source currency.
+   * Amount of source currency converted.
    */
   sourceAmount: number;
 
   /**
-   * Source currency of the conversion.
+   * Source currency code.
    */
   sourceCurrency: string;
 
   /**
    * Status of the currency conversion.
    */
-  status: 'completed' | 'failed';
+  status: 'completed' | 'pending_review' | 'failed';
 
   /**
-   * Amount received in the target currency.
+   * Amount of target currency received.
    */
   targetAmount: number;
 
   /**
-   * The transaction ID associated with the conversion in the user's account history.
+   * Target currency code.
    */
-  transactionId: string | null;
+  targetCurrency?: string;
 
   /**
-   * Any fees applied to the conversion.
+   * The ID of the internal transaction recording the conversion.
    */
-  feesApplied?: number | null;
+  transactionId?: string | null;
 }
 
 export interface FxRetrieveRatesResponse {
   /**
-   * The base currency for the rate.
+   * The base currency code.
    */
   baseCurrency: string;
 
   /**
-   * Real-time current foreign exchange rates.
+   * The current real-time exchange rates.
    */
   currentRate: FxRetrieveRatesResponse.CurrentRate;
 
   /**
-   * The target currency for the rate.
+   * The target currency code.
    */
   targetCurrency: string;
+
+  /**
+   * AI-driven risk assessment for the currency pair.
+   */
+  aiRiskAssessment?: FxRetrieveRatesResponse.AIRiskAssessment | null;
 
   /**
    * Historical volatility data for the currency pair.
@@ -112,35 +122,50 @@ export interface FxRetrieveRatesResponse {
   historicalVolatility?: FxRetrieveRatesResponse.HistoricalVolatility | null;
 
   /**
-   * AI-predicted future foreign exchange rates.
+   * AI-predicted future exchange rates for the specified forecast horizon.
    */
   predictiveRates?: Array<FxRetrieveRatesResponse.PredictiveRate> | null;
 }
 
 export namespace FxRetrieveRatesResponse {
   /**
-   * Real-time current foreign exchange rates.
+   * The current real-time exchange rates.
    */
   export interface CurrentRate {
     /**
-     * The ask price (rate at which you can buy base currency).
+     * The ask price (rate at which the market will sell the base currency).
      */
     ask: number;
 
     /**
-     * The bid price (rate at which you can sell base currency).
+     * The bid price (rate at which the market will buy the base currency).
      */
     bid: number;
 
     /**
-     * The mid-market rate.
+     * The mid-market rate (average of bid and ask).
      */
     mid: number;
 
     /**
-     * Timestamp of the current rate.
+     * Timestamp of the rate quote.
      */
     timestamp: string;
+  }
+
+  /**
+   * AI-driven risk assessment for the currency pair.
+   */
+  export interface AIRiskAssessment {
+    /**
+     * AI-identified events that could impact FX rates.
+     */
+    eventRiskFactors?: Array<string>;
+
+    /**
+     * AI forecast for future volatility.
+     */
+    volatilityForecast?: 'low' | 'medium' | 'high';
   }
 
   /**
@@ -148,37 +173,52 @@ export namespace FxRetrieveRatesResponse {
    */
   export interface HistoricalVolatility {
     /**
-     * Average daily volatility over the past 30 days.
+     * Volatility over the past 30 days.
      */
     past30Days?: number;
 
     /**
-     * Average daily volatility over the past 7 days.
+     * Volatility over the past 7 days.
      */
     past7Days?: number;
   }
 
   export interface PredictiveRate {
-    aiModelConfidence?: number;
+    /**
+     * AI model's confidence (0-1) in this specific prediction.
+     */
+    aiModelConfidence: number;
 
-    confidenceIntervalLower?: number;
+    /**
+     * Lower bound of the confidence interval for the prediction.
+     */
+    confidenceIntervalLower: number;
 
-    confidenceIntervalUpper?: number;
+    /**
+     * Upper bound of the confidence interval for the prediction.
+     */
+    confidenceIntervalUpper: number;
 
-    date?: string;
+    /**
+     * The date for which the rate is predicted.
+     */
+    date: string;
 
-    predictedMidRate?: number;
+    /**
+     * The AI's predicted mid-market rate for that date.
+     */
+    predictedMidRate: number;
   }
 }
 
 export interface FxConvertParams {
   /**
-   * The ID of the account from which to convert funds.
+   * The ID of the user's account from which funds will be converted.
    */
   sourceAccountId: string;
 
   /**
-   * The amount to convert from the source currency.
+   * The amount to convert from the source account in `sourceCurrency`.
    */
   sourceAmount: number;
 
@@ -193,14 +233,19 @@ export interface FxConvertParams {
   targetCurrency: string;
 
   /**
-   * If true, attempts to lock the FX rate at the time of conversion.
+   * If true, attempts to lock the quoted FX rate. May incur a small fee.
    */
   fxRateLock?: boolean;
 
   /**
-   * Optional: The ID of the target account to deposit converted funds. If omitted,
-   * converted funds will be deposited back to sourceAccountId (if multi-currency
-   * capable) or a default linked account.
+   * Preferred FX rate provider for the conversion.
+   */
+  fxRateProvider?: 'proprietary_ai' | 'standard_interbank' | 'third_party';
+
+  /**
+   * Optional: The ID of the target account to receive the converted funds. If
+   * omitted, funds are converted within the source account's currency capabilities
+   * or a new balance is created.
    */
   targetAccountId?: string | null;
 }

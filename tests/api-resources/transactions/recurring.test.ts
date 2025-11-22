@@ -15,6 +15,7 @@ describe('resource recurring', () => {
       currency: 'USD',
       description: 'New Gym Membership',
       frequency: 'monthly',
+      linkedAccountId: 'acc_chase_checking_4567',
       startDate: '2024-09-01',
     });
     const rawResponse = await responsePromise.asResponse();
@@ -34,8 +35,9 @@ describe('resource recurring', () => {
       currency: 'USD',
       description: 'New Gym Membership',
       frequency: 'monthly',
-      startDate: '2024-09-01',
       linkedAccountId: 'acc_chase_checking_4567',
+      startDate: '2024-09-01',
+      status: 'active',
     });
   });
 

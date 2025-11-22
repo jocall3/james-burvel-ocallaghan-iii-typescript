@@ -24,7 +24,7 @@ describe('resource chat', () => {
     // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
     await expect(
       client.ai.advisor.chat.retrieveHistory(
-        { limit: 10, offset: 0, sessionId: 'session-quantum-xyz-789-alpha' },
+        { limit: 2, offset: 0, sessionId: 'session-quantum-xyz-789-alpha' },
         { path: '/_stainless_unknown_path' },
       ),
     ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);
@@ -33,8 +33,7 @@ describe('resource chat', () => {
   // Prism tests are disabled
   test.skip('sendMessage: only required params', async () => {
     const responsePromise = client.ai.advisor.chat.sendMessage({
-      message:
-        'Can you analyze my recent spending patterns and suggest areas for saving, focusing on my dining expenses?',
+      sessionId: 'session-quantum-xyz-789-alpha',
     });
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -48,13 +47,14 @@ describe('resource chat', () => {
   // Prism tests are disabled
   test.skip('sendMessage: required and optional params', async () => {
     const response = await client.ai.advisor.chat.sendMessage({
-      message:
-        'Can you analyze my recent spending patterns and suggest areas for saving, focusing on my dining expenses?',
+      sessionId: 'session-quantum-xyz-789-alpha',
       functionResponse: {
         name: 'send_money',
         response: { status: 'success', transactionId: 'pmt_654321', amountSent: 50, recipient: 'Alex' },
+        callId: 'call_abc123',
       },
-      sessionId: 'session-quantum-xyz-789-alpha',
+      message:
+        'Can you analyze my recent spending patterns and suggest areas for saving, focusing on my dining expenses?',
     });
   });
 });

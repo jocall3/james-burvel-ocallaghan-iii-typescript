@@ -118,19 +118,14 @@ export interface LinkedAccount {
   currentBalance: number;
 
   /**
-   * Name of the financial institution where the account is held.
+   * Name of the financial institution holding the account.
    */
   institutionName: string;
 
   /**
-   * Timestamp of when the account balance was last updated.
+   * Timestamp when the account balance and details were last synced.
    */
   lastUpdated: string;
-
-  /**
-   * Masked account number (e.g., last 4 digits) for display.
-   */
-  mask: string;
 
   /**
    * User-friendly name of the account.
@@ -140,17 +135,41 @@ export interface LinkedAccount {
   /**
    * High-level type of the financial account.
    */
-  type: 'depository' | 'credit' | 'loan' | 'investment' | 'other';
+  type: 'depository' | 'credit' | 'investment' | 'loan' | 'other';
 
   /**
-   * The available balance, considering pending transactions or holds.
+   * Current status of the connection to the external institution.
+   */
+  accountLinkStatus?: 'active' | 'inactive' | 'reconnect_required' | 'error';
+
+  /**
+   * Full account number (sensitive, typically only accessible with explicit
+   * permissions).
+   */
+  accountNumber?: string | null;
+
+  /**
+   * The available balance of the account (may differ from current due to pending
+   * transactions).
    */
   availableBalance?: number | null;
 
   /**
-   * Optional: Identifier from the external financial institution/aggregator.
+   * Optional: Identifier from the external financial institution (e.g., Plaid
+   * account ID).
    */
   externalId?: string | null;
+
+  /**
+   * Last 4 digits of the account number for display purposes (masked).
+   */
+  mask?: string | null;
+
+  /**
+   * Bank routing number (sensitive, typically only accessible with explicit
+   * permissions).
+   */
+  routingNumber?: string | null;
 
   /**
    * Specific subtype of the account (e.g., checking, savings, IRA, credit card).
@@ -160,8 +179,8 @@ export interface LinkedAccount {
 
 export interface AccountLinkNewInstitutionResponse {
   /**
-   * The URI to which the user should be redirected to complete the authentication
-   * process with the external institution.
+   * The URI to which the user should be redirected to complete the external
+   * institution's authentication flow.
    */
   authUri: string;
 
@@ -173,10 +192,10 @@ export interface AccountLinkNewInstitutionResponse {
   /**
    * Current status of the linking process.
    */
-  status: 'pending_user_action' | 'error';
+  status: 'pending_user_action' | 'linking_in_progress' | 'completed' | 'failed';
 
   /**
-   * A descriptive message about the next steps or any errors.
+   * A descriptive message regarding the next steps or status.
    */
   message?: string | null;
 }
@@ -185,80 +204,84 @@ export type AccountListLinkedAccountsResponse = Array<LinkedAccount>;
 
 export interface AccountRetrieveAccountDetailsResponse extends LinkedAccount {
   /**
-   * Name of the primary account holder.
+   * The name of the primary holder of the account.
    */
   accountHolder?: string;
 
   /**
-   * Historical daily balances for the account.
+   * Historical daily balances for the account over a recent period.
    */
   balanceHistory?: Array<AccountRetrieveAccountDetailsResponse.BalanceHistory>;
 
   /**
-   * Annual interest rate for the account (e.g., for savings or loans).
+   * Annual interest rate for the account (e.g., APY for savings, APR for credit).
    */
   interestRate?: number | null;
 
   /**
-   * Date when the account was opened.
+   * The date the account was opened.
    */
   openedDate?: string | null;
 
-  /**
-   * AI-driven projection of future cash flow for the account.
-   */
   projectedCashFlow?: AccountRetrieveAccountDetailsResponse.ProjectedCashFlow;
 
   /**
-   * Total number of transactions in the account's history (or within a default
-   * period).
+   * Total number of transactions recorded for this account.
    */
   transactionsCount?: number;
 }
 
 export namespace AccountRetrieveAccountDetailsResponse {
   export interface BalanceHistory {
+    /**
+     * Balance on that date.
+     */
     balance?: number;
 
+    /**
+     * Date of the balance snapshot.
+     */
     date?: string;
   }
 
-  /**
-   * AI-driven projection of future cash flow for the account.
-   */
   export interface ProjectedCashFlow {
     /**
-     * AI's confidence score (0-100) in the accuracy of the projection.
+     * AI's confidence score (0-100) in the accuracy of the cash flow projection.
      */
     confidenceScore?: number;
 
     /**
-     * AI-projected net cash flow for the next 30 days.
+     * Projected net cash flow for the next 30 days.
      */
-    days30?: number | null;
+    days30?: number;
 
     /**
-     * AI-projected net cash flow for the next 90 days.
+     * Projected net cash flow for the next 90 days.
      */
-    days90?: number | null;
+    days90?: number;
   }
 }
 
 export interface AccountLinkNewInstitutionParams {
   /**
-   * ISO 3166-1 alpha-2 country code of the institution.
+   * The ISO 3166-1 alpha-2 country code of the institution.
    */
   countryCode: string;
 
   /**
-   * The name of the external financial institution to link.
+   * The name of the financial institution to link.
    */
   institutionName: string;
 
   /**
-   * Optional: Specific financial data aggregator to use.
+   * Optional: Additional provider-specific metadata for linking.
    */
-  provider?: 'plaid' | 'mx' | 'finicity' | 'other' | null;
+  metadata?: unknown | null;
+
+  /**
+   * Optional: The type of third-party linking provider to use.
+   */
+  providerType?: 'plaid' | 'mx' | 'finicity' | 'other' | null;
 }
 
 export interface AccountRetrieveAccountStatementsParams {

@@ -34,16 +34,15 @@ describe('resource generate', () => {
         "A captivating ad featuring a young entrepreneur using 's AI tools to grow their startup. Focus on innovation and ease of use.",
       style: 'Cinematic',
       audienceTarget: 'corporate',
-      backgroundMusic: 'upbeat_corporate',
-      brandAssets: ['https://demobank.com/assets/corporate_logo.png'],
+      backgroundMusicVolume: 0.5,
+      brandAssets: ['https://example.com'],
       brandColors: ['#0000FF', '#FFD700'],
       callToAction: {
-        displayTimeSeconds: 5,
         text: 'Learn more at DemoBank.com/business',
         url: 'https://demobank.com/business',
+        displayTimeSeconds: 5,
       },
-      keywords: ['financial freedom', 'AI banking', 'startup success'],
-      subtitlesEnabled: true,
+      musicGenre: 'uplifting_corporate',
       voiceoverStyle: 'male_professional',
       voiceoverText: ': Your business, powered by intelligent finance.',
     });
@@ -76,7 +75,7 @@ describe('resource generate', () => {
         "A captivating ad featuring a young entrepreneur using 's AI tools to grow their startup. Focus on innovation and ease of use.",
       style: 'Cinematic',
       brandColors: ['#0000FF', '#FFD700'],
-      keywords: ['financial freedom', 'AI banking', 'startup success'],
+      musicGenre: 'uplifting_corporate',
     });
   });
 });

@@ -100,44 +100,44 @@ export interface Budget {
   id: string;
 
   /**
-   * Breakdown of the budget by categories.
+   * Breakdown of the budget by category.
    */
   categories: Array<Budget.Category>;
 
   /**
-   * The end date of the budget period.
+   * The end date of the current budget period.
    */
   endDate: string;
 
   /**
-   * User-defined name for the budget.
+   * Name of the budget.
    */
   name: string;
 
   /**
-   * The frequency or period of the budget.
+   * The recurrence period of the budget.
    */
-  period: 'weekly' | 'monthly' | 'quarterly' | 'yearly' | 'custom';
+  period: 'weekly' | 'monthly' | 'quarterly' | 'annually' | 'custom';
 
   /**
-   * The remaining amount in the budget.
+   * The remaining amount in this budget period.
    */
   remainingAmount: number;
 
   /**
-   * The total amount spent against the budget so far.
+   * The amount spent so far in this budget period.
    */
   spentAmount: number;
 
   /**
-   * The start date of the budget period.
+   * The start date of the current budget period.
    */
   startDate: string;
 
   /**
    * Current status of the budget.
    */
-  status: 'active' | 'completed' | 'archived';
+  status: 'active' | 'completed' | 'archived' | 'overspent';
 
   /**
    * The total allocated budget amount.
@@ -150,7 +150,8 @@ export interface Budget {
   aiRecommendations?: Array<InsightsAPI.AIInsight> | null;
 
   /**
-   * Percentage threshold at which an alert should be triggered (e.g., 80% spent).
+   * Percentage of budget spent at which an alert should be triggered (e.g., 80 for
+   * 80% spent).
    */
   alertThreshold?: number | null;
 }
@@ -173,7 +174,7 @@ export namespace Budget {
     remaining: number;
 
     /**
-     * Amount spent in this category so far.
+     * Amount spent in this category.
      */
     spent: number;
   }
@@ -188,14 +189,14 @@ export interface BudgetCreateParams {
   endDate: string;
 
   /**
-   * Name for the new budget.
+   * Name of the new budget.
    */
   name: string;
 
   /**
-   * The frequency or period of the budget.
+   * The recurrence period of the budget.
    */
-  period: 'weekly' | 'monthly' | 'quarterly' | 'yearly' | 'custom';
+  period: 'weekly' | 'monthly' | 'quarterly' | 'annually' | 'custom';
 
   /**
    * The start date of the budget period.
@@ -208,72 +209,96 @@ export interface BudgetCreateParams {
   totalAmount: number;
 
   /**
-   * If true, AI will intelligently auto-populate remaining categories and amounts
-   * based on historical spending.
+   * If true, AI will automatically suggest and populate budget categories and
+   * amounts based on historical spending.
    */
   aiAutoPopulate?: boolean;
 
   /**
-   * Percentage threshold for budget alerts.
+   * Percentage of budget spent at which an alert should be triggered.
    */
   alertThreshold?: number | null;
 
   /**
-   * Initial breakdown of the budget by categories.
+   * Optional: Initial breakdown of the budget by categories. If omitted and
+   * `aiAutoPopulate` is true, AI will generate.
    */
-  categories?: Array<BudgetCreateParams.Category>;
+  categories?: Array<BudgetCreateParams.Category> | null;
 }
 
 export namespace BudgetCreateParams {
   export interface Category {
+    /**
+     * Amount allocated to this category.
+     */
     allocated: number;
 
+    /**
+     * Category name.
+     */
     name: string;
   }
 }
 
 export interface BudgetUpdateParams {
   /**
-   * Updated percentage threshold for budget alerts.
+   * Updated percentage for budget alert threshold.
    */
   alertThreshold?: number | null;
 
   /**
-   * Updated or new categories for the budget. Existing categories not included will
-   * remain unchanged unless explicitly set to null/0.
+   * Updated breakdown of the budget by categories. Existing categories will be
+   * updated, new ones added.
    */
   categories?: Array<BudgetUpdateParams.Category>;
 
   /**
-   * The updated end date of the budget period.
+   * Updated end date of the budget period.
    */
   endDate?: string;
 
   /**
-   * Updated name for the budget.
+   * Updated name of the budget.
    */
   name?: string;
 
   /**
-   * The updated frequency or period of the budget.
+   * Updated recurrence period of the budget.
    */
-  period?: 'weekly' | 'monthly' | 'quarterly' | 'yearly' | 'custom';
+  period?: 'weekly' | 'monthly' | 'quarterly' | 'annually' | 'custom';
 
   /**
-   * The updated start date of the budget period.
+   * If true, resets `spentAmount` for all categories and total to 0. Useful for
+   * starting a new cycle of a recurring budget.
+   */
+  resetSpentAmounts?: boolean;
+
+  /**
+   * Updated start date of the budget period.
    */
   startDate?: string;
 
   /**
-   * The updated total allocated budget amount.
+   * Updated status of the budget.
+   */
+  status?: 'active' | 'completed' | 'archived' | 'overspent';
+
+  /**
+   * Updated total allocated budget amount.
    */
   totalAmount?: number;
 }
 
 export namespace BudgetUpdateParams {
   export interface Category {
+    /**
+     * Amount allocated to this category.
+     */
     allocated: number;
 
+    /**
+     * Category name.
+     */
     name: string;
   }
 }

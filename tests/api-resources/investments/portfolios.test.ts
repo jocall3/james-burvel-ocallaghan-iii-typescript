@@ -94,7 +94,6 @@ describe('resource portfolios', () => {
       targetRiskTolerance: 'medium',
       confirmationRequired: true,
       dryRun: true,
-      targetAssetAllocation: [{ assetClass: 'equities', percentage: 60 }],
     });
   });
 });

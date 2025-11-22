@@ -24,7 +24,7 @@ describe('resource cashFlow', () => {
     // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
     await expect(
       client.corporate.treasury.cashFlow.forecast(
-        { forecastHorizonDays: 180, includeScenarioAnalysis: true },
+        { forecastHorizonDays: 90, includeScenarioAnalysis: true },
         { path: '/_stainless_unknown_path' },
       ),
     ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);
