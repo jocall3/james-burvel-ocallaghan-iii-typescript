@@ -1,0 +1,307 @@
+// File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
+
+import { APIResource } from '../../core/resource';
+import * as OverdraftSettingsAPI from './overdraft-settings';
+import { OverdraftSettingUpdateSettingsParams, OverdraftSettings } from './overdraft-settings';
+import * as TransactionsAPI from './transactions';
+import { TransactionListPendingTransactionsResponse, Transactions } from './transactions';
+import { APIPromise } from '../../core/api-promise';
+import { buildHeaders } from '../../internal/headers';
+import { RequestOptions } from '../../internal/request-options';
+import { path } from '../../internal/utils/path';
+
+export class Accounts extends APIResource {
+  transactions: TransactionsAPI.Transactions = new TransactionsAPI.Transactions(this._client);
+  overdraftSettings: OverdraftSettingsAPI.OverdraftSettings = new OverdraftSettingsAPI.OverdraftSettings(
+    this._client,
+  );
+
+  /**
+   * Begins the secure process of linking a new external financial institution (e.g.,
+   * another bank, investment platform) to the user's profile, typically involving a
+   * third-party tokenized flow.
+   *
+   * @example
+   * ```ts
+   * const response = await client.accounts.linkNewInstitution({
+   *   countryCode: 'US',
+   *   institutionName: 'Bank of America',
+   * });
+   * ```
+   */
+  linkNewInstitution(
+    body: AccountLinkNewInstitutionParams,
+    options?: RequestOptions,
+  ): APIPromise<AccountLinkNewInstitutionResponse> {
+    return this._client.post('/accounts/link', { body, ...options });
+  }
+
+  /**
+   * Fetches a comprehensive, real-time list of all external financial accounts
+   * linked to the user's profile, including consolidated balances and institutional
+   * details.
+   *
+   * @example
+   * ```ts
+   * const linkedAccounts =
+   *   await client.accounts.listLinkedAccounts();
+   * ```
+   */
+  listLinkedAccounts(options?: RequestOptions): APIPromise<AccountListLinkedAccountsResponse> {
+    return this._client.get('/accounts/me', options);
+  }
+
+  /**
+   * Retrieves comprehensive analytics for a specific financial account, including
+   * historical balance trends, projected cash flow, and AI-driven insights into
+   * spending patterns.
+   *
+   * @example
+   * ```ts
+   * const response =
+   *   await client.accounts.retrieveAccountDetails(
+   *     'acc_chase_checking_4567',
+   *   );
+   * ```
+   */
+  retrieveAccountDetails(
+    accountID: string,
+    options?: RequestOptions,
+  ): APIPromise<AccountRetrieveAccountDetailsResponse> {
+    return this._client.get(path`/accounts/${accountID}/details`, options);
+  }
+
+  /**
+   * Fetches digital statements for a specific account, allowing filtering by date
+   * range and format.
+   *
+   * @example
+   * ```ts
+   * const response =
+   *   await client.accounts.retrieveAccountStatements(
+   *     'acc_chase_checking_4567',
+   *     { month: 7, year: 2024 },
+   *   );
+   *
+   * const content = await response.blob();
+   * console.log(content);
+   * ```
+   */
+  retrieveAccountStatements(
+    accountID: string,
+    query: AccountRetrieveAccountStatementsParams,
+    options?: RequestOptions,
+  ): APIPromise<Response> {
+    return this._client.get(path`/accounts/${accountID}/statements`, {
+      query,
+      ...options,
+      headers: buildHeaders([{ Accept: 'application/pdf' }, options?.headers]),
+      __binaryResponse: true,
+    });
+  }
+}
+
+export interface LinkedAccount {
+  /**
+   * Internal unique identifier for the linked account.
+   */
+  id: string;
+
+  /**
+   * ISO 4217 currency code of the account.
+   */
+  currency: string;
+
+  /**
+   * Current balance of the account.
+   */
+  currentBalance: number;
+
+  /**
+   * Name of the financial institution.
+   */
+  institutionName: string;
+
+  /**
+   * Timestamp when the account balance was last synced/updated.
+   */
+  lastUpdated: string;
+
+  /**
+   * User-friendly name of the account.
+   */
+  name: string;
+
+  /**
+   * High-level type of the account.
+   */
+  type: 'depository' | 'credit' | 'loan' | 'investment' | 'mortgage' | 'other';
+
+  /**
+   * Available balance (may differ from current due to pending transactions).
+   */
+  availableBalance?: number | null;
+
+  /**
+   * Identifier from the external financial institution or aggregator.
+   */
+  externalId?: string | null;
+
+  /**
+   * Indicates if this is the user's primary account for general operations.
+   */
+  isPrimary?: boolean;
+
+  /**
+   * Masked account number (e.g., last 4 digits).
+   */
+  mask?: string;
+
+  /**
+   * Specific subtype of the account (e.g., checking, savings, IRA, 401k).
+   */
+  subtype?: string;
+}
+
+export interface AccountLinkNewInstitutionResponse {
+  /**
+   * The URI to which the user should be redirected to complete the external
+   * authentication flow.
+   */
+  authUri: string;
+
+  /**
+   * A unique ID for the initiated linking session.
+   */
+  linkSessionId: string;
+
+  /**
+   * Current status of the account linking process.
+   */
+  status: 'pending_user_action' | 'complete' | 'failed';
+
+  /**
+   * A descriptive message regarding the linking status.
+   */
+  message?: string | null;
+}
+
+export type AccountListLinkedAccountsResponse = Array<LinkedAccount>;
+
+export interface AccountRetrieveAccountDetailsResponse extends LinkedAccount {
+  /**
+   * Name of the account holder.
+   */
+  accountHolder?: string;
+
+  /**
+   * Historical daily balances for the account (e.g., last 30 days).
+   */
+  balanceHistory?: Array<AccountRetrieveAccountDetailsResponse.BalanceHistory>;
+
+  /**
+   * Annual interest rate for the account (if applicable).
+   */
+  interestRate?: number | null;
+
+  /**
+   * Date the account was opened.
+   */
+  openedDate?: string | null;
+
+  /**
+   * AI-driven projection of future cash flow for the account.
+   */
+  projectedCashFlow?: AccountRetrieveAccountDetailsResponse.ProjectedCashFlow;
+
+  /**
+   * Total number of transactions in the account (last 12 months).
+   */
+  transactionsCount?: number;
+}
+
+export namespace AccountRetrieveAccountDetailsResponse {
+  export interface BalanceHistory {
+    balance?: number;
+
+    date?: string;
+  }
+
+  /**
+   * AI-driven projection of future cash flow for the account.
+   */
+  export interface ProjectedCashFlow {
+    /**
+     * AI's confidence score (0-100) for the accuracy of the projection.
+     */
+    confidenceScore?: number;
+
+    /**
+     * Projected net cash flow for the next 30 days.
+     */
+    days30?: number;
+
+    /**
+     * Projected net cash flow for the next 90 days.
+     */
+    days90?: number;
+  }
+}
+
+export interface AccountLinkNewInstitutionParams {
+  /**
+   * ISO 3166-1 alpha-2 country code of the institution.
+   */
+  countryCode: string;
+
+  /**
+   * The name of the external financial institution to link.
+   */
+  institutionName: string;
+
+  /**
+   * Optional: Specify a financial data aggregation provider (e.g., 'Plaid',
+   * 'Finicity').
+   */
+  provider?: string | null;
+}
+
+export interface AccountRetrieveAccountStatementsParams {
+  /**
+   * Month for the statement (1-12).
+   */
+  month: number;
+
+  /**
+   * Year for the statement.
+   */
+  year: number;
+
+  /**
+   * Desired format for the statement.
+   */
+  format?: 'pdf' | 'csv';
+}
+
+Accounts.Transactions = Transactions;
+
+export declare namespace Accounts {
+  export {
+    type LinkedAccount as LinkedAccount,
+    type AccountLinkNewInstitutionResponse as AccountLinkNewInstitutionResponse,
+    type AccountListLinkedAccountsResponse as AccountListLinkedAccountsResponse,
+    type AccountRetrieveAccountDetailsResponse as AccountRetrieveAccountDetailsResponse,
+    type AccountLinkNewInstitutionParams as AccountLinkNewInstitutionParams,
+    type AccountRetrieveAccountStatementsParams as AccountRetrieveAccountStatementsParams,
+  };
+
+  export {
+    Transactions as Transactions,
+    type TransactionListPendingTransactionsResponse as TransactionListPendingTransactionsResponse,
+  };
+
+  export {
+    type OverdraftSettings as OverdraftSettings,
+    type OverdraftSettingUpdateSettingsParams as OverdraftSettingUpdateSettingsParams,
+  };
+}
