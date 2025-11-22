@@ -1,20 +1,75 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
 import { APIResource } from '../../core/resource';
+import * as InsightsAPI from '../transactions/insights';
 import { APIPromise } from '../../core/api-promise';
 import { RequestOptions } from '../../internal/request-options';
+import { path } from '../../internal/utils/path';
 
 export class Products extends APIResource {
   /**
    * Retrieves a personalized, AI-curated list of products and services from the
    * Plato AI marketplace, tailored to the user's financial profile, goals, and
    * spending patterns. Includes options for filtering and advanced search.
+   *
+   * @example
+   * ```ts
+   * const products = await client.marketplace.products.list();
+   * ```
    */
   list(
     query: ProductListParams | null | undefined = {},
     options?: RequestOptions,
   ): APIPromise<ProductListResponse> {
     return this._client.get('/marketplace/products', { query, ...options });
+  }
+
+  /**
+   * Redeems a personalized, exclusive offer from the Plato AI marketplace, often
+   * resulting in a discount, special rate, or credit to the user's account.
+   *
+   * @example
+   * ```ts
+   * const response =
+   *   await client.marketplace.products.redeemMarketplaceOffer(
+   *     'offer_home_ins_promo_1',
+   *     { paymentAccountId: 'acc_chase_checking_4567' },
+   *   );
+   * ```
+   */
+  redeemMarketplaceOffer(
+    offerID: string,
+    body: ProductRedeemMarketplaceOfferParams | null | undefined = {},
+    options?: RequestOptions,
+  ): APIPromise<ProductRedeemMarketplaceOfferResponse> {
+    return this._client.post(path`/marketplace/offers/${offerID}/redeem`, { body, ...options });
+  }
+
+  /**
+   * Uses the Quantum Oracle to simulate the long-term financial impact of purchasing
+   * or subscribing to a specific marketplace product, such as a loan, investment, or
+   * insurance policy, on the user's overall financial health and goals.
+   *
+   * @example
+   * ```ts
+   * const response =
+   *   await client.marketplace.products.simulatePurchase(
+   *     'prod_home_insurance_quantum',
+   *     {
+   *       simulationParameters: {
+   *         loanAmount: 20000,
+   *         repaymentTermMonths: 48,
+   *       },
+   *     },
+   *   );
+   * ```
+   */
+  simulatePurchase(
+    productID: string,
+    body: ProductSimulatePurchaseParams,
+    options?: RequestOptions,
+  ): APIPromise<ProductSimulatePurchaseResponse> {
+    return this._client.post(path`/marketplace/products/${productID}/impact-simulate`, { body, ...options });
   }
 }
 
@@ -131,6 +186,90 @@ export namespace ProductListResponse {
   }
 }
 
+export interface ProductRedeemMarketplaceOfferResponse {
+  /**
+   * If applicable, the ID of any associated transaction (e.g., a credit or initial
+   * payment).
+   */
+  associatedTransactionId?: string | null;
+
+  /**
+   * A descriptive message about the redemption.
+   */
+  message?: string;
+
+  /**
+   * The ID of the redeemed offer.
+   */
+  offerId?: string;
+
+  redemptionDate?: string;
+
+  /**
+   * Unique ID for this redemption.
+   */
+  redemptionId?: string;
+
+  /**
+   * Status of the redemption.
+   */
+  status?: 'success' | 'pending' | 'failed';
+}
+
+export interface ProductSimulatePurchaseResponse {
+  /**
+   * Key financial impacts identified by the AI (e.g., on cash flow, debt-to-income).
+   */
+  keyImpacts: Array<ProductSimulatePurchaseResponse.KeyImpact>;
+
+  /**
+   * A natural language summary of the simulation's results for this product.
+   */
+  narrativeSummary: string;
+
+  /**
+   * The ID of the marketplace product being simulated.
+   */
+  productId: string;
+
+  /**
+   * Unique identifier for the simulation performed.
+   */
+  simulationId: string;
+
+  /**
+   * Actionable recommendations or advice related to the product and its impact.
+   */
+  aiRecommendations?: Array<InsightsAPI.AIInsight> | null;
+
+  /**
+   * Projected amortization schedule for loan products.
+   */
+  projectedAmortizationSchedule?: Array<ProductSimulatePurchaseResponse.ProjectedAmortizationSchedule> | null;
+}
+
+export namespace ProductSimulatePurchaseResponse {
+  export interface KeyImpact {
+    metric?: string;
+
+    severity?: 'low' | 'medium' | 'high';
+
+    value?: string;
+  }
+
+  export interface ProjectedAmortizationSchedule {
+    interest?: number;
+
+    month?: number;
+
+    payment?: number;
+
+    principal?: number;
+
+    remainingBalance?: number;
+  }
+}
+
 export interface ProductListParams {
   /**
    * Filter by AI personalization level (e.g., low, medium, high). 'High' means
@@ -167,6 +306,28 @@ export interface ProductListParams {
   offset?: number;
 }
 
+export interface ProductRedeemMarketplaceOfferParams {
+  /**
+   * Optional: The ID of the account to use for any associated payment or credit.
+   */
+  paymentAccountId?: string;
+}
+
+export interface ProductSimulatePurchaseParams {
+  /**
+   * Dynamic parameters specific to the product type (e.g., loan amount, investment
+   * term).
+   */
+  simulationParameters?: unknown;
+}
+
 export declare namespace Products {
-  export { type ProductListResponse as ProductListResponse, type ProductListParams as ProductListParams };
+  export {
+    type ProductListResponse as ProductListResponse,
+    type ProductRedeemMarketplaceOfferResponse as ProductRedeemMarketplaceOfferResponse,
+    type ProductSimulatePurchaseResponse as ProductSimulatePurchaseResponse,
+    type ProductListParams as ProductListParams,
+    type ProductRedeemMarketplaceOfferParams as ProductRedeemMarketplaceOfferParams,
+    type ProductSimulatePurchaseParams as ProductSimulatePurchaseParams,
+  };
 }

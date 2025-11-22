@@ -1,4 +1,4 @@
-configured_endpoints: 103
-openapi_spec_url: https://storage.googleapis.com/stainless-sdk-openapi-specs/citibank-demo-business-inc%2Fjames-burvel-ocallaghan-iii-7b63569988d077508ae56d11fa4f87f82e13ed0203ed0266986992dff53e7153.yml
-openapi_spec_hash: ea5a44304b45ee59962e33991b5a4879
-config_hash: 651606b5f73f67692ce0f577fa521343
+configured_endpoints: 105
+openapi_spec_url: https://storage.googleapis.com/stainless-sdk-openapi-specs/citibank-demo-business-inc%2Fjames-burvel-ocallaghan-iii-7d0a891b51c471b8d5698cf0c15feea301dede6606eced18f940d4bcf27f2bfa.yml
+openapi_spec_hash: 4a8b8ab6afe3453c584be039a2f6f7b2
+config_hash: 205a131df43cf41ec2d07d59027697c3
