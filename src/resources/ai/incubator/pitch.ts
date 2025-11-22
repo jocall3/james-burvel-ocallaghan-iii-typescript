@@ -116,7 +116,7 @@ export interface QuantumWeaverState {
   pitchId: string;
 
   /**
-   * The current stage of the business pitch in the incubation process.
+   * Current stage of the business pitch within Quantum Weaver's incubation process.
    */
   stage:
     | 'initial_review'
@@ -129,27 +129,27 @@ export interface QuantumWeaverState {
     | 'incubated_graduated';
 
   /**
-   * A human-readable message detailing the current status.
+   * A human-readable message about the current status.
    */
   statusMessage: string;
 
   /**
-   * If approved, the estimated seed funding amount offered (in USD).
+   * Quantum Weaver's estimated funding offer, if in advanced stages.
    */
   estimatedFundingOffer?: number | null;
 
   /**
-   * A high-level summary of AI feedback if available.
+   * A summary of AI-generated feedback, if available and concise enough.
    */
   feedbackSummary?: string | null;
 
   /**
-   * Recommended next actions for the user.
+   * Actionable next steps for the entrepreneur.
    */
   nextSteps?: string | null;
 
   /**
-   * Specific questions from the AI that require user input to proceed.
+   * A list of questions from Quantum Weaver requiring entrepreneur's input.
    */
   questions?: Array<QuantumWeaverState.Question> | null;
 }
@@ -162,9 +162,9 @@ export namespace QuantumWeaverState {
     id: string;
 
     /**
-     * The category the question relates to.
+     * The category of the question.
      */
-    category: 'technology' | 'market' | 'finance' | 'team' | 'operations' | 'legal';
+    category: 'technology' | 'market' | 'finance' | 'team' | 'legal' | 'operations';
 
     /**
      * Indicates if answering this question is mandatory to proceed.
@@ -172,85 +172,137 @@ export namespace QuantumWeaverState {
     isRequired: boolean;
 
     /**
-     * The full question asked by Quantum Weaver AI.
+     * The question posed by Quantum Weaver.
      */
     question: string;
   }
 }
 
-export interface PitchRetrieveDetailsResponse extends QuantumWeaverState {
+export interface PitchRetrieveDetailsResponse extends Omit<QuantumWeaverState, 'feedbackSummary'> {
   /**
-   * An AI-generated coaching plan to guide the entrepreneur.
+   * AI-generated coaching plan to help refine the business or prepare for next
+   * steps.
    */
-  aiCoachingPlan?: PitchRetrieveDetailsResponse.AICoachingPlan | null;
+  aiCoachingPlan?: PitchRetrieveDetailsResponse.AICoachingPlan;
 
   /**
-   * AI-generated detailed financial model and projections.
+   * AI-generated financial model and projections based on the pitch.
    */
-  aiFinancialModel?: PitchRetrieveDetailsResponse.AIFinancialModel | null;
+  aiFinancialModel?: PitchRetrieveDetailsResponse.AIFinancialModel;
 
   /**
-   * AI-driven analysis of market opportunity, competition, and growth.
+   * AI's in-depth market analysis and validation.
    */
-  aiMarketAnalysis?: PitchRetrieveDetailsResponse.AIMarketAnalysis | null;
+  aiMarketAnalysis?: PitchRetrieveDetailsResponse.AIMarketAnalysis;
 
   /**
-   * AI-driven assessment of various risks associated with the venture.
+   * AI's assessment of various risks associated with the venture.
    */
-  aiRiskAssessment?: PitchRetrieveDetailsResponse.AIRiskAssessment | null;
+  aiRiskAssessment?: PitchRetrieveDetailsResponse.AIRiskAssessment;
 
   /**
-   * AI's score indicating the potential match with our investment thesis.
+   * A detailed summary of Quantum Weaver's initial analysis and feedback.
+   */
+  feedbackSummary?: unknown;
+
+  /**
+   * AI's score on how well the pitch aligns with investor criteria.
    */
   investorMatchScore?: number | null;
 }
 
 export namespace PitchRetrieveDetailsResponse {
   /**
-   * An AI-generated coaching plan to guide the entrepreneur.
+   * AI-generated coaching plan to help refine the business or prepare for next
+   * steps.
    */
   export interface AICoachingPlan {
+    /**
+     * Detailed steps of the coaching plan.
+     */
     steps?: Array<AICoachingPlan.Step>;
 
+    /**
+     * Summary of the coaching plan.
+     */
     summary?: string;
 
+    /**
+     * Title of the coaching plan.
+     */
     title?: string;
   }
 
   export namespace AICoachingPlan {
     export interface Step {
-      description?: string;
+      /**
+       * Detailed description of the step.
+       */
+      description: string;
 
-      resources?: Array<Step.Resource>;
+      /**
+       * Current status of the step.
+       */
+      status: 'pending' | 'in_progress' | 'completed' | 'deferred';
 
-      status?: 'pending' | 'in_progress' | 'completed';
+      /**
+       * Suggested timeline for completing the step.
+       */
+      timeline: string;
 
-      timeline?: string;
+      /**
+       * Title of the coaching step.
+       */
+      title: string;
 
-      title?: string;
+      /**
+       * Optional: Links to helpful resources for the step.
+       */
+      resources?: Array<Step.Resource> | null;
     }
 
     export namespace Step {
       export interface Resource {
+        /**
+         * Name of the resource.
+         */
         name?: string;
 
+        /**
+         * URL to the resource.
+         */
         url?: string;
       }
     }
   }
 
   /**
-   * AI-generated detailed financial model and projections.
+   * AI-generated financial model and projections based on the pitch.
    */
   export interface AIFinancialModel {
+    /**
+     * AI's estimate of when the venture will break even.
+     */
     breakevenPoint?: string;
 
+    /**
+     * AI's estimated total capital required to reach profitability.
+     */
     capitalRequirements?: number;
 
+    /**
+     * AI's analysis of the venture's cost structure.
+     */
     costStructureAnalysis?: { [key: string]: string };
 
+    /**
+     * AI's projected revenue breakdown over years.
+     */
     revenueBreakdown?: { [key: string]: string };
 
+    /**
+     * Sensitivity analysis for different growth scenarios.
+     */
     sensitivityAnalysis?: Array<AIFinancialModel.SensitivityAnalysis>;
   }
 
@@ -265,26 +317,57 @@ export namespace PitchRetrieveDetailsResponse {
   }
 
   /**
-   * AI-driven analysis of market opportunity, competition, and growth.
+   * AI's in-depth market analysis and validation.
    */
   export interface AIMarketAnalysis {
+    /**
+     * AI's identified competitive advantages of the venture.
+     */
     competitiveAdvantages?: Array<string>;
 
+    /**
+     * AI-identified growth opportunities.
+     */
     growthOpportunities?: string;
 
+    /**
+     * AI-identified market-related risk factors.
+     */
     riskFactors?: string;
 
+    /**
+     * AI's assessment of the total addressable market size.
+     */
     targetMarketSize?: string;
   }
 
   /**
-   * AI-driven assessment of various risks associated with the venture.
+   * AI's assessment of various risks associated with the venture.
    */
   export interface AIRiskAssessment {
+    /**
+     * Assessment of market risks.
+     */
     marketRisk?: string;
 
+    /**
+     * Overall AI risk score (0-1, lower is better).
+     */
+    overallScore?: number | null;
+
+    /**
+     * Assessment of regulatory risks.
+     */
+    regulatoryRisk?: string | null;
+
+    /**
+     * Assessment of team-related risks.
+     */
     teamRisk?: string;
 
+    /**
+     * Assessment of technical risks.
+     */
     technicalRisk?: string;
   }
 }
@@ -361,12 +444,12 @@ export namespace PitchSubmitParams {
 
 export interface PitchSubmitFeedbackParams {
   /**
-   * Structured answers to specific questions posed by Quantum Weaver.
+   * Specific answers to previously asked questions.
    */
   answers?: Array<PitchSubmitFeedbackParams.Answer> | null;
 
   /**
-   * General feedback or additional narrative for Quantum Weaver.
+   * General feedback or additional information for Quantum Weaver.
    */
   feedback?: string | null;
 }
@@ -374,10 +457,13 @@ export interface PitchSubmitFeedbackParams {
 export namespace PitchSubmitFeedbackParams {
   export interface Answer {
     /**
-     * The answer to the specific AI question.
+     * The answer to the question.
      */
     answer: string;
 
+    /**
+     * The ID of the question being answered.
+     */
     questionId: string;
   }
 }

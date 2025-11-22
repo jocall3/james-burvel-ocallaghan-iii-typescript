@@ -1,6 +1,7 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
 import { APIResource } from '../../../core/resource';
+import * as ChatAPI from './chat';
 import * as InsightsAPI from '../../transactions/insights';
 import { APIPromise } from '../../../core/api-promise';
 import { RequestOptions } from '../../../internal/request-options';
@@ -32,9 +33,9 @@ export class Chat extends APIResource {
    * @example
    * ```ts
    * const response = await client.ai.advisor.chat.sendMessage({
+   *   sessionId: 'session-quantum-xyz-789-alpha',
    *   message:
    *     'Can you analyze my recent spending patterns and suggest areas for saving, focusing on my dining expenses?',
-   *   sessionId: 'session-quantum-xyz-789-alpha',
    * });
    * ```
    */
@@ -45,19 +46,25 @@ export class Chat extends APIResource {
 
 export interface AIFunctionCall {
   /**
-   * A unique ID for this specific function call instance.
+   * A unique identifier for this specific function call instance.
    */
   id: string;
 
   /**
-   * Arguments to pass to the tool function.
+   * The arguments to pass to the tool/function, as a JSON object.
    */
-  args: { [key: string]: unknown };
+  args: unknown;
 
   /**
-   * The name of the tool function to be invoked.
+   * The name of the tool/function to call.
    */
   name: string;
+
+  /**
+   * A natural language explanation of why the AI wants to call this function, for
+   * user confirmation.
+   */
+  description?: string | null;
 }
 
 export interface ChatRetrieveHistoryResponse {
@@ -77,12 +84,12 @@ export interface ChatRetrieveHistoryResponse {
   offset: number;
 
   /**
-   * The total number of available items across all pages.
+   * The total number of available items.
    */
   total: number;
 
   /**
-   * The offset to use for the next page of results, if available.
+   * The offset to use for the next page of results. Null if no more pages.
    */
   nextOffset?: number | null;
 }
@@ -90,53 +97,76 @@ export interface ChatRetrieveHistoryResponse {
 export namespace ChatRetrieveHistoryResponse {
   export interface Data {
     /**
-     * The content of the message.
+     * The text content of the message.
      */
     content: string;
 
     /**
-     * The role of the message sender.
+     * The sender of the message.
      */
-    role: 'user' | 'assistant' | 'system';
+    role: 'user' | 'assistant';
 
     /**
-     * The timestamp when the message was sent/received.
+     * The timestamp when the message was sent.
      */
     timestamp: string;
 
     /**
-     * Optional: Any additional metadata associated with the message, e.g., tool calls,
-     * insights.
+     * Optional: Tool calls made by the assistant within this message.
      */
-    metadata?: { [key: string]: unknown } | null;
+    toolCalls?: Array<ChatAPI.AIFunctionCall> | null;
+
+    /**
+     * Optional: Tool outputs provided by the user within this message.
+     */
+    toolOutputs?: Array<Data.ToolOutput> | null;
+  }
+
+  export namespace Data {
+    export interface ToolOutput {
+      /**
+       * The name of the tool/function that was called.
+       */
+      name: string;
+
+      /**
+       * The JSON output returned by the execution of the tool/function.
+       */
+      response: unknown;
+
+      /**
+       * Optional: The `id` of the function call this response corresponds to.
+       */
+      callId?: string | null;
+    }
   }
 }
 
 export interface ChatSendMessageResponse {
   /**
-   * The ID of the current conversation session.
+   * The ID of the conversation session.
    */
   sessionId: string;
 
   /**
-   * The AI Advisor's natural language response.
-   */
-  text: string;
-
-  /**
-   * If the AI intends to use a tool, this provides the function call details.
+   * Optional: A list of tool/function calls the AI wants the client to execute.
    */
   functionCalls?: Array<AIFunctionCall> | null;
 
   /**
-   * AI-generated proactive insights or recommendations.
+   * Optional: A list of AI-generated insights or alerts related to the conversation.
    */
   proactiveInsights?: Array<InsightsAPI.AIInsight> | null;
+
+  /**
+   * The AI Advisor's natural language response.
+   */
+  text?: string | null;
 }
 
 export interface ChatRetrieveHistoryParams {
   /**
-   * Maximum number of items to return.
+   * Maximum number of items to return in the response.
    */
   limit?: number;
 
@@ -154,37 +184,40 @@ export interface ChatRetrieveHistoryParams {
 
 export interface ChatSendMessageParams {
   /**
-   * The user's natural language message or query for the AI Advisor.
+   * The ID of the ongoing conversation session.
    */
-  message: string;
+  sessionId: string;
 
   /**
-   * Optional: If the user is responding to a tool call, this contains the output
-   * from the tool's execution.
+   * Optional: The output from a tool/function call that the AI previously requested.
    */
   functionResponse?: ChatSendMessageParams.FunctionResponse | null;
 
   /**
-   * Optional: The ID of an ongoing conversation session to maintain context.
+   * The user's textual input to the AI Advisor.
    */
-  sessionId?: string | null;
+  message?: string | null;
 }
 
 export namespace ChatSendMessageParams {
   /**
-   * Optional: If the user is responding to a tool call, this contains the output
-   * from the tool's execution.
+   * Optional: The output from a tool/function call that the AI previously requested.
    */
   export interface FunctionResponse {
     /**
-     * The name of the tool function that was executed.
+     * The name of the tool/function that was called.
      */
-    name?: string;
+    name: string;
 
     /**
-     * The structured output/result from the tool function execution.
+     * The JSON output returned by the execution of the tool/function.
      */
-    response?: unknown;
+    response: unknown;
+
+    /**
+     * Optional: The `id` of the function call this response corresponds to.
+     */
+    callId?: string | null;
   }
 }
 

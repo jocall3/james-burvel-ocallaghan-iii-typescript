@@ -61,17 +61,17 @@ export interface KYCStatus {
   userId: string;
 
   /**
-   * If status is 'rejected', provides the reason for rejection.
+   * Optional: The reason for KYC rejection, if applicable.
    */
   rejectionReason?: string | null;
 
   /**
-   * A list of actions required from the user to proceed with KYC.
+   * List of actions the user needs to take to complete verification.
    */
-  requiredActions?: Array<string>;
+  requiredActions?: Array<string> | null;
 
   /**
-   * The tier of verification achieved (e.g., for different spending limits).
+   * The service tier unlocked by successful KYC verification.
    */
   verifiedTier?: 'bronze' | 'silver' | 'gold' | 'platinum' | null;
 }

@@ -10,13 +10,11 @@ describe('resource rules', () => {
   // Prism tests are disabled
   test.skip('create: only required params', async () => {
     const responsePromise = client.corporate.risk.fraud.rules.create({
-      action: {},
-      criteria: {
-        paymentCountMin: 'bar',
-        timeframeHours: 'bar',
-        recipientNew: 'bar',
-        recipientCountryRiskLevel: 'bar',
+      action: {
+        details: 'Hold payment, notify sender for additional verification, and escalate to compliance.',
+        type: 'auto_review',
       },
+      criteria: {},
       description:
         'Detects multiple international payments to new beneficiaries in high-risk countries within a short timeframe.',
       name: 'Suspicious International Payment Pattern',
@@ -38,18 +36,30 @@ describe('resource rules', () => {
       action: {
         details: 'Hold payment, notify sender for additional verification, and escalate to compliance.',
         type: 'auto_review',
+        targetChannels: ['email', 'dashboard'],
       },
       criteria: {
-        paymentCountMin: 'bar',
-        timeframeHours: 'bar',
-        recipientNew: 'bar',
-        recipientCountryRiskLevel: 'bar',
+        accountInactivityDays: 90,
+        countryOfOrigin: ['US', 'CA'],
+        geographicDistanceKm: 5000,
+        keywordsInDescription: ['string'],
+        lastLoginDays: 7,
+        noTravelNotification: true,
+        paymentCountMin: 3,
+        recipientCountryRiskLevel: ['High', 'Very High'],
+        recipientNew: true,
+        timeframeHours: 24,
+        transactionAmountMax: 100000,
+        transactionAmountMin: 5000,
+        transactionType: 'debit',
       },
       description:
         'Detects multiple international payments to new beneficiaries in high-risk countries within a short timeframe.',
       name: 'Suspicious International Payment Pattern',
       severity: 'Critical',
       status: 'active',
+      aiLearningEnabled: true,
+      priority: 75,
     });
   });
 

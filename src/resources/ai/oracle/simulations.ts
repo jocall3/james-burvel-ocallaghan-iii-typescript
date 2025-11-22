@@ -83,12 +83,12 @@ export interface SimulationListResponse {
 export namespace SimulationListResponse {
   export interface Data {
     /**
-     * Timestamp when the simulation request was created.
+     * Timestamp when the simulation was requested.
      */
     creationDate: string;
 
     /**
-     * Timestamp when the simulation status was last updated.
+     * Timestamp when the simulation status or results were last updated.
      */
     lastUpdated: string;
 
@@ -100,15 +100,15 @@ export namespace SimulationListResponse {
     /**
      * Current status of the simulation.
      */
-    status: 'pending' | 'processing' | 'completed' | 'failed';
+    status: 'queued' | 'processing' | 'completed' | 'failed';
 
     /**
-     * A brief summary of what the simulation entailed.
+     * A brief summary of what the simulation evaluated.
      */
     summary: string;
 
     /**
-     * A user-friendly title for the simulation.
+     * A short, descriptive title for the simulation.
      */
     title: string;
   }
@@ -116,7 +116,7 @@ export namespace SimulationListResponse {
 
 export interface SimulationListParams {
   /**
-   * Maximum number of items to return.
+   * Maximum number of items to return in the response.
    */
   limit?: number;
 

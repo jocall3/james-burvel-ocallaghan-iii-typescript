@@ -32,15 +32,7 @@ export interface TreasuryGetLiquidityPositionsResponse {
    */
   accountTypeBreakdown: Array<TreasuryGetLiquidityPositionsResponse.AccountTypeBreakdown>;
 
-  /**
-   * AI's overall assessment of the current liquidity posture.
-   */
   aiLiquidityAssessment: TreasuryGetLiquidityPositionsResponse.AILiquidityAssessment;
-
-  /**
-   * AI-generated actionable recommendations for liquidity management.
-   */
-  aiRecommendations: Array<InsightsAPI.AIInsight>;
 
   /**
    * Breakdown of liquid assets by currency.
@@ -48,52 +40,86 @@ export interface TreasuryGetLiquidityPositionsResponse {
   currencyBreakdown: Array<TreasuryGetLiquidityPositionsResponse.CurrencyBreakdown>;
 
   /**
+   * Details on short-term, highly liquid investments.
+   */
+  shortTermInvestments: TreasuryGetLiquidityPositionsResponse.ShortTermInvestments;
+
+  /**
    * Timestamp of the liquidity snapshot.
    */
   snapshotTime: string;
 
   /**
-   * Total value of all liquid assets across the organization.
+   * Total value of all liquid assets across accounts and short-term investments.
    */
   totalLiquidAssets: number;
 
   /**
-   * Overview of short-term investment holdings.
+   * AI-generated recommendations for optimizing liquidity.
    */
-  shortTermInvestments?: TreasuryGetLiquidityPositionsResponse.ShortTermInvestments | null;
+  aiRecommendations?: Array<InsightsAPI.AIInsight> | null;
 }
 
 export namespace TreasuryGetLiquidityPositionsResponse {
   export interface AccountTypeBreakdown {
+    /**
+     * Amount in this account type.
+     */
     amount?: number;
 
+    /**
+     * Account type.
+     */
     type?: string;
   }
 
-  /**
-   * AI's overall assessment of the current liquidity posture.
-   */
   export interface AILiquidityAssessment {
-    message?: string;
+    /**
+     * Detailed message from AI.
+     */
+    message: string;
 
-    status?: 'optimal' | 'sufficient' | 'constrained' | 'critical';
+    /**
+     * AI's overall assessment of liquidity.
+     */
+    status: 'optimal' | 'sufficient' | 'constrained' | 'critical';
   }
 
   export interface CurrencyBreakdown {
+    /**
+     * Amount in this currency.
+     */
     amount?: number;
 
+    /**
+     * Currency code.
+     */
     currency?: string;
 
+    /**
+     * Percentage of total liquid assets.
+     */
     percentage?: number;
   }
 
   /**
-   * Overview of short-term investment holdings.
+   * Details on short-term, highly liquid investments.
    */
   export interface ShortTermInvestments {
+    /**
+     * Amount of investments maturing in the next 30 days.
+     */
     maturingNext30Days?: number;
 
+    /**
+     * Total value of short-term investments.
+     */
     totalValue?: number;
+
+    /**
+     * Average yield percentage of short-term investments.
+     */
+    yieldPercentage?: number | null;
   }
 }
 

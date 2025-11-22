@@ -53,43 +53,37 @@ export class Ads extends APIResource {
 
 export interface VideoOperationStatus {
   /**
-   * A descriptive message about the current progress or status.
+   * A descriptive message about the current stage or status.
    */
   message: string;
 
   /**
-   * Unique identifier for the video generation operation.
+   * The unique identifier for the video generation operation.
    */
   operationId: string;
 
   /**
-   * Percentage completion of the video generation.
+   * Current progress of the operation as a percentage.
    */
   progressPercentage: number;
 
   /**
    * Current status of the video generation job.
    */
-  status: 'queued' | 'generating' | 'rendering' | 'done' | 'error';
+  status: 'queued' | 'processing' | 'rendering' | 'done' | 'error';
 
   /**
-   * If status is 'error', provides details about why the generation failed.
+   * If an error occurred, a message describing the error.
    */
   errorMessage?: string | null;
 
   /**
-   * Timestamp when the video was successfully generated.
-   */
-  generatedAt?: string | null;
-
-  /**
-   * URL to a static preview image/thumbnail of the video.
+   * URL to a preview image/thumbnail of the video.
    */
   previewImageUri?: string | null;
 
   /**
-   * Temporary, signed URL to the generated video asset (available when status is
-   * 'done').
+   * URL to the final generated video asset (available when status is 'done').
    */
   videoUri?: string | null;
 }
@@ -115,7 +109,7 @@ export interface AdListGeneratedResponse {
 
 export interface AdListGeneratedParams {
   /**
-   * Maximum number of items to return.
+   * Maximum number of items to return in the response.
    */
   limit?: number;
 

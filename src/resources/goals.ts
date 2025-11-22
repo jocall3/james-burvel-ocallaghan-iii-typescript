@@ -14,12 +14,12 @@ export class Goals extends APIResource {
    * ```ts
    * const financialGoal = await client.goals.create({
    *   name: 'Dream Vacation Fund',
-   *   riskTolerance: 'medium',
    *   targetAmount: 15000,
    *   targetDate: '2026-06-30',
    *   type: 'large_purchase',
    *   generateAIPlan: true,
    *   initialContribution: 1000,
+   *   riskTolerance: 'medium',
    * });
    * ```
    */
@@ -100,7 +100,7 @@ export interface FinancialGoal {
   id: string;
 
   /**
-   * The current amount saved or invested towards this goal.
+   * The current amount accumulated towards the goal.
    */
   currentAmount: number;
 
@@ -110,46 +110,39 @@ export interface FinancialGoal {
   lastUpdated: string;
 
   /**
-   * User-defined name for the goal.
+   * Name of the financial goal.
    */
   name: string;
 
   /**
-   * Current progress towards the goal in percentage.
+   * Current progress towards the goal as a percentage.
    */
   progressPercentage: number;
 
   /**
-   * The risk tolerance associated with the investment strategy for this goal.
+   * Risk tolerance associated with investments for this goal.
    */
-  riskTolerance: 'low' | 'medium' | 'aggressive' | 'very_aggressive';
+  riskTolerance: 'conservative' | 'balanced' | 'medium' | 'aggressive' | 'speculative';
 
   /**
    * Current status of the goal's progress.
    */
-  status: 'on_track' | 'ahead_of_schedule' | 'behind_schedule' | 'achieved' | 'cancelled';
+  status: 'on_track' | 'behind_schedule' | 'ahead_of_schedule' | 'completed' | 'paused';
 
   /**
-   * The target amount to achieve for this goal.
+   * The target amount to save or achieve for this goal.
    */
   targetAmount: number;
 
   /**
-   * The target date for achieving the goal.
+   * The target date by which the goal should be achieved.
    */
   targetDate: string;
 
   /**
    * Type of financial goal.
    */
-  type:
-    | 'retirement'
-    | 'home_purchase'
-    | 'education'
-    | 'large_purchase'
-    | 'debt_reduction'
-    | 'investment_growth'
-    | 'other';
+  type: 'retirement' | 'home_purchase' | 'education' | 'large_purchase' | 'debt_reduction' | 'custom';
 
   /**
    * AI-generated strategic plan to achieve the goal.
@@ -160,6 +153,11 @@ export interface FinancialGoal {
    * List of account IDs contributing to this goal.
    */
   contributingAccounts?: Array<string> | null;
+
+  /**
+   * AI's calculated monthly contribution needed to reach the goal.
+   */
+  monthlyContributionNeeded?: number | null;
 }
 
 export namespace FinancialGoal {
@@ -168,37 +166,57 @@ export namespace FinancialGoal {
    */
   export interface AIStrategicPlan {
     /**
-     * Actionable steps to be taken as part of the plan.
+     * Detailed, actionable steps for achieving the goal.
      */
     steps: Array<AIStrategicPlan.Step>;
 
     /**
-     * A summary of the strategic plan.
+     * Summary of the strategic plan.
      */
     summary: string;
 
     /**
-     * Title of the AI-generated strategic plan.
+     * Title of the strategic plan.
      */
     title: string;
 
     /**
-     * Timestamp when the plan was generated/last updated.
+     * Indicates if the plan was optimized by AI.
      */
-    generatedOn?: string;
+    aiOptimized?: boolean;
+
+    /**
+     * Timestamp when this plan was last generated or updated.
+     */
+    lastGenerated?: string | null;
   }
 
   export namespace AIStrategicPlan {
     export interface Step {
-      actionTrigger?: string | null;
+      /**
+       * Detailed description of the action.
+       */
+      description: string;
 
-      description?: string;
+      /**
+       * Current status of the step.
+       */
+      status: 'pending' | 'in_progress' | 'completed' | 'deferred';
 
-      status?: 'pending' | 'in_progress' | 'completed' | 'overdue';
+      /**
+       * Suggested timeline for completion (e.g., 'Immediately', 'Quarterly').
+       */
+      timeline: string;
 
-      timeline?: string;
+      /**
+       * Title of the step.
+       */
+      title: string;
 
-      title?: string;
+      /**
+       * Optional: ID of a related action (e.g., an automated transfer setup).
+       */
+      associatedActionId?: string | null;
     }
   }
 }
@@ -207,56 +225,54 @@ export type GoalListResponse = Array<FinancialGoal>;
 
 export interface GoalCreateParams {
   /**
-   * Name for the new financial goal.
+   * Name of the new financial goal.
    */
   name: string;
 
   /**
-   * The risk tolerance for the investment strategy associated with this goal.
-   */
-  riskTolerance: 'low' | 'medium' | 'aggressive' | 'very_aggressive';
-
-  /**
-   * The target amount to save/invest for this goal.
+   * The target amount to save or achieve.
    */
   targetAmount: number;
 
   /**
-   * The target date by which to achieve the goal.
+   * The target date for the goal.
    */
   targetDate: string;
 
   /**
    * Type of financial goal.
    */
-  type:
-    | 'retirement'
-    | 'home_purchase'
-    | 'education'
-    | 'large_purchase'
-    | 'debt_reduction'
-    | 'investment_growth'
-    | 'other';
+  type: 'retirement' | 'home_purchase' | 'education' | 'large_purchase' | 'debt_reduction' | 'custom';
 
   /**
-   * If true, AI will automatically generate a strategic plan for this goal.
+   * If true, AI will generate a strategic plan to achieve the goal.
    */
   generateAIPlan?: boolean;
 
   /**
-   * Optional: Initial amount to contribute to this goal.
+   * Optional: An initial amount contributed to the goal.
    */
   initialContribution?: number;
 
   /**
-   * Optional: List of accounts to associate with this goal for contributions.
+   * Optional: The ID of a primary account to link for contributions.
    */
-  linkedAccountIds?: Array<string> | null;
+  linkedAccountId?: string | null;
+
+  /**
+   * Risk tolerance for investments related to this goal.
+   */
+  riskTolerance?: 'conservative' | 'balanced' | 'medium' | 'aggressive' | 'speculative';
 }
 
 export interface GoalUpdateParams {
   /**
-   * Updated name for the financial goal.
+   * Updated current amount accumulated towards the goal.
+   */
+  currentAmount?: number;
+
+  /**
+   * Updated name of the financial goal.
    */
   name?: string;
 
@@ -266,22 +282,22 @@ export interface GoalUpdateParams {
   regenerateAIPlan?: boolean;
 
   /**
-   * Updated risk tolerance for the investment strategy.
+   * Updated risk tolerance for this goal.
    */
-  riskTolerance?: 'low' | 'medium' | 'aggressive' | 'very_aggressive';
+  riskTolerance?: 'conservative' | 'balanced' | 'medium' | 'aggressive' | 'speculative';
 
   /**
    * Updated status of the goal's progress.
    */
-  status?: 'on_track' | 'ahead_of_schedule' | 'behind_schedule' | 'achieved' | 'cancelled';
+  status?: 'on_track' | 'behind_schedule' | 'ahead_of_schedule' | 'completed' | 'paused';
 
   /**
-   * The updated target amount for this goal.
+   * Updated target amount for the goal.
    */
   targetAmount?: number;
 
   /**
-   * The updated target date for achieving the goal.
+   * Updated target date for the goal.
    */
   targetDate?: string;
 }

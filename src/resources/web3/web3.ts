@@ -47,9 +47,9 @@ export namespace Web3RetrieveNFTsResponse {
     id: string;
 
     /**
-     * The blockchain network where the NFT resides.
+     * The blockchain network the NFT resides on.
      */
-    blockchainNetwork: 'Ethereum' | 'Solana' | 'Polygon' | 'other';
+    blockchainNetwork: 'Ethereum' | 'Solana' | 'Polygon' | 'Binance Smart Chain';
 
     /**
      * Name of the NFT collection.
@@ -57,17 +57,17 @@ export namespace Web3RetrieveNFTsResponse {
     collectionName: string;
 
     /**
-     * The smart contract address of the NFT collection.
+     * The contract address of the NFT collection.
      */
     contractAddress: string;
 
     /**
-     * URL to the NFT's image or media.
+     * URL to the NFT's image or metadata.
      */
     imageUrl: string;
 
     /**
-     * Name or title of the specific NFT.
+     * Specific name or title of the NFT.
      */
     name: string;
 
@@ -77,7 +77,7 @@ export namespace Web3RetrieveNFTsResponse {
     ownerAddress: string;
 
     /**
-     * The unique ID of the NFT within its contract.
+     * The unique token ID of the NFT within its collection.
      */
     tokenId: string;
 
@@ -92,20 +92,31 @@ export namespace Web3RetrieveNFTsResponse {
     description?: string | null;
 
     /**
-     * AI-estimated current market value of the NFT in USD.
+     * AI's estimated current market value of the NFT in USD.
      */
     estimatedValueUSD?: number | null;
 
     /**
-     * The last known sale price of the NFT in USD.
+     * Last known sale price of this NFT in USD.
      */
     lastSalePriceUSD?: number | null;
+
+    /**
+     * URL to the NFT's metadata JSON.
+     */
+    metadataUrl?: string | null;
   }
 
   export namespace Web3RetrieveNFTsResponseItem {
     export interface Attribute {
+      /**
+       * The type of trait.
+       */
       trait_type?: string;
 
+      /**
+       * The value of the trait.
+       */
       value?: string;
     }
   }

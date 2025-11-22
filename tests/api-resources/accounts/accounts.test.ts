@@ -27,7 +27,8 @@ describe('resource accounts', () => {
     const response = await client.accounts.linkNewInstitution({
       countryCode: 'US',
       institutionName: 'Bank of America',
-      provider: 'plaid',
+      metadata: {},
+      providerType: 'plaid',
     });
   });
 

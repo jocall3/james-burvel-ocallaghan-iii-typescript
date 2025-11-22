@@ -28,6 +28,7 @@ describe('resource webhooks', () => {
       callbackUrl: 'https://my-analytics-app.com/webhooks/transactions',
       events: ['transaction.created', 'transaction.updated'],
       secret: 'my_custom_webhook_secret_123',
+      status: 'active',
     });
   });
 

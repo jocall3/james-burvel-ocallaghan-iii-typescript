@@ -47,7 +47,7 @@ export class Applications extends APIResource {
 
 export interface LoanApplicationStatus {
   /**
-   * Date and time the application was submitted.
+   * Timestamp when the application was submitted.
    */
   applicationDate: string;
 
@@ -57,32 +57,34 @@ export interface LoanApplicationStatus {
   applicationId: string;
 
   /**
-   * The original loan amount requested by the user.
+   * The original requested loan amount.
    */
   loanAmountRequested: number;
 
   /**
-   * The purpose of the loan.
+   * The stated purpose of the loan.
    */
-  loanPurpose: string;
+  loanPurpose:
+    | 'home_improvement'
+    | 'debt_consolidation'
+    | 'medical_expenses'
+    | 'education'
+    | 'business'
+    | 'vehicle'
+    | 'other';
 
   /**
    * Current status of the loan application.
    */
-  status: 'underwriting' | 'approved' | 'declined' | 'withdrawn';
+  status: 'underwriting' | 'approved' | 'declined' | 'pending_documents' | 'funded';
 
   /**
-   * Result of the AI's underwriting process.
+   * Results of the AI-powered underwriting, available upon decision.
    */
   aiUnderwritingResult?: LoanApplicationStatus.AIUnderwritingResult | null;
 
   /**
-   * Timestamp when the application status was last updated.
-   */
-  lastUpdated?: string;
-
-  /**
-   * Next steps for the user based on the application status.
+   * Actionable next steps for the user.
    */
   nextSteps?: string | null;
 
@@ -90,21 +92,41 @@ export interface LoanApplicationStatus {
    * Details of the approved loan offer, if applicable.
    */
   offerDetails?: OffersAPI.LoanOffer | null;
+
+  /**
+   * If declined, the reason for the rejection.
+   */
+  rejectionReason?: string | null;
 }
 
 export namespace LoanApplicationStatus {
   /**
-   * Result of the AI's underwriting process.
+   * Results of the AI-powered underwriting, available upon decision.
    */
   export interface AIUnderwritingResult {
-    aiConfidence?: number;
+    /**
+     * AI's confidence score (0-1) in its underwriting decision.
+     */
+    aiConfidence: number;
 
-    decision?: 'approved' | 'declined';
+    /**
+     * The AI's underwriting decision.
+     */
+    decision: 'approved' | 'declined' | 'referred_to_human';
 
+    /**
+     * The AI's reasoning for the decision.
+     */
+    reason: string;
+
+    /**
+     * The maximum loan amount the AI would approve.
+     */
     maxApprovedAmount?: number | null;
 
-    reason?: string;
-
+    /**
+     * AI-recommended interest rate.
+     */
     recommendedInterestRate?: number | null;
   }
 }
@@ -116,50 +138,57 @@ export interface ApplicationSubmitParams {
   loanAmount: number;
 
   /**
-   * The purpose for which the loan is requested.
+   * The purpose of the loan.
    */
   loanPurpose:
-    | 'debt_consolidation'
     | 'home_improvement'
-    | 'medical_expense'
+    | 'debt_consolidation'
+    | 'medical_expenses'
     | 'education'
-    | 'business_startup'
+    | 'business'
+    | 'vehicle'
     | 'other';
 
   /**
-   * The desired repayment term in months.
+   * Desired repayment term in months.
    */
   repaymentTermMonths: number;
 
   /**
-   * Any additional relevant information for the loan application.
+   * Any additional information for the loan application.
    */
   additionalNotes?: string | null;
 
   /**
-   * Optional details for a co-applicant.
+   * Optional details if there is a co-applicant.
    */
   coApplicant?: ApplicationSubmitParams.CoApplicant | null;
-
-  /**
-   * Optional: User's desired interest rate (AI will try to match or offer best
-   * possible).
-   */
-  desiredInterestRate?: number | null;
 }
 
 export namespace ApplicationSubmitParams {
   /**
-   * Optional details for a co-applicant.
+   * Optional details if there is a co-applicant.
    */
   export interface CoApplicant {
+    /**
+     * Email of the co-applicant.
+     */
+    email: string;
+
+    /**
+     * Annual income of the co-applicant.
+     */
+    income: number;
+
+    /**
+     * Full name of the co-applicant.
+     */
+    name: string;
+
+    /**
+     * Optional: Credit score of the co-applicant.
+     */
     creditScore?: number | null;
-
-    email?: string;
-
-    income?: number;
-
-    name?: string;
   }
 }
 

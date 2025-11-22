@@ -57,22 +57,22 @@ export interface FinancialAnomaly {
   id: string;
 
   /**
-   * AI's confidence in the detection and classification of this anomaly.
+   * AI's confidence (0-1) in its detection of this anomaly.
    */
   aiConfidenceScore: number;
 
   /**
-   * A brief, human-readable description of the anomaly.
+   * A brief description of the anomaly.
    */
   description: string;
 
   /**
-   * The ID of the primary entity related to this anomaly.
+   * The ID of the primary entity related to the anomaly.
    */
   entityId: string;
 
   /**
-   * The type of financial entity this anomaly is related to.
+   * The type of entity the anomaly is related to.
    */
   entityType:
     | 'PaymentOrder'
@@ -84,7 +84,12 @@ export interface FinancialAnomaly {
     | 'System';
 
   /**
-   * AI-calculated risk score (0-100) for this anomaly.
+   * AI-recommended immediate action.
+   */
+  recommendedAction: string | null;
+
+  /**
+   * AI-assigned risk score (0-100), higher indicates higher risk.
    */
   riskScore: number;
 
@@ -104,22 +109,17 @@ export interface FinancialAnomaly {
   timestamp: string;
 
   /**
-   * Detailed explanation of the anomaly, including relevant context.
+   * Detailed explanation of why this was flagged as an anomaly.
    */
   details?: string | null;
 
   /**
-   * AI-suggested immediate action for the anomaly.
-   */
-  recommendedAction?: string | null;
-
-  /**
-   * List of IDs of other transactions or entities related to this anomaly.
+   * List of IDs of other transactions related to this anomaly.
    */
   relatedTransactions?: Array<string> | null;
 
   /**
-   * Notes added by a compliance officer upon resolving or dismissing the anomaly.
+   * Notes added by a human reviewer upon resolving or dismissing the anomaly.
    */
   resolutionNotes?: string | null;
 }
@@ -145,7 +145,7 @@ export interface AnomalyListResponse {
 
 export interface AnomalyListParams {
   /**
-   * Retrieve items up to this date (inclusive).
+   * End date for filtering results (inclusive). Format: YYYY-MM-DD.
    */
   endDate?: string;
 
@@ -155,7 +155,7 @@ export interface AnomalyListParams {
   entityType?: 'PaymentOrder' | 'Transaction' | 'Counterparty' | 'CorporateCard' | 'Invoice';
 
   /**
-   * Maximum number of items to return.
+   * Maximum number of items to return in the response.
    */
   limit?: number;
 
@@ -170,7 +170,7 @@ export interface AnomalyListParams {
   severity?: 'Low' | 'Medium' | 'High' | 'Critical';
 
   /**
-   * Retrieve items from this date (inclusive).
+   * Start date for filtering results (inclusive). Format: YYYY-MM-DD.
    */
   startDate?: string;
 

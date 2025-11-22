@@ -66,12 +66,13 @@ export interface APIKey {
   createdAt: string;
 
   /**
-   * A short, non-sensitive prefix of the API key for identification.
+   * The visible prefix of the API key, indicating its type (e.g., public/secret,
+   * test/prod).
    */
   prefix: string;
 
   /**
-   * A list of OAuth2 scopes granted to this API key.
+   * List of permissions (scopes) granted to this API key.
    */
   scopes: Array<string>;
 
@@ -81,17 +82,17 @@ export interface APIKey {
   status: 'active' | 'revoked' | 'expired';
 
   /**
-   * Optional: Timestamp when the API key will expire.
+   * Timestamp when the API key will expire, if set.
    */
   expiresAt?: string | null;
 
   /**
-   * Timestamp of the last successful API call made with this key.
+   * Timestamp of the last successful use of this API key.
    */
   lastUsed?: string | null;
 
   /**
-   * A user-defined name or description for the API key.
+   * User-friendly name for the API key.
    */
   name?: string | null;
 }
@@ -105,15 +106,21 @@ export interface APIKeyCreateParams {
   name: string;
 
   /**
-   * A list of OAuth2 scopes to grant to this API key.
+   * List of desired permissions (scopes) for the API key.
    */
   scopes: Array<string>;
 
   /**
-   * Optional: Number of days until the API key expires. If omitted, the key does not
+   * Optional: Number of days until the API key expires. If not provided, it will not
    * expire.
    */
   expiresInDays?: number | null;
+
+  /**
+   * If true, generates a secret key (suitable for server-to-server) with a 'db*sk*'
+   * prefix. Otherwise, generates a public key ('db*pk*').
+   */
+  isSecretKey?: boolean;
 }
 
 export declare namespace APIKeys {

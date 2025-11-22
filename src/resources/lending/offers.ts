@@ -22,24 +22,28 @@ export class Offers extends APIResource {
 
 export interface LoanOffer {
   /**
-   * AI's score indicating how well this offer is tailored to the user's financial
-   * profile.
+   * AI's score (0-1) indicating how well the offer is tailored to the user's
+   * needs/profile.
    */
-  aiPersonalizationScore: number;
+  aiPersonalizationScore: number | null;
 
   /**
-   * The principal amount of the loan offer.
+   * The principal amount of the loan offered.
    */
   amount: number;
 
   /**
-   * Annual interest rate of the loan.
+   * Date the offer expires.
+   */
+  expirationDate: string;
+
+  /**
+   * The annual interest rate (APR).
    */
   interestRate: number;
 
   /**
-   * True if this is a pre-approved offer, false if it's a response to an
-   * application.
+   * True if this is a pre-approved offer.
    */
   isPreApproved: boolean;
 
@@ -51,12 +55,7 @@ export interface LoanOffer {
   /**
    * Type of loan being offered.
    */
-  offerType: 'personal_loan' | 'business_loan' | 'credit_line' | 'mortgage' | 'auto_loan' | 'microloan';
-
-  /**
-   * Date when the offer expires.
-   */
-  expirationDate?: string | null;
+  offerType: 'personal_loan' | 'credit_line' | 'mortgage' | 'auto_loan' | 'student_loan';
 
   /**
    * Estimated monthly payment.
@@ -64,22 +63,17 @@ export interface LoanOffer {
   monthlyPayment?: number | null;
 
   /**
-   * Any upfront origination fees.
+   * Any origination fees associated with the loan.
    */
-  originationFee?: number;
+  originationFee?: number | null;
 
   /**
-   * Repayment term in months. Null for credit lines.
+   * Repayment term in months, if applicable.
    */
   repaymentTermMonths?: number | null;
 
   /**
-   * URL to the full terms and conditions of the loan offer.
-   */
-  termsAndConditionsUrl?: string | null;
-
-  /**
-   * Total amount repayable over the loan term (principal + interest + fees).
+   * Total amount repayable over the life of the loan.
    */
   totalRepayable?: number | null;
 }

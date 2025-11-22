@@ -31,7 +31,7 @@ describe('resource audits', () => {
       endDate: '2024-06-30',
       regulatoryFrameworks: ['AML', 'PCI-DSS'],
       startDate: '2024-01-01',
-      additionalNotes: 'additionalNotes',
+      specificAccounts: ['182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e'],
     });
   });
 

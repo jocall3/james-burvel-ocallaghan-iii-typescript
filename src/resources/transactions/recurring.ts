@@ -17,8 +17,8 @@ export class Recurring extends APIResource {
    *     currency: 'USD',
    *     description: 'New Gym Membership',
    *     frequency: 'monthly',
-   *     startDate: '2024-09-01',
    *     linkedAccountId: 'acc_chase_checking_4567',
+   *     startDate: '2024-09-01',
    *   });
    * ```
    */
@@ -48,7 +48,7 @@ export interface RecurringTransaction {
   id: string;
 
   /**
-   * Typical amount of the recurring transaction.
+   * The amount of each recurring transaction.
    */
   amount: number;
 
@@ -58,7 +58,7 @@ export interface RecurringTransaction {
   category: string;
 
   /**
-   * Currency of the transaction.
+   * The currency of the recurring transaction.
    */
   currency: string;
 
@@ -70,31 +70,30 @@ export interface RecurringTransaction {
   /**
    * How often the transaction occurs.
    */
-  frequency: 'daily' | 'weekly' | 'bi_weekly' | 'monthly' | 'quarterly' | 'semi_annually' | 'annually';
+  frequency: 'daily' | 'weekly' | 'bi-weekly' | 'monthly' | 'quarterly' | 'annually';
 
   /**
-   * The next expected date for this recurring transaction.
+   * The next expected date for this transaction to occur.
    */
   nextDueDate: string | null;
 
   /**
    * Current status of the recurring transaction.
    */
-  status: 'active' | 'inactive' | 'cancelled';
+  status: 'active' | 'paused' | 'cancelled' | 'completed';
 
   /**
-   * AI's confidence in accurately identifying this as a recurring transaction.
+   * AI's confidence score (0-1) that this is indeed a recurring transaction.
    */
   aiConfidenceScore?: number | null;
 
   /**
-   * The date the last recurring transaction occurred.
+   * The date the last recurring payment was made.
    */
   lastPaidDate?: string | null;
 
   /**
-   * Optional: The account from which this recurring transaction is typically paid or
-   * received.
+   * The ID of the account from which this recurring transaction typically occurs.
    */
   linkedAccountId?: string | null;
 }
@@ -103,7 +102,7 @@ export type RecurringListResponse = Array<RecurringTransaction>;
 
 export interface RecurringCreateParams {
   /**
-   * The expected amount of the recurring transaction.
+   * The amount of each recurring transaction.
    */
   amount: number;
 
@@ -113,30 +112,34 @@ export interface RecurringCreateParams {
   category: string;
 
   /**
-   * The currency of the transaction (ISO 4217 code).
+   * The currency of the recurring transaction.
    */
   currency: string;
 
   /**
-   * Description for the new recurring transaction.
+   * Description of the new recurring transaction.
    */
   description: string;
 
   /**
-   * How often the transaction is expected to occur.
+   * How often the transaction occurs.
    */
-  frequency: 'daily' | 'weekly' | 'bi_weekly' | 'monthly' | 'quarterly' | 'semi_annually' | 'annually';
+  frequency: 'daily' | 'weekly' | 'bi-weekly' | 'monthly' | 'quarterly' | 'annually';
 
   /**
-   * The date the first recurring transaction is expected.
+   * The ID of the account from which this recurring transaction typically occurs.
+   */
+  linkedAccountId: string;
+
+  /**
+   * The date the recurring transaction is expected to start.
    */
   startDate: string;
 
   /**
-   * Optional: The account from which this recurring transaction will be paid or
-   * received.
+   * Initial status of the recurring transaction.
    */
-  linkedAccountId?: string | null;
+  status?: 'active' | 'paused';
 }
 
 export declare namespace Recurring {

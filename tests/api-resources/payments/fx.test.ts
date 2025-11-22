@@ -32,6 +32,7 @@ describe('resource fx', () => {
       sourceCurrency: 'USD',
       targetCurrency: 'EUR',
       fxRateLock: true,
+      fxRateProvider: 'proprietary_ai',
       targetAccountId: 'acc_euro_savings_9876',
     });
   });

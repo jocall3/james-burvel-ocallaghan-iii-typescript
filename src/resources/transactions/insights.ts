@@ -22,29 +22,22 @@ export class Insights extends APIResource {
 
 export interface AIInsight {
   /**
-   * Unique identifier for the AI insight.
+   * Unique identifier for the insight.
    */
   id: string;
 
   /**
-   * A concrete, actionable recommendation based on the insight.
-   */
-  actionableRecommendation: string | null;
-
-  /**
-   * Category of the insight (e.g., spending, saving, security).
+   * Category of the insight (e.g., spending, saving, investing).
    */
   category:
     | 'spending'
     | 'saving'
     | 'investing'
     | 'budget'
-    | 'compliance'
     | 'security'
     | 'sustainability'
-    | 'corporate_treasury'
-    | 'marketplace'
-    | 'technology';
+    | 'financial_health'
+    | 'corporate';
 
   /**
    * Detailed description of the insight.
@@ -52,7 +45,7 @@ export interface AIInsight {
   description: string;
 
   /**
-   * Severity level of the insight.
+   * The severity or urgency of the insight.
    */
   severity: 'low' | 'medium' | 'high' | 'critical';
 
@@ -62,31 +55,30 @@ export interface AIInsight {
   timestamp: string;
 
   /**
-   * Concise title of the insight.
+   * A concise title for the insight.
    */
   title: string;
 
   /**
-   * A programmatic identifier to trigger a specific action or navigate to a relevant
-   * feature.
+   * A concrete, actionable step the user can take based on the insight.
    */
-  actionTrigger?: string | null;
+  actionableRecommendation?: string | null;
 }
 
 export interface InsightGetSpendingTrendsResponse {
   /**
-   * AI-generated insights and actionable recommendations related to spending.
+   * AI-generated insights and alerts related to spending patterns.
    */
   aiInsights: Array<AIInsight>;
 
   /**
-   * Overall trend of spending.
+   * Overall spending trend for the period.
    */
   overallTrend: 'increasing' | 'decreasing' | 'stable';
 
   /**
-   * Percentage change in spending for the period (positive for increase, negative
-   * for decrease).
+   * Percentage change in overall spending compared to the previous equivalent
+   * period.
    */
   percentageChange: number;
 
@@ -96,22 +88,31 @@ export interface InsightGetSpendingTrendsResponse {
   period: string;
 
   /**
-   * Categories with the most significant spending changes.
+   * Categories with the most significant changes in spending.
    */
   topCategoriesByChange: Array<InsightGetSpendingTrendsResponse.TopCategoriesByChange>;
 
   /**
-   * AI's forecasted total spending for the next month.
+   * AI's projected total spending for the upcoming month.
    */
   forecastNextMonth?: number | null;
 }
 
 export namespace InsightGetSpendingTrendsResponse {
   export interface TopCategoriesByChange {
+    /**
+     * Absolute change in spending for this category.
+     */
     absoluteChange?: number;
 
+    /**
+     * Category name.
+     */
     category?: string;
 
+    /**
+     * Percentage change in spending for this category.
+     */
     percentageChange?: number;
   }
 }

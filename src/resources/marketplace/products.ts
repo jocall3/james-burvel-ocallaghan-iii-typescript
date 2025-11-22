@@ -83,28 +83,27 @@ export namespace ProductListResponse {
     id: string;
 
     /**
-     * AI's recommendation score (0-1) indicating relevance and suitability for the
-     * user.
+     * AI's recommendation score (0-1) for this user.
      */
     aiRecommendationScore: number;
 
     /**
-     * Category of the product (e.g., 'Smart Home Devices', 'Financial Education').
+     * Category of the product.
      */
     category: string;
 
     /**
-     * Currency of the product's price (ISO 4217 code).
+     * Currency of the product price.
      */
     currency: string;
 
     /**
-     * Detailed description of the product.
+     * Description of the product.
      */
     description: string;
 
     /**
-     * URL to the product's main image.
+     * URL to the product image.
      */
     imageUrl: string;
 
@@ -114,57 +113,76 @@ export namespace ProductListResponse {
     name: string;
 
     /**
-     * AI-generated explanation of why this product is recommended to the user.
+     * AI's explanation for why this product is recommended.
      */
     personalizationReason: string;
 
     /**
-     * Current price of the product.
+     * Price of the product.
      */
     price: number;
 
     /**
-     * Name of the product vendor or brand.
+     * Vendor or brand of the product.
      */
     vendor: string;
 
     /**
-     * AI-estimated financial impact of the product on the user's budget.
+     * AI's estimated financial impact of purchasing this product.
      */
     estimatedImpactOnBudget?: ProductListResponseItem.EstimatedImpactOnBudget | null;
 
-    /**
-     * Details of any exclusive offers available for this product.
-     */
-    exclusiveOffer?: ProductListResponseItem.ExclusiveOffer | null;
+    offerDetails?: ProductListResponseItem.OfferDetails | null;
   }
 
   export namespace ProductListResponseItem {
     /**
-     * AI-estimated financial impact of the product on the user's budget.
+     * AI's estimated financial impact of purchasing this product.
      */
     export interface EstimatedImpactOnBudget {
-      monthlySavings?: number;
+      /**
+       * Estimated monthly cost from this product (e.g., financing).
+       */
+      monthlyCost?: number | null;
 
-      paybackPeriodMonths?: number;
+      /**
+       * Estimated monthly savings from this product (if applicable).
+       */
+      monthlySavings?: number | null;
+
+      /**
+       * Overall impact on user's budget.
+       */
+      overallBudgetImpact?: 'positive' | 'neutral' | 'negative' | null;
+
+      /**
+       * Estimated number of months to recoup initial investment/cost.
+       */
+      paybackPeriodMonths?: number | null;
     }
 
-    /**
-     * Details of any exclusive offers available for this product.
-     */
-    export interface ExclusiveOffer {
-      description?: string;
+    export interface OfferDetails {
+      /**
+       * Discount percentage.
+       */
+      discountPercentage?: number;
 
-      expiresDate?: string;
+      /**
+       * Promotional code.
+       */
+      offerCode?: string;
 
-      title?: string;
+      /**
+       * Offer valid until date.
+       */
+      validUntil?: string;
     }
   }
 }
 
 export interface ProductClaimOfferResponse {
   /**
-   * A confirmation message with redemption instructions.
+   * A message providing redemption instructions or confirmation.
    */
   message: string;
 
@@ -181,68 +199,67 @@ export interface ProductClaimOfferResponse {
   /**
    * Current status of the offer.
    */
-  status: 'claimed' | 'redeemed' | 'expired' | 'cancelled';
+  status: 'claimed' | 'redeemed' | 'expired';
 
   /**
-   * Timestamp when the offer was claimed.
-   */
-  claimDate?: string;
-
-  /**
-   * The date and time the offer expires.
+   * Date and time when the claimed offer expires.
    */
   expirationDate?: string | null;
 
   /**
-   * The code needed to redeem the offer, if applicable.
+   * Optional: A code needed to redeem the offer.
    */
   redemptionCode?: string | null;
 
   /**
-   * A direct link to redeem the offer, if applicable.
+   * Optional: A direct link to redeem the offer.
    */
   redemptionLink?: string | null;
 }
 
 export interface ProductSimulatePurchaseResponse {
   /**
-   * Actionable recommendations or further insights from the AI.
-   */
-  aiRecommendations: Array<InsightsAPI.AIInsight>;
-
-  /**
    * Key financial metrics and their projected impact.
    */
   keyImpacts: Array<ProductSimulatePurchaseResponse.KeyImpact>;
 
   /**
-   * The ID of the product for which the purchase was simulated.
+   * The ID of the product for which the simulation was run.
    */
   productId: string;
 
   /**
-   * The payment option that was simulated.
+   * The payment option simulated.
    */
   purchaseOption: 'full_payment' | 'financed_12_months' | 'financed_24_months';
 
   /**
-   * A natural language summary of the financial impact.
+   * A narrative summary of the financial impact.
    */
   simulationSummary: string;
 
   /**
-   * Timestamp when the simulation was performed.
+   * AI-generated recommendations or insights based on the purchase simulation.
    */
-  simulationDate?: string;
+  aiRecommendations?: Array<InsightsAPI.AIInsight> | null;
 }
 
 export namespace ProductSimulatePurchaseResponse {
   export interface KeyImpact {
-    metric?: string;
+    /**
+     * The financial metric being impacted.
+     */
+    metric: string;
 
-    severity?: 'low' | 'medium' | 'high';
+    /**
+     * The projected value or range for the metric.
+     */
+    value: string;
 
-    value?: string;
+    /**
+     * The severity of the impact (e.g., positive or negative significant change).
+     */
+    severity?: 'low' | 'medium' | 'high' | null;
   }
 }
 
@@ -253,7 +270,7 @@ export interface ProductListParams {
   category?: string;
 
   /**
-   * Maximum number of items to return.
+   * Maximum number of items to return in the response.
    */
   limit?: number;
 

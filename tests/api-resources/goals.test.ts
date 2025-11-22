@@ -11,7 +11,6 @@ describe('resource goals', () => {
   test.skip('create: only required params', async () => {
     const responsePromise = client.goals.create({
       name: 'Dream Vacation Fund',
-      riskTolerance: 'medium',
       targetAmount: 15000,
       targetDate: '2026-06-30',
       type: 'large_purchase',
@@ -29,13 +28,13 @@ describe('resource goals', () => {
   test.skip('create: required and optional params', async () => {
     const response = await client.goals.create({
       name: 'Dream Vacation Fund',
-      riskTolerance: 'medium',
       targetAmount: 15000,
       targetDate: '2026-06-30',
       type: 'large_purchase',
       generateAIPlan: true,
       initialContribution: 1000,
-      linkedAccountIds: ['182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e'],
+      linkedAccountId: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
+      riskTolerance: 'medium',
     });
   });
 

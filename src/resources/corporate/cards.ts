@@ -100,13 +100,17 @@ export class Cards extends APIResource {
    *   await client.corporate.cards.updateControls(
    *     'corp_card_xyz987654',
    *     {
+   *       atmWithdrawals: true,
+   *       contactlessPayments: true,
    *       dailyLimit: 750,
    *       internationalTransactions: true,
+   *       monthlyLimit: 3000,
+   *       onlineTransactions: true,
+   *       singleTransactionLimit: 1000,
    *       merchantCategoryRestrictions: [
    *         'Software Subscriptions',
    *         'Conferences',
    *       ],
-   *       monthlyLimit: 3000,
    *     },
    *   );
    * ```
@@ -127,7 +131,7 @@ export interface CorporateCard {
   id: string;
 
   /**
-   * Masked card number for display.
+   * Masked card number for display (e.g., last 4 digits).
    */
   cardNumberMask: string;
 
@@ -137,127 +141,151 @@ export interface CorporateCard {
   cardType: 'physical' | 'virtual';
 
   /**
-   * Granular spending controls applied to this card.
+   * Granular spending controls and limits for the card.
    */
   controls: CorporateCardControls;
 
   /**
-   * Date and time the card was created.
+   * Date when the card was created/issued.
    */
   createdDate: string;
 
   /**
-   * Card expiration date.
+   * Expiration date of the card.
    */
   expirationDate: string;
 
   /**
-   * True if the card is temporarily frozen and cannot be used.
+   * Indicates if the card is temporarily frozen (no transactions allowed).
    */
   frozen: boolean;
 
   /**
-   * Name of the cardholder (employee or campaign name).
+   * Name of the employee or entity holding the card.
    */
   holderName: string;
 
   /**
    * Current status of the card.
    */
-  status: 'Active' | 'Suspended' | 'Deactivated' | 'Expired';
+  status: 'Active' | 'Suspended' | 'Cancelled' | 'Expired';
 
   /**
-   * Optional: Employee ID if associated with a specific individual.
+   * Optional: ID of the employee associated with the card.
    */
   associatedEmployeeId?: string | null;
 
   /**
-   * Optional: ID of the overarching corporate spending policy this card adheres to.
+   * The primary currency of the card.
    */
-  spendingPolicyId?: string | null;
+  currency?: string;
 
   /**
-   * A description of the card's intended use or purpose.
+   * Optional: ID of the corporate spending policy this card adheres to.
    */
-  usagePurpose?: string | null;
+  spendingPolicyId?: string | null;
 }
 
 export interface CorporateCardControls {
   /**
    * Allow or disallow ATM cash withdrawals.
    */
-  atmWithdrawals?: boolean;
+  atmWithdrawals: boolean;
 
   /**
-   * Allow or disallow contactless (NFC) payments.
+   * Allow or disallow contactless payments.
    */
-  contactlessPayments?: boolean;
+  contactlessPayments: boolean;
 
   /**
-   * Maximum spending limit per day.
+   * Maximum spending allowed per day.
    */
-  dailyLimit?: number | null;
+  dailyLimit: number;
 
   /**
-   * Allow or disallow transactions outside the primary country.
+   * Allow or disallow international transactions.
    */
-  internationalTransactions?: boolean;
+  internationalTransactions: boolean;
 
   /**
-   * List of allowed or disallowed merchant categories (e.g., 'Restaurants',
-   * 'Travel').
+   * Maximum spending allowed per month.
+   */
+  monthlyLimit: number;
+
+  /**
+   * Allow or disallow online transactions.
+   */
+  onlineTransactions: boolean;
+
+  /**
+   * Maximum amount allowed for a single transaction.
+   */
+  singleTransactionLimit: number;
+
+  /**
+   * List of merchant categories (MCCs) allowed or blocked.
    */
   merchantCategoryRestrictions?: Array<string> | null;
 
-  /**
-   * Maximum spending limit per month.
-   */
-  monthlyLimit?: number | null;
+  timeBasedRestrictions?: CorporateCardControls.TimeBasedRestrictions | null;
 
   /**
-   * Allow or disallow online purchases.
-   */
-  onlineTransactions?: boolean;
-
-  /**
-   * Maximum amount for a single transaction.
-   */
-  singleTransactionLimit?: number | null;
-
-  /**
-   * List of allowed or disallowed specific vendors/merchants (e.g., 'Amazon',
-   * 'Uber').
+   * Specific vendors allowed or blocked.
    */
   vendorRestrictions?: Array<string> | null;
+}
+
+export namespace CorporateCardControls {
+  export interface TimeBasedRestrictions {
+    /**
+     * End time for allowed transactions (HH:MM).
+     */
+    dailyEndTime?: string;
+
+    /**
+     * Start time for allowed transactions (HH:MM).
+     */
+    dailyStartTime?: string;
+
+    /**
+     * Only allow transactions on weekdays.
+     */
+    weekdaysOnly?: boolean;
+  }
 }
 
 export type CardListResponse = Array<CorporateCard>;
 
 export interface CardCreateVirtualParams {
   /**
-   * Specific spending controls for this virtual card.
+   * Specific spending controls and limits for this virtual card.
    */
   controls: CorporateCardControls;
 
   /**
-   * The expiration date for the virtual card.
+   * Expiration date of the virtual card.
    */
   expirationDate: string;
 
   /**
-   * Name for the virtual card holder (can be a campaign, project, or individual).
+   * Name of the entity or campaign for which the virtual card is issued.
    */
   holderName: string;
 
   /**
-   * Clear purpose of the virtual card's use.
+   * The purpose or use case for this virtual card.
    */
   purpose: string;
 
   /**
-   * Optional: Employee ID if associated with an individual.
+   * Optional: ID of the employee responsible for this virtual card.
    */
   associatedEmployeeId?: string | null;
+
+  /**
+   * The primary currency of the virtual card.
+   */
+  currency?: string;
 }
 
 export interface CardFreezeParams {
@@ -269,12 +297,12 @@ export interface CardFreezeParams {
 
 export interface CardListTransactionsParams {
   /**
-   * Retrieve items up to this date (inclusive).
+   * End date for filtering results (inclusive). Format: YYYY-MM-DD.
    */
   endDate?: string;
 
   /**
-   * Maximum number of items to return.
+   * Maximum number of items to return in the response.
    */
   limit?: number;
 
@@ -284,7 +312,7 @@ export interface CardListTransactionsParams {
   offset?: number;
 
   /**
-   * Retrieve items from this date (inclusive).
+   * Start date for filtering results (inclusive). Format: YYYY-MM-DD.
    */
   startDate?: string;
 }
@@ -293,49 +321,68 @@ export interface CardUpdateControlsParams {
   /**
    * Allow or disallow ATM cash withdrawals.
    */
-  atmWithdrawals?: boolean;
+  atmWithdrawals: boolean;
 
   /**
-   * Allow or disallow contactless (NFC) payments.
+   * Allow or disallow contactless payments.
    */
-  contactlessPayments?: boolean;
+  contactlessPayments: boolean;
 
   /**
-   * Maximum spending limit per day.
+   * Maximum spending allowed per day.
    */
-  dailyLimit?: number | null;
+  dailyLimit: number;
 
   /**
-   * Allow or disallow transactions outside the primary country.
+   * Allow or disallow international transactions.
    */
-  internationalTransactions?: boolean;
+  internationalTransactions: boolean;
 
   /**
-   * List of allowed or disallowed merchant categories (e.g., 'Restaurants',
-   * 'Travel').
+   * Maximum spending allowed per month.
+   */
+  monthlyLimit: number;
+
+  /**
+   * Allow or disallow online transactions.
+   */
+  onlineTransactions: boolean;
+
+  /**
+   * Maximum amount allowed for a single transaction.
+   */
+  singleTransactionLimit: number;
+
+  /**
+   * List of merchant categories (MCCs) allowed or blocked.
    */
   merchantCategoryRestrictions?: Array<string> | null;
 
-  /**
-   * Maximum spending limit per month.
-   */
-  monthlyLimit?: number | null;
+  timeBasedRestrictions?: CardUpdateControlsParams.TimeBasedRestrictions | null;
 
   /**
-   * Allow or disallow online purchases.
-   */
-  onlineTransactions?: boolean;
-
-  /**
-   * Maximum amount for a single transaction.
-   */
-  singleTransactionLimit?: number | null;
-
-  /**
-   * List of allowed or disallowed specific vendors/merchants (e.g., 'Amazon',
-   * 'Uber').
+   * Specific vendors allowed or blocked.
    */
   vendorRestrictions?: Array<string> | null;
+}
+
+export namespace CardUpdateControlsParams {
+  export interface TimeBasedRestrictions {
+    /**
+     * End time for allowed transactions (HH:MM).
+     */
+    dailyEndTime?: string;
+
+    /**
+     * Start time for allowed transactions (HH:MM).
+     */
+    dailyStartTime?: string;
+
+    /**
+     * Only allow transactions on weekdays.
+     */
+    weekdaysOnly?: boolean;
+  }
 }
 
 export declare namespace Cards {

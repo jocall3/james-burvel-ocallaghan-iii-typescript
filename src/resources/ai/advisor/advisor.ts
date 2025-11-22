@@ -36,22 +36,22 @@ export type AdvisorListToolsResponse = Array<AdvisorListToolsResponse.AdvisorLis
 export namespace AdvisorListToolsResponse {
   export interface AdvisorListToolsResponseItem {
     /**
-     * A description of what the AI tool does.
+     * A description of what the tool does.
      */
     description: string;
 
     /**
-     * The programmatic name of the AI tool.
+     * The unique name of the AI tool.
      */
     name: string;
 
     /**
-     * A JSON schema object defining the input parameters for the tool.
+     * An OpenAPI schema object describing the input parameters for the tool.
      */
     parameters: unknown;
 
     /**
-     * The OAuth2 scope required to execute this tool, if applicable.
+     * The required OAuth2 scope to invoke this tool.
      */
     accessScope?: string | null;
   }
