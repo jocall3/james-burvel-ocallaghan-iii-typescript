@@ -7,8 +7,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource offers', () => {
-  // Prism tests are disabled
-  test.skip('listPreApproved', async () => {
+  test('listPreApproved', async () => {
     const responsePromise = client.lending.offers.listPreApproved();
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -19,8 +18,7 @@ describe('resource offers', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('listPreApproved: request options and params are passed correctly', async () => {
+  test('listPreApproved: request options and params are passed correctly', async () => {
     // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
     await expect(
       client.lending.offers.listPreApproved({ limit: 1, offset: 0 }, { path: '/_stainless_unknown_path' }),

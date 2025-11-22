@@ -7,8 +7,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource applications', () => {
-  // Prism tests are disabled
-  test.skip('retrieve', async () => {
+  test('retrieve', async () => {
     const responsePromise = client.lending.applications.retrieve('loan_app_creditflow-123');
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -19,8 +18,7 @@ describe('resource applications', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('submit: only required params', async () => {
+  test('submit: only required params', async () => {
     const responsePromise = client.lending.applications.submit({
       loanAmount: 10000,
       loanPurpose: 'home_improvement',
@@ -35,8 +33,7 @@ describe('resource applications', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('submit: required and optional params', async () => {
+  test('submit: required and optional params', async () => {
     const response = await client.lending.applications.submit({
       loanAmount: 10000,
       loanPurpose: 'home_improvement',

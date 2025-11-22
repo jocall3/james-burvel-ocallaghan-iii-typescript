@@ -7,8 +7,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource generate', () => {
-  // Prism tests are disabled
-  test.skip('advanced: only required params', async () => {
+  test('advanced: only required params', async () => {
     const responsePromise = client.ai.ads.generate.advanced({
       lengthSeconds: 15,
       prompt:
@@ -24,8 +23,7 @@ describe('resource generate', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('advanced: required and optional params', async () => {
+  test('advanced: required and optional params', async () => {
     const response = await client.ai.ads.generate.advanced({
       lengthSeconds: 15,
       prompt:
@@ -47,8 +45,7 @@ describe('resource generate', () => {
     });
   });
 
-  // Prism tests are disabled
-  test.skip('standard: only required params', async () => {
+  test('standard: only required params', async () => {
     const responsePromise = client.ai.ads.generate.standard({
       lengthSeconds: 15,
       prompt:
@@ -64,8 +61,7 @@ describe('resource generate', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('standard: required and optional params', async () => {
+  test('standard: required and optional params', async () => {
     const response = await client.ai.ads.generate.standard({
       lengthSeconds: 15,
       prompt:

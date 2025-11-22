@@ -7,8 +7,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource simulate', () => {
-  // Prism tests are disabled
-  test.skip('runAdvanced: only required params', async () => {
+  test('runAdvanced: only required params', async () => {
     const responsePromise = client.ai.oracle.simulate.runAdvanced({
       prompt:
         'Evaluate the long-term impact of a sudden job loss combined with a variable market downturn, analyzing worst-case and best-case recovery scenarios over a decade.',
@@ -23,8 +22,7 @@ describe('resource simulate', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('runAdvanced: required and optional params', async () => {
+  test('runAdvanced: required and optional params', async () => {
     const response = await client.ai.oracle.simulate.runAdvanced({
       prompt:
         'Evaluate the long-term impact of a sudden job loss combined with a variable market downturn, analyzing worst-case and best-case recovery scenarios over a decade.',
@@ -47,8 +45,7 @@ describe('resource simulate', () => {
     });
   });
 
-  // Prism tests are disabled
-  test.skip('runStandard: only required params', async () => {
+  test('runStandard: only required params', async () => {
     const responsePromise = client.ai.oracle.simulate.runStandard({
       prompt:
         'What if I invest an additional $1,000 per month into my aggressive growth portfolio for the next 5 years?',
@@ -62,8 +59,7 @@ describe('resource simulate', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('runStandard: required and optional params', async () => {
+  test('runStandard: required and optional params', async () => {
     const response = await client.ai.oracle.simulate.runStandard({
       prompt:
         'What if I invest an additional $1,000 per month into my aggressive growth portfolio for the next 5 years?',

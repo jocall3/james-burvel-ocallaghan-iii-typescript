@@ -7,8 +7,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource devices', () => {
-  // Prism tests are disabled
-  test.skip('list', async () => {
+  test('list', async () => {
     const responsePromise = client.users.me.devices.list();
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -19,16 +18,14 @@ describe('resource devices', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('list: request options and params are passed correctly', async () => {
+  test('list: request options and params are passed correctly', async () => {
     // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
     await expect(
       client.users.me.devices.list({ limit: 1, offset: 0 }, { path: '/_stainless_unknown_path' }),
     ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);
   });
 
-  // Prism tests are disabled
-  test.skip('deregister', async () => {
+  test('deregister', async () => {
     const responsePromise = client.users.me.devices.deregister('dev_mobile_ios_aabbcc');
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -39,8 +36,7 @@ describe('resource devices', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('register: only required params', async () => {
+  test('register: only required params', async () => {
     const responsePromise = client.users.me.devices.register({
       deviceType: 'mobile',
       model: 'Samsung Galaxy S24 Ultra',
@@ -55,8 +51,7 @@ describe('resource devices', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('register: required and optional params', async () => {
+  test('register: required and optional params', async () => {
     const response = await client.users.me.devices.register({
       deviceType: 'mobile',
       model: 'Samsung Galaxy S24 Ultra',

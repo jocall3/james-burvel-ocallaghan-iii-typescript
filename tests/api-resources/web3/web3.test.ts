@@ -7,8 +7,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource web3', () => {
-  // Prism tests are disabled
-  test.skip('retrieveNFTs', async () => {
+  test('retrieveNFTs', async () => {
     const responsePromise = client.web3.retrieveNFTs();
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -19,8 +18,7 @@ describe('resource web3', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('retrieveNFTs: request options and params are passed correctly', async () => {
+  test('retrieveNFTs: request options and params are passed correctly', async () => {
     // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
     await expect(
       client.web3.retrieveNFTs({ limit: 1, offset: 0 }, { path: '/_stainless_unknown_path' }),

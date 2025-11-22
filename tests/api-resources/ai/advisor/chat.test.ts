@@ -7,8 +7,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource chat', () => {
-  // Prism tests are disabled
-  test.skip('retrieveHistory', async () => {
+  test('retrieveHistory', async () => {
     const responsePromise = client.ai.advisor.chat.retrieveHistory();
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -19,8 +18,7 @@ describe('resource chat', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('retrieveHistory: request options and params are passed correctly', async () => {
+  test('retrieveHistory: request options and params are passed correctly', async () => {
     // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
     await expect(
       client.ai.advisor.chat.retrieveHistory(
@@ -30,8 +28,7 @@ describe('resource chat', () => {
     ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);
   });
 
-  // Prism tests are disabled
-  test.skip('sendMessage', async () => {
+  test('sendMessage', async () => {
     const responsePromise = client.ai.advisor.chat.sendMessage({});
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);

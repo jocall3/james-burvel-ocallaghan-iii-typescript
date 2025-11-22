@@ -7,8 +7,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource corporate', () => {
-  // Prism tests are disabled
-  test.skip('performSanctionScreening: only required params', async () => {
+  test('performSanctionScreening: only required params', async () => {
     const responsePromise = client.corporate.performSanctionScreening({
       country: 'US',
       entityType: 'individual',
@@ -23,8 +22,7 @@ describe('resource corporate', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('performSanctionScreening: required and optional params', async () => {
+  test('performSanctionScreening: required and optional params', async () => {
     const response = await client.corporate.performSanctionScreening({
       country: 'US',
       entityType: 'individual',

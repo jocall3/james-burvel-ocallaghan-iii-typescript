@@ -7,8 +7,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource assets', () => {
-  // Prism tests are disabled
-  test.skip('search: only required params', async () => {
+  test('search: only required params', async () => {
     const responsePromise = client.investments.assets.search({ query: 'Tesla' });
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -19,8 +18,7 @@ describe('resource assets', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('search: required and optional params', async () => {
+  test('search: required and optional params', async () => {
     const response = await client.investments.assets.search({
       query: 'Tesla',
       limit: 1,
