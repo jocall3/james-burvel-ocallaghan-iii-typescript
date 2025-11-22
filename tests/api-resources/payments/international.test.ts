@@ -14,9 +14,7 @@ describe('resource international', () => {
       beneficiary: {
         address: 'Hauptstrasse 1, 10115 Berlin, Germany',
         bankName: 'Deutsche Bank',
-        iban: 'DE89370400440532013000',
         name: 'Maria Schmidt',
-        swiftBic: 'DEUTDEFF',
       },
       purpose: 'Vendor payment for Q2 services.',
       sourceAccountId: 'acc_chase_checking_4567',
@@ -39,11 +37,11 @@ describe('resource international', () => {
       beneficiary: {
         address: 'Hauptstrasse 1, 10115 Berlin, Germany',
         bankName: 'Deutsche Bank',
-        iban: 'DE89370400440532013000',
         name: 'Maria Schmidt',
-        swiftBic: 'DEUTDEFF',
         accountNumber: 'accountNumber',
+        iban: 'DE89370400440532013000',
         routingNumber: 'routingNumber',
+        swiftBic: 'DEUTDEFF',
       },
       purpose: 'Vendor payment for Q2 services.',
       sourceAccountId: 'acc_chase_checking_4567',
@@ -51,7 +49,7 @@ describe('resource international', () => {
       targetCurrency: 'EUR',
       fxRateLock: true,
       fxRateProvider: 'proprietary_ai',
-      referenceId: 'INV-2024-00123',
+      reference: 'reference',
     });
   });
 

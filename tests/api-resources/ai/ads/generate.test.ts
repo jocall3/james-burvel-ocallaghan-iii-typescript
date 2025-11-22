@@ -10,7 +10,6 @@ describe('resource generate', () => {
   // Prism tests are disabled
   test.skip('advanced: only required params', async () => {
     const responsePromise = client.ai.ads.generate.advanced({
-      aspectRatio: '16:9',
       lengthSeconds: 15,
       prompt:
         "A captivating ad featuring a young entrepreneur using 's AI tools to grow their startup. Focus on innovation and ease of use.",
@@ -28,21 +27,21 @@ describe('resource generate', () => {
   // Prism tests are disabled
   test.skip('advanced: required and optional params', async () => {
     const response = await client.ai.ads.generate.advanced({
-      aspectRatio: '16:9',
       lengthSeconds: 15,
       prompt:
         "A captivating ad featuring a young entrepreneur using 's AI tools to grow their startup. Focus on innovation and ease of use.",
       style: 'Cinematic',
+      aspectRatio: '16:9',
       audienceTarget: 'corporate',
-      backgroundMusicVolume: 0.5,
-      brandAssets: ['https://example.com'],
+      backgroundMusicGenre: 'corporate',
+      brandAssets: ['https://demobank.com/assets/corporate_logo.png'],
       brandColors: ['#0000FF', '#FFD700'],
       callToAction: {
+        displayTimeSeconds: 5,
         text: 'Learn more at DemoBank.com/business',
         url: 'https://demobank.com/business',
-        displayTimeSeconds: 5,
       },
-      musicGenre: 'uplifting_corporate',
+      keywords: ['innovation', 'fintech', 'startup'],
       voiceoverStyle: 'male_professional',
       voiceoverText: ': Your business, powered by intelligent finance.',
     });
@@ -51,7 +50,6 @@ describe('resource generate', () => {
   // Prism tests are disabled
   test.skip('standard: only required params', async () => {
     const responsePromise = client.ai.ads.generate.standard({
-      aspectRatio: '16:9',
       lengthSeconds: 15,
       prompt:
         "A captivating ad featuring a young entrepreneur using 's AI tools to grow their startup. Focus on innovation and ease of use.",
@@ -69,13 +67,13 @@ describe('resource generate', () => {
   // Prism tests are disabled
   test.skip('standard: required and optional params', async () => {
     const response = await client.ai.ads.generate.standard({
-      aspectRatio: '16:9',
       lengthSeconds: 15,
       prompt:
         "A captivating ad featuring a young entrepreneur using 's AI tools to grow their startup. Focus on innovation and ease of use.",
       style: 'Cinematic',
+      aspectRatio: '16:9',
       brandColors: ['#0000FF', '#FFD700'],
-      musicGenre: 'uplifting_corporate',
+      keywords: ['innovation', 'fintech', 'startup'],
     });
   });
 });

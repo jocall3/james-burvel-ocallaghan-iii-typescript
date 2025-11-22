@@ -29,7 +29,6 @@ describe('resource sustainability', () => {
       amountKgCO2e: 500,
       offsetProject: 'Verified Carbon Standard Project X',
       paymentAccountId: 'acc_chase_checking_4567',
-      autoOffsetMonthly: false,
     });
   });
 

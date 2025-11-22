@@ -14,11 +14,14 @@ export class Cards extends APIResource {
    *
    * @example
    * ```ts
-   * const corporateCards = await client.corporate.cards.list();
+   * const cards = await client.corporate.cards.list();
    * ```
    */
-  list(options?: RequestOptions): APIPromise<CardListResponse> {
-    return this._client.get('/corporate/cards', options);
+  list(
+    query: CardListParams | null | undefined = {},
+    options?: RequestOptions,
+  ): APIPromise<CardListResponse> {
+    return this._client.get('/corporate/cards', { query, ...options });
   }
 
   /**
@@ -100,17 +103,13 @@ export class Cards extends APIResource {
    *   await client.corporate.cards.updateControls(
    *     'corp_card_xyz987654',
    *     {
-   *       atmWithdrawals: true,
-   *       contactlessPayments: true,
    *       dailyLimit: 750,
    *       internationalTransactions: true,
-   *       monthlyLimit: 3000,
-   *       onlineTransactions: true,
-   *       singleTransactionLimit: 1000,
    *       merchantCategoryRestrictions: [
    *         'Software Subscriptions',
    *         'Conferences',
    *       ],
+   *       monthlyLimit: 3000,
    *     },
    *   );
    * ```
@@ -131,161 +130,178 @@ export interface CorporateCard {
   id: string;
 
   /**
-   * Masked card number for display (e.g., last 4 digits).
+   * Masked card number for display purposes.
    */
   cardNumberMask: string;
 
   /**
-   * Type of card (physical or virtual).
+   * Type of the card (physical or virtual).
    */
   cardType: 'physical' | 'virtual';
 
   /**
-   * Granular spending controls and limits for the card.
+   * Granular spending controls for a corporate card.
    */
   controls: CorporateCardControls;
 
   /**
-   * Date when the card was created/issued.
+   * Timestamp when the card was created.
    */
   createdDate: string;
 
   /**
-   * Expiration date of the card.
+   * Currency of the card's limits and transactions.
+   */
+  currency: string;
+
+  /**
+   * Expiration date of the card (YYYY-MM-DD).
    */
   expirationDate: string;
 
   /**
-   * Indicates if the card is temporarily frozen (no transactions allowed).
+   * If true, the card is temporarily frozen and cannot be used.
    */
   frozen: boolean;
 
   /**
-   * Name of the employee or entity holding the card.
+   * Name of the card holder.
    */
   holderName: string;
 
   /**
    * Current status of the card.
    */
-  status: 'Active' | 'Suspended' | 'Cancelled' | 'Expired';
+  status: 'Active' | 'Suspended' | 'Deactivated' | 'Pending Activation';
 
   /**
-   * Optional: ID of the employee associated with the card.
+   * Optional: ID of the employee associated with this card.
    */
   associatedEmployeeId?: string | null;
 
   /**
-   * The primary currency of the card.
-   */
-  currency?: string;
-
-  /**
-   * Optional: ID of the corporate spending policy this card adheres to.
+   * Optional: ID of the overarching spending policy applied to this card.
    */
   spendingPolicyId?: string | null;
 }
 
+/**
+ * Granular spending controls for a corporate card.
+ */
 export interface CorporateCardControls {
   /**
-   * Allow or disallow ATM cash withdrawals.
+   * If true, ATM cash withdrawals are allowed.
    */
-  atmWithdrawals: boolean;
+  atmWithdrawals?: boolean;
 
   /**
-   * Allow or disallow contactless payments.
+   * If true, contactless payments are allowed.
    */
-  contactlessPayments: boolean;
+  contactlessPayments?: boolean;
 
   /**
-   * Maximum spending allowed per day.
+   * Maximum spending limit per day (null for no limit).
    */
-  dailyLimit: number;
+  dailyLimit?: number | null;
 
   /**
-   * Allow or disallow international transactions.
+   * If true, international transactions are allowed.
    */
-  internationalTransactions: boolean;
+  internationalTransactions?: boolean;
 
   /**
-   * Maximum spending allowed per month.
-   */
-  monthlyLimit: number;
-
-  /**
-   * Allow or disallow online transactions.
-   */
-  onlineTransactions: boolean;
-
-  /**
-   * Maximum amount allowed for a single transaction.
-   */
-  singleTransactionLimit: number;
-
-  /**
-   * List of merchant categories (MCCs) allowed or blocked.
+   * List of allowed merchant categories. If empty, all are allowed unless explicitly
+   * denied.
    */
   merchantCategoryRestrictions?: Array<string> | null;
 
-  timeBasedRestrictions?: CorporateCardControls.TimeBasedRestrictions | null;
+  /**
+   * Maximum spending limit per month (null for no limit).
+   */
+  monthlyLimit?: number | null;
 
   /**
-   * Specific vendors allowed or blocked.
+   * If true, online transactions are allowed.
+   */
+  onlineTransactions?: boolean;
+
+  /**
+   * Maximum amount for a single transaction (null for no limit).
+   */
+  singleTransactionLimit?: number | null;
+
+  /**
+   * List of allowed vendors/merchants by name.
    */
   vendorRestrictions?: Array<string> | null;
 }
 
-export namespace CorporateCardControls {
-  export interface TimeBasedRestrictions {
-    /**
-     * End time for allowed transactions (HH:MM).
-     */
-    dailyEndTime?: string;
+export interface CardListResponse {
+  /**
+   * The maximum number of items returned in the current page.
+   */
+  limit: number;
 
-    /**
-     * Start time for allowed transactions (HH:MM).
-     */
-    dailyStartTime?: string;
+  /**
+   * The number of items skipped before the current page.
+   */
+  offset: number;
 
-    /**
-     * Only allow transactions on weekdays.
-     */
-    weekdaysOnly?: boolean;
-  }
+  /**
+   * The total number of items available across all pages.
+   */
+  total: number;
+
+  data?: Array<CorporateCard>;
+
+  /**
+   * The offset for the next page of results, if available. Null if no more pages.
+   */
+  nextOffset?: number | null;
 }
 
-export type CardListResponse = Array<CorporateCard>;
+export interface CardListParams {
+  /**
+   * Maximum number of items to return in a single page.
+   */
+  limit?: number;
+
+  /**
+   * Number of items to skip before starting to collect the result set.
+   */
+  offset?: number;
+}
 
 export interface CardCreateVirtualParams {
   /**
-   * Specific spending controls and limits for this virtual card.
+   * Specific spending controls for this virtual card.
    */
   controls: CorporateCardControls;
 
   /**
-   * Expiration date of the virtual card.
+   * Expiration date for the virtual card (YYYY-MM-DD).
    */
   expirationDate: string;
 
   /**
-   * Name of the entity or campaign for which the virtual card is issued.
+   * Name to appear on the virtual card.
    */
   holderName: string;
 
   /**
-   * The purpose or use case for this virtual card.
+   * Brief description of the virtual card's purpose.
    */
   purpose: string;
 
   /**
-   * Optional: ID of the employee responsible for this virtual card.
+   * Optional: ID of the employee or department this card is for.
    */
   associatedEmployeeId?: string | null;
 
   /**
-   * The primary currency of the virtual card.
+   * Optional: ID of a spending policy to link with this virtual card.
    */
-  currency?: string;
+  spendingPolicyId?: string | null;
 }
 
 export interface CardFreezeParams {
@@ -297,12 +313,12 @@ export interface CardFreezeParams {
 
 export interface CardListTransactionsParams {
   /**
-   * End date for filtering results (inclusive). Format: YYYY-MM-DD.
+   * End date for filtering results (inclusive, YYYY-MM-DD).
    */
   endDate?: string;
 
   /**
-   * Maximum number of items to return in the response.
+   * Maximum number of items to return in a single page.
    */
   limit?: number;
 
@@ -312,77 +328,57 @@ export interface CardListTransactionsParams {
   offset?: number;
 
   /**
-   * Start date for filtering results (inclusive). Format: YYYY-MM-DD.
+   * Start date for filtering results (inclusive, YYYY-MM-DD).
    */
   startDate?: string;
 }
 
 export interface CardUpdateControlsParams {
   /**
-   * Allow or disallow ATM cash withdrawals.
+   * If true, ATM cash withdrawals are allowed.
    */
-  atmWithdrawals: boolean;
+  atmWithdrawals?: boolean;
 
   /**
-   * Allow or disallow contactless payments.
+   * If true, contactless payments are allowed.
    */
-  contactlessPayments: boolean;
+  contactlessPayments?: boolean;
 
   /**
-   * Maximum spending allowed per day.
+   * Maximum spending limit per day (null for no limit).
    */
-  dailyLimit: number;
+  dailyLimit?: number | null;
 
   /**
-   * Allow or disallow international transactions.
+   * If true, international transactions are allowed.
    */
-  internationalTransactions: boolean;
+  internationalTransactions?: boolean;
 
   /**
-   * Maximum spending allowed per month.
-   */
-  monthlyLimit: number;
-
-  /**
-   * Allow or disallow online transactions.
-   */
-  onlineTransactions: boolean;
-
-  /**
-   * Maximum amount allowed for a single transaction.
-   */
-  singleTransactionLimit: number;
-
-  /**
-   * List of merchant categories (MCCs) allowed or blocked.
+   * List of allowed merchant categories. If empty, all are allowed unless explicitly
+   * denied.
    */
   merchantCategoryRestrictions?: Array<string> | null;
 
-  timeBasedRestrictions?: CardUpdateControlsParams.TimeBasedRestrictions | null;
+  /**
+   * Maximum spending limit per month (null for no limit).
+   */
+  monthlyLimit?: number | null;
 
   /**
-   * Specific vendors allowed or blocked.
+   * If true, online transactions are allowed.
+   */
+  onlineTransactions?: boolean;
+
+  /**
+   * Maximum amount for a single transaction (null for no limit).
+   */
+  singleTransactionLimit?: number | null;
+
+  /**
+   * List of allowed vendors/merchants by name.
    */
   vendorRestrictions?: Array<string> | null;
-}
-
-export namespace CardUpdateControlsParams {
-  export interface TimeBasedRestrictions {
-    /**
-     * End time for allowed transactions (HH:MM).
-     */
-    dailyEndTime?: string;
-
-    /**
-     * Start time for allowed transactions (HH:MM).
-     */
-    dailyStartTime?: string;
-
-    /**
-     * Only allow transactions on weekdays.
-     */
-    weekdaysOnly?: boolean;
-  }
 }
 
 export declare namespace Cards {
@@ -390,6 +386,7 @@ export declare namespace Cards {
     type CorporateCard as CorporateCard,
     type CorporateCardControls as CorporateCardControls,
     type CardListResponse as CardListResponse,
+    type CardListParams as CardListParams,
     type CardCreateVirtualParams as CardCreateVirtualParams,
     type CardFreezeParams as CardFreezeParams,
     type CardListTransactionsParams as CardListTransactionsParams,

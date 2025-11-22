@@ -21,6 +21,11 @@ describe('resource assets', () => {
 
   // Prism tests are disabled
   test.skip('search: required and optional params', async () => {
-    const response = await client.investments.assets.search({ query: 'Tesla', minESGScore: 7 });
+    const response = await client.investments.assets.search({
+      query: 'Tesla',
+      limit: 1,
+      minESGScore: 7,
+      offset: 0,
+    });
   });
 });

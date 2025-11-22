@@ -2,4 +2,9 @@
 
 export { Applications, type LoanApplicationStatus, type ApplicationSubmitParams } from './applications';
 export { Lending } from './lending';
-export { Offers, type LoanOffer, type OfferListPreApprovedResponse } from './offers';
+export {
+  Offers,
+  type LoanOffer,
+  type OfferListPreApprovedResponse,
+  type OfferListPreApprovedParams,
+} from './offers';

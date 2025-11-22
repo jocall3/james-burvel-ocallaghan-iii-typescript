@@ -55,12 +55,14 @@ export class Webhooks extends APIResource {
    *
    * @example
    * ```ts
-   * const webhookSubscriptions =
-   *   await client.developers.webhooks.list();
+   * const webhooks = await client.developers.webhooks.list();
    * ```
    */
-  list(options?: RequestOptions): APIPromise<WebhookListResponse> {
-    return this._client.get('/developers/webhooks', options);
+  list(
+    query: WebhookListParams | null | undefined = {},
+    options?: RequestOptions,
+  ): APIPromise<WebhookListResponse> {
+    return this._client.get('/developers/webhooks', { query, ...options });
   }
 
   /**
@@ -89,30 +91,29 @@ export interface WebhookSubscription {
   id: string;
 
   /**
-   * The URL to which webhook events will be sent.
+   * The URL where webhook events will be sent.
    */
   callbackUrl: string;
 
   /**
-   * List of event types subscribed to (e.g., 'transaction.created',
-   * 'user.login_failed').
+   * Timestamp when the subscription was created.
+   */
+  createdAt: string;
+
+  /**
+   * List of event types subscribed to.
    */
   events: Array<string>;
 
   /**
+   * Current status of the webhook subscription.
+   */
+  status: 'active' | 'paused' | 'suspended';
+
+  /**
    * Number of consecutive failed delivery attempts.
    */
-  failureCount: number;
-
-  /**
-   * Current status of the subscription.
-   */
-  status: 'active' | 'paused' | 'failed';
-
-  /**
-   * Timestamp when the webhook subscription was created.
-   */
-  createdAt?: string;
+  failureCount?: number;
 
   /**
    * Timestamp of the last successful webhook delivery.
@@ -120,13 +121,35 @@ export interface WebhookSubscription {
   lastTriggered?: string | null;
 
   /**
-   * The shared secret used to sign webhook payloads, null after creation for
-   * security.
+   * The shared secret used to sign webhook payloads, for verification. Only returned
+   * on creation.
    */
   secret?: string | null;
 }
 
-export type WebhookListResponse = Array<WebhookSubscription>;
+export interface WebhookListResponse {
+  /**
+   * The maximum number of items returned in the current page.
+   */
+  limit: number;
+
+  /**
+   * The number of items skipped before the current page.
+   */
+  offset: number;
+
+  /**
+   * The total number of items available across all pages.
+   */
+  total: number;
+
+  data?: Array<WebhookSubscription>;
+
+  /**
+   * The offset for the next page of results, if available. Null if no more pages.
+   */
+  nextOffset?: number | null;
+}
 
 export interface WebhookCreateParams {
   /**
@@ -135,44 +158,44 @@ export interface WebhookCreateParams {
   callbackUrl: string;
 
   /**
-   * List of event types to subscribe to (e.g., 'transaction.created',
-   * 'account.updated').
+   * List of event types to subscribe to.
    */
   events: Array<string>;
 
   /**
-   * Optional: A secret string for signing webhook payloads. If not provided, one
-   * will be auto-generated.
+   * Optional: A custom shared secret for verifying webhook payloads. If omitted, one
+   * will be generated.
    */
   secret?: string | null;
-
-  /**
-   * Initial status of the subscription.
-   */
-  status?: 'active' | 'paused';
 }
 
 export interface WebhookUpdateParams {
   /**
-   * New URL for the webhook endpoint.
+   * Updated URL where webhook events will be sent.
    */
   callbackUrl?: string;
 
   /**
-   * Updated list of event types to subscribe to.
+   * Updated list of event types subscribed to.
    */
-  events?: Array<string> | null;
+  events?: Array<string>;
 
   /**
-   * Optional: A new secret string for signing webhook payloads. Providing this will
-   * replace the existing secret.
+   * Updated status of the webhook subscription.
    */
-  secret?: string | null;
+  status?: 'active' | 'paused' | 'suspended';
+}
+
+export interface WebhookListParams {
+  /**
+   * Maximum number of items to return in a single page.
+   */
+  limit?: number;
 
   /**
-   * New status for the subscription.
+   * Number of items to skip before starting to collect the result set.
    */
-  status?: 'active' | 'paused';
+  offset?: number;
 }
 
 export declare namespace Webhooks {
@@ -181,5 +204,6 @@ export declare namespace Webhooks {
     type WebhookListResponse as WebhookListResponse,
     type WebhookCreateParams as WebhookCreateParams,
     type WebhookUpdateParams as WebhookUpdateParams,
+    type WebhookListParams as WebhookListParams,
   };
 }

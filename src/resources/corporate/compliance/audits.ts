@@ -57,7 +57,7 @@ export interface AuditRequestResponse {
 
 export interface AuditRetrieveReportResponse {
   /**
-   * Date when the audit report was generated.
+   * Timestamp when the audit report was generated.
    */
   auditDate: string;
 
@@ -67,83 +67,57 @@ export interface AuditRetrieveReportResponse {
   auditId: string;
 
   /**
-   * Detailed list of findings, including observations, recommendations, and
-   * potential violations.
+   * Detailed findings, observations, and recommendations.
    */
   findings: Array<AuditRetrieveReportResponse.Finding>;
 
   /**
-   * Overall compliance score (0-100), indicating adherence to rules.
+   * Overall compliance score (0-100), higher is better.
    */
   overallComplianceScore: number;
 
   /**
-   * The date range covered by the audit.
+   * The period covered by this audit report.
    */
   periodCovered: AuditRetrieveReportResponse.PeriodCovered;
 
   /**
-   * Current status of the audit.
-   */
-  status: 'initiated' | 'processing' | 'completed' | 'failed';
-
-  /**
-   * A summary of the audit findings.
-   */
-  summary: string;
-
-  /**
    * AI-generated actionable recommendations to improve compliance.
    */
-  recommendedActions?: Array<InsightsAPI.AIInsight> | null;
+  recommendedActions: Array<InsightsAPI.AIInsight>;
+
+  /**
+   * Current status of the audit.
+   */
+  status: 'processing' | 'completed' | 'failed';
+
+  /**
+   * A high-level summary of the audit findings.
+   */
+  summary: string;
 }
 
 export namespace AuditRetrieveReportResponse {
   export interface Finding {
-    /**
-     * Detailed description of the finding.
-     */
-    description: string;
+    description?: string;
 
     /**
-     * Severity of the finding.
-     */
-    severity: 'Low' | 'Medium' | 'High' | 'Critical';
-
-    /**
-     * Type of finding (e.g., observation, recommendation).
-     */
-    type: 'observation' | 'recommendation' | 'potential_violation';
-
-    /**
-     * AI's confidence score or relevance score for this finding.
-     */
-    aiScore?: number | null;
-
-    /**
-     * Reference to specific regulatory requirement, if applicable.
-     */
-    regulatoryReference?: string | null;
-
-    /**
-     * List of IDs of entities (transactions, cards, etc.) related to this finding.
+     * IDs of entities related to this finding (e.g., transaction IDs).
      */
     relatedEntities?: Array<string> | null;
+
+    severity?: 'Low' | 'Medium' | 'High' | 'Critical';
+
+    type?: 'finding' | 'observation' | 'recommendation';
   }
 
   /**
-   * The date range covered by the audit.
+   * The period covered by this audit report.
    */
   export interface PeriodCovered {
-    /**
-     * End date of the audit period.
-     */
-    endDate: string;
+    endDate?: string;
 
-    /**
-     * Start date of the audit period.
-     */
-    startDate: string;
+    startDate?: string;
   }
 }
 
@@ -151,27 +125,27 @@ export interface AuditRequestParams {
   /**
    * The scope of the audit (e.g., all transactions, specific accounts).
    */
-  auditScope: 'all_transactions' | 'corporate_cards' | 'global_payments' | 'specific_accounts';
+  auditScope: 'all_transactions' | 'specific_accounts' | 'specific_cards' | 'all_users';
 
   /**
-   * The end date for the audit period (inclusive).
+   * End date for the audit period (inclusive).
    */
   endDate: string;
 
   /**
-   * List of regulatory frameworks or internal policies to audit against.
+   * List of regulatory frameworks against which to audit.
    */
-  regulatoryFrameworks: Array<'AML' | 'PCI-DSS' | 'GDPR' | 'CCPA' | 'SOX' | 'internal_policy'>;
+  regulatoryFrameworks: Array<'AML' | 'KYC' | 'PCI-DSS' | 'GDPR' | 'CCPA' | 'SOX' | 'OFAC'>;
 
   /**
-   * The start date for the audit period (inclusive).
+   * Start date for the audit period (inclusive).
    */
   startDate: string;
 
   /**
-   * Optional: List of specific account IDs to include in the audit.
+   * Optional: Any additional context or specific areas of concern for the AI.
    */
-  specificAccounts?: Array<string> | null;
+  additionalContext?: string | null;
 }
 
 export declare namespace Audits {

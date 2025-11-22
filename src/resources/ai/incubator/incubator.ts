@@ -33,27 +33,32 @@ export class Incubator extends APIResource {
 }
 
 export interface IncubatorListPitchesResponse {
+  /**
+   * The maximum number of items returned in the current page.
+   */
+  limit: number;
+
+  /**
+   * The number of items skipped before the current page.
+   */
+  offset: number;
+
+  /**
+   * The total number of items available across all pages.
+   */
+  total: number;
+
   data?: Array<PitchAPI.QuantumWeaverState>;
 
   /**
-   * The maximum number of items returned per page.
+   * The offset for the next page of results, if available. Null if no more pages.
    */
-  limit?: number;
-
-  /**
-   * The starting index of the list for pagination.
-   */
-  offset?: number;
-
-  /**
-   * The total number of available items.
-   */
-  total?: number;
+  nextOffset?: number | null;
 }
 
 export interface IncubatorListPitchesParams {
   /**
-   * Maximum number of items to return in the response.
+   * Maximum number of items to return in a single page.
    */
   limit?: number;
 

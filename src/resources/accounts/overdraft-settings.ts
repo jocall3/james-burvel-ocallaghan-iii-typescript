@@ -45,61 +45,61 @@ export class OverdraftSettings extends APIResource {
 
 export interface OverdraftSettings {
   /**
-   * The ID of the account these settings apply to.
+   * The account ID these overdraft settings apply to.
    */
   accountId: string;
 
   /**
-   * Whether overdraft protection is currently enabled for this account.
+   * If true, overdraft protection is enabled.
    */
   enabled: boolean;
 
   /**
-   * User's preference for how overdrafts should be handled (e.g., always pay,
-   * decline if over limit).
+   * User's preference for how overdraft fees are handled or if transactions should
+   * be declined.
    */
   feePreference: 'always_pay' | 'decline_if_over_limit' | 'ask_me_first';
 
   /**
-   * The ID of the savings account linked for overdraft protection, if applicable.
+   * The ID of the linked savings account, if `linkToSavings` is true.
    */
   linkedSavingsAccountId?: string | null;
 
   /**
-   * If true, attempts to draw funds from a linked savings account before incurring
-   * fees.
+   * If true, attempts to draw funds from a linked savings account.
    */
-  linkToSavings?: boolean;
+  linkToSavings?: boolean | null;
 
   /**
-   * The maximum amount the account can be overdrawn if protection is active.
+   * The maximum amount that can be covered by overdraft protection.
    */
   protectionLimit?: number | null;
 }
 
 export interface OverdraftSettingUpdateSettingsParams {
   /**
-   * Whether overdraft protection should be enabled or disabled.
+   * Enable or disable overdraft protection.
    */
   enabled?: boolean;
 
   /**
-   * The new preference for how overdrafts should be handled.
+   * New preference for how overdraft fees are handled.
    */
   feePreference?: 'always_pay' | 'decline_if_over_limit' | 'ask_me_first';
 
   /**
-   * The new savings account to link, or null to unlink.
+   * New ID of the linked savings account, if `linkToSavings` is true. Set to null to
+   * unlink.
    */
   linkedSavingsAccountId?: string | null;
 
   /**
-   * Whether to enable or disable linking to a savings account.
+   * Enable or disable linking to a savings account for overdraft coverage.
    */
-  linkToSavings?: boolean;
+  linkToSavings?: boolean | null;
 
   /**
-   * The new maximum overdraft amount. Set to null to remove.
+   * New maximum amount for overdraft protection. Set to null to remove limit.
    */
   protectionLimit?: number | null;
 }

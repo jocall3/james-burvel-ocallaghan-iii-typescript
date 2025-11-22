@@ -6,6 +6,7 @@ export {
   type RecurringTransaction,
   type RecurringListResponse,
   type RecurringCreateParams,
+  type RecurringListParams,
 } from './recurring';
 export {
   Transactions,

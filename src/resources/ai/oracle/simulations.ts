@@ -16,7 +16,7 @@ export class Simulations extends APIResource {
    * ```ts
    * const simulation =
    *   await client.ai.oracle.simulations.retrieve(
-   *     'simulationId',
+   *     'sim_oracle-growth-2024-xyz',
    *   );
    * ```
    */
@@ -46,7 +46,9 @@ export class Simulations extends APIResource {
    *
    * @example
    * ```ts
-   * await client.ai.oracle.simulations.delete('simulationId');
+   * await client.ai.oracle.simulations.delete(
+   *   'sim_oracle-growth-2024-xyz',
+   * );
    * ```
    */
   delete(simulationID: string, options?: RequestOptions): APIPromise<void> {
@@ -62,28 +64,33 @@ export type SimulationRetrieveResponse =
   | SimulateAPI.AdvancedSimulationResponse;
 
 export interface SimulationListResponse {
+  /**
+   * The maximum number of items returned in the current page.
+   */
+  limit: number;
+
+  /**
+   * The number of items skipped before the current page.
+   */
+  offset: number;
+
+  /**
+   * The total number of items available across all pages.
+   */
+  total: number;
+
   data?: Array<SimulationListResponse.Data>;
 
   /**
-   * The maximum number of items returned per page.
+   * The offset for the next page of results, if available. Null if no more pages.
    */
-  limit?: number;
-
-  /**
-   * The starting index of the list for pagination.
-   */
-  offset?: number;
-
-  /**
-   * The total number of available items.
-   */
-  total?: number;
+  nextOffset?: number | null;
 }
 
 export namespace SimulationListResponse {
   export interface Data {
     /**
-     * Timestamp when the simulation was requested.
+     * Timestamp when the simulation was initiated.
      */
     creationDate: string;
 
@@ -100,7 +107,7 @@ export namespace SimulationListResponse {
     /**
      * Current status of the simulation.
      */
-    status: 'queued' | 'processing' | 'completed' | 'failed';
+    status: 'processing' | 'completed' | 'failed';
 
     /**
      * A brief summary of what the simulation evaluated.
@@ -108,7 +115,7 @@ export namespace SimulationListResponse {
     summary: string;
 
     /**
-     * A short, descriptive title for the simulation.
+     * A user-friendly title for the simulation.
      */
     title: string;
   }
@@ -116,7 +123,7 @@ export namespace SimulationListResponse {
 
 export interface SimulationListParams {
   /**
-   * Maximum number of items to return in the response.
+   * Maximum number of items to return in a single page.
    */
   limit?: number;
 

@@ -13,7 +13,7 @@ describe('resource portfolios', () => {
       currency: 'USD',
       initialInvestment: 10000,
       name: 'My First Growth Portfolio',
-      riskTolerance: 'medium',
+      riskTolerance: 'conservative',
       type: 'diversified',
     });
     const rawResponse = await responsePromise.asResponse();
@@ -31,7 +31,7 @@ describe('resource portfolios', () => {
       currency: 'USD',
       initialInvestment: 10000,
       name: 'My First Growth Portfolio',
-      riskTolerance: 'medium',
+      riskTolerance: 'conservative',
       type: 'diversified',
       aiAutoAllocate: true,
       linkedAccountId: 'acc_chase_checking_4567',
@@ -75,9 +75,17 @@ describe('resource portfolios', () => {
   });
 
   // Prism tests are disabled
+  test.skip('list: request options and params are passed correctly', async () => {
+    // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
+    await expect(
+      client.investments.portfolios.list({ limit: 1, offset: 0 }, { path: '/_stainless_unknown_path' }),
+    ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);
+  });
+
+  // Prism tests are disabled
   test.skip('rebalance: only required params', async () => {
     const responsePromise = client.investments.portfolios.rebalance('portfolio_equity_growth', {
-      targetRiskTolerance: 'medium',
+      targetRiskTolerance: 'conservative',
     });
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -91,7 +99,7 @@ describe('resource portfolios', () => {
   // Prism tests are disabled
   test.skip('rebalance: required and optional params', async () => {
     const response = await client.investments.portfolios.rebalance('portfolio_equity_growth', {
-      targetRiskTolerance: 'medium',
+      targetRiskTolerance: 'conservative',
       confirmationRequired: true,
       dryRun: true,
     });

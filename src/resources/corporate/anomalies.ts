@@ -57,44 +57,38 @@ export interface FinancialAnomaly {
   id: string;
 
   /**
-   * AI's confidence (0-1) in its detection of this anomaly.
+   * AI's confidence in its detection of the anomaly (0-1).
    */
   aiConfidenceScore: number;
 
   /**
-   * A brief description of the anomaly.
+   * A brief summary of the anomaly.
    */
   description: string;
 
   /**
-   * The ID of the primary entity related to the anomaly.
+   * The ID of the specific entity (e.g., transaction, user, card) the anomaly is
+   * linked to.
    */
   entityId: string;
 
   /**
-   * The type of entity the anomaly is related to.
+   * The type of financial entity related to the anomaly.
    */
-  entityType:
-    | 'PaymentOrder'
-    | 'Transaction'
-    | 'Counterparty'
-    | 'CorporateCard'
-    | 'Invoice'
-    | 'User'
-    | 'System';
+  entityType: 'PaymentOrder' | 'Transaction' | 'Counterparty' | 'CorporateCard' | 'User' | 'Invoice';
 
   /**
-   * AI-recommended immediate action.
+   * AI-recommended immediate action to address the anomaly.
    */
   recommendedAction: string | null;
 
   /**
-   * AI-assigned risk score (0-100), higher indicates higher risk.
+   * AI-assigned risk score (0-100), higher is more risky.
    */
   riskScore: number;
 
   /**
-   * AI-assessed severity level of the anomaly.
+   * AI-assessed severity of the anomaly.
    */
   severity: 'Low' | 'Medium' | 'High' | 'Critical';
 
@@ -109,43 +103,48 @@ export interface FinancialAnomaly {
   timestamp: string;
 
   /**
-   * Detailed explanation of why this was flagged as an anomaly.
+   * Detailed context and reasoning behind the anomaly detection.
    */
   details?: string | null;
 
   /**
-   * List of IDs of other transactions related to this anomaly.
+   * List of IDs of other transactions or entities related to this anomaly.
    */
   relatedTransactions?: Array<string> | null;
 
   /**
-   * Notes added by a human reviewer upon resolving or dismissing the anomaly.
+   * Notes recorded during the resolution or dismissal of the anomaly.
    */
   resolutionNotes?: string | null;
 }
 
 export interface AnomalyListResponse {
+  /**
+   * The maximum number of items returned in the current page.
+   */
+  limit: number;
+
+  /**
+   * The number of items skipped before the current page.
+   */
+  offset: number;
+
+  /**
+   * The total number of items available across all pages.
+   */
+  total: number;
+
   data?: Array<FinancialAnomaly>;
 
   /**
-   * The maximum number of items returned per page.
+   * The offset for the next page of results, if available. Null if no more pages.
    */
-  limit?: number;
-
-  /**
-   * The starting index of the list for pagination.
-   */
-  offset?: number;
-
-  /**
-   * The total number of available items.
-   */
-  total?: number;
+  nextOffset?: number | null;
 }
 
 export interface AnomalyListParams {
   /**
-   * End date for filtering results (inclusive). Format: YYYY-MM-DD.
+   * End date for filtering results (inclusive, YYYY-MM-DD).
    */
   endDate?: string;
 
@@ -155,7 +154,7 @@ export interface AnomalyListParams {
   entityType?: 'PaymentOrder' | 'Transaction' | 'Counterparty' | 'CorporateCard' | 'Invoice';
 
   /**
-   * Maximum number of items to return in the response.
+   * Maximum number of items to return in a single page.
    */
   limit?: number;
 
@@ -170,7 +169,7 @@ export interface AnomalyListParams {
   severity?: 'Low' | 'Medium' | 'High' | 'Critical';
 
   /**
-   * Start date for filtering results (inclusive). Format: YYYY-MM-DD.
+   * Start date for filtering results (inclusive, YYYY-MM-DD).
    */
   startDate?: string;
 

@@ -6,8 +6,14 @@ export {
   type AccountLinkNewInstitutionResponse,
   type AccountListLinkedAccountsResponse,
   type AccountRetrieveAccountDetailsResponse,
+  type AccountRetrieveAccountStatementsResponse,
   type AccountLinkNewInstitutionParams,
+  type AccountListLinkedAccountsParams,
   type AccountRetrieveAccountStatementsParams,
 } from './accounts';
 export { OverdraftSettings, type OverdraftSettingUpdateSettingsParams } from './overdraft-settings';
-export { Transactions, type TransactionListPendingTransactionsResponse } from './transactions';
+export {
+  Transactions,
+  type TransactionListPendingTransactionsResponse,
+  type TransactionListPendingTransactionsParams,
+} from './transactions';

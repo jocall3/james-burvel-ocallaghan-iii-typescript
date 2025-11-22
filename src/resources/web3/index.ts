@@ -10,6 +10,8 @@ export {
   type CryptoWalletConnection,
   type WalletListResponse,
   type WalletRetrieveBalancesResponse,
+  type WalletListParams,
   type WalletConnectParams,
+  type WalletRetrieveBalancesParams,
 } from './wallets';
-export { Web3, type Web3RetrieveNFTsResponse } from './web3';
+export { Web3, type Web3RetrieveNFTsResponse, type Web3RetrieveNFTsParams } from './web3';

@@ -13,6 +13,7 @@ import * as CardsAPI from './cards';
 import {
   CardCreateVirtualParams,
   CardFreezeParams,
+  CardListParams,
   CardListResponse,
   CardListTransactionsParams,
   CardUpdateControlsParams,
@@ -62,12 +63,17 @@ export class Corporate extends APIResource {
 
 export interface CorporatePerformSanctionScreeningResponse {
   /**
+   * Details of any potential or exact matches found.
+   */
+  matchDetails: Array<CorporatePerformSanctionScreeningResponse.MatchDetail>;
+
+  /**
    * True if any potential matches were found on sanction lists.
    */
   matchFound: boolean;
 
   /**
-   * Unique identifier for this screening request.
+   * Unique identifier for this screening operation.
    */
   screeningId: string;
 
@@ -82,43 +88,44 @@ export interface CorporatePerformSanctionScreeningResponse {
   status: 'clear' | 'potential_match' | 'confirmed_match' | 'error';
 
   /**
-   * AI's confidence (0-1) in the accuracy of the screening result.
+   * An optional message providing more context on the status.
    */
-  aiConfidenceScore?: number | null;
-
-  /**
-   * Details of any potential matches found.
-   */
-  matchDetails?: Array<CorporatePerformSanctionScreeningResponse.MatchDetail> | null;
+  message?: string | null;
 }
 
 export namespace CorporatePerformSanctionScreeningResponse {
   export interface MatchDetail {
     /**
-     * The name of the sanction list where a match was found.
+     * Name of the sanction list where a match was found.
      */
-    listName: string;
+    listName?: string;
 
     /**
-     * The name of the entry on the sanction list that matched.
+     * The name on the sanction list that matched.
      */
-    matchedName: string;
+    matchedName?: string;
 
     /**
-     * Reason for the potential match.
+     * Optional: URL to public record of the sanction list entry.
      */
-    reason: string;
+    publicUrl?: string | null;
 
     /**
-     * Match score (0-1), indicating confidence of the match.
+     * Reason for the match (e.g., exact name, alias, partial match).
      */
-    score: number;
+    reason?: string;
+
+    /**
+     * Match confidence score (0-1).
+     */
+    score?: number;
   }
 }
 
 export interface CorporatePerformSanctionScreeningParams {
   /**
-   * The primary country of residence or operation (ISO 3166-1 alpha-2).
+   * Two-letter ISO country code related to the entity (e.g., country of residence,
+   * registration).
    */
   country: string;
 
@@ -128,24 +135,25 @@ export interface CorporatePerformSanctionScreeningParams {
   entityType: 'individual' | 'organization';
 
   /**
-   * The full name of the individual or organization to screen.
+   * Full name of the individual or organization to screen.
    */
   name: string;
 
   /**
-   * Optional: Address details for improved screening.
+   * Optional: Address details for enhanced screening.
    */
   address?: UsersAPI.Address | null;
 
   /**
-   * Optional: Date of birth for individuals, for better match accuracy.
+   * Date of birth for individuals (YYYY-MM-DD).
    */
   dateOfBirth?: string | null;
 
   /**
-   * Optional: Government-issued ID number for individuals.
+   * Optional: Any government-issued identification number (e.g., passport, national
+   * ID).
    */
-  idNumber?: string | null;
+  identificationNumber?: string | null;
 }
 
 Corporate.Cards = Cards;
@@ -165,6 +173,7 @@ export declare namespace Corporate {
     type CorporateCard as CorporateCard,
     type CorporateCardControls as CorporateCardControls,
     type CardListResponse as CardListResponse,
+    type CardListParams as CardListParams,
     type CardCreateVirtualParams as CardCreateVirtualParams,
     type CardFreezeParams as CardFreezeParams,
     type CardListTransactionsParams as CardListTransactionsParams,

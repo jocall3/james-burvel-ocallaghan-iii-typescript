@@ -57,55 +57,56 @@ export interface LoanApplicationStatus {
   applicationId: string;
 
   /**
-   * The original requested loan amount.
+   * The amount originally requested in the application.
    */
   loanAmountRequested: number;
 
   /**
-   * The stated purpose of the loan.
+   * The purpose of the loan.
    */
   loanPurpose:
     | 'home_improvement'
     | 'debt_consolidation'
-    | 'medical_expenses'
+    | 'medical_expense'
     | 'education'
-    | 'business'
-    | 'vehicle'
+    | 'auto_purchase'
     | 'other';
+
+  /**
+   * Guidance on the next actions for the user.
+   */
+  nextSteps: string;
 
   /**
    * Current status of the loan application.
    */
-  status: 'underwriting' | 'approved' | 'declined' | 'pending_documents' | 'funded';
+  status:
+    | 'submitted'
+    | 'underwriting'
+    | 'approved'
+    | 'declined'
+    | 'pending_acceptance'
+    | 'funded'
+    | 'cancelled';
 
   /**
-   * Results of the AI-powered underwriting, available upon decision.
+   * The outcome of the AI underwriting process.
    */
   aiUnderwritingResult?: LoanApplicationStatus.AIUnderwritingResult | null;
 
   /**
-   * Actionable next steps for the user.
-   */
-  nextSteps?: string | null;
-
-  /**
-   * Details of the approved loan offer, if applicable.
+   * Details of the loan offer, if approved.
    */
   offerDetails?: OffersAPI.LoanOffer | null;
-
-  /**
-   * If declined, the reason for the rejection.
-   */
-  rejectionReason?: string | null;
 }
 
 export namespace LoanApplicationStatus {
   /**
-   * Results of the AI-powered underwriting, available upon decision.
+   * The outcome of the AI underwriting process.
    */
   export interface AIUnderwritingResult {
     /**
-     * AI's confidence score (0-1) in its underwriting decision.
+     * AI's confidence in its underwriting decision (0-1).
      */
     aiConfidence: number;
 
@@ -115,17 +116,17 @@ export namespace LoanApplicationStatus {
     decision: 'approved' | 'declined' | 'referred_to_human';
 
     /**
-     * The AI's reasoning for the decision.
+     * Reasoning for the AI's decision.
      */
     reason: string;
 
     /**
-     * The maximum loan amount the AI would approve.
+     * The maximum amount the AI is willing to approve.
      */
     maxApprovedAmount?: number | null;
 
     /**
-     * AI-recommended interest rate.
+     * The interest rate recommended by the AI.
      */
     recommendedInterestRate?: number | null;
   }
@@ -143,52 +144,37 @@ export interface ApplicationSubmitParams {
   loanPurpose:
     | 'home_improvement'
     | 'debt_consolidation'
-    | 'medical_expenses'
+    | 'medical_expense'
     | 'education'
-    | 'business'
-    | 'vehicle'
+    | 'auto_purchase'
     | 'other';
 
   /**
-   * Desired repayment term in months.
+   * The desired repayment term in months.
    */
   repaymentTermMonths: number;
 
   /**
-   * Any additional information for the loan application.
+   * Optional notes or details for the application.
    */
   additionalNotes?: string | null;
 
   /**
-   * Optional details if there is a co-applicant.
+   * Optional: Details of a co-applicant for the loan.
    */
   coApplicant?: ApplicationSubmitParams.CoApplicant | null;
 }
 
 export namespace ApplicationSubmitParams {
   /**
-   * Optional details if there is a co-applicant.
+   * Optional: Details of a co-applicant for the loan.
    */
   export interface CoApplicant {
-    /**
-     * Email of the co-applicant.
-     */
-    email: string;
+    email?: string;
 
-    /**
-     * Annual income of the co-applicant.
-     */
-    income: number;
+    income?: number;
 
-    /**
-     * Full name of the co-applicant.
-     */
-    name: string;
-
-    /**
-     * Optional: Credit score of the co-applicant.
-     */
-    creditScore?: number | null;
+    name?: string;
   }
 }
 

@@ -36,20 +36,18 @@ describe('resource rules', () => {
       action: {
         details: 'Hold payment, notify sender for additional verification, and escalate to compliance.',
         type: 'auto_review',
-        targetChannels: ['email', 'dashboard'],
+        targetTeam: 'Fraud Prevention Team',
       },
       criteria: {
         accountInactivityDays: 90,
         countryOfOrigin: ['US', 'CA'],
         geographicDistanceKm: 5000,
-        keywordsInDescription: ['string'],
         lastLoginDays: 7,
         noTravelNotification: true,
         paymentCountMin: 3,
         recipientCountryRiskLevel: ['High', 'Very High'],
         recipientNew: true,
         timeframeHours: 24,
-        transactionAmountMax: 100000,
         transactionAmountMin: 5000,
         transactionType: 'debit',
       },
@@ -58,8 +56,6 @@ describe('resource rules', () => {
       name: 'Suspicious International Payment Pattern',
       severity: 'Critical',
       status: 'active',
-      aiLearningEnabled: true,
-      priority: 75,
     });
   });
 
@@ -85,6 +81,14 @@ describe('resource rules', () => {
     const dataAndResponse = await responsePromise.withResponse();
     expect(dataAndResponse.data).toBe(response);
     expect(dataAndResponse.response).toBe(rawResponse);
+  });
+
+  // Prism tests are disabled
+  test.skip('list: request options and params are passed correctly', async () => {
+    // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
+    await expect(
+      client.corporate.risk.fraud.rules.list({ limit: 1, offset: 0 }, { path: '/_stainless_unknown_path' }),
+    ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);
   });
 
   // Prism tests are disabled

@@ -35,27 +35,22 @@ export class Transactions extends APIResource {
 
 export interface TransactionInitiateTransferResponse {
   /**
-   * Current status of the cryptocurrency transfer.
+   * Current status of the transfer.
    */
-  status: 'pending_signature' | 'broadcasting' | 'pending_confirmation' | 'completed' | 'failed';
+  status: 'pending_signature' | 'pending_blockchain_confirmation' | 'completed' | 'failed' | 'cancelled';
 
   /**
-   * Unique identifier for the initiated crypto transfer.
+   * Unique identifier for this cryptocurrency transfer operation.
    */
   transferId: string;
 
   /**
-   * The transaction hash on the blockchain, once broadcasted.
+   * The blockchain transaction hash, if available and confirmed.
    */
   blockchainTxnHash?: string | null;
 
   /**
-   * If failed, the reason for the failure.
-   */
-  failedReason?: string | null;
-
-  /**
-   * A descriptive message regarding the current status or next steps.
+   * A descriptive message about the transfer status.
    */
   message?: string | null;
 }
@@ -67,21 +62,14 @@ export interface TransactionInitiateTransferParams {
   amount: number;
 
   /**
-   * The symbol of the cryptocurrency to transfer (e.g., ETH, USDC).
+   * Symbol of the crypto asset to transfer (e.g., ETH, USDC).
    */
   assetSymbol: string;
 
   /**
-   * The blockchain network on which the transfer will occur.
+   * The blockchain network for the transfer.
    */
-  blockchainNetwork:
-    | 'Ethereum'
-    | 'Solana'
-    | 'Polygon'
-    | 'Binance Smart Chain'
-    | 'Avalanche'
-    | 'Arbitrum'
-    | 'Optimism';
+  blockchainNetwork: string;
 
   /**
    * The recipient's blockchain address.
@@ -89,22 +77,17 @@ export interface TransactionInitiateTransferParams {
   recipientAddress: string;
 
   /**
-   * The ID of the connected wallet from which to transfer.
+   * ID of the connected wallet from which to send funds.
    */
   sourceWalletId: string;
 
   /**
-   * Optional: Maximum gas units to consume for the transaction.
-   */
-  gasLimit?: number | null;
-
-  /**
-   * Optional: Desired gas price in Gwei for Ethereum-based transactions.
+   * Optional: Gas price in Gwei for Ethereum-based transactions.
    */
   gasPriceGwei?: number | null;
 
   /**
-   * Optional: A short memo or note for the transaction (supported by some chains).
+   * Optional: A short memo or note for the transaction.
    */
   memo?: string | null;
 }

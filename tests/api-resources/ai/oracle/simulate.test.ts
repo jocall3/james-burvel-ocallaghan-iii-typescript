@@ -12,7 +12,7 @@ describe('resource simulate', () => {
     const responsePromise = client.ai.oracle.simulate.runAdvanced({
       prompt:
         'Evaluate the long-term impact of a sudden job loss combined with a variable market downturn, analyzing worst-case and best-case recovery scenarios over a decade.',
-      scenarios: [{ durationYears: 10, name: 'Job Loss & Mild Market Recovery' }],
+      scenarios: [{ durationYears: 10, events: [{}, {}], name: 'Job Loss & Mild Market Recovery' }],
     });
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -31,31 +31,19 @@ describe('resource simulate', () => {
       scenarios: [
         {
           durationYears: 10,
-          name: 'Job Loss & Mild Market Recovery',
-          description:
-            'Simulates a job loss event for 6 months, followed by a mild market recovery over 3 years.',
           events: [
             {
+              details: { durationMonths: 6, severanceAmount: 10000, unemploymentBenefits: 2000 },
               type: 'job_loss',
-              details: {
-                durationMonths: 6,
-                severanceAmount: 10000,
-                newJobSalaryMultiplier: 0.9,
-                unemploymentBenefits: 2000,
-              },
-              yearInSimulation: 1,
             },
-            {
-              type: 'market_downturn',
-              details: { impactPercentage: 0.15, recoveryYears: 3 },
-              yearInSimulation: 1,
-            },
+            { details: { impactPercentage: 0.15, recoveryYears: 3 }, type: 'market_downturn' },
           ],
-          marketConditions: { averageAnnualReturn: 0.07, volatility: 0.15 },
+          name: 'Job Loss & Mild Market Recovery',
           sensitivityAnalysisParams: [{ max: 0.07, min: 0.03, paramName: 'marketRecoveryRate', step: 0.01 }],
         },
       ],
-      globalParameters: {},
+      globalEconomicFactors: { inflationRate: 0.03, interestRateBaseline: 0.05 },
+      personalAssumptions: { annualSavingsRate: 0.15, riskTolerance: 'aggressive' },
     });
   });
 

@@ -73,8 +73,11 @@ export class Budgets extends APIResource {
    * const budgets = await client.budgets.list();
    * ```
    */
-  list(options?: RequestOptions): APIPromise<BudgetListResponse> {
-    return this._client.get('/budgets', options);
+  list(
+    query: BudgetListParams | null | undefined = {},
+    options?: RequestOptions,
+  ): APIPromise<BudgetListResponse> {
+    return this._client.get('/budgets', { query, ...options });
   }
 
   /**
@@ -100,12 +103,17 @@ export interface Budget {
   id: string;
 
   /**
-   * Breakdown of the budget by category.
+   * Percentage threshold at which an alert is triggered (e.g., 80% spent).
+   */
+  alertThreshold: number;
+
+  /**
+   * Breakdown of the budget by categories.
    */
   categories: Array<Budget.Category>;
 
   /**
-   * The end date of the current budget period.
+   * End date of the budget period.
    */
   endDate: string;
 
@@ -115,45 +123,39 @@ export interface Budget {
   name: string;
 
   /**
-   * The recurrence period of the budget.
+   * The frequency or period of the budget.
    */
-  period: 'weekly' | 'monthly' | 'quarterly' | 'annually' | 'custom';
+  period: 'weekly' | 'bi_weekly' | 'monthly' | 'quarterly' | 'annually' | 'custom';
 
   /**
-   * The remaining amount in this budget period.
+   * Remaining amount in the budget.
    */
   remainingAmount: number;
 
   /**
-   * The amount spent so far in this budget period.
+   * Total amount spent against this budget so far.
    */
   spentAmount: number;
 
   /**
-   * The start date of the current budget period.
+   * Start date of the budget period.
    */
   startDate: string;
 
   /**
    * Current status of the budget.
    */
-  status: 'active' | 'completed' | 'archived' | 'overspent';
+  status: 'active' | 'archived' | 'ended';
 
   /**
-   * The total allocated budget amount.
+   * Total amount allocated for the entire budget.
    */
   totalAmount: number;
 
   /**
-   * AI-generated recommendations related to budget performance.
+   * AI-driven recommendations related to this budget.
    */
   aiRecommendations?: Array<InsightsAPI.AIInsight> | null;
-
-  /**
-   * Percentage of budget spent at which an alert should be triggered (e.g., 80 for
-   * 80% spent).
-   */
-  alertThreshold?: number | null;
 }
 
 export namespace Budget {
@@ -174,17 +176,39 @@ export namespace Budget {
     remaining: number;
 
     /**
-     * Amount spent in this category.
+     * Amount spent in this category so far.
      */
     spent: number;
   }
 }
 
-export type BudgetListResponse = Array<Budget>;
+export interface BudgetListResponse {
+  /**
+   * The maximum number of items returned in the current page.
+   */
+  limit: number;
+
+  /**
+   * The number of items skipped before the current page.
+   */
+  offset: number;
+
+  /**
+   * The total number of items available across all pages.
+   */
+  total: number;
+
+  data?: Array<Budget>;
+
+  /**
+   * The offset for the next page of results, if available. Null if no more pages.
+   */
+  nextOffset?: number | null;
+}
 
 export interface BudgetCreateParams {
   /**
-   * The end date of the budget period.
+   * End date of the budget period.
    */
   endDate: string;
 
@@ -194,57 +218,50 @@ export interface BudgetCreateParams {
   name: string;
 
   /**
-   * The recurrence period of the budget.
+   * The frequency or period of the budget.
    */
-  period: 'weekly' | 'monthly' | 'quarterly' | 'annually' | 'custom';
+  period: 'weekly' | 'bi_weekly' | 'monthly' | 'quarterly' | 'annually' | 'custom';
 
   /**
-   * The start date of the budget period.
+   * Start date of the budget period.
    */
   startDate: string;
 
   /**
-   * The total amount allocated for the budget.
+   * Total amount allocated for the entire budget.
    */
   totalAmount: number;
 
   /**
-   * If true, AI will automatically suggest and populate budget categories and
-   * amounts based on historical spending.
+   * If true, AI will automatically populate categories and amounts based on
+   * historical spending.
    */
   aiAutoPopulate?: boolean;
 
   /**
-   * Percentage of budget spent at which an alert should be triggered.
+   * Percentage threshold at which an alert is triggered.
    */
-  alertThreshold?: number | null;
+  alertThreshold?: number;
 
   /**
-   * Optional: Initial breakdown of the budget by categories. If omitted and
-   * `aiAutoPopulate` is true, AI will generate.
+   * Initial breakdown of the budget by categories.
    */
-  categories?: Array<BudgetCreateParams.Category> | null;
+  categories?: Array<BudgetCreateParams.Category>;
 }
 
 export namespace BudgetCreateParams {
   export interface Category {
-    /**
-     * Amount allocated to this category.
-     */
-    allocated: number;
+    allocated?: number;
 
-    /**
-     * Category name.
-     */
-    name: string;
+    name?: string;
   }
 }
 
 export interface BudgetUpdateParams {
   /**
-   * Updated percentage for budget alert threshold.
+   * Updated percentage threshold for alerts.
    */
-  alertThreshold?: number | null;
+  alertThreshold?: number;
 
   /**
    * Updated breakdown of the budget by categories. Existing categories will be
@@ -263,17 +280,6 @@ export interface BudgetUpdateParams {
   name?: string;
 
   /**
-   * Updated recurrence period of the budget.
-   */
-  period?: 'weekly' | 'monthly' | 'quarterly' | 'annually' | 'custom';
-
-  /**
-   * If true, resets `spentAmount` for all categories and total to 0. Useful for
-   * starting a new cycle of a recurring budget.
-   */
-  resetSpentAmounts?: boolean;
-
-  /**
    * Updated start date of the budget period.
    */
   startDate?: string;
@@ -281,26 +287,32 @@ export interface BudgetUpdateParams {
   /**
    * Updated status of the budget.
    */
-  status?: 'active' | 'completed' | 'archived' | 'overspent';
+  status?: 'active' | 'archived' | 'ended';
 
   /**
-   * Updated total allocated budget amount.
+   * Updated total amount for the entire budget.
    */
   totalAmount?: number;
 }
 
 export namespace BudgetUpdateParams {
   export interface Category {
-    /**
-     * Amount allocated to this category.
-     */
-    allocated: number;
+    allocated?: number;
 
-    /**
-     * Category name.
-     */
-    name: string;
+    name?: string;
   }
+}
+
+export interface BudgetListParams {
+  /**
+   * Maximum number of items to return in a single page.
+   */
+  limit?: number;
+
+  /**
+   * Number of items to skip before starting to collect the result set.
+   */
+  offset?: number;
 }
 
 export declare namespace Budgets {
@@ -309,5 +321,6 @@ export declare namespace Budgets {
     type BudgetListResponse as BudgetListResponse,
     type BudgetCreateParams as BudgetCreateParams,
     type BudgetUpdateParams as BudgetUpdateParams,
+    type BudgetListParams as BudgetListParams,
   };
 }

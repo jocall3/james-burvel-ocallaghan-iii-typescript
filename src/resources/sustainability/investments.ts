@@ -24,100 +24,66 @@ export class Investments extends APIResource {
 
 export interface InvestmentAnalyzeImpactResponse {
   /**
-   * Average ESG score of a relevant benchmark (e.g., S&P 500).
+   * AI-driven recommendations to improve the portfolio's ESG impact.
    */
-  benchmarkESGScore: number | null;
+  aiRecommendations: Array<InsightsAPI.AIInsight>;
 
   /**
-   * Breakdown of the ESG score into Environmental, Social, and Governance
-   * components.
+   * Average ESG score of a relevant market benchmark for comparison.
+   */
+  benchmarkESGScore: number;
+
+  /**
+   * Breakdown of the portfolio's ESG score by individual factors.
    */
   breakdownByESGFactors: InvestmentAnalyzeImpactResponse.BreakdownByEsgFactors;
 
   /**
-   * Overall ESG score of the portfolio (0-10).
+   * Lowest holdings in the portfolio by ESG score.
+   */
+  lowestESGHoldings: Array<InvestmentAnalyzeImpactResponse.LowestEsgHolding>;
+
+  /**
+   * Overall ESG score of the entire portfolio (0-10).
    */
   overallESGScore: number;
 
   /**
-   * The ID of the investment portfolio analyzed.
+   * ID of the investment portfolio analyzed.
    */
   portfolioId: string;
 
   /**
-   * AI-generated recommendations to improve the portfolio's ESG impact.
+   * Top holdings in the portfolio by ESG score.
    */
-  aiRecommendations?: Array<InsightsAPI.AIInsight>;
-
-  /**
-   * AI-generated summary of the ESG analysis.
-   */
-  aiSummary?: string | null;
-
-  /**
-   * List of lowest performing holdings in terms of ESG score.
-   */
-  lowestESGHoldings?: Array<InvestmentAnalyzeImpactResponse.LowestEsgHolding> | null;
-
-  /**
-   * List of top performing holdings in terms of ESG score.
-   */
-  topESGHoldings?: Array<InvestmentAnalyzeImpactResponse.TopEsgHolding> | null;
+  topESGHoldings: Array<InvestmentAnalyzeImpactResponse.TopEsgHolding>;
 }
 
 export namespace InvestmentAnalyzeImpactResponse {
   /**
-   * Breakdown of the ESG score into Environmental, Social, and Governance
-   * components.
+   * Breakdown of the portfolio's ESG score by individual factors.
    */
   export interface BreakdownByEsgFactors {
-    /**
-     * Environmental component score.
-     */
     environmentalScore?: number;
 
-    /**
-     * Governance component score.
-     */
     governanceScore?: number;
 
-    /**
-     * Social component score.
-     */
     socialScore?: number;
   }
 
   export interface LowestEsgHolding {
-    /**
-     * Name of the asset.
-     */
     assetName?: string;
 
-    /**
-     * Ticker symbol of the asset.
-     */
     assetSymbol?: string;
 
-    /**
-     * ESG score of the asset.
-     */
     esgScore?: number;
   }
 
   export interface TopEsgHolding {
-    /**
-     * Name of the asset.
-     */
     assetName?: string;
 
-    /**
-     * Ticker symbol of the asset.
-     */
     assetSymbol?: string;
 
-    /**
-     * ESG score of the asset.
-     */
     esgScore?: number;
   }
 }
