@@ -42,6 +42,7 @@ describe('resource international', () => {
         iban: 'DE89370400440532013000',
         name: 'Maria Schmidt',
         swiftBic: 'DEUTDEFF',
+        accountNumber: 'accountNumber',
       },
       purpose: 'Vendor payment for Q2 services.',
       sourceAccountId: 'acc_chase_checking_4567',
@@ -49,7 +50,7 @@ describe('resource international', () => {
       targetCurrency: 'EUR',
       fxRateLock: true,
       fxRateProvider: 'proprietary_ai',
-      referenceNumber: 'INV-2024-00123',
+      referenceId: 'referenceId',
     });
   });
 

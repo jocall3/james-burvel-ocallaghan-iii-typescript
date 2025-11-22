@@ -10,15 +10,12 @@ describe('resource rules', () => {
   // Prism tests are disabled
   test.skip('create: only required params', async () => {
     const responsePromise = client.corporate.risk.fraud.rules.create({
-      action: {
-        details: 'Hold payment, notify sender for additional verification, and escalate to compliance.',
-        type: 'auto_review',
-      },
+      action: {},
       criteria: {
-        paymentCountMin: 3,
-        timeframeHours: 24,
-        recipientNew: true,
-        recipientCountryRiskLevel: ['High', 'Very High'],
+        paymentCountMin: 'bar',
+        timeframeHours: 'bar',
+        recipientNew: 'bar',
+        recipientCountryRiskLevel: 'bar',
       },
       description:
         'Detects multiple international payments to new beneficiaries in high-risk countries within a short timeframe.',
@@ -43,17 +40,16 @@ describe('resource rules', () => {
         type: 'auto_review',
       },
       criteria: {
-        paymentCountMin: 3,
-        timeframeHours: 24,
-        recipientNew: true,
-        recipientCountryRiskLevel: ['High', 'Very High'],
+        paymentCountMin: 'bar',
+        timeframeHours: 'bar',
+        recipientNew: 'bar',
+        recipientCountryRiskLevel: 'bar',
       },
       description:
         'Detects multiple international payments to new beneficiaries in high-risk countries within a short timeframe.',
       name: 'Suspicious International Payment Pattern',
       severity: 'Critical',
       status: 'active',
-      priority: 60,
     });
   });
 

@@ -47,9 +47,9 @@ describe('resource kyc', () => {
       documentType: 'drivers_license',
       expirationDate: '2030-01-01',
       issueDate: '2020-01-01',
+      additionalNotes: 'additionalNotes',
       addressProofImage: 'U3RhaW5sZXNzIHJvY2tz',
       documentBackImage: 'U3RhaW5sZXNzIHJvY2tz',
-      liveSelfieImage: 'U3RhaW5sZXNzIHJvY2tz',
     });
   });
 });

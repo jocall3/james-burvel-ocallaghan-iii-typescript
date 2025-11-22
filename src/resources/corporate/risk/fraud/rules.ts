@@ -102,10 +102,13 @@ export class Rules extends APIResource {
 
 export interface FraudRule {
   /**
-   * Unique identifier for the fraud rule.
+   * Unique identifier for the fraud detection rule.
    */
   id: string;
 
+  /**
+   * The action to be taken when the rule is triggered.
+   */
   action: FraudRule.Action;
 
   /**
@@ -114,14 +117,14 @@ export interface FraudRule {
   createdAt: string;
 
   /**
-   * Identifier of the creator (user or system).
+   * Identifier of the user or system that created the rule.
    */
   createdBy: string;
 
   /**
-   * A dynamic object defining the conditions that trigger the rule.
+   * A JSON object defining the specific conditions that trigger the rule.
    */
-  criteria: unknown;
+  criteria: { [key: string]: unknown };
 
   /**
    * Detailed description of what the rule detects.
@@ -129,17 +132,17 @@ export interface FraudRule {
   description: string;
 
   /**
-   * Timestamp when the rule was last updated.
+   * Timestamp when the rule was last modified.
    */
   lastUpdated: string;
 
   /**
-   * A descriptive name for the rule.
+   * Human-readable name of the rule.
    */
   name: string;
 
   /**
-   * Severity level associated with a detected anomaly by this rule.
+   * Default severity level assigned to anomalies detected by this rule.
    */
   severity: 'Low' | 'Medium' | 'High' | 'Critical';
 
@@ -147,49 +150,44 @@ export interface FraudRule {
    * Current status of the rule.
    */
   status: 'active' | 'inactive' | 'draft';
-
-  /**
-   * Priority level for rule evaluation (lower number means higher priority).
-   */
-  priority?: number;
 }
 
 export namespace FraudRule {
+  /**
+   * The action to be taken when the rule is triggered.
+   */
   export interface Action {
-    /**
-     * Further details about the action.
-     */
-    details: string;
+    details?: string;
 
-    /**
-     * The automated action to take when the rule is triggered.
-     */
-    type: 'flag' | 'alert' | 'block' | 'auto_review' | 'mfa_challenge';
+    type?: 'flag' | 'alert' | 'block' | 'auto_review';
   }
 }
 
 export type RuleListResponse = Array<FraudRule>;
 
 export interface RuleCreateParams {
+  /**
+   * Action to take when the rule is triggered.
+   */
   action: RuleCreateParams.Action;
 
   /**
-   * The dynamic object defining the conditions that trigger the rule.
+   * JSON object defining the conditions to trigger the rule.
    */
-  criteria: unknown;
+  criteria: { [key: string]: unknown };
 
   /**
-   * Detailed description of what the rule should detect.
+   * Description of what the rule will detect.
    */
   description: string;
 
   /**
-   * A descriptive name for the new rule.
+   * Name of the new fraud detection rule.
    */
   name: string;
 
   /**
-   * Severity level for anomalies detected by this rule.
+   * Default severity for anomalies detected by this rule.
    */
   severity: 'Low' | 'Medium' | 'High' | 'Critical';
 
@@ -197,52 +195,42 @@ export interface RuleCreateParams {
    * Initial status of the rule.
    */
   status: 'active' | 'inactive' | 'draft';
-
-  /**
-   * Optional: Priority level for rule evaluation.
-   */
-  priority?: number | null;
 }
 
 export namespace RuleCreateParams {
+  /**
+   * Action to take when the rule is triggered.
+   */
   export interface Action {
-    /**
-     * Further details about the action.
-     */
-    details: string;
+    details?: string;
 
-    /**
-     * The automated action to take when the rule is triggered.
-     */
-    type: 'flag' | 'alert' | 'block' | 'auto_review' | 'mfa_challenge';
+    type?: 'flag' | 'alert' | 'block' | 'auto_review';
   }
 }
 
 export interface RuleUpdateParams {
+  /**
+   * Updated action to take when the rule is triggered.
+   */
   action?: RuleUpdateParams.Action;
 
   /**
-   * The updated dynamic object defining the conditions.
+   * Updated JSON object defining the trigger conditions.
    */
   criteria?: { [key: string]: unknown };
 
   /**
-   * Updated description of the rule.
+   * Updated description.
    */
   description?: string;
 
   /**
-   * Updated name for the fraud rule.
+   * Updated name of the rule.
    */
   name?: string;
 
   /**
-   * Updated priority level for rule evaluation.
-   */
-  priority?: number | null;
-
-  /**
-   * Updated severity level.
+   * Updated default severity level.
    */
   severity?: 'Low' | 'Medium' | 'High' | 'Critical';
 
@@ -253,12 +241,13 @@ export interface RuleUpdateParams {
 }
 
 export namespace RuleUpdateParams {
+  /**
+   * Updated action to take when the rule is triggered.
+   */
   export interface Action {
     details?: string;
 
-    type?: 'flag' | 'alert' | 'block' | 'auto_review' | 'mfa_challenge';
-
-    [k: string]: unknown;
+    type?: 'flag' | 'alert' | 'block' | 'auto_review';
   }
 }
 

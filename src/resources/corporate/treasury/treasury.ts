@@ -27,17 +27,18 @@ export class Treasury extends APIResource {
 
 export interface TreasuryGetLiquidityPositionsResponse {
   /**
-   * Breakdown of liquid assets by account type.
+   * Breakdown of liquid assets by account type (e.g., Checking, Savings, Money
+   * Market).
    */
   accountTypeBreakdown: Array<TreasuryGetLiquidityPositionsResponse.AccountTypeBreakdown>;
 
   /**
-   * AI's overall assessment of current liquidity.
+   * AI's overall assessment of the current liquidity posture.
    */
   aiLiquidityAssessment: TreasuryGetLiquidityPositionsResponse.AILiquidityAssessment;
 
   /**
-   * AI-driven recommendations for liquidity management.
+   * AI-generated actionable recommendations for liquidity management.
    */
   aiRecommendations: Array<InsightsAPI.AIInsight>;
 
@@ -52,12 +53,12 @@ export interface TreasuryGetLiquidityPositionsResponse {
   snapshotTime: string;
 
   /**
-   * Total value of all liquid assets (cash, short-term investments).
+   * Total value of all liquid assets across the organization.
    */
   totalLiquidAssets: number;
 
   /**
-   * Summary of short-term investment holdings.
+   * Overview of short-term investment holdings.
    */
   shortTermInvestments?: TreasuryGetLiquidityPositionsResponse.ShortTermInvestments | null;
 }
@@ -70,12 +71,12 @@ export namespace TreasuryGetLiquidityPositionsResponse {
   }
 
   /**
-   * AI's overall assessment of current liquidity.
+   * AI's overall assessment of the current liquidity posture.
    */
   export interface AILiquidityAssessment {
     message?: string;
 
-    status?: 'optimal' | 'sufficient' | 'tight' | 'critical';
+    status?: 'optimal' | 'sufficient' | 'constrained' | 'critical';
   }
 
   export interface CurrencyBreakdown {
@@ -87,7 +88,7 @@ export namespace TreasuryGetLiquidityPositionsResponse {
   }
 
   /**
-   * Summary of short-term investment holdings.
+   * Overview of short-term investment holdings.
    */
   export interface ShortTermInvestments {
     maturingNext30Days?: number;

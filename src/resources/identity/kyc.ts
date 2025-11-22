@@ -46,39 +46,39 @@ export class KYC extends APIResource {
 
 export interface KYCStatus {
   /**
-   * Timestamp of the last KYC document submission.
+   * The timestamp of the last KYC document submission.
    */
   lastSubmissionDate: string | null;
 
   /**
-   * Overall status of the KYC verification process.
+   * The overall status of the user's KYC verification.
    */
-  overallStatus: 'not_started' | 'in_review' | 'verified' | 'rejected' | 'requires_action';
+  overallStatus: 'not_submitted' | 'in_review' | 'verified' | 'rejected';
 
   /**
-   * Unique identifier for the user.
+   * The ID of the user whose KYC status is being retrieved.
    */
   userId: string;
 
   /**
-   * Reason for rejection if the status is 'rejected'.
+   * If status is 'rejected', provides the reason for rejection.
    */
   rejectionReason?: string | null;
 
   /**
-   * List of actions required from the user to proceed with verification.
+   * A list of actions required from the user to proceed with KYC.
    */
   requiredActions?: Array<string>;
 
   /**
-   * The tier of verification achieved, granting access to different service levels.
+   * The tier of verification achieved (e.g., for different spending limits).
    */
   verifiedTier?: 'bronze' | 'silver' | 'gold' | 'platinum' | null;
 }
 
 export interface KYCSubmitParams {
   /**
-   * The country that issued the document (ISO 3166-1 alpha-2 code).
+   * The country that issued the document (ISO 3166-1 alpha-2).
    */
   countryOfIssue: string;
 
@@ -88,7 +88,7 @@ export interface KYCSubmitParams {
   documentFrontImage: string;
 
   /**
-   * The official document number.
+   * The unique identifier number from the document.
    */
   documentNumber: string;
 
@@ -98,17 +98,22 @@ export interface KYCSubmitParams {
   documentType: 'drivers_license' | 'passport' | 'national_id' | 'utility_bill' | 'bank_statement';
 
   /**
-   * Date the document expires.
+   * The date the document expires.
    */
   expirationDate: string;
 
   /**
-   * Date the document was issued.
+   * The date the document was issued.
    */
   issueDate: string;
 
   /**
-   * Base64 encoded image of an address proof (e.g., utility bill).
+   * Any additional notes or comments for the KYC review team.
+   */
+  additionalNotes?: string | null;
+
+  /**
+   * Base64 encoded image of an address proof document (e.g., utility bill).
    */
   addressProofImage?: string | null;
 
@@ -116,11 +121,6 @@ export interface KYCSubmitParams {
    * Base64 encoded image of the back side of the document (if applicable).
    */
   documentBackImage?: string | null;
-
-  /**
-   * Base64 encoded image of a live selfie for liveness detection.
-   */
-  liveSelfieImage?: string | null;
 }
 
 export declare namespace KYC {

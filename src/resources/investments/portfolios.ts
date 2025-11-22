@@ -91,9 +91,9 @@ export class Portfolios extends APIResource {
    *   await client.investments.portfolios.rebalance(
    *     'portfolio_equity_growth',
    *     {
+   *       targetRiskTolerance: 'medium',
    *       confirmationRequired: true,
    *       dryRun: true,
-   *       targetRiskTolerance: 'medium',
    *     },
    *   );
    * ```
@@ -114,24 +114,29 @@ export interface InvestmentPortfolio {
   id: string;
 
   /**
-   * Base currency of the portfolio.
+   * Currency of the portfolio (ISO 4217 code).
    */
   currency: string;
 
   /**
-   * Timestamp when the portfolio data was last synced/updated.
+   * Timestamp when the portfolio data was last updated.
    */
   lastUpdated: string;
 
   /**
-   * User-friendly name of the portfolio.
+   * User-defined name of the portfolio.
    */
   name: string;
 
   /**
-   * User's stated or AI-derived risk tolerance for this portfolio.
+   * User's stated or AI-assessed risk tolerance for this portfolio.
    */
-  riskTolerance: 'conservative' | 'moderate' | 'balanced' | 'aggressive' | 'very_aggressive';
+  riskTolerance: 'low' | 'medium' | 'aggressive' | 'very_aggressive';
+
+  /**
+   * Gain or loss for the current trading day.
+   */
+  todayGainLoss: number;
 
   /**
    * Current total market value of the portfolio.
@@ -139,35 +144,29 @@ export interface InvestmentPortfolio {
   totalValue: number;
 
   /**
-   * Primary asset type or strategy of the portfolio.
+   * Type of investment portfolio.
    */
-  type: 'equities' | 'bonds' | 'diversified' | 'crypto' | 'reit' | 'commodities' | 'other';
+  type: 'equities' | 'bonds' | 'diversified' | 'crypto' | 'retirement' | 'other';
 
   /**
-   * AI-driven insights into portfolio performance and market outlook.
+   * Total unrealized gain or loss on the portfolio.
+   */
+  unrealizedGainLoss: number;
+
+  /**
+   * AI-generated insights into portfolio performance and market outlook.
    */
   aiPerformanceInsights?: Array<InsightsAPI.AIInsight> | null;
 
   /**
-   * Frequency at which the AI is configured to suggest or perform rebalancing for
-   * this portfolio.
+   * Frequency at which AI should suggest or perform rebalancing.
    */
-  aiRebalancingFrequency?: 'monthly' | 'quarterly' | 'semi_annually' | 'annually' | 'manual' | null;
+  aiRebalancingFrequency?: 'never' | 'monthly' | 'quarterly' | 'semi_annually' | 'annually' | null;
 
   /**
-   * Detailed breakdown of assets held within the portfolio.
+   * Detailed list of assets currently held in the portfolio.
    */
   holdings?: Array<InvestmentPortfolio.Holding> | null;
-
-  /**
-   * Today's gain or loss for the portfolio.
-   */
-  todayGainLoss?: number;
-
-  /**
-   * Total unrealized gain or loss for the portfolio.
-   */
-  unrealizedGainLoss?: number;
 }
 
 export namespace InvestmentPortfolio {
@@ -208,14 +207,14 @@ export namespace InvestmentPortfolio {
     symbol: string;
 
     /**
-     * ESG (Environmental, Social, Governance) score for the asset.
+     * Environmental, Social, and Governance (ESG) score for the asset.
      */
     esgScore?: number | null;
 
     /**
-     * Total gain or loss for this holding.
+     * Unrealized gain/loss for this specific holding.
      */
-    gainLoss?: number;
+    gainLoss?: number | null;
   }
 }
 
@@ -235,22 +234,17 @@ export interface PortfolioRebalanceResponse {
   /**
    * Current status of the rebalancing operation.
    */
-  status: 'analyzing' | 'pending_confirmation' | 'executing' | 'completed' | 'failed' | 'cancelled';
+  status: 'analyzing' | 'proposed' | 'pending_confirmation' | 'executing' | 'completed' | 'failed';
 
   /**
-   * A descriptive message about the current status.
-   */
-  statusMessage: string;
-
-  /**
-   * Timestamp when pending confirmation will expire.
+   * Timestamp when the proposed rebalance expires if not confirmed.
    */
   confirmationExpiresAt?: string | null;
 
   /**
-   * Indicates if user confirmation is needed to proceed with trades.
+   * Indicates if user confirmation is required before execution.
    */
-  confirmationRequired?: boolean;
+  confirmationRequired?: boolean | null;
 
   /**
    * AI's estimated impact of the rebalancing on portfolio metrics.
@@ -258,16 +252,26 @@ export interface PortfolioRebalanceResponse {
   estimatedImpact?: string | null;
 
   /**
-   * Details of proposed trades if status is 'pending_confirmation' or 'executing'.
+   * Timestamp of the last status update.
+   */
+  lastUpdated?: string;
+
+  /**
+   * List of proposed buy/sell trades if status is 'proposed'.
    */
   proposedTrades?: Array<PortfolioRebalanceResponse.ProposedTrade> | null;
+
+  /**
+   * A descriptive message about the current status.
+   */
+  statusMessage?: string | null;
 }
 
 export namespace PortfolioRebalanceResponse {
   export interface ProposedTrade {
     action?: 'buy' | 'sell';
 
-    estimatedCostRevenue?: number;
+    estimatedPrice?: number;
 
     quantity?: number;
 
@@ -277,12 +281,12 @@ export namespace PortfolioRebalanceResponse {
 
 export interface PortfolioCreateParams {
   /**
-   * Base currency of the portfolio.
+   * Currency of the portfolio (ISO 4217 code).
    */
   currency: string;
 
   /**
-   * Initial amount to invest in the portfolio.
+   * Initial amount to invest in this portfolio.
    */
   initialInvestment: number;
 
@@ -292,79 +296,75 @@ export interface PortfolioCreateParams {
   name: string;
 
   /**
-   * User's risk tolerance for this portfolio.
+   * Desired risk tolerance for this portfolio.
    */
-  riskTolerance: 'conservative' | 'moderate' | 'balanced' | 'aggressive' | 'very_aggressive';
+  riskTolerance: 'low' | 'medium' | 'aggressive' | 'very_aggressive';
 
   /**
-   * Primary asset type or strategy of the portfolio.
+   * Type of investment portfolio to create.
    */
-  type: 'equities' | 'bonds' | 'diversified' | 'crypto' | 'reit' | 'commodities' | 'other';
+  type: 'equities' | 'bonds' | 'diversified' | 'crypto' | 'retirement' | 'other';
 
   /**
-   * If true, AI will automatically suggest and execute initial asset allocation
-   * based on risk tolerance.
+   * If true, AI will automatically suggest and allocate initial assets based on risk
+   * tolerance.
    */
   aiAutoAllocate?: boolean;
 
   /**
-   * Optional: The account from which initial funds should be drawn.
+   * Optional: The account from which initial investment funds should be drawn.
    */
   linkedAccountId?: string | null;
 }
 
 export interface PortfolioUpdateParams {
   /**
-   * Updated frequency for AI-driven portfolio rebalancing.
+   * Updated frequency for AI-driven rebalancing recommendations.
    */
-  aiRebalancingFrequency?: 'monthly' | 'quarterly' | 'semi_annually' | 'annually' | 'manual';
+  aiRebalancingFrequency?: 'never' | 'monthly' | 'quarterly' | 'semi_annually' | 'annually' | null;
 
   /**
-   * New name for the investment portfolio.
+   * Updated name of the portfolio.
    */
   name?: string;
 
   /**
-   * Updated risk tolerance for this portfolio.
+   * Updated risk tolerance for the portfolio. May trigger rebalancing suggestions.
    */
-  riskTolerance?: 'conservative' | 'moderate' | 'balanced' | 'aggressive' | 'very_aggressive';
-
-  /**
-   * Optional: Target asset allocation percentages for rebalancing.
-   */
-  targetAllocation?: PortfolioUpdateParams.TargetAllocation | null;
-}
-
-export namespace PortfolioUpdateParams {
-  /**
-   * Optional: Target asset allocation percentages for rebalancing.
-   */
-  export interface TargetAllocation {
-    bonds?: number;
-
-    cash?: number;
-
-    equities?: number;
-  }
+  riskTolerance?: 'low' | 'medium' | 'aggressive' | 'very_aggressive';
 }
 
 export interface PortfolioRebalanceParams {
   /**
-   * If true, user confirmation is required before executing trades (even if dryRun
-   * is false).
+   * The desired risk tolerance to rebalance the portfolio to.
+   */
+  targetRiskTolerance: 'low' | 'medium' | 'aggressive' | 'very_aggressive';
+
+  /**
+   * If true, user confirmation is required before executing trades. Only applicable
+   * if dryRun is false.
    */
   confirmationRequired?: boolean;
 
   /**
-   * If true, the AI will only propose trades without executing them.
+   * If true, the AI will only propose trades without executing them. Default is
+   * false.
    */
   dryRun?: boolean;
 
   /**
-   * Optional: The desired risk tolerance for the rebalancing. If not provided, uses
-   * portfolio's current risk tolerance.
+   * Optional: Specific target asset allocation percentages if not relying solely on
+   * AI risk tolerance.
    */
-  targetRiskTolerance?: 'conservative' | 'moderate' | 'balanced' | 'aggressive' | 'very_aggressive' | null;
+  targetAssetAllocation?: Array<PortfolioRebalanceParams.TargetAssetAllocation> | null;
+}
+
+export namespace PortfolioRebalanceParams {
+  export interface TargetAssetAllocation {
+    assetClass?: string;
+
+    percentage?: number;
+  }
 }
 
 export declare namespace Portfolios {

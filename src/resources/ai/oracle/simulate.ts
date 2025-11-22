@@ -66,19 +66,27 @@ export class Simulate extends APIResource {
 
 export interface AdvancedSimulationResponse {
   /**
-   * A high-level narrative summary of the key findings across all scenarios.
+   * A high-level summary of all scenario findings and overarching conclusions.
    */
   overallSummary: string;
 
+  /**
+   * Detailed results for each simulated scenario.
+   */
   scenarioResults: Array<AdvancedSimulationResponse.ScenarioResult>;
 
   /**
-   * Unique identifier for the advanced simulation.
+   * Unique identifier for the completed advanced simulation.
    */
   simulationId: string;
 
   /**
-   * Strategic, actionable recommendations derived from the complex simulation.
+   * Timestamp when the simulation was generated.
+   */
+  generatedOn?: string;
+
+  /**
+   * Long-term strategic recommendations derived from the complex simulations.
    */
   strategicRecommendations?: Array<InsightsAPI.AIInsight> | null;
 }
@@ -86,34 +94,39 @@ export interface AdvancedSimulationResponse {
 export namespace AdvancedSimulationResponse {
   export interface ScenarioResult {
     /**
-     * Projected net worth at the end of the simulation for this scenario.
-     */
-    finalNetWorthProjected: number;
-
-    /**
-     * Summary of results for this specific scenario.
+     * A summary of the outcomes for this specific scenario.
      */
     narrativeSummary: string;
 
     /**
-     * Name of the specific scenario simulated.
+     * The name of the simulated scenario.
      */
     scenarioName: string;
 
     /**
-     * Key liquidity metrics for the scenario.
+     * Projected net worth at the end of the scenario.
      */
-    liquidityMetrics?: ScenarioResult.LiquidityMetrics;
+    finalNetWorthProjected?: number | null;
 
     /**
-     * Data points for generating sensitivity analysis charts.
+     * Key metrics related to cash flow and liquidity within the scenario.
      */
-    sensitivityAnalysisGraphs?: Array<ScenarioResult.SensitivityAnalysisGraph>;
+    liquidityMetrics?: ScenarioResult.LiquidityMetrics | null;
+
+    /**
+     * Recommendations specific to this scenario.
+     */
+    scenarioSpecificRecommendations?: Array<InsightsAPI.AIInsight> | null;
+
+    /**
+     * Data points for generating sensitivity analysis graphs.
+     */
+    sensitivityAnalysisGraphs?: Array<ScenarioResult.SensitivityAnalysisGraph> | null;
   }
 
   export namespace ScenarioResult {
     /**
-     * Key liquidity metrics for the scenario.
+     * Key metrics related to cash flow and liquidity within the scenario.
      */
     export interface LiquidityMetrics {
       minCashBalance?: number;
@@ -139,9 +152,24 @@ export namespace AdvancedSimulationResponse {
 
 export interface SimulationResponse {
   /**
-   * A natural language summary of the simulation's findings and overall impact.
+   * Key financial metrics and their projected values/changes.
+   */
+  keyImpacts: Array<SimulationResponse.KeyImpact>;
+
+  /**
+   * A natural language summary of the simulation's findings.
    */
   narrativeSummary: string;
+
+  /**
+   * Actionable recommendations derived from the simulation.
+   */
+  recommendations: Array<InsightsAPI.AIInsight>;
+
+  /**
+   * Detailed analysis of risks and potential stress test scenarios.
+   */
+  riskAnalysis: SimulationResponse.RiskAnalysis | null;
 
   /**
    * Unique identifier for the completed simulation.
@@ -149,80 +177,95 @@ export interface SimulationResponse {
   simulationId: string;
 
   /**
-   * Key financial metrics and their projected changes due to the simulation.
+   * Timestamp when the simulation was generated.
    */
-  keyImpacts?: Array<SimulationResponse.KeyImpact>;
-
-  /**
-   * Actionable recommendations derived from the simulation results.
-   */
-  recommendations?: Array<SimulationResponse.Recommendation> | null;
-
-  /**
-   * AI-driven risk assessment of the simulated scenario.
-   */
-  riskAnalysis?: SimulationResponse.RiskAnalysis | null;
+  generatedOn?: string;
 }
 
 export namespace SimulationResponse {
   export interface KeyImpact {
     metric?: string;
 
-    severity?: 'low' | 'medium' | 'high' | 'critical';
+    severity?: 'low' | 'medium' | 'high';
 
     value?: string;
   }
 
-  export interface Recommendation {
-    actionTrigger?: string;
-
-    description?: string;
-
-    title?: string;
-  }
-
   /**
-   * AI-driven risk assessment of the simulated scenario.
+   * Detailed analysis of risks and potential stress test scenarios.
    */
   export interface RiskAnalysis {
     /**
-     * Maximum potential percentage loss from peak to trough.
+     * Maximum expected percentage drop from a peak value.
      */
     maxDrawdown?: number;
 
+    stressTestResults?: Array<RiskAnalysis.StressTestResult>;
+
     /**
-     * AI-calculated volatility index for the simulated scenario.
+     * An index representing the expected volatility of the outcome.
      */
     volatilityIndex?: number;
+  }
+
+  export namespace RiskAnalysis {
+    export interface StressTestResult {
+      impact?: string;
+
+      scenario?: string;
+    }
   }
 }
 
 export interface SimulateRunAdvancedParams {
   /**
-   * Natural language description of the complex financial simulation.
+   * Natural language description of the complex simulation goal.
    */
   prompt: string;
 
+  /**
+   * A list of distinct hypothetical scenarios to run.
+   */
   scenarios: Array<SimulateRunAdvancedParams.Scenario>;
+
+  /**
+   * Overall duration of the simulation in years.
+   */
+  durationYears?: number;
+
+  /**
+   * Optional: Override current user financial data for the simulation's starting
+   * point.
+   */
+  initialState?: SimulateRunAdvancedParams.InitialState | null;
+
+  /**
+   * Parameters to vary for sensitivity analysis within scenarios.
+   */
+  sensitivityAnalysisParams?: Array<SimulateRunAdvancedParams.SensitivityAnalysisParam> | null;
 }
 
 export namespace SimulateRunAdvancedParams {
   export interface Scenario {
     /**
-     * The duration of the simulation in years.
+     * Key events that define this scenario (e.g., job loss, market crash,
+     * inheritance).
      */
-    durationYears: number;
-
     events: Array<Scenario.Event>;
 
     /**
-     * Name for this specific scenario.
+     * A descriptive name for the scenario.
      */
     name: string;
 
     /**
-     * Parameters for which sensitivity analysis should be performed within this
-     * scenario.
+     * Optional: Duration of this specific scenario, overrides global duration if
+     * present.
+     */
+    durationYears?: number | null;
+
+    /**
+     * Optional: Scenario-specific parameters for sensitivity analysis.
      */
     sensitivityAnalysisParams?: Array<Scenario.SensitivityAnalysisParam> | null;
   }
@@ -230,9 +273,9 @@ export namespace SimulateRunAdvancedParams {
   export namespace Scenario {
     export interface Event {
       /**
-       * Specific parameters for the event type.
+       * Specific parameters for the event type (e.g., durationMonths for job_loss).
        */
-      details: unknown;
+      details: { [key: string]: unknown };
 
       /**
        * Type of event occurring in the scenario.
@@ -240,22 +283,47 @@ export namespace SimulateRunAdvancedParams {
       type:
         | 'job_loss'
         | 'market_downturn'
+        | 'market_boom'
+        | 'inheritance'
         | 'major_expense'
-        | 'income_increase'
-        | 'large_investment'
-        | 'property_purchase'
-        | 'inheritance';
+        | 'new_income_stream'
+        | 'interest_rate_change';
+
+      /**
+       * Optional: The month (relative to simulation start) when this event occurs.
+       */
+      startMonth?: number | null;
     }
 
     export interface SensitivityAnalysisParam {
-      max: number;
+      max?: number;
 
-      min: number;
+      min?: number;
 
-      paramName: string;
+      paramName?: string;
 
-      step?: number | null;
+      step?: number;
     }
+  }
+
+  /**
+   * Optional: Override current user financial data for the simulation's starting
+   * point.
+   */
+  export interface InitialState {
+    monthlyIncomeOverride?: number | null;
+
+    netWorthOverride?: number | null;
+  }
+
+  export interface SensitivityAnalysisParam {
+    max?: number;
+
+    min?: number;
+
+    paramName?: string;
+
+    step?: number;
   }
 }
 
@@ -266,10 +334,10 @@ export interface SimulateRunStandardParams {
   prompt: string;
 
   /**
-   * Structured parameters to guide the simulation, complementing the natural
-   * language prompt.
+   * Optional: Structured parameters to guide the AI simulation (e.g., duration,
+   * amount, riskTolerance).
    */
-  parameters?: unknown | null;
+  parameters?: { [key: string]: unknown } | null;
 }
 
 export declare namespace Simulate {

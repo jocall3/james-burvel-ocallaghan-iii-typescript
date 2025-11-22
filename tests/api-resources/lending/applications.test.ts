@@ -43,11 +43,7 @@ describe('resource applications', () => {
       repaymentTermMonths: 36,
       additionalNotes: 'Funds needed to replace a broken HVAC system.',
       coApplicant: { creditScore: 720, email: 'jane.doe@example.com', income: 75000, name: 'Jane Doe' },
-      collateralDetails: {
-        description: 'Primary residence at 123 Main St.',
-        type: 'real_estate',
-        value: 250000,
-      },
+      desiredInterestRate: 0,
     });
   });
 });

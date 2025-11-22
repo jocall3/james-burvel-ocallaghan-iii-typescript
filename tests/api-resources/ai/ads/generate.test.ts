@@ -34,7 +34,7 @@ describe('resource generate', () => {
         "A captivating ad featuring a young entrepreneur using 's AI tools to grow their startup. Focus on innovation and ease of use.",
       style: 'Cinematic',
       audienceTarget: 'corporate',
-      backgroundMusic: 'upbeat',
+      backgroundMusic: 'upbeat_corporate',
       brandAssets: ['https://demobank.com/assets/corporate_logo.png'],
       brandColors: ['#0000FF', '#FFD700'],
       callToAction: {
@@ -42,7 +42,8 @@ describe('resource generate', () => {
         text: 'Learn more at DemoBank.com/business',
         url: 'https://demobank.com/business',
       },
-      keywords: ['fintech', 'startup', 'innovation', 'easy banking'],
+      keywords: ['financial freedom', 'AI banking', 'startup success'],
+      subtitlesEnabled: true,
       voiceoverStyle: 'male_professional',
       voiceoverText: ': Your business, powered by intelligent finance.',
     });
@@ -75,7 +76,7 @@ describe('resource generate', () => {
         "A captivating ad featuring a young entrepreneur using 's AI tools to grow their startup. Focus on innovation and ease of use.",
       style: 'Cinematic',
       brandColors: ['#0000FF', '#FFD700'],
-      keywords: ['fintech', 'startup', 'innovation', 'easy banking'],
+      keywords: ['financial freedom', 'AI banking', 'startup success'],
     });
   });
 });

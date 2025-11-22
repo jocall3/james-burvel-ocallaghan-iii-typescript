@@ -26,12 +26,12 @@ export type AssetSearchResponse = Array<AssetSearchResponse.AssetSearchResponseI
 export namespace AssetSearchResponse {
   export interface AssetSearchResponseItem {
     /**
-     * Full name of the asset.
+     * Full name of the investment asset.
      */
     assetName: string;
 
     /**
-     * Ticker symbol or identifier of the asset.
+     * Ticker symbol of the investment asset.
      */
     assetSymbol: string;
 
@@ -41,7 +41,7 @@ export namespace AssetSearchResponse {
     assetType: 'stock' | 'etf' | 'mutual_fund' | 'bond' | 'crypto';
 
     /**
-     * Currency of the asset's price.
+     * Currency of the asset.
      */
     currency: string;
 
@@ -51,12 +51,12 @@ export namespace AssetSearchResponse {
     currentPrice: number;
 
     /**
-     * Overall Environmental, Social, and Governance (ESG) score.
+     * Overall ESG score (0-10) for the asset.
      */
     overallESGScore: number;
 
     /**
-     * AI-generated insight summarizing the ESG profile.
+     * AI-generated insight into the asset's ESG profile.
      */
     aiESGInsight?: string | null;
 
@@ -66,12 +66,12 @@ export namespace AssetSearchResponse {
     environmentalScore?: number | null;
 
     /**
-     * List of known ESG-related controversies or negative events.
+     * List of significant ESG controversies associated with the asset.
      */
     esgControversies?: Array<string> | null;
 
     /**
-     * Provider of the ESG rating data.
+     * The provider of the ESG rating data.
      */
     esgRatingProvider?: string | null;
 

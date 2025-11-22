@@ -39,7 +39,7 @@ describe('resource transactions', () => {
         {
           category: 'Groceries',
           endDate: '2024-12-31',
-          limit: 50,
+          limit: 10,
           maxAmount: 100,
           minAmount: 20,
           offset: 0,
@@ -97,6 +97,7 @@ describe('resource transactions', () => {
       details:
         'I did not authorize this purchase. My card may have been compromised and I was traveling internationally on this date.',
       reason: 'unauthorized',
+      contactPreferred: 'email',
       supportingDocuments: ['https://demobank.com/uploads/flight_ticket.png'],
     });
   });

@@ -53,7 +53,7 @@ export class Ads extends APIResource {
 
 export interface VideoOperationStatus {
   /**
-   * A descriptive message about the current stage or any issues.
+   * A descriptive message about the current progress or status.
    */
   message: string;
 
@@ -63,32 +63,27 @@ export interface VideoOperationStatus {
   operationId: string;
 
   /**
-   * Progress of the operation in percentage.
+   * Percentage completion of the video generation.
    */
   progressPercentage: number;
 
   /**
-   * Current status of the video generation.
+   * Current status of the video generation job.
    */
   status: 'queued' | 'generating' | 'rendering' | 'done' | 'error';
 
   /**
-   * Timestamp when the video generation was completed or failed.
-   */
-  completedAt?: string | null;
-
-  /**
-   * Timestamp when the video generation request was created.
-   */
-  createdAt?: string;
-
-  /**
-   * Detailed error message if the status is 'error'.
+   * If status is 'error', provides details about why the generation failed.
    */
   errorMessage?: string | null;
 
   /**
-   * Temporary, signed URL to a preview image/thumbnail of the video.
+   * Timestamp when the video was successfully generated.
+   */
+  generatedAt?: string | null;
+
+  /**
+   * URL to a static preview image/thumbnail of the video.
    */
   previewImageUri?: string | null;
 

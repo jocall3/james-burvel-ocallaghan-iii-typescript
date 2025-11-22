@@ -45,7 +45,9 @@ describe('resource wallets', () => {
         '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
       walletAddress: '0x123abc456def7890...',
       walletProvider: 'MetaMask',
-      grantWriteAccess: true,
+      messageToSign: 'messageToSign',
+      readAccess: true,
+      writeAccess: true,
     });
   });
 

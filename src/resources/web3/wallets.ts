@@ -60,52 +60,58 @@ export class Wallets extends APIResource {
 
 export interface CryptoWalletConnection {
   /**
-   * Unique identifier for this wallet connection.
+   * Unique identifier for the wallet connection within .
    */
   id: string;
 
   /**
-   * The primary blockchain network this wallet is connected to.
+   * The primary blockchain network associated with the wallet.
    */
   blockchainNetwork:
     | 'Ethereum'
     | 'Solana'
     | 'Polygon'
     | 'BinanceSmartChain'
+    | 'Avalanche'
     | 'Arbitrum'
     | 'Optimism'
+    | 'Bitcoin'
     | 'other';
 
   /**
-   * Timestamp of the last successful synchronization of wallet data.
+   * Timestamp of the last successful synchronization with the blockchain.
    */
-  lastSynced: string;
+  lastSynced: string | null;
 
   /**
-   * Indicates if has permission to read balances and transaction history.
+   * Indicates if read access (balances, NFTs) has been granted.
    */
   readAccessGranted: boolean;
 
   /**
-   * Current status of the wallet connection.
+   * Current connection status of the wallet.
    */
-  status: 'connected' | 'disconnected' | 'verification_pending' | 'error';
+  status: 'connected' | 'disconnected' | 'error' | 'pending_verification';
 
   /**
-   * The public address of the connected cryptocurrency wallet.
+   * The public address of the cryptocurrency wallet.
    */
   walletAddress: string;
 
   /**
-   * The name of the wallet provider (e.g., MetaMask, Ledger, Phantom).
+   * The provider or type of the connected wallet.
    */
-  walletProvider: string;
+  walletProvider: 'MetaMask' | 'Phantom' | 'Ledger' | 'Trezor' | 'CoinbaseWallet' | 'WalletConnect' | 'other';
 
   /**
-   * Indicates if has permission to initiate transactions requiring user
-   * confirmation.
+   * Indicates if write access (transactions) has been granted and is active.
    */
   writeAccessGranted: boolean;
+
+  /**
+   * A user-defined alias for the wallet.
+   */
+  alias?: string | null;
 }
 
 export type WalletListResponse = Array<CryptoWalletConnection>;
@@ -116,59 +122,69 @@ export type WalletRetrieveBalancesResponse =
 export namespace WalletRetrieveBalancesResponse {
   export interface WalletRetrieveBalancesResponseItem {
     /**
-     * Full name of the cryptocurrency.
+     * Full name of the cryptocurrency asset.
      */
     assetName: string;
 
     /**
-     * Ticker symbol of the cryptocurrency (e.g., ETH, BTC, USDC).
+     * Ticker symbol of the cryptocurrency asset.
      */
     assetSymbol: string;
 
     /**
-     * The current balance of the asset in the wallet.
+     * Current balance of the asset in the wallet.
      */
     balance: number;
 
     /**
-     * The equivalent value of the balance in USD.
+     * Estimated USD value of the asset balance.
      */
     usdValue: number;
 
     /**
-     * The blockchain network where this asset resides.
+     * The blockchain network this asset belongs to.
      */
     blockchainNetwork?:
       | 'Ethereum'
       | 'Solana'
       | 'Polygon'
       | 'BinanceSmartChain'
+      | 'Avalanche'
       | 'Arbitrum'
       | 'Optimism'
+      | 'Bitcoin'
       | 'other';
 
     /**
-     * The contract address for ERC-20 tokens (if applicable).
+     * The smart contract address for ERC-20 tokens or similar.
      */
     contractAddress?: string | null;
+
+    /**
+     * Timestamp when the balance was last updated/synced.
+     */
+    lastUpdated?: string;
   }
 }
 
 export interface WalletConnectParams {
   /**
-   * The primary blockchain network of the wallet.
+   * The primary blockchain network for this wallet.
    */
   blockchainNetwork:
     | 'Ethereum'
     | 'Solana'
     | 'Polygon'
     | 'BinanceSmartChain'
+    | 'Avalanche'
     | 'Arbitrum'
     | 'Optimism'
+    | 'Bitcoin'
     | 'other';
 
   /**
-   * A message signed by the wallet to prove ownership (e.g., EIP-191).
+   * A cryptographic signature from the wallet, proving ownership or consent to
+   * connect.
    */
   signedMessage: string;
 
@@ -178,15 +194,25 @@ export interface WalletConnectParams {
   walletAddress: string;
 
   /**
-   * The name of the wallet provider.
+   * The provider or type of the wallet being connected.
    */
-  walletProvider: string;
+  walletProvider: 'MetaMask' | 'Phantom' | 'Ledger' | 'Trezor' | 'CoinbaseWallet' | 'WalletConnect' | 'other';
 
   /**
-   * Set to true if write access (transaction initiation) is desired (requires
-   * further permissions).
+   * Optional: The original message that was signed, if provided by the client.
    */
-  grantWriteAccess?: boolean;
+  messageToSign?: string | null;
+
+  /**
+   * Request for read access to wallet balances and NFTs.
+   */
+  readAccess?: boolean;
+
+  /**
+   * Request for write access to initiate transactions (requires further security
+   * layers).
+   */
+  writeAccess?: boolean;
 }
 
 export declare namespace Wallets {

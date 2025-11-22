@@ -58,12 +58,7 @@ export class International extends APIResource {
 
 export interface InternationalPaymentStatus {
   /**
-   * Total fees applied to the payment.
-   */
-  feesApplied: number;
-
-  /**
-   * The foreign exchange rate applied (target_currency / source_currency).
+   * The foreign exchange rate applied (targetCurrency per sourceCurrency).
    */
   fxRateApplied: number;
 
@@ -73,37 +68,47 @@ export interface InternationalPaymentStatus {
   paymentId: string;
 
   /**
-   * Amount sent from the source account.
+   * The amount sent from the source account.
    */
   sourceAmount: number;
 
   /**
-   * Currency of the source amount.
+   * The currency from which funds were sent.
    */
   sourceCurrency: string;
 
   /**
-   * Current status of the international payment.
+   * Current processing status of the international payment.
    */
   status: 'in_progress' | 'held_for_review' | 'completed' | 'failed' | 'cancelled';
 
   /**
-   * Amount received by the beneficiary in target currency (may be estimated).
+   * The amount received by the beneficiary in the target currency.
    */
-  targetAmount: number | null;
+  targetAmount: number;
 
   /**
-   * Currency of the target amount.
+   * The currency received by the beneficiary.
    */
   targetCurrency: string;
 
   /**
-   * Estimated time when the payment will be completed.
+   * Estimated date and time for payment completion.
    */
   estimatedCompletionTime?: string | null;
 
   /**
-   * Additional message regarding payment status (e.g., reason for hold).
+   * Any fees applied to the international payment.
+   */
+  feesApplied?: number | null;
+
+  /**
+   * Timestamp when the payment status was last updated.
+   */
+  lastUpdated?: string;
+
+  /**
+   * Additional messages, e.g., for held payments.
    */
   message?: string | null;
 
@@ -115,65 +120,85 @@ export interface InternationalPaymentStatus {
 
 export interface InternationalInitiateParams {
   /**
-   * The amount to send in the source currency.
+   * The amount of money to send in the `sourceCurrency`.
    */
   amount: number;
 
   /**
-   * Details of the international beneficiary.
+   * Details of the recipient for the international payment.
    */
   beneficiary: InternationalInitiateParams.Beneficiary;
 
   /**
-   * Purpose of the payment (e.g., invoice payment, family support).
+   * A clear and concise purpose for the payment.
    */
   purpose: string;
 
   /**
-   * The ID of the local account from which funds will be sent.
+   * The ID of the source account from which funds will be sent.
    */
   sourceAccountId: string;
 
   /**
-   * The currency of the source account.
+   * The currency of the source account (ISO 4217 code).
    */
   sourceCurrency: string;
 
   /**
-   * The desired currency for the beneficiary.
+   * The target currency for the beneficiary (ISO 4217 code).
    */
   targetCurrency: string;
 
   /**
-   * If true, attempts to lock the quoted FX rate for the transaction.
+   * If true, attempts to lock the FX rate at the time of initiation.
    */
   fxRateLock?: boolean;
 
   /**
-   * The desired provider for the foreign exchange rate.
+   * Optional: Preferred FX rate provider for the conversion.
    */
-  fxRateProvider?: 'proprietary_ai' | 'external_partner' | 'market_rate';
+  fxRateProvider?: 'proprietary_ai' | 'market' | 'partner_bank' | null;
 
   /**
-   * Optional reference number for the payment (e.g., invoice number).
+   * Optional: An external reference ID for this payment.
    */
-  referenceNumber?: string | null;
+  referenceId?: string | null;
 }
 
 export namespace InternationalInitiateParams {
   /**
-   * Details of the international beneficiary.
+   * Details of the recipient for the international payment.
    */
   export interface Beneficiary {
+    /**
+     * Full address of the beneficiary.
+     */
     address: string;
 
+    /**
+     * Name of the beneficiary's bank.
+     */
     bankName: string;
 
+    /**
+     * International Bank Account Number (IBAN) of the beneficiary.
+     */
     iban: string;
 
+    /**
+     * Full name of the beneficiary.
+     */
     name: string;
 
+    /**
+     * SWIFT/BIC code of the beneficiary's bank.
+     */
     swiftBic: string;
+
+    /**
+     * Optional: Traditional bank account number if IBAN not applicable.
+     */
+    accountNumber?: string | null;
   }
 }
 

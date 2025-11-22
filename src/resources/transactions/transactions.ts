@@ -123,27 +123,30 @@ export class Transactions extends APIResource {
 }
 
 export interface PaginatedTransactions {
-  data?: Array<Transaction>;
+  /**
+   * The list of transactions for the current page.
+   */
+  data: Array<Transaction>;
 
   /**
    * The maximum number of items returned per page.
    */
-  limit?: number;
-
-  /**
-   * The offset to use for the next page of results. Null if no more pages.
-   */
-  nextOffset?: number | null;
+  limit: number;
 
   /**
    * The starting index of the list for pagination.
    */
-  offset?: number;
+  offset: number;
 
   /**
-   * The total number of available items.
+   * The total number of available items across all pages.
    */
-  total?: number;
+  total: number;
+
+  /**
+   * The offset to use for the next page of results, if available.
+   */
+  nextOffset?: number | null;
 }
 
 export interface Transaction {
@@ -158,66 +161,62 @@ export interface Transaction {
   accountId: string;
 
   /**
-   * The transaction amount.
+   * Amount of the transaction. Positive for income/refunds, negative for
+   * expenses/transfers out.
    */
   amount: number;
 
   /**
-   * AI-assigned or user-defined category of the transaction (e.g., Groceries, Rent,
-   * Salary).
+   * AI-assigned or user-defined category of the transaction (e.g., 'Groceries',
+   * 'Utilities').
    */
   category: string;
 
   /**
-   * ISO 4217 currency code of the transaction.
+   * The currency of the transaction (ISO 4217 code).
    */
   currency: string;
 
   /**
-   * The date the transaction occurred (transaction date).
+   * The date the transaction occurred.
    */
   date: string;
 
   /**
-   * Detailed description of the transaction.
+   * Detailed description of the transaction as it appears on the statement.
    */
   description: string;
 
   /**
-   * Type of the transaction.
+   * Type of transaction.
    */
   type: 'income' | 'expense' | 'transfer' | 'investment' | 'refund' | 'bill_payment';
 
   /**
-   * AI's confidence score (0-1) for its category assignment.
+   * AI's confidence score (0-1) in its category assignment.
    */
   aiCategoryConfidence?: number | null;
 
   /**
-   * Estimated carbon footprint (in Kg CO2e) associated with the transaction.
+   * Estimated carbon footprint (in Kg CO2e) associated with the transaction, if
+   * available.
    */
   carbonFootprint?: number | null;
 
   /**
-   * Current status of any dispute related to this transaction.
+   * Current status of any dispute initiated for this transaction.
    */
-  disputeStatus?:
-    | 'none'
-    | 'pending'
-    | 'under_review'
-    | 'resolved_in_favor_user'
-    | 'resolved_in_favor_merchant'
-    | 'rejected';
+  disputeStatus?: 'none' | 'pending' | 'under_review' | 'resolved' | 'rejected';
 
   /**
-   * Geolocation details of the transaction, if available.
+   * Geographic location where the transaction occurred.
    */
-  location?: Transaction.Location | null;
+  location?: Transaction.Location;
 
   /**
-   * Detailed information about the merchant.
+   * Details about the merchant involved in the transaction.
    */
-  merchantDetails?: Transaction.MerchantDetails | null;
+  merchantDetails?: Transaction.MerchantDetails;
 
   /**
    * Personal notes added by the user to the transaction.
@@ -225,12 +224,12 @@ export interface Transaction {
   notes?: string | null;
 
   /**
-   * Channel through which the payment was made.
+   * The channel through which the payment was made.
    */
-  paymentChannel?: 'in_store' | 'online' | 'atm' | 'transfer' | 'bill_payment' | 'subscription' | null;
+  paymentChannel?: 'in_store' | 'online' | 'atm' | 'transfer' | 'bill_payment' | 'recurring' | 'other';
 
   /**
-   * The date the transaction was posted to the account (cleared date).
+   * The date the transaction was posted to the account (may differ from `date`).
    */
   postedDate?: string | null;
 
@@ -247,16 +246,16 @@ export interface Transaction {
 
 export namespace Transaction {
   /**
-   * Geolocation details of the transaction, if available.
+   * Geographic location where the transaction occurred.
    */
   export interface Location {
     /**
-     * City name of the transaction location.
+     * City name.
      */
     city?: string | null;
 
     /**
-     * Country of the transaction location.
+     * Country code (ISO 3166-1 alpha-2).
      */
     country?: string | null;
 
@@ -271,19 +270,24 @@ export namespace Transaction {
     longitude?: number;
 
     /**
-     * State or province of the transaction location.
+     * State or province code.
      */
     state?: string | null;
   }
 
   /**
-   * Detailed information about the merchant.
+   * Details about the merchant involved in the transaction.
    */
   export interface MerchantDetails {
     /**
-     * Merchant's physical address.
+     * Physical address of the merchant.
      */
     address?: UsersAPI.Address;
+
+    /**
+     * Standardized industry category for the merchant.
+     */
+    category?: string | null;
 
     /**
      * URL to the merchant's logo.
@@ -296,11 +300,6 @@ export namespace Transaction {
     name?: string;
 
     /**
-     * Merchant's phone number.
-     */
-    phoneNumber?: string | null;
-
-    /**
      * Merchant's website URL.
      */
     website?: string | null;
@@ -309,7 +308,7 @@ export namespace Transaction {
 
 export interface TransactionDisputeResponse {
   /**
-   * Unique identifier for the dispute.
+   * Unique identifier for the dispute case.
    */
   disputeId: string;
 
@@ -321,22 +320,15 @@ export interface TransactionDisputeResponse {
   /**
    * Current status of the dispute.
    */
-  status:
-    | 'pending'
-    | 'under_review'
-    | 'investigation'
-    | 'escalated'
-    | 'resolved_in_favor_user'
-    | 'resolved_in_favor_merchant'
-    | 'rejected';
+  status: 'pending' | 'under_review' | 'escalated' | 'resolved' | 'rejected';
 
   /**
-   * Guidance on what to expect next or actions required from the user.
+   * Actionable next steps for the user or expected timeline.
    */
   nextSteps?: string | null;
 
   /**
-   * Details provided if the dispute has been resolved or rejected.
+   * Details provided upon resolution or rejection of the dispute.
    */
   resolutionDetails?: string | null;
 }
@@ -390,12 +382,12 @@ export interface TransactionListParams {
 
 export interface TransactionCategorizeParams {
   /**
-   * The new category for the transaction (can be hierarchical).
+   * The new category for the transaction. Can be hierarchical.
    */
   category: string;
 
   /**
-   * If true, the AI should learn and apply this categorization to similar future
+   * If true, the AI will learn from this correction and apply it to similar future
    * transactions.
    */
   applyToFuture?: boolean;
@@ -413,12 +405,17 @@ export interface TransactionDisputeParams {
   details: string;
 
   /**
-   * Primary reason for the dispute.
+   * The primary reason for disputing the transaction.
    */
   reason: 'unauthorized' | 'duplicate' | 'wrong_amount' | 'not_received' | 'other';
 
   /**
-   * URLs to supporting documents (e.g., receipts, travel tickets).
+   * Preferred method for our team to contact the user regarding the dispute.
+   */
+  contactPreferred?: 'email' | 'phone' | 'in_app';
+
+  /**
+   * URLs to supporting documents (e.g., screenshots, travel itineraries).
    */
   supportingDocuments?: Array<string> | null;
 }

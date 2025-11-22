@@ -13,7 +13,7 @@ describe('resource portfolios', () => {
       currency: 'USD',
       initialInvestment: 10000,
       name: 'My First Growth Portfolio',
-      riskTolerance: 'conservative',
+      riskTolerance: 'medium',
       type: 'diversified',
     });
     const rawResponse = await responsePromise.asResponse();
@@ -31,7 +31,7 @@ describe('resource portfolios', () => {
       currency: 'USD',
       initialInvestment: 10000,
       name: 'My First Growth Portfolio',
-      riskTolerance: 'conservative',
+      riskTolerance: 'medium',
       type: 'diversified',
       aiAutoAllocate: true,
       linkedAccountId: 'acc_chase_checking_4567',
@@ -75,8 +75,10 @@ describe('resource portfolios', () => {
   });
 
   // Prism tests are disabled
-  test.skip('rebalance', async () => {
-    const responsePromise = client.investments.portfolios.rebalance('portfolio_equity_growth', {});
+  test.skip('rebalance: only required params', async () => {
+    const responsePromise = client.investments.portfolios.rebalance('portfolio_equity_growth', {
+      targetRiskTolerance: 'medium',
+    });
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
     const response = await responsePromise;
@@ -84,5 +86,15 @@ describe('resource portfolios', () => {
     const dataAndResponse = await responsePromise.withResponse();
     expect(dataAndResponse.data).toBe(response);
     expect(dataAndResponse.response).toBe(rawResponse);
+  });
+
+  // Prism tests are disabled
+  test.skip('rebalance: required and optional params', async () => {
+    const response = await client.investments.portfolios.rebalance('portfolio_equity_growth', {
+      targetRiskTolerance: 'medium',
+      confirmationRequired: true,
+      dryRun: true,
+      targetAssetAllocation: [{ assetClass: 'equities', percentage: 60 }],
+    });
   });
 });
