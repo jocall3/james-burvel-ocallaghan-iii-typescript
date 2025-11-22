@@ -112,7 +112,7 @@ export interface FraudRule {
   /**
    * Action to take when a fraud rule is triggered.
    */
-  action: FraudRule.Action;
+  action: FraudRuleAction;
 
   /**
    * Timestamp when the rule was created.
@@ -127,7 +127,7 @@ export interface FraudRule {
   /**
    * Criteria that define when a fraud rule should trigger.
    */
-  criteria: FraudRule.Criteria;
+  criteria: FraudRuleCriteria;
 
   /**
    * Detailed description of what the rule detects.
@@ -155,86 +155,84 @@ export interface FraudRule {
   status: 'active' | 'inactive' | 'draft';
 }
 
-export namespace FraudRule {
+/**
+ * Action to take when a fraud rule is triggered.
+ */
+export interface FraudRuleAction {
   /**
-   * Action to take when a fraud rule is triggered.
+   * Details or instructions for the action.
    */
-  export interface Action {
-    /**
-     * Details or instructions for the action.
-     */
-    details: string;
-
-    /**
-     * Type of action to perform.
-     */
-    type: 'block' | 'alert' | 'auto_review' | 'manual_review' | 'request_mfa';
-
-    /**
-     * The team or department to notify for alerts/reviews.
-     */
-    targetTeam?: string | null;
-  }
+  details: string;
 
   /**
-   * Criteria that define when a fraud rule should trigger.
+   * Type of action to perform.
    */
-  export interface Criteria {
-    /**
-     * Number of days an account must be inactive for the rule to apply.
-     */
-    accountInactivityDays?: number | null;
+  type: 'block' | 'alert' | 'auto_review' | 'manual_review' | 'request_mfa';
 
-    /**
-     * List of ISO 2-letter country codes for transaction origin.
-     */
-    countryOfOrigin?: Array<string> | null;
+  /**
+   * The team or department to notify for alerts/reviews.
+   */
+  targetTeam?: string | null;
+}
 
-    /**
-     * Minimum geographic distance (in km) from recent activity for anomaly.
-     */
-    geographicDistanceKm?: number | null;
+/**
+ * Criteria that define when a fraud rule should trigger.
+ */
+export interface FraudRuleCriteria {
+  /**
+   * Number of days an account must be inactive for the rule to apply.
+   */
+  accountInactivityDays?: number | null;
 
-    /**
-     * Number of days since last user login for anomaly detection.
-     */
-    lastLoginDays?: number | null;
+  /**
+   * List of ISO 2-letter country codes for transaction origin.
+   */
+  countryOfOrigin?: Array<string> | null;
 
-    /**
-     * If true, rule applies only if no prior travel notification was made.
-     */
-    noTravelNotification?: boolean | null;
+  /**
+   * Minimum geographic distance (in km) from recent activity for anomaly.
+   */
+  geographicDistanceKm?: number | null;
 
-    /**
-     * Minimum number of payments in a timeframe.
-     */
-    paymentCountMin?: number | null;
+  /**
+   * Number of days since last user login for anomaly detection.
+   */
+  lastLoginDays?: number | null;
 
-    /**
-     * List of risk levels for recipient countries.
-     */
-    recipientCountryRiskLevel?: Array<'Low' | 'Medium' | 'High' | 'Very High'> | null;
+  /**
+   * If true, rule applies only if no prior travel notification was made.
+   */
+  noTravelNotification?: boolean | null;
 
-    /**
-     * If true, recipient must be a new payee.
-     */
-    recipientNew?: boolean | null;
+  /**
+   * Minimum number of payments in a timeframe.
+   */
+  paymentCountMin?: number | null;
 
-    /**
-     * Timeframe in hours for payment count or other event aggregations.
-     */
-    timeframeHours?: number | null;
+  /**
+   * List of risk levels for recipient countries.
+   */
+  recipientCountryRiskLevel?: Array<'Low' | 'Medium' | 'High' | 'Very High'> | null;
 
-    /**
-     * Minimum transaction amount to consider.
-     */
-    transactionAmountMin?: number | null;
+  /**
+   * If true, recipient must be a new payee.
+   */
+  recipientNew?: boolean | null;
 
-    /**
-     * Specific transaction type (e.g., debit, credit).
-     */
-    transactionType?: 'debit' | 'credit' | null;
-  }
+  /**
+   * Timeframe in hours for payment count or other event aggregations.
+   */
+  timeframeHours?: number | null;
+
+  /**
+   * Minimum transaction amount to consider.
+   */
+  transactionAmountMin?: number | null;
+
+  /**
+   * Specific transaction type (e.g., debit, credit).
+   */
+  transactionType?: 'debit' | 'credit' | null;
 }
 
 export interface RuleListResponse {
@@ -265,12 +263,12 @@ export interface RuleCreateParams {
   /**
    * Action to take when a fraud rule is triggered.
    */
-  action: RuleCreateParams.Action;
+  action: FraudRuleAction;
 
   /**
    * Criteria that define when a fraud rule should trigger.
    */
-  criteria: RuleCreateParams.Criteria;
+  criteria: FraudRuleCriteria;
 
   /**
    * Detailed description of what the rule detects.
@@ -293,98 +291,16 @@ export interface RuleCreateParams {
   status: 'active' | 'inactive' | 'draft';
 }
 
-export namespace RuleCreateParams {
-  /**
-   * Action to take when a fraud rule is triggered.
-   */
-  export interface Action {
-    /**
-     * Details or instructions for the action.
-     */
-    details: string;
-
-    /**
-     * Type of action to perform.
-     */
-    type: 'block' | 'alert' | 'auto_review' | 'manual_review' | 'request_mfa';
-
-    /**
-     * The team or department to notify for alerts/reviews.
-     */
-    targetTeam?: string | null;
-  }
-
-  /**
-   * Criteria that define when a fraud rule should trigger.
-   */
-  export interface Criteria {
-    /**
-     * Number of days an account must be inactive for the rule to apply.
-     */
-    accountInactivityDays?: number | null;
-
-    /**
-     * List of ISO 2-letter country codes for transaction origin.
-     */
-    countryOfOrigin?: Array<string> | null;
-
-    /**
-     * Minimum geographic distance (in km) from recent activity for anomaly.
-     */
-    geographicDistanceKm?: number | null;
-
-    /**
-     * Number of days since last user login for anomaly detection.
-     */
-    lastLoginDays?: number | null;
-
-    /**
-     * If true, rule applies only if no prior travel notification was made.
-     */
-    noTravelNotification?: boolean | null;
-
-    /**
-     * Minimum number of payments in a timeframe.
-     */
-    paymentCountMin?: number | null;
-
-    /**
-     * List of risk levels for recipient countries.
-     */
-    recipientCountryRiskLevel?: Array<'Low' | 'Medium' | 'High' | 'Very High'> | null;
-
-    /**
-     * If true, recipient must be a new payee.
-     */
-    recipientNew?: boolean | null;
-
-    /**
-     * Timeframe in hours for payment count or other event aggregations.
-     */
-    timeframeHours?: number | null;
-
-    /**
-     * Minimum transaction amount to consider.
-     */
-    transactionAmountMin?: number | null;
-
-    /**
-     * Specific transaction type (e.g., debit, credit).
-     */
-    transactionType?: 'debit' | 'credit' | null;
-  }
-}
-
 export interface RuleUpdateParams {
   /**
    * Updated action to take when the rule is triggered.
    */
-  action?: RuleUpdateParams.Action;
+  action?: FraudRuleAction;
 
   /**
    * Updated criteria for the rule.
    */
-  criteria?: RuleUpdateParams.Criteria;
+  criteria?: FraudRuleCriteria;
 
   /**
    * Updated description of what the rule detects.
@@ -407,88 +323,6 @@ export interface RuleUpdateParams {
   status?: 'active' | 'inactive' | 'draft';
 }
 
-export namespace RuleUpdateParams {
-  /**
-   * Updated action to take when the rule is triggered.
-   */
-  export interface Action {
-    /**
-     * Details or instructions for the action.
-     */
-    details: string;
-
-    /**
-     * Type of action to perform.
-     */
-    type: 'block' | 'alert' | 'auto_review' | 'manual_review' | 'request_mfa';
-
-    /**
-     * The team or department to notify for alerts/reviews.
-     */
-    targetTeam?: string | null;
-  }
-
-  /**
-   * Updated criteria for the rule.
-   */
-  export interface Criteria {
-    /**
-     * Number of days an account must be inactive for the rule to apply.
-     */
-    accountInactivityDays?: number | null;
-
-    /**
-     * List of ISO 2-letter country codes for transaction origin.
-     */
-    countryOfOrigin?: Array<string> | null;
-
-    /**
-     * Minimum geographic distance (in km) from recent activity for anomaly.
-     */
-    geographicDistanceKm?: number | null;
-
-    /**
-     * Number of days since last user login for anomaly detection.
-     */
-    lastLoginDays?: number | null;
-
-    /**
-     * If true, rule applies only if no prior travel notification was made.
-     */
-    noTravelNotification?: boolean | null;
-
-    /**
-     * Minimum number of payments in a timeframe.
-     */
-    paymentCountMin?: number | null;
-
-    /**
-     * List of risk levels for recipient countries.
-     */
-    recipientCountryRiskLevel?: Array<'Low' | 'Medium' | 'High' | 'Very High'> | null;
-
-    /**
-     * If true, recipient must be a new payee.
-     */
-    recipientNew?: boolean | null;
-
-    /**
-     * Timeframe in hours for payment count or other event aggregations.
-     */
-    timeframeHours?: number | null;
-
-    /**
-     * Minimum transaction amount to consider.
-     */
-    transactionAmountMin?: number | null;
-
-    /**
-     * Specific transaction type (e.g., debit, credit).
-     */
-    transactionType?: 'debit' | 'credit' | null;
-  }
-}
-
 export interface RuleListParams {
   /**
    * Maximum number of items to return in a single page.
@@ -504,6 +338,8 @@ export interface RuleListParams {
 export declare namespace Rules {
   export {
     type FraudRule as FraudRule,
+    type FraudRuleAction as FraudRuleAction,
+    type FraudRuleCriteria as FraudRuleCriteria,
     type RuleListResponse as RuleListResponse,
     type RuleCreateParams as RuleCreateParams,
     type RuleUpdateParams as RuleUpdateParams,

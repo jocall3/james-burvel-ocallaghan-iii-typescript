@@ -368,6 +368,8 @@ Methods:
 Types:
 
 - <code><a href="./src/resources/corporate/risk/fraud/rules.ts">FraudRule</a></code>
+- <code><a href="./src/resources/corporate/risk/fraud/rules.ts">FraudRuleAction</a></code>
+- <code><a href="./src/resources/corporate/risk/fraud/rules.ts">FraudRuleCriteria</a></code>
 - <code><a href="./src/resources/corporate/risk/fraud/rules.ts">RuleListResponse</a></code>
 
 Methods:
@@ -546,7 +548,11 @@ Methods:
 Types:
 
 - <code><a href="./src/resources/marketplace/products.ts">ProductListResponse</a></code>
+- <code><a href="./src/resources/marketplace/products.ts">ProductRedeemMarketplaceOfferResponse</a></code>
+- <code><a href="./src/resources/marketplace/products.ts">ProductSimulatePurchaseResponse</a></code>
 
 Methods:
 
 - <code title="get /marketplace/products">client.marketplace.products.<a href="./src/resources/marketplace/products.ts">list</a>({ ...params }) -> ProductListResponse</code>
+- <code title="post /marketplace/offers/{offerId}/redeem">client.marketplace.products.<a href="./src/resources/marketplace/products.ts">redeemMarketplaceOffer</a>(offerID, { ...params }) -> ProductRedeemMarketplaceOfferResponse</code>
+- <code title="post /marketplace/products/{productId}/impact-simulate">client.marketplace.products.<a href="./src/resources/marketplace/products.ts">simulatePurchase</a>(productID, { ...params }) -> ProductSimulatePurchaseResponse</code>

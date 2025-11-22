@@ -4,6 +4,8 @@ import { APIResource } from '../../../../core/resource';
 import * as RulesAPI from './rules';
 import {
   FraudRule,
+  FraudRuleAction,
+  FraudRuleCriteria,
   RuleCreateParams,
   RuleListParams,
   RuleListResponse,
@@ -21,6 +23,8 @@ export declare namespace Fraud {
   export {
     Rules as Rules,
     type FraudRule as FraudRule,
+    type FraudRuleAction as FraudRuleAction,
+    type FraudRuleCriteria as FraudRuleCriteria,
     type RuleListResponse as RuleListResponse,
     type RuleCreateParams as RuleCreateParams,
     type RuleUpdateParams as RuleUpdateParams,
