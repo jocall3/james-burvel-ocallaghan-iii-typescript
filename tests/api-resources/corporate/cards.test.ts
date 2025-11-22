@@ -7,8 +7,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource cards', () => {
-  // Prism tests are disabled
-  test.skip('list', async () => {
+  test('list', async () => {
     const responsePromise = client.corporate.cards.list();
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -19,16 +18,14 @@ describe('resource cards', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('list: request options and params are passed correctly', async () => {
+  test('list: request options and params are passed correctly', async () => {
     // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
     await expect(
       client.corporate.cards.list({ limit: 1, offset: 0 }, { path: '/_stainless_unknown_path' }),
     ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);
   });
 
-  // Prism tests are disabled
-  test.skip('createVirtual: only required params', async () => {
+  test('createVirtual: only required params', async () => {
     const responsePromise = client.corporate.cards.createVirtual({
       controls: {},
       expirationDate: '2025-12-31',
@@ -44,8 +41,7 @@ describe('resource cards', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('createVirtual: required and optional params', async () => {
+  test('createVirtual: required and optional params', async () => {
     const response = await client.corporate.cards.createVirtual({
       controls: {
         atmWithdrawals: false,
@@ -66,8 +62,7 @@ describe('resource cards', () => {
     });
   });
 
-  // Prism tests are disabled
-  test.skip('freeze: only required params', async () => {
+  test('freeze: only required params', async () => {
     const responsePromise = client.corporate.cards.freeze('corp_card_xyz987654', { freeze: true });
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -78,13 +73,11 @@ describe('resource cards', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('freeze: required and optional params', async () => {
+  test('freeze: required and optional params', async () => {
     const response = await client.corporate.cards.freeze('corp_card_xyz987654', { freeze: true });
   });
 
-  // Prism tests are disabled
-  test.skip('listTransactions', async () => {
+  test('listTransactions', async () => {
     const responsePromise = client.corporate.cards.listTransactions('corp_card_xyz987654');
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -95,8 +88,7 @@ describe('resource cards', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('listTransactions: request options and params are passed correctly', async () => {
+  test('listTransactions: request options and params are passed correctly', async () => {
     // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
     await expect(
       client.corporate.cards.listTransactions(
@@ -107,8 +99,7 @@ describe('resource cards', () => {
     ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);
   });
 
-  // Prism tests are disabled
-  test.skip('updateControls', async () => {
+  test('updateControls', async () => {
     const responsePromise = client.corporate.cards.updateControls('corp_card_xyz987654', {});
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);

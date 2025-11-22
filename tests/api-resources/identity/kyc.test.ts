@@ -7,8 +7,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource kyc', () => {
-  // Prism tests are disabled
-  test.skip('retrieveStatus', async () => {
+  test('retrieveStatus', async () => {
     const responsePromise = client.identity.kyc.retrieveStatus();
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -19,8 +18,7 @@ describe('resource kyc', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('submit: only required params', async () => {
+  test('submit: only required params', async () => {
     const responsePromise = client.identity.kyc.submit({
       countryOfIssue: 'US',
       documentNumber: 'ABC12345',
@@ -37,8 +35,7 @@ describe('resource kyc', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('submit: required and optional params', async () => {
+  test('submit: required and optional params', async () => {
     const response = await client.identity.kyc.submit({
       countryOfIssue: 'US',
       documentNumber: 'ABC12345',

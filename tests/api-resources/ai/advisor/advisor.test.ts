@@ -7,8 +7,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource advisor', () => {
-  // Prism tests are disabled
-  test.skip('listTools', async () => {
+  test('listTools', async () => {
     const responsePromise = client.ai.advisor.listTools();
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -19,8 +18,7 @@ describe('resource advisor', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('listTools: request options and params are passed correctly', async () => {
+  test('listTools: request options and params are passed correctly', async () => {
     // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
     await expect(
       client.ai.advisor.listTools({ limit: 1, offset: 0 }, { path: '/_stainless_unknown_path' }),

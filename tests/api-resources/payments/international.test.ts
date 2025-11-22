@@ -7,8 +7,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource international', () => {
-  // Prism tests are disabled
-  test.skip('initiate: only required params', async () => {
+  test('initiate: only required params', async () => {
     const responsePromise = client.payments.international.initiate({
       amount: 5000,
       beneficiary: {
@@ -30,8 +29,7 @@ describe('resource international', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('initiate: required and optional params', async () => {
+  test('initiate: required and optional params', async () => {
     const response = await client.payments.international.initiate({
       amount: 5000,
       beneficiary: {
@@ -53,8 +51,7 @@ describe('resource international', () => {
     });
   });
 
-  // Prism tests are disabled
-  test.skip('retrieveStatus', async () => {
+  test('retrieveStatus', async () => {
     const responsePromise = client.payments.international.retrieveStatus('int_pmt_xyz7890');
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);

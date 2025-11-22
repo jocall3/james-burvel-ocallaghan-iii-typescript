@@ -7,8 +7,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource sustainability', () => {
-  // Prism tests are disabled
-  test.skip('purchaseCarbonOffsets: only required params', async () => {
+  test('purchaseCarbonOffsets: only required params', async () => {
     const responsePromise = client.sustainability.purchaseCarbonOffsets({
       amountKgCO2e: 500,
       offsetProject: 'Verified Carbon Standard Project X',
@@ -23,8 +22,7 @@ describe('resource sustainability', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('purchaseCarbonOffsets: required and optional params', async () => {
+  test('purchaseCarbonOffsets: required and optional params', async () => {
     const response = await client.sustainability.purchaseCarbonOffsets({
       amountKgCO2e: 500,
       offsetProject: 'Verified Carbon Standard Project X',
@@ -32,8 +30,7 @@ describe('resource sustainability', () => {
     });
   });
 
-  // Prism tests are disabled
-  test.skip('retrieveCarbonFootprint', async () => {
+  test('retrieveCarbonFootprint', async () => {
     const responsePromise = client.sustainability.retrieveCarbonFootprint();
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);

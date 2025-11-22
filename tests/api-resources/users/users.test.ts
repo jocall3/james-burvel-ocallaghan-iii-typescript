@@ -7,8 +7,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource users', () => {
-  // Prism tests are disabled
-  test.skip('login: only required params', async () => {
+  test('login: only required params', async () => {
     const responsePromise = client.users.login({
       email: 'quantum.visionary@demobank.com',
       password: 'YourSecurePassword123',
@@ -22,8 +21,7 @@ describe('resource users', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('login: required and optional params', async () => {
+  test('login: required and optional params', async () => {
     const response = await client.users.login({
       email: 'quantum.visionary@demobank.com',
       password: 'YourSecurePassword123',
@@ -31,8 +29,7 @@ describe('resource users', () => {
     });
   });
 
-  // Prism tests are disabled
-  test.skip('register: only required params', async () => {
+  test('register: only required params', async () => {
     const responsePromise = client.users.register({
       email: 'alice.w@example.com',
       name: 'Alice Wonderland',
@@ -47,8 +44,7 @@ describe('resource users', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('register: required and optional params', async () => {
+  test('register: required and optional params', async () => {
     const response = await client.users.register({
       email: 'alice.w@example.com',
       name: 'Alice Wonderland',

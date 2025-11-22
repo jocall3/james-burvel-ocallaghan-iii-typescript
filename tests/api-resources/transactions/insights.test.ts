@@ -7,8 +7,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource insights', () => {
-  // Prism tests are disabled
-  test.skip('getSpendingTrends', async () => {
+  test('getSpendingTrends', async () => {
     const responsePromise = client.transactions.insights.getSpendingTrends();
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);

@@ -7,8 +7,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource transactions', () => {
-  // Prism tests are disabled
-  test.skip('initiateTransfer: only required params', async () => {
+  test('initiateTransfer: only required params', async () => {
     const responsePromise = client.web3.transactions.initiateTransfer({
       amount: 0.1,
       assetSymbol: 'ETH',
@@ -25,8 +24,7 @@ describe('resource transactions', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('initiateTransfer: required and optional params', async () => {
+  test('initiateTransfer: required and optional params', async () => {
     const response = await client.web3.transactions.initiateTransfer({
       amount: 0.1,
       assetSymbol: 'ETH',
