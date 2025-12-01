@@ -55,12 +55,12 @@ $ cd james-burvel-ocallaghan-iii-typescript
 # With yarn
 $ yarn link
 $ cd ../my-package
-$ yarn link citibankdemobusinessinc-james-burvel-ocallaghan-iii
+$ yarn link james-burvel-ocallaghan-iii
 
 # With pnpm
 $ pnpm link --global
 $ cd ../my-package
-$ pnpm link -—global citibankdemobusinessinc-james-burvel-ocallaghan-iii
+$ pnpm link -—global james-burvel-ocallaghan-iii
 ```
 
 ## Running tests
