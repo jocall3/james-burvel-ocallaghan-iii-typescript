@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0 (2025-12-01)
+
+Full Changelog: [v0.1.0...v1.2.0](https://github.com/jocall3/james-burvel-ocallaghan-iii-typescript/compare/v0.1.0...v1.2.0)
+
 ## 0.1.0 (2025-12-01)
 
 Full Changelog: [v0.0.1...v0.1.0](https://github.com/jocall3/james-burvel-ocallaghan-iii-typescript/compare/v0.0.1...v0.1.0)
