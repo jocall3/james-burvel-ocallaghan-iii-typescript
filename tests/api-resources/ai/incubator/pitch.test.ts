@@ -7,8 +7,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource pitch', () => {
-  // Prism tests are disabled
-  test.skip('retrieveDetails', async () => {
+  test('retrieveDetails', async () => {
     const responsePromise = client.ai.incubator.pitch.retrieveDetails('pitch_qw_synergychain-xyz');
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -19,8 +18,7 @@ describe('resource pitch', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('submit: only required params', async () => {
+  test('submit: only required params', async () => {
     const responsePromise = client.ai.incubator.pitch.submit({
       businessPlan:
         'Quantum-AI powered financial advisor platform leveraging neural networks for predictive analytics and hyper-personalized advice...',
@@ -38,8 +36,7 @@ describe('resource pitch', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('submit: required and optional params', async () => {
+  test('submit: required and optional params', async () => {
     const response = await client.ai.incubator.pitch.submit({
       businessPlan:
         'Quantum-AI powered financial advisor platform leveraging neural networks for predictive analytics and hyper-personalized advice...',
@@ -67,8 +64,7 @@ describe('resource pitch', () => {
     });
   });
 
-  // Prism tests are disabled
-  test.skip('submitFeedback', async () => {
+  test('submitFeedback', async () => {
     const responsePromise = client.ai.incubator.pitch.submitFeedback('pitch_qw_synergychain-xyz', {});
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);

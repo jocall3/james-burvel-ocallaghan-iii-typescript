@@ -16,11 +16,11 @@ export class Simulations extends APIResource {
    * ```ts
    * const simulation =
    *   await client.ai.oracle.simulations.retrieve(
-   *     'simulationId',
+   *     'sim_oracle-growth-2024-xyz',
    *   );
    * ```
    */
-  retrieve(simulationID: string, options?: RequestOptions): APIPromise<SimulationRetrieveResponse> {
+  retrieve(simulationID: unknown, options?: RequestOptions): APIPromise<SimulationRetrieveResponse> {
     return this._client.get(path`/ai/oracle/simulations/${simulationID}`, options);
   }
 
@@ -46,10 +46,12 @@ export class Simulations extends APIResource {
    *
    * @example
    * ```ts
-   * await client.ai.oracle.simulations.delete('simulationId');
+   * await client.ai.oracle.simulations.delete(
+   *   'sim_oracle-growth-2024-xyz',
+   * );
    * ```
    */
-  delete(simulationID: string, options?: RequestOptions): APIPromise<void> {
+  delete(simulationID: unknown, options?: RequestOptions): APIPromise<void> {
     return this._client.delete(path`/ai/oracle/simulations/${simulationID}`, {
       ...options,
       headers: buildHeaders([{ Accept: '*/*' }, options?.headers]),
@@ -62,40 +64,45 @@ export type SimulationRetrieveResponse =
   | SimulateAPI.AdvancedSimulationResponse;
 
 export interface SimulationListResponse {
+  /**
+   * The maximum number of items returned in the current page.
+   */
+  limit: unknown;
+
+  /**
+   * The number of items skipped before the current page.
+   */
+  offset: unknown;
+
+  /**
+   * The total number of items available across all pages.
+   */
+  total: unknown;
+
   data?: Array<SimulationListResponse.Data>;
 
   /**
-   * The maximum number of items returned per page.
+   * The offset for the next page of results, if available. Null if no more pages.
    */
-  limit?: number;
-
-  /**
-   * The starting index of the list for pagination.
-   */
-  offset?: number;
-
-  /**
-   * The total number of available items.
-   */
-  total?: number;
+  nextOffset?: unknown;
 }
 
 export namespace SimulationListResponse {
   export interface Data {
     /**
-     * Timestamp when the simulation was created.
+     * Timestamp when the simulation was initiated.
      */
-    creationDate: string;
+    creationDate: unknown;
 
     /**
      * Timestamp when the simulation status or results were last updated.
      */
-    lastUpdated: string;
+    lastUpdated: unknown;
 
     /**
      * Unique identifier for the simulation.
      */
-    simulationId: string;
+    simulationId: unknown;
 
     /**
      * Current status of the simulation.
@@ -103,27 +110,27 @@ export namespace SimulationListResponse {
     status: 'processing' | 'completed' | 'failed';
 
     /**
-     * A brief summary of the simulation's purpose or key finding.
+     * A brief summary of what the simulation evaluated.
      */
-    summary: string;
+    summary: unknown;
 
     /**
-     * User-friendly title of the simulation.
+     * A user-friendly title for the simulation.
      */
-    title: string;
+    title: unknown;
   }
 }
 
 export interface SimulationListParams {
   /**
-   * Maximum number of items to return.
+   * Maximum number of items to return in a single page.
    */
-  limit?: number;
+  limit?: unknown;
 
   /**
    * Number of items to skip before starting to collect the result set.
    */
-  offset?: number;
+  offset?: unknown;
 }
 
 export declare namespace Simulations {

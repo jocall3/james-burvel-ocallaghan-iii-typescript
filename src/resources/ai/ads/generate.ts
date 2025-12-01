@@ -14,11 +14,11 @@ export class Generate extends APIResource {
    * @example
    * ```ts
    * const response = await client.ai.ads.generate.advanced({
-   *   aspectRatio: '16:9',
    *   lengthSeconds: 30,
    *   prompt:
    *     "A professional ad showcasing 's corporate finance solutions, targeting business owners. Highlight security and efficiency.",
    *   style: 'Minimalist',
+   *   aspectRatio: '16:9',
    *   audienceTarget: 'corporate',
    *   brandAssets: [
    *     'https://demobank.com/assets/corporate_logo.png',
@@ -46,11 +46,11 @@ export class Generate extends APIResource {
    * @example
    * ```ts
    * const response = await client.ai.ads.generate.standard({
-   *   aspectRatio: '16:9',
    *   lengthSeconds: 15,
    *   prompt:
    *     "A captivating ad featuring a young entrepreneur using 's AI tools to grow their startup. Focus on innovation and ease of use.",
    *   style: 'Cinematic',
+   *   aspectRatio: '16:9',
    *   brandColors: ['#0000FF', '#FFD700'],
    * });
    * ```
@@ -62,34 +62,34 @@ export class Generate extends APIResource {
 
 export interface GenerateVideoRequest {
   /**
-   * Desired aspect ratio of the video (e.g., for YouTube, Instagram Reels).
-   */
-  aspectRatio: '16:9' | '9:16' | '1:1';
-
-  /**
    * Desired length of the video in seconds.
    */
-  lengthSeconds: number;
+  lengthSeconds: unknown;
 
   /**
-   * Textual description for the AI to generate the video content.
+   * The textual prompt to guide the AI video generation.
    */
-  prompt: string;
+  prompt: unknown;
 
   /**
-   * Artistic style preference for the video.
+   * Artistic style of the video.
    */
-  style: 'Realistic' | 'Cinematic' | 'Animated' | 'Abstract' | 'Minimalist';
+  style: 'Cinematic' | 'Explainer' | 'Documentary' | 'Abstract' | 'Minimalist';
 
   /**
-   * Optional list of brand hex colors to influence the video's aesthetic.
+   * Aspect ratio of the video (e.g., 16:9 for widescreen, 9:16 for vertical shorts).
    */
-  brandColors?: Array<string> | null;
+  aspectRatio?: '16:9' | '9:16' | '1:1';
 
   /**
-   * Additional keywords to guide AI content generation.
+   * Optional: Hex color codes to influence the video's aesthetic.
    */
-  keywords?: Array<string> | null;
+  brandColors?: Array<unknown> | null;
+
+  /**
+   * Optional: Additional keywords to guide the AI's content generation.
+   */
+  keywords?: Array<unknown> | null;
 }
 
 export interface GenerateAdvancedResponse {
@@ -97,131 +97,131 @@ export interface GenerateAdvancedResponse {
    * Estimated time until advanced video generation is complete. May be longer than
    * standard generation.
    */
-  estimatedCompletionTimeSeconds?: number;
+  estimatedCompletionTimeSeconds?: unknown;
 
   /**
    * The unique identifier for the advanced video generation operation.
    */
-  operationId?: string;
+  operationId?: unknown;
 }
 
 export interface GenerateStandardResponse {
   /**
    * Estimated time until video generation is complete.
    */
-  estimatedCompletionTimeSeconds?: number;
+  estimatedCompletionTimeSeconds?: unknown;
 
   /**
    * The unique identifier for the video generation operation.
    */
-  operationId?: string;
+  operationId?: unknown;
 }
 
 export interface GenerateAdvancedParams {
   /**
-   * Desired aspect ratio of the video (e.g., for YouTube, Instagram Reels).
-   */
-  aspectRatio: '16:9' | '9:16' | '1:1';
-
-  /**
    * Desired length of the video in seconds.
    */
-  lengthSeconds: number;
+  lengthSeconds: unknown;
 
   /**
-   * Textual description for the AI to generate the video content.
+   * The textual prompt to guide the AI video generation.
    */
-  prompt: string;
+  prompt: unknown;
 
   /**
-   * Artistic style preference for the video.
+   * Artistic style of the video.
    */
-  style: 'Realistic' | 'Cinematic' | 'Animated' | 'Abstract' | 'Minimalist';
+  style: 'Cinematic' | 'Explainer' | 'Documentary' | 'Abstract' | 'Minimalist';
 
   /**
-   * Target audience to optimize messaging and visuals.
+   * Aspect ratio of the video (e.g., 16:9 for widescreen, 9:16 for vertical shorts).
    */
-  audienceTarget?: 'general' | 'young_adults' | 'corporate' | 'small_business' | 'investors' | null;
+  aspectRatio?: '16:9' | '9:16' | '1:1';
 
   /**
-   * Desired background music style.
+   * Target audience for the ad, influencing tone and visuals.
    */
-  backgroundMusic?: 'upbeat' | 'calm' | 'dramatic' | 'none' | null;
+  audienceTarget?: 'general' | 'corporate' | 'investor' | 'youth' | null;
+
+  /**
+   * Genre of background music.
+   */
+  backgroundMusicGenre?: 'corporate' | 'uplifting' | 'ambient' | 'cinematic' | 'none' | null;
 
   /**
    * URLs to brand assets (e.g., logos, specific imagery) to be incorporated.
    */
-  brandAssets?: Array<string> | null;
+  brandAssets?: Array<unknown> | null;
 
   /**
-   * Optional list of brand hex colors to influence the video's aesthetic.
+   * Optional: Hex color codes to influence the video's aesthetic.
    */
-  brandColors?: Array<string> | null;
+  brandColors?: Array<unknown> | null;
 
   /**
-   * Details for an integrated call-to-action button or text overlay.
+   * Call-to-action text and URL to be displayed.
    */
   callToAction?: GenerateAdvancedParams.CallToAction | null;
 
   /**
-   * Additional keywords to guide AI content generation.
+   * Optional: Additional keywords to guide the AI's content generation.
    */
-  keywords?: Array<string> | null;
+  keywords?: Array<unknown> | null;
 
   /**
-   * Style of the AI-generated voiceover.
+   * Style/tone for the AI voiceover.
    */
   voiceoverStyle?: 'male_professional' | 'female_friendly' | 'neutral_calm' | null;
 
   /**
-   * Specific text for a generated voiceover.
+   * Optional: Text for an AI-generated voiceover.
    */
-  voiceoverText?: string | null;
+  voiceoverText?: unknown;
 }
 
 export namespace GenerateAdvancedParams {
   /**
-   * Details for an integrated call-to-action button or text overlay.
+   * Call-to-action text and URL to be displayed.
    */
   export interface CallToAction {
-    displayTimeSeconds?: number;
+    displayTimeSeconds?: unknown;
 
-    text?: string;
+    text?: unknown;
 
-    url?: string;
+    url?: unknown;
   }
 }
 
 export interface GenerateStandardParams {
   /**
-   * Desired aspect ratio of the video (e.g., for YouTube, Instagram Reels).
-   */
-  aspectRatio: '16:9' | '9:16' | '1:1';
-
-  /**
    * Desired length of the video in seconds.
    */
-  lengthSeconds: number;
+  lengthSeconds: unknown;
 
   /**
-   * Textual description for the AI to generate the video content.
+   * The textual prompt to guide the AI video generation.
    */
-  prompt: string;
+  prompt: unknown;
 
   /**
-   * Artistic style preference for the video.
+   * Artistic style of the video.
    */
-  style: 'Realistic' | 'Cinematic' | 'Animated' | 'Abstract' | 'Minimalist';
+  style: 'Cinematic' | 'Explainer' | 'Documentary' | 'Abstract' | 'Minimalist';
 
   /**
-   * Optional list of brand hex colors to influence the video's aesthetic.
+   * Aspect ratio of the video (e.g., 16:9 for widescreen, 9:16 for vertical shorts).
    */
-  brandColors?: Array<string> | null;
+  aspectRatio?: '16:9' | '9:16' | '1:1';
 
   /**
-   * Additional keywords to guide AI content generation.
+   * Optional: Hex color codes to influence the video's aesthetic.
    */
-  keywords?: Array<string> | null;
+  brandColors?: Array<unknown> | null;
+
+  /**
+   * Optional: Additional keywords to guide the AI's content generation.
+   */
+  keywords?: Array<unknown> | null;
 }
 
 export declare namespace Generate {

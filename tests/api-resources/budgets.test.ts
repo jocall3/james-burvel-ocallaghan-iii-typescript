@@ -7,8 +7,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource budgets', () => {
-  // Prism tests are disabled
-  test.skip('create: only required params', async () => {
+  test('create: only required params', async () => {
     const responsePromise = client.budgets.create({
       endDate: '2024-09-30',
       name: 'September Living Expenses',
@@ -25,8 +24,7 @@ describe('resource budgets', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('create: required and optional params', async () => {
+  test('create: required and optional params', async () => {
     const response = await client.budgets.create({
       endDate: '2024-09-30',
       name: 'September Living Expenses',
@@ -42,8 +40,7 @@ describe('resource budgets', () => {
     });
   });
 
-  // Prism tests are disabled
-  test.skip('retrieve', async () => {
+  test('retrieve', async () => {
     const responsePromise = client.budgets.retrieve('budget_monthly_aug');
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -54,8 +51,7 @@ describe('resource budgets', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('update', async () => {
+  test('update', async () => {
     const responsePromise = client.budgets.update('budget_monthly_aug', {});
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -66,8 +62,7 @@ describe('resource budgets', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('list', async () => {
+  test('list', async () => {
     const responsePromise = client.budgets.list();
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -78,8 +73,14 @@ describe('resource budgets', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('delete', async () => {
+  test('list: request options and params are passed correctly', async () => {
+    // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
+    await expect(
+      client.budgets.list({ limit: {}, offset: {} }, { path: '/_stainless_unknown_path' }),
+    ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);
+  });
+
+  test('delete', async () => {
     const responsePromise = client.budgets.delete('budget_monthly_aug');
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);

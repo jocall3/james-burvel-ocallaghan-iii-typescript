@@ -7,8 +7,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource transactions', () => {
-  // Prism tests are disabled
-  test.skip('listPendingTransactions', async () => {
+  test('listPendingTransactions', async () => {
     const responsePromise = client.accounts.transactions.listPendingTransactions('acc_chase_checking_4567');
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -17,5 +16,16 @@ describe('resource transactions', () => {
     const dataAndResponse = await responsePromise.withResponse();
     expect(dataAndResponse.data).toBe(response);
     expect(dataAndResponse.response).toBe(rawResponse);
+  });
+
+  test('listPendingTransactions: request options and params are passed correctly', async () => {
+    // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
+    await expect(
+      client.accounts.transactions.listPendingTransactions(
+        'acc_chase_checking_4567',
+        { limit: {}, offset: {} },
+        { path: '/_stainless_unknown_path' },
+      ),
+    ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);
   });
 });

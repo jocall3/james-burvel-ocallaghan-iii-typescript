@@ -27,44 +27,44 @@ export class CashFlow extends APIResource {
 
 export interface CashFlowForecastResponse {
   /**
-   * AI-driven actionable recommendations for treasury optimization.
+   * AI-generated recommendations for treasury optimization.
    */
   aiRecommendations: Array<InsightsAPI.AIInsight>;
 
   /**
-   * The primary currency of the forecast.
+   * The currency of the forecast.
    */
-  currency: string;
+  currency: unknown;
 
   /**
-   * Unique identifier for the cash flow forecast.
+   * Unique identifier for the cash flow forecast report.
    */
-  forecastId: string;
+  forecastId: unknown;
 
   /**
-   * Forecasted cash inflows categorized by source.
+   * Forecast of cash inflows by source.
    */
   inflowForecast: CashFlowForecastResponse.InflowForecast;
 
   /**
-   * AI-calculated score (0-100) indicating the risk of liquidity shortfalls.
+   * AI-assessed risk score for liquidity (0-100, lower is better).
    */
-  liquidityRiskScore: number;
+  liquidityRiskScore: unknown;
 
   /**
-   * Forecasted cash outflows categorized by spending category.
+   * Forecast of cash outflows by category.
    */
   outflowForecast: CashFlowForecastResponse.OutflowForecast;
 
   /**
-   * Overall assessment of the corporate cash flow outlook.
+   * Overall assessment of the projected cash flow.
    */
-  overallStatus: 'positive_outlook' | 'neutral' | 'negative_outlook' | 'critical_risk';
+  overallStatus: 'positive_outlook' | 'negative_outlook' | 'stable' | 'uncertain';
 
   /**
-   * The forecast period (e.g., 'Next 30 Days', 'Q3 2024').
+   * The period covered by the forecast.
    */
-  period: string;
+  period: unknown;
 
   /**
    * Projected cash balances at key dates, potentially across different scenarios.
@@ -74,43 +74,43 @@ export interface CashFlowForecastResponse {
 
 export namespace CashFlowForecastResponse {
   /**
-   * Forecasted cash inflows categorized by source.
+   * Forecast of cash inflows by source.
    */
   export interface InflowForecast {
     bySource?: Array<InflowForecast.BySource>;
 
-    totalProjected?: number;
+    totalProjected?: unknown;
   }
 
   export namespace InflowForecast {
     export interface BySource {
-      amount?: number;
+      amount?: unknown;
 
-      source?: string;
+      source?: unknown;
     }
   }
 
   /**
-   * Forecasted cash outflows categorized by spending category.
+   * Forecast of cash outflows by category.
    */
   export interface OutflowForecast {
     byCategory?: Array<OutflowForecast.ByCategory>;
 
-    totalProjected?: number;
+    totalProjected?: unknown;
   }
 
   export namespace OutflowForecast {
     export interface ByCategory {
-      amount?: number;
+      amount?: unknown;
 
-      category?: string;
+      category?: unknown;
     }
   }
 
   export interface ProjectedBalance {
-    date?: string;
+    date?: unknown;
 
-    projectedCash?: number;
+    projectedCash?: unknown;
 
     scenario?: 'most_likely' | 'best_case' | 'worst_case';
   }
@@ -118,14 +118,16 @@ export namespace CashFlowForecastResponse {
 
 export interface CashFlowForecastParams {
   /**
-   * Number of days into the future for the cash flow forecast.
+   * The number of days into the future for which to generate the cash flow forecast
+   * (e.g., 30, 90, 180).
    */
-  forecastHorizonDays?: number;
+  forecastHorizonDays?: unknown;
 
   /**
-   * If true, the forecast will include best-case and worst-case scenarios.
+   * If true, the forecast will include best-case and worst-case scenario analysis
+   * alongside the most likely projection.
    */
-  includeScenarioAnalysis?: boolean;
+  includeScenarioAnalysis?: unknown;
 }
 
 export declare namespace CashFlow {

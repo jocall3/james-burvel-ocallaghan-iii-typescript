@@ -76,28 +76,31 @@ export class Biometrics extends APIResource {
   }
 }
 
+/**
+ * Current biometric enrollment status for a user.
+ */
 export interface BiometricStatus {
   /**
-   * True if any biometric data is currently enrolled for the user.
+   * Overall status indicating if any biometrics are enrolled.
    */
-  biometricsEnrolled: boolean;
+  biometricsEnrolled: unknown;
 
   /**
-   * List of currently enrolled biometric methods and their associated devices.
+   * List of specific biometric types and devices enrolled.
    */
   enrolledBiometrics: Array<BiometricStatus.EnrolledBiometric>;
 
   /**
    * Timestamp of the last successful biometric authentication.
    */
-  lastUsed?: string | null;
+  lastUsed?: unknown;
 }
 
 export namespace BiometricStatus {
   export interface EnrolledBiometric {
-    deviceId?: string;
+    deviceId?: unknown;
 
-    enrollmentDate?: string;
+    enrollmentDate?: unknown;
 
     type?: 'fingerprint' | 'facial_recognition' | 'voice_recognition';
   }
@@ -107,7 +110,7 @@ export interface BiometricVerifyResponse {
   /**
    * A descriptive message for the verification result.
    */
-  message?: string;
+  message?: unknown;
 
   /**
    * Status of the biometric verification.
@@ -117,41 +120,41 @@ export interface BiometricVerifyResponse {
 
 export interface BiometricEnrollParams {
   /**
-   * Base64 encoded biometric template or proof for enrollment.
+   * Base64 encoded representation of the biometric template or proof.
    */
-  biometricSignature: string;
+  biometricSignature: unknown;
 
   /**
-   * Type of biometric data to enroll.
+   * The type of biometric data being enrolled.
    */
   biometricType: 'fingerprint' | 'facial_recognition' | 'voice_recognition';
 
   /**
-   * The ID of the device on which the biometric data is being enrolled.
+   * The ID of the device on which the biometric is being enrolled.
    */
-  deviceId: string;
+  deviceId: unknown;
 
   /**
-   * Optional: A friendly name for the device enrolling biometrics.
+   * Optional: A friendly name for the device, if not already linked.
    */
-  deviceName?: string | null;
+  deviceName?: unknown;
 }
 
 export interface BiometricVerifyParams {
   /**
-   * One-time, base64 encoded biometric proof for verification.
+   * Base64 encoded representation of the one-time biometric proof for verification.
    */
-  biometricSignature: string;
+  biometricSignature: unknown;
 
   /**
-   * Type of biometric data for verification.
+   * The type of biometric data being verified.
    */
   biometricType: 'fingerprint' | 'facial_recognition' | 'voice_recognition';
 
   /**
-   * The ID of the device from which the biometric verification attempt is made.
+   * The ID of the device initiating the biometric verification.
    */
-  deviceId: string;
+  deviceId: unknown;
 }
 
 export declare namespace Biometrics {

@@ -24,69 +24,67 @@ export class Investments extends APIResource {
 
 export interface InvestmentAnalyzeImpactResponse {
   /**
-   * AI-driven recommendations to improve the ESG profile of the portfolio.
+   * AI-driven recommendations to improve the portfolio's ESG impact.
    */
   aiRecommendations: Array<InsightsAPI.AIInsight>;
 
   /**
-   * Average ESG score for a comparable market benchmark.
+   * Average ESG score of a relevant market benchmark for comparison.
    */
-  benchmarkESGScore: number;
+  benchmarkESGScore: unknown;
 
   /**
-   * Breakdown of the portfolio's ESG score into environmental, social, and
-   * governance components.
+   * Breakdown of the portfolio's ESG score by individual factors.
    */
   breakdownByESGFactors: InvestmentAnalyzeImpactResponse.BreakdownByEsgFactors;
 
   /**
-   * List of lowest-scoring holdings by their individual ESG score.
+   * Lowest holdings in the portfolio by ESG score.
    */
   lowestESGHoldings: Array<InvestmentAnalyzeImpactResponse.LowestEsgHolding>;
 
   /**
-   * Overall aggregated ESG score for the entire portfolio.
+   * Overall ESG score of the entire portfolio (0-10).
    */
-  overallESGScore: number;
+  overallESGScore: unknown;
 
   /**
-   * The ID of the investment portfolio analyzed.
+   * ID of the investment portfolio analyzed.
    */
-  portfolioId: string;
+  portfolioId: unknown;
 
   /**
-   * List of top holdings by their individual ESG score.
+   * Top holdings in the portfolio by ESG score.
    */
   topESGHoldings: Array<InvestmentAnalyzeImpactResponse.TopEsgHolding>;
 }
 
 export namespace InvestmentAnalyzeImpactResponse {
   /**
-   * Breakdown of the portfolio's ESG score into environmental, social, and
-   * governance components.
+   * Breakdown of the portfolio's ESG score by individual factors.
    */
   export interface BreakdownByEsgFactors {
-    environmentalScore?: number;
+    environmentalScore?: unknown;
 
-    governanceScore?: number;
+    governanceScore?: unknown;
 
-    socialScore?: number;
+    socialScore?: unknown;
   }
 
   export interface LowestEsgHolding {
-    assetName?: string;
+    assetName?: unknown;
 
-    assetSymbol?: string;
+    assetSymbol?: unknown;
 
-    esgScore?: number;
+    esgScore?: unknown;
   }
 
   export interface TopEsgHolding {
-    assetName?: string;
+    assetName?: unknown;
 
-    assetSymbol?: string;
+    assetSymbol?: unknown;
 
-    esgScore?: number;
+    esgScore?: unknown;
   }
 }
 

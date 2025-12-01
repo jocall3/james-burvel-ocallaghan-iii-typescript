@@ -44,7 +44,7 @@ export class Budgets extends APIResource {
    * );
    * ```
    */
-  retrieve(budgetID: string, options?: RequestOptions): APIPromise<Budget> {
+  retrieve(budgetID: unknown, options?: RequestOptions): APIPromise<Budget> {
     return this._client.get(path`/budgets/${budgetID}`, options);
   }
 
@@ -60,7 +60,7 @@ export class Budgets extends APIResource {
    * );
    * ```
    */
-  update(budgetID: string, body: BudgetUpdateParams, options?: RequestOptions): APIPromise<Budget> {
+  update(budgetID: unknown, body: BudgetUpdateParams, options?: RequestOptions): APIPromise<Budget> {
     return this._client.put(path`/budgets/${budgetID}`, { body, ...options });
   }
 
@@ -73,8 +73,11 @@ export class Budgets extends APIResource {
    * const budgets = await client.budgets.list();
    * ```
    */
-  list(options?: RequestOptions): APIPromise<BudgetListResponse> {
-    return this._client.get('/budgets', options);
+  list(
+    query: BudgetListParams | null | undefined = {},
+    options?: RequestOptions,
+  ): APIPromise<BudgetListResponse> {
+    return this._client.get('/budgets', { query, ...options });
   }
 
   /**
@@ -85,7 +88,7 @@ export class Budgets extends APIResource {
    * await client.budgets.delete('budget_monthly_aug');
    * ```
    */
-  delete(budgetID: string, options?: RequestOptions): APIPromise<void> {
+  delete(budgetID: unknown, options?: RequestOptions): APIPromise<void> {
     return this._client.delete(path`/budgets/${budgetID}`, {
       ...options,
       headers: buildHeaders([{ Accept: '*/*' }, options?.headers]),
@@ -97,62 +100,62 @@ export interface Budget {
   /**
    * Unique identifier for the budget.
    */
-  id: string;
+  id: unknown;
+
+  /**
+   * Percentage threshold at which an alert is triggered (e.g., 80% spent).
+   */
+  alertThreshold: unknown;
+
+  /**
+   * Breakdown of the budget by categories.
+   */
+  categories: Array<Budget.Category>;
 
   /**
    * End date of the budget period.
    */
-  endDate: string;
+  endDate: unknown;
 
   /**
    * Name of the budget.
    */
-  name: string;
+  name: unknown;
 
   /**
-   * Recurrence period of the budget.
+   * The frequency or period of the budget.
    */
   period: 'weekly' | 'bi_weekly' | 'monthly' | 'quarterly' | 'annually' | 'custom';
 
   /**
    * Remaining amount in the budget.
    */
-  remainingAmount: number;
+  remainingAmount: unknown;
 
   /**
-   * Amount spent so far in the current budget period.
+   * Total amount spent against this budget so far.
    */
-  spentAmount: number;
+  spentAmount: unknown;
 
   /**
    * Start date of the budget period.
    */
-  startDate: string;
+  startDate: unknown;
 
   /**
    * Current status of the budget.
    */
-  status: 'active' | 'completed' | 'upcoming' | 'archived';
+  status: 'active' | 'archived' | 'ended';
 
   /**
-   * Total allocated amount for the budget.
+   * Total amount allocated for the entire budget.
    */
-  totalAmount: number;
+  totalAmount: unknown;
 
   /**
-   * AI-driven recommendations for budget optimization.
+   * AI-driven recommendations related to this budget.
    */
   aiRecommendations?: Array<InsightsAPI.AIInsight> | null;
-
-  /**
-   * Percentage threshold at which an alert is triggered (e.g., 80% of budget spent).
-   */
-  alertThreshold?: number | null;
-
-  /**
-   * Breakdown of the budget by categories.
-   */
-  categories?: Array<Budget.Category>;
 }
 
 export namespace Budget {
@@ -160,81 +163,97 @@ export namespace Budget {
     /**
      * Amount allocated to this category.
      */
-    allocated: number;
+    allocated: unknown;
 
     /**
      * Name of the budget category.
      */
-    name: string;
-
-    /**
-     * Percentage of allocated amount spent.
-     */
-    progressPercentage?: number;
+    name: unknown;
 
     /**
      * Remaining amount in this category.
      */
-    remaining?: number;
+    remaining: unknown;
 
     /**
-     * Amount spent in this category.
+     * Amount spent in this category so far.
      */
-    spent?: number;
+    spent: unknown;
   }
 }
 
-export type BudgetListResponse = Array<Budget>;
+export interface BudgetListResponse {
+  /**
+   * The maximum number of items returned in the current page.
+   */
+  limit: unknown;
+
+  /**
+   * The number of items skipped before the current page.
+   */
+  offset: unknown;
+
+  /**
+   * The total number of items available across all pages.
+   */
+  total: unknown;
+
+  data?: Array<Budget>;
+
+  /**
+   * The offset for the next page of results, if available. Null if no more pages.
+   */
+  nextOffset?: unknown;
+}
 
 export interface BudgetCreateParams {
   /**
    * End date of the budget period.
    */
-  endDate: string;
+  endDate: unknown;
 
   /**
-   * Name for the new budget.
+   * Name of the new budget.
    */
-  name: string;
+  name: unknown;
 
   /**
-   * Recurrence period of the budget.
+   * The frequency or period of the budget.
    */
   period: 'weekly' | 'bi_weekly' | 'monthly' | 'quarterly' | 'annually' | 'custom';
 
   /**
    * Start date of the budget period.
    */
-  startDate: string;
+  startDate: unknown;
 
   /**
-   * Total allocated amount for the budget.
+   * Total amount allocated for the entire budget.
    */
-  totalAmount: number;
+  totalAmount: unknown;
 
   /**
-   * If true, AI will automatically suggest and fill in budget categories and amounts
-   * based on spending history.
+   * If true, AI will automatically populate categories and amounts based on
+   * historical spending.
    */
-  aiAutoPopulate?: boolean;
+  aiAutoPopulate?: unknown;
 
   /**
    * Percentage threshold at which an alert is triggered.
    */
-  alertThreshold?: number | null;
+  alertThreshold?: unknown;
 
   /**
-   * Initial breakdown of the budget by categories (can be partially defined for AI
-   * auto-population).
+   * Initial breakdown of the budget by categories.
    */
   categories?: Array<BudgetCreateParams.Category>;
 }
 
 export namespace BudgetCreateParams {
   export interface Category {
-    allocated?: number;
+    allocated?: unknown;
 
-    name?: string;
+    name?: unknown;
   }
 }
 
@@ -242,51 +261,58 @@ export interface BudgetUpdateParams {
   /**
    * Updated percentage threshold for alerts.
    */
-  alertThreshold?: number | null;
+  alertThreshold?: unknown;
 
   /**
-   * Updated breakdown of the budget by categories. Existing categories not provided
-   * will remain unchanged.
+   * Updated breakdown of the budget by categories. Existing categories will be
+   * updated, new ones added.
    */
   categories?: Array<BudgetUpdateParams.Category>;
 
   /**
    * Updated end date of the budget period.
    */
-  endDate?: string;
+  endDate?: unknown;
 
   /**
    * Updated name of the budget.
    */
-  name?: string;
-
-  /**
-   * Updated recurrence period of the budget.
-   */
-  period?: 'weekly' | 'bi_weekly' | 'monthly' | 'quarterly' | 'annually' | 'custom';
+  name?: unknown;
 
   /**
    * Updated start date of the budget period.
    */
-  startDate?: string;
+  startDate?: unknown;
 
   /**
    * Updated status of the budget.
    */
-  status?: 'active' | 'completed' | 'upcoming' | 'archived';
+  status?: 'active' | 'archived' | 'ended';
 
   /**
-   * Updated total allocated amount for the budget.
+   * Updated total amount for the entire budget.
    */
-  totalAmount?: number;
+  totalAmount?: unknown;
 }
 
 export namespace BudgetUpdateParams {
   export interface Category {
-    allocated?: number;
+    allocated?: unknown;
 
-    name?: string;
+    name?: unknown;
   }
+}
+
+export interface BudgetListParams {
+  /**
+   * Maximum number of items to return in a single page.
+   */
+  limit?: unknown;
+
+  /**
+   * Number of items to skip before starting to collect the result set.
+   */
+  offset?: unknown;
 }
 
 export declare namespace Budgets {
@@ -295,5 +321,6 @@ export declare namespace Budgets {
     type BudgetListResponse as BudgetListResponse,
     type BudgetCreateParams as BudgetCreateParams,
     type BudgetUpdateParams as BudgetUpdateParams,
+    type BudgetListParams as BudgetListParams,
   };
 }

@@ -7,8 +7,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource incubator', () => {
-  // Prism tests are disabled
-  test.skip('listPitches', async () => {
+  test('listPitches', async () => {
     const responsePromise = client.ai.incubator.listPitches();
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -19,12 +18,11 @@ describe('resource incubator', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('listPitches: request options and params are passed correctly', async () => {
+  test('listPitches: request options and params are passed correctly', async () => {
     // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
     await expect(
       client.ai.incubator.listPitches(
-        { limit: 50, offset: 0, status: 'feedback_required' },
+        { limit: {}, offset: {}, status: 'feedback_required' },
         { path: '/_stainless_unknown_path' },
       ),
     ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);

@@ -47,166 +47,192 @@ export interface FxConvertResponse {
   /**
    * Unique identifier for the currency conversion.
    */
-  conversionId: string;
+  conversionId: unknown;
 
   /**
    * Timestamp when the conversion was completed.
    */
-  conversionTimestamp: string;
+  conversionTimestamp: unknown;
 
   /**
-   * Total fees applied to the conversion.
+   * The foreign exchange rate applied (target per source currency).
    */
-  feesApplied: number;
+  fxRateApplied: unknown;
 
   /**
-   * The foreign exchange rate applied (target_currency / source_currency).
+   * The amount converted from the source currency.
    */
-  fxRateApplied: number;
+  sourceAmount: unknown;
 
   /**
-   * Amount converted from the source currency.
+   * The source currency code.
    */
-  sourceAmount: number;
-
-  /**
-   * Currency of the source amount.
-   */
-  sourceCurrency: string;
+  sourceCurrency: unknown;
 
   /**
    * Status of the currency conversion.
    */
-  status: 'completed' | 'failed' | 'cancelled';
+  status: 'completed' | 'pending' | 'failed';
 
   /**
-   * Amount received in the target currency.
+   * The amount converted into the target currency.
    */
-  targetAmount: number;
+  targetAmount: unknown;
 
   /**
-   * Associated transaction ID in the user's account history.
+   * Any fees applied to the conversion.
    */
-  transactionId?: string | null;
+  feesApplied?: unknown;
+
+  /**
+   * The target currency code.
+   */
+  targetCurrency?: unknown;
+
+  /**
+   * The ID of the internal transaction representing this conversion.
+   */
+  transactionId?: unknown;
 }
 
 export interface FxRetrieveRatesResponse {
   /**
-   * The base currency for the rate.
+   * The base currency code.
    */
-  baseCurrency: string;
+  baseCurrency: unknown;
 
   /**
-   * Current real-time foreign exchange rates.
+   * Real-time foreign exchange rates.
    */
   currentRate: FxRetrieveRatesResponse.CurrentRate;
 
   /**
-   * The target currency for the rate.
+   * The target currency code.
    */
-  targetCurrency: string;
+  targetCurrency: unknown;
 
-  /**
-   * Historical volatility metrics for the currency pair.
-   */
   historicalVolatility?: FxRetrieveRatesResponse.HistoricalVolatility;
 
   /**
-   * AI-predicted foreign exchange rates for future dates with confidence intervals.
+   * AI-predicted foreign exchange rates for future dates.
    */
-  predictiveRates?: Array<FxRetrieveRatesResponse.PredictiveRate>;
+  predictiveRates?: Array<FxRetrieveRatesResponse.PredictiveRate> | null;
 }
 
 export namespace FxRetrieveRatesResponse {
   /**
-   * Current real-time foreign exchange rates.
+   * Real-time foreign exchange rates.
    */
   export interface CurrentRate {
-    ask?: number;
+    /**
+     * Current ask rate (price at which a currency dealer will sell the base currency).
+     */
+    ask?: unknown;
 
-    bid?: number;
+    /**
+     * Current bid rate (price at which a currency dealer will buy the base currency).
+     */
+    bid?: unknown;
 
-    mid?: number;
+    /**
+     * Mid-market rate (average of bid and ask).
+     */
+    mid?: unknown;
 
-    timestamp?: string;
+    /**
+     * Timestamp of the current rate.
+     */
+    timestamp?: unknown;
   }
 
-  /**
-   * Historical volatility metrics for the currency pair.
-   */
   export interface HistoricalVolatility {
-    past30Days?: number;
+    /**
+     * Historical volatility over the past 30 days.
+     */
+    past30Days?: unknown;
 
-    past7Days?: number;
+    /**
+     * Historical volatility over the past 7 days.
+     */
+    past7Days?: unknown;
   }
 
   export interface PredictiveRate {
-    aiModelConfidence?: number;
+    /**
+     * AI model's confidence in the prediction (0-1).
+     */
+    aiModelConfidence?: unknown;
 
-    confidenceIntervalLower?: number;
+    /**
+     * Lower bound of the AI's confidence interval for the predicted rate.
+     */
+    confidenceIntervalLower?: unknown;
 
-    confidenceIntervalUpper?: number;
+    /**
+     * Upper bound of the AI's confidence interval for the predicted rate.
+     */
+    confidenceIntervalUpper?: unknown;
 
-    date?: string;
+    /**
+     * Date for the predicted rate.
+     */
+    date?: unknown;
 
-    predictedMidRate?: number;
+    /**
+     * AI-predicted mid-market rate.
+     */
+    predictedMidRate?: unknown;
   }
 }
 
 export interface FxConvertParams {
   /**
-   * The ID of the account from which to deduct the source amount.
+   * The ID of the account from which funds will be converted.
    */
-  sourceAccountId: string;
+  sourceAccountId: unknown;
 
   /**
    * The amount to convert from the source currency.
    */
-  sourceAmount: number;
+  sourceAmount: unknown;
 
   /**
-   * The currency to convert from.
+   * The ISO 4217 currency code of the source funds.
    */
-  sourceCurrency: string;
+  sourceCurrency: unknown;
 
   /**
-   * The currency to convert to.
+   * The ISO 4217 currency code for the target currency.
    */
-  targetCurrency: string;
+  targetCurrency: unknown;
 
   /**
-   * If true, attempts to lock the quoted FX rate for the conversion.
+   * If true, attempts to lock the quoted FX rate for a short period.
    */
-  fxRateLock?: boolean;
+  fxRateLock?: unknown;
 
   /**
-   * The desired provider for the foreign exchange rate.
+   * Optional: The ID of the account to deposit the converted funds. If null, funds
+   * are held in a wallet/balance.
    */
-  fxRateProvider?: 'proprietary_ai' | 'external_partner' | 'market_rate';
-
-  /**
-   * Optional: The ID of the account to credit with the converted target amount. If
-   * omitted, converted funds remain as a floating balance or are deposited into a
-   * primary account.
-   */
-  targetAccountId?: string | null;
+  targetAccountId?: unknown;
 }
 
 export interface FxRetrieveRatesParams {
   /**
    * The base currency code (e.g., USD).
    */
-  baseCurrency: string;
+  baseCurrency: unknown;
 
   /**
    * The target currency code (e.g., EUR).
    */
-  targetCurrency: string;
+  targetCurrency: unknown;
 
   /**
    * Number of days into the future to provide an AI-driven prediction.
    */
-  forecastDays?: number;
+  forecastDays?: unknown;
 }
 
 export declare namespace Fx {

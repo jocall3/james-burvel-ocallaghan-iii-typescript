@@ -7,8 +7,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource biometrics', () => {
-  // Prism tests are disabled
-  test.skip('deregister', async () => {
+  test('deregister', async () => {
     const responsePromise = client.users.me.biometrics.deregister();
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -19,8 +18,7 @@ describe('resource biometrics', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('enroll: only required params', async () => {
+  test('enroll: only required params', async () => {
     const responsePromise = client.users.me.biometrics.enroll({
       biometricSignature: 'base64encoded_facial_template_for_enrollment',
       biometricType: 'facial_recognition',
@@ -35,8 +33,7 @@ describe('resource biometrics', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('enroll: required and optional params', async () => {
+  test('enroll: required and optional params', async () => {
     const response = await client.users.me.biometrics.enroll({
       biometricSignature: 'base64encoded_facial_template_for_enrollment',
       biometricType: 'facial_recognition',
@@ -45,8 +42,7 @@ describe('resource biometrics', () => {
     });
   });
 
-  // Prism tests are disabled
-  test.skip('status', async () => {
+  test('status', async () => {
     const responsePromise = client.users.me.biometrics.status();
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -57,8 +53,7 @@ describe('resource biometrics', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('verify: only required params', async () => {
+  test('verify: only required params', async () => {
     const responsePromise = client.users.me.biometrics.verify({
       biometricSignature: 'base64encoded_one_time_fingerprint_proof',
       biometricType: 'fingerprint',
@@ -73,8 +68,7 @@ describe('resource biometrics', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('verify: required and optional params', async () => {
+  test('verify: required and optional params', async () => {
     const response = await client.users.me.biometrics.verify({
       biometricSignature: 'base64encoded_one_time_fingerprint_proof',
       biometricType: 'fingerprint',

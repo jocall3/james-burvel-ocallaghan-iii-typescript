@@ -3,10 +3,10 @@
 import { APIResource } from '../../core/resource';
 import * as ProductsAPI from './products';
 import {
-  ProductClaimOfferParams,
-  ProductClaimOfferResponse,
   ProductListParams,
   ProductListResponse,
+  ProductRedeemMarketplaceOfferParams,
+  ProductRedeemMarketplaceOfferResponse,
   ProductSimulatePurchaseParams,
   ProductSimulatePurchaseResponse,
   Products,
@@ -22,10 +22,10 @@ export declare namespace Marketplace {
   export {
     Products as Products,
     type ProductListResponse as ProductListResponse,
-    type ProductClaimOfferResponse as ProductClaimOfferResponse,
+    type ProductRedeemMarketplaceOfferResponse as ProductRedeemMarketplaceOfferResponse,
     type ProductSimulatePurchaseResponse as ProductSimulatePurchaseResponse,
     type ProductListParams as ProductListParams,
-    type ProductClaimOfferParams as ProductClaimOfferParams,
+    type ProductRedeemMarketplaceOfferParams as ProductRedeemMarketplaceOfferParams,
     type ProductSimulatePurchaseParams as ProductSimulatePurchaseParams,
   };
 }

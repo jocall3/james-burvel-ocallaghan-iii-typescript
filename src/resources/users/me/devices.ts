@@ -17,8 +17,11 @@ export class Devices extends APIResource {
    * const devices = await client.users.me.devices.list();
    * ```
    */
-  list(options?: RequestOptions): APIPromise<DeviceListResponse> {
-    return this._client.get('/users/me/devices', options);
+  list(
+    query: DeviceListParams | null | undefined = {},
+    options?: RequestOptions,
+  ): APIPromise<DeviceListResponse> {
+    return this._client.get('/users/me/devices', { query, ...options });
   }
 
   /**
@@ -33,7 +36,7 @@ export class Devices extends APIResource {
    * );
    * ```
    */
-  deregister(deviceID: string, options?: RequestOptions): APIPromise<void> {
+  deregister(deviceID: unknown, options?: RequestOptions): APIPromise<void> {
     return this._client.delete(path`/users/me/devices/${deviceID}`, {
       ...options,
       headers: buildHeaders([{ Accept: '*/*' }, options?.headers]),
@@ -62,91 +65,130 @@ export class Devices extends APIResource {
   }
 }
 
+/**
+ * Information about a connected device.
+ */
 export interface Device {
   /**
    * Unique identifier for the device.
    */
-  id: string;
+  id: unknown;
 
   /**
    * Last known IP address of the device.
    */
-  ipAddress: string;
+  ipAddress: unknown;
 
   /**
-   * Timestamp of last activity from this device.
+   * Timestamp of the last activity from this device.
    */
-  lastActive: string;
+  lastActive: unknown;
 
   /**
-   * Device model.
+   * Model of the device.
    */
-  model: string;
+  model: unknown;
 
   /**
-   * Operating system and version.
+   * Operating system of the device.
    */
-  os: string;
+  os: unknown;
 
   /**
    * Security trust level of the device.
    */
-  trustLevel: 'trusted' | 'untrusted' | 'pending_verification';
+  trustLevel: 'trusted' | 'pending_verification' | 'untrusted' | 'blocked';
 
   /**
-   * Type of device.
+   * Type of the device.
    */
   type: 'mobile' | 'desktop' | 'tablet' | 'smart_watch';
 
   /**
-   * User-defined name for the device.
+   * User-assigned name for the device.
    */
-  deviceName?: string | null;
+  deviceName?: unknown;
 
   /**
    * Push notification token for the device.
    */
-  pushToken?: string | null;
+  pushToken?: unknown;
 }
 
-export type DeviceListResponse = Array<Device>;
+export interface DeviceListResponse {
+  /**
+   * The maximum number of items returned in the current page.
+   */
+  limit: unknown;
+
+  /**
+   * The number of items skipped before the current page.
+   */
+  offset: unknown;
+
+  /**
+   * The total number of items available across all pages.
+   */
+  total: unknown;
+
+  data?: Array<Device>;
+
+  /**
+   * The offset for the next page of results, if available. Null if no more pages.
+   */
+  nextOffset?: unknown;
+}
+
+export interface DeviceListParams {
+  /**
+   * Maximum number of items to return in a single page.
+   */
+  limit?: unknown;
+
+  /**
+   * Number of items to skip before starting to collect the result set.
+   */
+  offset?: unknown;
+}
 
 export interface DeviceRegisterParams {
   /**
-   * Type of device being registered.
+   * Type of the device being registered.
    */
   deviceType: 'mobile' | 'desktop' | 'tablet' | 'smart_watch';
 
   /**
    * Model of the device.
    */
-  model: string;
+  model: unknown;
 
   /**
-   * Operating system and version of the device.
+   * Operating system of the device.
    */
-  os: string;
+  os: unknown;
 
   /**
-   * Base64 encoded biometric signature for initial enrollment (if applicable).
+   * Optional: Base64 encoded biometric signature for initial enrollment (e.g., for
+   * Passkey registration).
    */
-  biometricSignature?: string | null;
+  biometricSignature?: unknown;
 
   /**
-   * User-defined name for the device.
+   * Optional: A friendly name for the device.
    */
-  deviceName?: string | null;
+  deviceName?: unknown;
 
   /**
-   * Push notification token for the device.
+   * Optional: Push notification token for the device.
    */
-  pushToken?: string | null;
+  pushToken?: unknown;
 }
 
 export declare namespace Devices {
   export {
     type Device as Device,
     type DeviceListResponse as DeviceListResponse,
+    type DeviceListParams as DeviceListParams,
     type DeviceRegisterParams as DeviceRegisterParams,
   };
 }

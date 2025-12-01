@@ -11,11 +11,8 @@ It is generated with [Stainless](https://www.stainless.com/).
 ## Installation
 
 ```sh
-npm install git+ssh://git@github.com:jocall3/Citibank_Demo_Business_Inc_Demonstration-.git
+npm install james-burvel-ocallaghan-iii
 ```
-
-> [!NOTE]
-> Once this package is [published to npm](https://www.stainless.com/docs/guides/publish), this will become: `npm install james-burvel-ocallaghan-iii`
 
 ## Usage
 
@@ -31,7 +28,6 @@ const user = await client.users.register({
   email: 'alice.w@example.com',
   name: 'Alice Wonderland',
   password: 'SecureP@ssw0rd2024!',
-  phone: '+1-555-987-6543',
 });
 
 console.log(user.id);
@@ -51,7 +47,6 @@ const params: JamesBurvelOcallaghanIii.UserRegisterParams = {
   email: 'alice.w@example.com',
   name: 'Alice Wonderland',
   password: 'SecureP@ssw0rd2024!',
-  phone: '+1-555-987-6543',
 };
 const user: JamesBurvelOcallaghanIii.User = await client.users.register(params);
 ```
@@ -67,12 +62,7 @@ a subclass of `APIError` will be thrown:
 <!-- prettier-ignore -->
 ```ts
 const user = await client.users
-  .register({
-    email: 'alice.w@example.com',
-    name: 'Alice Wonderland',
-    password: 'SecureP@ssw0rd2024!',
-    phone: '+1-555-987-6543',
-  })
+  .register({ email: 'alice.w@example.com', name: 'Alice Wonderland', password: 'SecureP@ssw0rd2024!' })
   .catch(async (err) => {
     if (err instanceof JamesBurvelOcallaghanIii.APIError) {
       console.log(err.status); // 400
@@ -113,7 +103,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 // Or, configure per-request:
-await client.users.register({ email: 'alice.w@example.com', name: 'Alice Wonderland', password: 'SecureP@ssw0rd2024!', phone: '+1-555-987-6543' }, {
+await client.users.register({ email: 'alice.w@example.com', name: 'Alice Wonderland', password: 'SecureP@ssw0rd2024!' }, {
   maxRetries: 5,
 });
 ```
@@ -130,7 +120,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 // Override per-request:
-await client.users.register({ email: 'alice.w@example.com', name: 'Alice Wonderland', password: 'SecureP@ssw0rd2024!', phone: '+1-555-987-6543' }, {
+await client.users.register({ email: 'alice.w@example.com', name: 'Alice Wonderland', password: 'SecureP@ssw0rd2024!' }, {
   timeout: 5 * 1000,
 });
 ```
@@ -154,23 +144,13 @@ Unlike `.asResponse()` this method consumes the body, returning once it is parse
 const client = new JamesBurvelOcallaghanIii();
 
 const response = await client.users
-  .register({
-    email: 'alice.w@example.com',
-    name: 'Alice Wonderland',
-    password: 'SecureP@ssw0rd2024!',
-    phone: '+1-555-987-6543',
-  })
+  .register({ email: 'alice.w@example.com', name: 'Alice Wonderland', password: 'SecureP@ssw0rd2024!' })
   .asResponse();
 console.log(response.headers.get('X-My-Header'));
 console.log(response.statusText); // access the underlying Response object
 
 const { data: user, response: raw } = await client.users
-  .register({
-    email: 'alice.w@example.com',
-    name: 'Alice Wonderland',
-    password: 'SecureP@ssw0rd2024!',
-    phone: '+1-555-987-6543',
-  })
+  .register({ email: 'alice.w@example.com', name: 'Alice Wonderland', password: 'SecureP@ssw0rd2024!' })
   .withResponse();
 console.log(raw.headers.get('X-My-Header'));
 console.log(user.id);
@@ -363,7 +343,7 @@ This package generally follows [SemVer](https://semver.org/spec/v2.0.0.html) con
 
 We take backwards-compatibility seriously and work hard to ensure you can rely on a smooth upgrade experience.
 
-We are keen for your feedback; please open an [issue](https://www.github.com/jocall3/Citibank_Demo_Business_Inc_Demonstration-/issues) with questions, bugs, or suggestions.
+We are keen for your feedback; please open an [issue](https://www.github.com/jocall3/james-burvel-ocallaghan-iii-typescript/issues) with questions, bugs, or suggestions.
 
 ## Requirements
 

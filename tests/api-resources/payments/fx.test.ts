@@ -7,8 +7,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource fx', () => {
-  // Prism tests are disabled
-  test.skip('convert: only required params', async () => {
+  test('convert: only required params', async () => {
     const responsePromise = client.payments.fx.convert({
       sourceAccountId: 'acc_chase_checking_4567',
       sourceAmount: 1000,
@@ -24,21 +23,18 @@ describe('resource fx', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('convert: required and optional params', async () => {
+  test('convert: required and optional params', async () => {
     const response = await client.payments.fx.convert({
       sourceAccountId: 'acc_chase_checking_4567',
       sourceAmount: 1000,
       sourceCurrency: 'USD',
       targetCurrency: 'EUR',
       fxRateLock: true,
-      fxRateProvider: 'proprietary_ai',
       targetAccountId: 'acc_euro_savings_9876',
     });
   });
 
-  // Prism tests are disabled
-  test.skip('retrieveRates: only required params', async () => {
+  test('retrieveRates: only required params', async () => {
     const responsePromise = client.payments.fx.retrieveRates({ baseCurrency: 'USD', targetCurrency: 'EUR' });
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -49,8 +45,7 @@ describe('resource fx', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('retrieveRates: required and optional params', async () => {
+  test('retrieveRates: required and optional params', async () => {
     const response = await client.payments.fx.retrieveRates({
       baseCurrency: 'USD',
       targetCurrency: 'EUR',

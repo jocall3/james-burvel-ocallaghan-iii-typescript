@@ -4,7 +4,7 @@ import { APIResource } from '../../core/resource';
 import * as AdsAPI from './ads/ads';
 import { AdListGeneratedParams, AdListGeneratedResponse, Ads, VideoOperationStatus } from './ads/ads';
 import * as AdvisorAPI from './advisor/advisor';
-import { Advisor, AdvisorListToolsResponse } from './advisor/advisor';
+import { Advisor, AdvisorListToolsParams, AdvisorListToolsResponse } from './advisor/advisor';
 import * as IncubatorAPI from './incubator/incubator';
 import { Incubator, IncubatorListPitchesParams, IncubatorListPitchesResponse } from './incubator/incubator';
 import * as OracleAPI from './oracle/oracle';
@@ -23,7 +23,11 @@ AI.Incubator = Incubator;
 AI.Ads = Ads;
 
 export declare namespace AI {
-  export { Advisor as Advisor, type AdvisorListToolsResponse as AdvisorListToolsResponse };
+  export {
+    Advisor as Advisor,
+    type AdvisorListToolsResponse as AdvisorListToolsResponse,
+    type AdvisorListToolsParams as AdvisorListToolsParams,
+  };
 
   export { Oracle as Oracle };
 

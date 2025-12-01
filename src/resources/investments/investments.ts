@@ -7,6 +7,7 @@ import * as PortfoliosAPI from './portfolios';
 import {
   InvestmentPortfolio,
   PortfolioCreateParams,
+  PortfolioListParams,
   PortfolioListResponse,
   PortfolioRebalanceParams,
   PortfolioRebalanceResponse,
@@ -30,6 +31,7 @@ export declare namespace Investments {
     type PortfolioRebalanceResponse as PortfolioRebalanceResponse,
     type PortfolioCreateParams as PortfolioCreateParams,
     type PortfolioUpdateParams as PortfolioUpdateParams,
+    type PortfolioListParams as PortfolioListParams,
     type PortfolioRebalanceParams as PortfolioRebalanceParams,
   };
 

@@ -8,8 +8,9 @@ import { path } from '../../internal/utils/path';
 
 export class Products extends APIResource {
   /**
-   * Retrieves a list of personalized product recommendations from the Plato AI
-   * Marketplace.
+   * Retrieves a personalized, AI-curated list of products and services from the
+   * Plato AI marketplace, tailored to the user's financial profile, goals, and
+   * spending patterns. Includes options for filtering and advanced search.
    *
    * @example
    * ```ts
@@ -24,266 +25,309 @@ export class Products extends APIResource {
   }
 
   /**
-   * Allows the user to claim an exclusive, personalized offer for a marketplace
-   * product, often involving a discount code or special terms that are then linked
-   * to their account.
+   * Redeems a personalized, exclusive offer from the Plato AI marketplace, often
+   * resulting in a discount, special rate, or credit to the user's account.
    *
    * @example
    * ```ts
    * const response =
-   *   await client.marketplace.products.claimOffer(
-   *     'prod_smart_thermostat_001',
-   *     { redemptionChannel: 'in_app' },
+   *   await client.marketplace.products.redeemMarketplaceOffer(
+   *     'offer_home_ins_promo_1',
+   *     { paymentAccountId: 'acc_chase_checking_4567' },
    *   );
    * ```
    */
-  claimOffer(
-    productID: string,
-    body: ProductClaimOfferParams,
+  redeemMarketplaceOffer(
+    offerID: unknown,
+    body: ProductRedeemMarketplaceOfferParams | null | undefined = {},
     options?: RequestOptions,
-  ): APIPromise<ProductClaimOfferResponse> {
-    return this._client.post(path`/marketplace/products/${productID}/claim-offer`, { body, ...options });
+  ): APIPromise<ProductRedeemMarketplaceOfferResponse> {
+    return this._client.post(path`/marketplace/offers/${offerID}/redeem`, { body, ...options });
   }
 
   /**
-   * Uses Quantum Oracle AI to simulate the short-term and long-term financial impact
-   * of purchasing a specific marketplace product on the user's budget and cash flow.
+   * Uses the Quantum Oracle to simulate the long-term financial impact of purchasing
+   * or subscribing to a specific marketplace product, such as a loan, investment, or
+   * insurance policy, on the user's overall financial health and goals.
    *
    * @example
    * ```ts
    * const response =
    *   await client.marketplace.products.simulatePurchase(
-   *     'prod_smart_thermostat_001',
+   *     'prod_home_insurance_quantum',
    *     {
-   *       purchaseOption: 'financed_12_months',
-   *       targetAccountId: 'acc_chase_checking_4567',
+   *       simulationParameters: {
+   *         loanAmount: 20000,
+   *         repaymentTermMonths: 48,
+   *       },
    *     },
    *   );
    * ```
    */
   simulatePurchase(
-    productID: string,
+    productID: unknown,
     body: ProductSimulatePurchaseParams,
     options?: RequestOptions,
   ): APIPromise<ProductSimulatePurchaseResponse> {
-    return this._client.post(path`/marketplace/products/${productID}/simulate-purchase`, {
-      body,
-      ...options,
-    });
+    return this._client.post(path`/marketplace/products/${productID}/impact-simulate`, { body, ...options });
   }
 }
 
-export type ProductListResponse = Array<ProductListResponse.ProductListResponseItem>;
+export interface ProductListResponse {
+  /**
+   * The maximum number of items returned in the current page.
+   */
+  limit: unknown;
+
+  /**
+   * The number of items skipped before the current page.
+   */
+  offset: unknown;
+
+  /**
+   * The total number of items available across all pages.
+   */
+  total: unknown;
+
+  data?: Array<ProductListResponse.Data>;
+
+  /**
+   * The offset for the next page of results, if available. Null if no more pages.
+   */
+  nextOffset?: unknown;
+}
 
 export namespace ProductListResponse {
-  export interface ProductListResponseItem {
+  export interface Data {
     /**
      * Unique identifier for the marketplace product.
      */
-    id: string;
+    id: unknown;
 
     /**
-     * AI's personalized recommendation score for the user (0-1).
+     * AI's score for how well this product is personalized to the user (0-1).
      */
-    aiRecommendationScore: number;
+    aiPersonalizationScore: unknown;
 
     /**
-     * Category of the product.
+     * Category of the product/service.
      */
-    category: string;
+    category:
+      | 'loans'
+      | 'insurance'
+      | 'credit_cards'
+      | 'investments'
+      | 'budgeting_tools'
+      | 'smart_home'
+      | 'travel'
+      | 'education'
+      | 'health';
 
     /**
-     * Currency of the product price.
+     * Detailed description of the product/service.
      */
-    currency: string;
+    description: unknown;
 
     /**
-     * Detailed description of the product.
+     * URL to an image representing the product.
      */
-    description: string;
+    imageUrl: unknown;
 
     /**
-     * URL to the product's image.
+     * Name of the product/service.
      */
-    imageUrl: string;
+    name: unknown;
 
     /**
-     * Name of the product.
+     * Pricing information (can be a range or fixed text).
      */
-    name: string;
+    price: unknown;
 
     /**
-     * AI-generated explanation for why this product is recommended.
+     * Provider or vendor of the product/service.
      */
-    personalizationReason: string;
+    provider: unknown;
 
     /**
-     * Price of the product.
+     * Average user rating for the product (0-5).
      */
-    price: number;
+    rating: unknown;
 
     /**
-     * Name of the product vendor or manufacturer.
+     * AI-generated explanation for recommending this product.
      */
-    vendor: string;
+    aiRecommendationReason?: unknown;
 
     /**
-     * AI's estimated financial impact if the user purchases this product.
+     * Details of any special offers associated with the product.
      */
-    estimatedImpactOnBudget?: ProductListResponseItem.EstimatedImpactOnBudget | null;
+    offerDetails?: Data.OfferDetails;
 
     /**
-     * Details of any exclusive offer available for this product.
+     * Direct URL to the product on the provider's website.
      */
-    exclusiveOffer?: ProductListResponseItem.ExclusiveOffer | null;
-
-    /**
-     * Direct URL to the product page.
-     */
-    productUrl?: string | null;
+    productUrl?: unknown;
   }
 
-  export namespace ProductListResponseItem {
+  export namespace Data {
     /**
-     * AI's estimated financial impact if the user purchases this product.
+     * Details of any special offers associated with the product.
      */
-    export interface EstimatedImpactOnBudget {
-      monthlySavings?: number;
+    export interface OfferDetails {
+      /**
+       * Optional redemption code.
+       */
+      code?: unknown;
 
-      paybackPeriodMonths?: number;
-    }
+      type?: 'discount' | 'special_rate' | 'free_trial';
 
-    /**
-     * Details of any exclusive offer available for this product.
-     */
-    export interface ExclusiveOffer {
-      description?: string;
-
-      discountPercentage?: number;
-
-      expiresAt?: string;
+      value?: unknown;
     }
   }
 }
 
-export interface ProductClaimOfferResponse {
+export interface ProductRedeemMarketplaceOfferResponse {
   /**
-   * A descriptive message for the user about the claimed offer.
+   * If applicable, the ID of any associated transaction (e.g., a credit or initial
+   * payment).
    */
-  message: string;
+  associatedTransactionId?: unknown;
 
   /**
-   * Unique identifier for the claimed offer.
+   * A descriptive message about the redemption.
    */
-  offerId: string;
+  message?: unknown;
 
   /**
-   * The ID of the product the offer applies to.
+   * The ID of the redeemed offer.
    */
-  productId: string;
+  offerId?: unknown;
+
+  redemptionDate?: unknown;
 
   /**
-   * Current status of the offer.
+   * Unique ID for this redemption.
    */
-  status: 'claimed' | 'redeemed' | 'expired';
+  redemptionId?: unknown;
 
   /**
-   * The date and time when the offer expires.
+   * Status of the redemption.
    */
-  expirationDate?: string | null;
-
-  /**
-   * A code to be used for redemption (if applicable).
-   */
-  redemptionCode?: string | null;
-
-  /**
-   * A direct link for redeeming the offer (if applicable).
-   */
-  redemptionLink?: string | null;
+  status?: 'success' | 'pending' | 'failed';
 }
 
 export interface ProductSimulatePurchaseResponse {
   /**
-   * AI-driven recommendations based on the simulation results.
-   */
-  aiRecommendations: Array<InsightsAPI.AIInsight>;
-
-  /**
-   * Key financial metrics and their projected impact.
+   * Key financial impacts identified by the AI (e.g., on cash flow, debt-to-income).
    */
   keyImpacts: Array<ProductSimulatePurchaseResponse.KeyImpact>;
 
   /**
-   * The ID of the product for which the simulation was run.
+   * A natural language summary of the simulation's results for this product.
    */
-  productId: string;
+  narrativeSummary: unknown;
 
   /**
-   * The purchase option that was simulated.
+   * The ID of the marketplace product being simulated.
    */
-  purchaseOption: 'full_payment' | 'financed_12_months' | 'financed_24_months';
+  productId: unknown;
 
   /**
-   * A natural language summary of the simulation results.
+   * Unique identifier for the simulation performed.
    */
-  simulationSummary: string;
+  simulationId: unknown;
+
+  /**
+   * Actionable recommendations or advice related to the product and its impact.
+   */
+  aiRecommendations?: Array<InsightsAPI.AIInsight> | null;
+
+  /**
+   * Projected amortization schedule for loan products.
+   */
+  projectedAmortizationSchedule?: Array<ProductSimulatePurchaseResponse.ProjectedAmortizationSchedule> | null;
 }
 
 export namespace ProductSimulatePurchaseResponse {
   export interface KeyImpact {
-    metric?: string;
+    metric?: unknown;
 
     severity?: 'low' | 'medium' | 'high';
 
-    value?: string;
+    value?: unknown;
+  }
+
+  export interface ProjectedAmortizationSchedule {
+    interest?: unknown;
+
+    month?: unknown;
+
+    payment?: unknown;
+
+    principal?: unknown;
+
+    remainingBalance?: unknown;
   }
 }
 
 export interface ProductListParams {
   /**
-   * Filter products by category.
+   * Filter by AI personalization level (e.g., low, medium, high). 'High' means
+   * highly relevant to user's specific needs.
    */
-  category?: string;
+  aiPersonalizationLevel?: 'low' | 'medium' | 'high';
 
   /**
-   * Maximum number of items to return.
+   * Filter products by category (e.g., loans, insurance, credit_cards, investments).
    */
-  limit?: number;
+  category?:
+    | 'loans'
+    | 'insurance'
+    | 'credit_cards'
+    | 'investments'
+    | 'budgeting_tools'
+    | 'smart_home'
+    | 'travel'
+    | 'education';
+
+  /**
+   * Maximum number of items to return in a single page.
+   */
+  limit?: unknown;
+
+  /**
+   * Minimum user rating for products (0-5).
+   */
+  minRating?: unknown;
 
   /**
    * Number of items to skip before starting to collect the result set.
    */
-  offset?: number;
+  offset?: unknown;
 }
 
-export interface ProductClaimOfferParams {
+export interface ProductRedeemMarketplaceOfferParams {
   /**
-   * Preferred channel for offer redemption details.
+   * Optional: The ID of the account to use for any associated payment or credit.
    */
-  redemptionChannel?: 'email' | 'in_app' | 'external_link';
+  paymentAccountId?: unknown;
 }
 
 export interface ProductSimulatePurchaseParams {
   /**
-   * The payment method to simulate.
+   * Dynamic parameters specific to the product type (e.g., loan amount, investment
+   * term).
    */
-  purchaseOption: 'full_payment' | 'financed_12_months' | 'financed_24_months';
-
-  /**
-   * Optional: The account from which the purchase would be made. If omitted, AI will
-   * infer.
-   */
-  targetAccountId?: string | null;
+  simulationParameters?: unknown;
 }
 
 export declare namespace Products {
   export {
     type ProductListResponse as ProductListResponse,
-    type ProductClaimOfferResponse as ProductClaimOfferResponse,
+    type ProductRedeemMarketplaceOfferResponse as ProductRedeemMarketplaceOfferResponse,
     type ProductSimulatePurchaseResponse as ProductSimulatePurchaseResponse,
     type ProductListParams as ProductListParams,
-    type ProductClaimOfferParams as ProductClaimOfferParams,
+    type ProductRedeemMarketplaceOfferParams as ProductRedeemMarketplaceOfferParams,
     type ProductSimulatePurchaseParams as ProductSimulatePurchaseParams,
   };
 }

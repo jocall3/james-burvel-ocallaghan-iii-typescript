@@ -32,12 +32,12 @@ export interface TreasuryGetLiquidityPositionsResponse {
   accountTypeBreakdown: Array<TreasuryGetLiquidityPositionsResponse.AccountTypeBreakdown>;
 
   /**
-   * AI's overall assessment of current liquidity.
+   * AI's overall assessment of liquidity.
    */
   aiLiquidityAssessment: TreasuryGetLiquidityPositionsResponse.AILiquidityAssessment;
 
   /**
-   * AI-driven recommendations for liquidity management.
+   * AI-generated recommendations for liquidity management.
    */
   aiRecommendations: Array<InsightsAPI.AIInsight>;
 
@@ -47,52 +47,52 @@ export interface TreasuryGetLiquidityPositionsResponse {
   currencyBreakdown: Array<TreasuryGetLiquidityPositionsResponse.CurrencyBreakdown>;
 
   /**
+   * Details on short-term investments contributing to liquidity.
+   */
+  shortTermInvestments: TreasuryGetLiquidityPositionsResponse.ShortTermInvestments;
+
+  /**
    * Timestamp of the liquidity snapshot.
    */
-  snapshotTime: string;
+  snapshotTime: unknown;
 
   /**
-   * Total value of all liquid assets (cash, short-term investments).
+   * Total value of all liquid assets across the organization.
    */
-  totalLiquidAssets: number;
-
-  /**
-   * Summary of short-term investment holdings.
-   */
-  shortTermInvestments?: TreasuryGetLiquidityPositionsResponse.ShortTermInvestments | null;
+  totalLiquidAssets: unknown;
 }
 
 export namespace TreasuryGetLiquidityPositionsResponse {
   export interface AccountTypeBreakdown {
-    amount?: number;
+    amount?: unknown;
 
-    type?: string;
+    type?: unknown;
   }
 
   /**
-   * AI's overall assessment of current liquidity.
+   * AI's overall assessment of liquidity.
    */
   export interface AILiquidityAssessment {
-    message?: string;
+    message?: unknown;
 
     status?: 'optimal' | 'sufficient' | 'tight' | 'critical';
   }
 
   export interface CurrencyBreakdown {
-    amount?: number;
+    amount?: unknown;
 
-    currency?: string;
+    currency?: unknown;
 
-    percentage?: number;
+    percentage?: unknown;
   }
 
   /**
-   * Summary of short-term investment holdings.
+   * Details on short-term investments contributing to liquidity.
    */
   export interface ShortTermInvestments {
-    maturingNext30Days?: number;
+    maturingNext30Days?: unknown;
 
-    totalValue?: number;
+    totalValue?: unknown;
   }
 }
 
