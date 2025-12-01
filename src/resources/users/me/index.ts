@@ -15,4 +15,9 @@ export {
   type DeviceRegisterParams,
 } from './devices';
 export { Me, type MeUpdateParams } from './me';
-export { Preferences, type UserPreferences, type PreferenceUpdateParams } from './preferences';
+export {
+  Preferences,
+  type UserPreferences,
+  type UserPreferencesNotificationChannels,
+  type PreferenceUpdateParams,
+} from './preferences';
