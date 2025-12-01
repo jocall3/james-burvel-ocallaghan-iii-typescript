@@ -1,6 +1,6 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
-import { JamesBurvelOcallaghanIii } from 'james-burvel-ocallaghan-iii';
+import { JamesBurvelOcallaghanIii } from 'citibankdemobusinessinc-james-burvel-ocallaghan-iii';
 
 const { stringifyQuery } = JamesBurvelOcallaghanIii.prototype as any;
 

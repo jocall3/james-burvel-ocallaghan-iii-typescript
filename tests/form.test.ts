@@ -1,5 +1,8 @@
-import { multipartFormRequestOptions, createForm } from 'james-burvel-ocallaghan-iii/internal/uploads';
-import { toFile } from 'james-burvel-ocallaghan-iii/core/uploads';
+import {
+  multipartFormRequestOptions,
+  createForm,
+} from 'citibankdemobusinessinc-james-burvel-ocallaghan-iii/internal/uploads';
+import { toFile } from 'citibankdemobusinessinc-james-burvel-ocallaghan-iii/core/uploads';
 
 describe('form data validation', () => {
   test('valid values do not error', async () => {
