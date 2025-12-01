@@ -19,7 +19,7 @@ export class Applications extends APIResource {
    *   );
    * ```
    */
-  retrieve(applicationID: string, options?: RequestOptions): APIPromise<LoanApplicationStatus> {
+  retrieve(applicationID: unknown, options?: RequestOptions): APIPromise<LoanApplicationStatus> {
     return this._client.get(path`/lending/applications/${applicationID}`, options);
   }
 
@@ -47,65 +47,79 @@ export class Applications extends APIResource {
 
 export interface LoanApplicationStatus {
   /**
-   * Date and time the application was submitted.
+   * Timestamp when the application was submitted.
    */
-  applicationDate: string;
+  applicationDate: unknown;
 
   /**
    * Unique identifier for the loan application.
    */
-  applicationId: string;
+  applicationId: unknown;
 
   /**
    * The amount originally requested in the application.
    */
-  loanAmountRequested: number;
+  loanAmountRequested: unknown;
 
   /**
-   * The stated purpose of the loan.
+   * The purpose of the loan.
    */
-  loanPurpose: string;
+  loanPurpose:
+    | 'home_improvement'
+    | 'debt_consolidation'
+    | 'medical_expense'
+    | 'education'
+    | 'auto_purchase'
+    | 'other';
 
   /**
-   * Guidance on what the user should do next.
+   * Guidance on the next actions for the user.
    */
-  nextSteps: string;
+  nextSteps: unknown;
 
   /**
    * Current status of the loan application.
    */
-  status: 'pending' | 'underwriting' | 'approved' | 'declined' | 'withdrawn' | 'funded';
+  status:
+    | 'submitted'
+    | 'underwriting'
+    | 'approved'
+    | 'declined'
+    | 'pending_acceptance'
+    | 'funded'
+    | 'cancelled';
 
-  /**
-   * Outcome and details from the AI underwriting process.
-   */
-  aiUnderwritingResult?: LoanApplicationStatus.AIUnderwritingResult | null;
+  aiUnderwritingResult?: LoanApplicationStatus.AIUnderwritingResult;
 
-  /**
-   * Specific reasons for loan decline, adhering to regulatory requirements.
-   */
-  declineReasonDetails?: Array<string> | null;
-
-  /**
-   * Details of the loan offer if the application is approved.
-   */
-  offerDetails?: OffersAPI.LoanOffer | null;
+  offerDetails?: OffersAPI.LoanOffer;
 }
 
 export namespace LoanApplicationStatus {
-  /**
-   * Outcome and details from the AI underwriting process.
-   */
   export interface AIUnderwritingResult {
-    aiConfidence?: number;
+    /**
+     * AI's confidence in its underwriting decision (0-1).
+     */
+    aiConfidence: unknown;
 
-    decision?: 'approved' | 'declined' | 'referred';
+    /**
+     * The AI's underwriting decision.
+     */
+    decision: 'approved' | 'declined' | 'referred_to_human';
 
-    maxApprovedAmount?: number | null;
+    /**
+     * Reasoning for the AI's decision.
+     */
+    reason: unknown;
 
-    reason?: string;
+    /**
+     * The maximum amount the AI is willing to approve.
+     */
+    maxApprovedAmount?: unknown;
 
-    recommendedInterestRate?: number | null;
+    /**
+     * The interest rate recommended by the AI.
+     */
+    recommendedInterestRate?: unknown;
   }
 }
 
@@ -113,63 +127,45 @@ export interface ApplicationSubmitParams {
   /**
    * The desired loan amount.
    */
-  loanAmount: number;
+  loanAmount: unknown;
 
   /**
    * The purpose of the loan.
    */
   loanPurpose:
-    | 'debt_consolidation'
     | 'home_improvement'
-    | 'medical_expenses'
+    | 'debt_consolidation'
+    | 'medical_expense'
     | 'education'
-    | 'business_startup'
+    | 'auto_purchase'
     | 'other';
 
   /**
-   * Desired repayment term in months.
+   * The desired repayment term in months.
    */
-  repaymentTermMonths: number;
+  repaymentTermMonths: unknown;
 
   /**
-   * Any additional information for the underwriting process.
+   * Optional notes or details for the application.
    */
-  additionalNotes?: string | null;
+  additionalNotes?: unknown;
 
   /**
-   * Optional details for a co-applicant.
+   * Optional: Details of a co-applicant for the loan.
    */
-  coApplicant?: ApplicationSubmitParams.CoApplicant | null;
-
-  /**
-   * Optional details about collateral for secured loans.
-   */
-  collateralDetails?: ApplicationSubmitParams.CollateralDetails | null;
+  coApplicant?: ApplicationSubmitParams.CoApplicant;
 }
 
 export namespace ApplicationSubmitParams {
   /**
-   * Optional details for a co-applicant.
+   * Optional: Details of a co-applicant for the loan.
    */
   export interface CoApplicant {
-    creditScore?: number | null;
+    email?: unknown;
 
-    email?: string;
+    income?: unknown;
 
-    income?: number;
-
-    name?: string;
-  }
-
-  /**
-   * Optional details about collateral for secured loans.
-   */
-  export interface CollateralDetails {
-    description?: string;
-
-    type?: string;
-
-    value?: number;
+    name?: unknown;
   }
 }
 

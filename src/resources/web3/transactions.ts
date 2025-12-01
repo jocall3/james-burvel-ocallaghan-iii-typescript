@@ -35,74 +35,61 @@ export class Transactions extends APIResource {
 
 export interface TransactionInitiateTransferResponse {
   /**
-   * Current status of the cryptocurrency transfer.
+   * Current status of the transfer.
    */
-  status: 'pending_signature' | 'pending_broadcast' | 'in_progress' | 'completed' | 'failed' | 'cancelled';
+  status: 'pending_signature' | 'pending_blockchain_confirmation' | 'completed' | 'failed' | 'cancelled';
 
   /**
-   * Unique identifier for the initiated transfer.
+   * Unique identifier for this cryptocurrency transfer operation.
    */
-  transferId: string;
+  transferId: unknown;
 
   /**
-   * The transaction hash on the blockchain (if available).
+   * The blockchain transaction hash, if available and confirmed.
    */
-  blockchainTxnHash?: string | null;
+  blockchainTxnHash?: unknown;
 
   /**
-   * Timestamp when the transfer was completed (if successful).
+   * A descriptive message about the transfer status.
    */
-  completedAt?: string | null;
-
-  /**
-   * A descriptive message regarding the transfer status or next steps.
-   */
-  message?: string | null;
+  message?: unknown;
 }
 
 export interface TransactionInitiateTransferParams {
   /**
    * The amount of cryptocurrency to transfer.
    */
-  amount: number;
+  amount: unknown;
 
   /**
-   * The ticker symbol of the asset to transfer (e.g., ETH, BTC, USDC).
+   * Symbol of the crypto asset to transfer (e.g., ETH, USDC).
    */
-  assetSymbol: string;
+  assetSymbol: unknown;
 
   /**
-   * The blockchain network on which the transaction will occur.
+   * The blockchain network for the transfer.
    */
-  blockchainNetwork:
-    | 'Ethereum'
-    | 'Solana'
-    | 'Polygon'
-    | 'BinanceSmartChain'
-    | 'Arbitrum'
-    | 'Optimism'
-    | 'other';
+  blockchainNetwork: unknown;
 
   /**
-   * The recipient's cryptocurrency address.
+   * The recipient's blockchain address.
    */
-  recipientAddress: string;
+  recipientAddress: unknown;
 
   /**
-   * The ID of the connected wallet from which to transfer.
+   * ID of the connected wallet from which to send funds.
    */
-  sourceWalletId: string;
+  sourceWalletId: unknown;
 
   /**
    * Optional: Gas price in Gwei for Ethereum-based transactions.
    */
-  gasPriceGwei?: number | null;
+  gasPriceGwei?: unknown;
 
   /**
-   * Optional: A memo or note for the transaction (supported by some
-   * networks/assets).
+   * Optional: A short memo or note for the transaction.
    */
-  memo?: string | null;
+  memo?: unknown;
 }
 
 export declare namespace Transactions {

@@ -28,14 +28,14 @@ export class KYC extends APIResource {
    * ```ts
    * const kycStatus = await client.identity.kyc.submit({
    *   countryOfIssue: 'US',
-   *   documentFrontImage:
-   *     'base64encoded_image_of_drivers_license_front',
    *   documentNumber: 'ABC12345',
    *   documentType: 'drivers_license',
    *   expirationDate: '2030-01-01',
    *   issueDate: '2020-01-01',
    *   documentBackImage:
    *     'base64encoded_image_of_drivers_license_back',
+   *   documentFrontImage:
+   *     'base64encoded_image_of_drivers_license_front',
    * });
    * ```
    */
@@ -48,79 +48,75 @@ export interface KYCStatus {
   /**
    * Timestamp of the last KYC document submission.
    */
-  lastSubmissionDate: string | null;
+  lastSubmissionDate: unknown;
 
   /**
    * Overall status of the KYC verification process.
    */
-  overallStatus: 'not_started' | 'in_review' | 'verified' | 'rejected' | 'requires_action';
+  overallStatus: 'not_submitted' | 'in_review' | 'verified' | 'rejected' | 'requires_more_info';
 
   /**
-   * Unique identifier for the user.
+   * List of actions required from the user if status is 'requires_more_info'.
    */
-  userId: string;
+  requiredActions: Array<unknown>;
 
   /**
-   * Reason for rejection if the status is 'rejected'.
+   * The ID of the user whose KYC status is being retrieved.
    */
-  rejectionReason?: string | null;
+  userId: unknown;
 
   /**
-   * List of actions required from the user to proceed with verification.
+   * Reason for rejection if status is 'rejected'.
    */
-  requiredActions?: Array<string>;
+  rejectionReason?: unknown;
 
   /**
-   * The tier of verification achieved, granting access to different service levels.
+   * The KYC verification tier achieved (e.g., for different service levels).
    */
   verifiedTier?: 'bronze' | 'silver' | 'gold' | 'platinum' | null;
 }
 
 export interface KYCSubmitParams {
   /**
-   * The country that issued the document (ISO 3166-1 alpha-2 code).
+   * The two-letter ISO country code where the document was issued.
    */
-  countryOfIssue: string;
+  countryOfIssue: unknown;
 
   /**
-   * Base64 encoded image of the front side of the document.
+   * The identification number on the document.
    */
-  documentFrontImage: string;
+  documentNumber: unknown;
 
   /**
-   * The official document number.
+   * The type of KYC document being submitted.
    */
-  documentNumber: string;
+  documentType: 'drivers_license' | 'passport' | 'national_id' | 'utility_bill' | 'bank_statement' | 'other';
 
   /**
-   * Type of KYC document being submitted.
+   * The expiration date of the document (YYYY-MM-DD).
    */
-  documentType: 'drivers_license' | 'passport' | 'national_id' | 'utility_bill' | 'bank_statement';
+  expirationDate: unknown;
 
   /**
-   * Date the document expires.
+   * The issue date of the document (YYYY-MM-DD).
    */
-  expirationDate: string;
+  issueDate: unknown;
 
   /**
-   * Date the document was issued.
+   * Array of additional documents (e.g., utility bills) as base64 encoded images.
    */
-  issueDate: string;
+  additionalDocuments?: Array<unknown> | null;
 
   /**
-   * Base64 encoded image of an address proof (e.g., utility bill).
+   * Base64 encoded image of the back of the document (if applicable).
    */
-  addressProofImage?: string | null;
+  documentBackImage?: unknown;
 
   /**
-   * Base64 encoded image of the back side of the document (if applicable).
+   * Base64 encoded image of the front of the document. Use 'application/json' with
+   * base64 string, or 'multipart/form-data' for direct file upload.
    */
-  documentBackImage?: string | null;
-
-  /**
-   * Base64 encoded image of a live selfie for liveness detection.
-   */
-  liveSelfieImage?: string | null;
+  documentFrontImage?: unknown;
 }
 
 export declare namespace KYC {

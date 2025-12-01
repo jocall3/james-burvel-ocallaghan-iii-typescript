@@ -7,14 +7,14 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource recurring', () => {
-  // Prism tests are disabled
-  test.skip('create: only required params', async () => {
+  test('create: only required params', async () => {
     const responsePromise = client.transactions.recurring.create({
       amount: 55.5,
       category: 'Health & Fitness',
       currency: 'USD',
       description: 'New Gym Membership',
       frequency: 'monthly',
+      linkedAccountId: 'acc_chase_checking_4567',
       startDate: '2024-09-01',
     });
     const rawResponse = await responsePromise.asResponse();
@@ -26,21 +26,19 @@ describe('resource recurring', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('create: required and optional params', async () => {
+  test('create: required and optional params', async () => {
     const response = await client.transactions.recurring.create({
       amount: 55.5,
       category: 'Health & Fitness',
       currency: 'USD',
       description: 'New Gym Membership',
       frequency: 'monthly',
-      startDate: '2024-09-01',
       linkedAccountId: 'acc_chase_checking_4567',
+      startDate: '2024-09-01',
     });
   });
 
-  // Prism tests are disabled
-  test.skip('list', async () => {
+  test('list', async () => {
     const responsePromise = client.transactions.recurring.list();
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -49,5 +47,12 @@ describe('resource recurring', () => {
     const dataAndResponse = await responsePromise.withResponse();
     expect(dataAndResponse.data).toBe(response);
     expect(dataAndResponse.response).toBe(rawResponse);
+  });
+
+  test('list: request options and params are passed correctly', async () => {
+    // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
+    await expect(
+      client.transactions.recurring.list({ limit: {}, offset: {} }, { path: '/_stainless_unknown_path' }),
+    ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);
   });
 });

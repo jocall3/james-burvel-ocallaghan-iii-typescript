@@ -9,5 +9,6 @@ export {
   type PortfolioRebalanceResponse,
   type PortfolioCreateParams,
   type PortfolioUpdateParams,
+  type PortfolioListParams,
   type PortfolioRebalanceParams,
 } from './portfolios';

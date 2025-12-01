@@ -51,129 +51,155 @@ export class International extends APIResource {
    *   );
    * ```
    */
-  retrieveStatus(paymentID: string, options?: RequestOptions): APIPromise<InternationalPaymentStatus> {
+  retrieveStatus(paymentID: unknown, options?: RequestOptions): APIPromise<InternationalPaymentStatus> {
     return this._client.get(path`/payments/international/${paymentID}/status`, options);
   }
 }
 
 export interface InternationalPaymentStatus {
   /**
-   * Total fees applied to the payment.
+   * The foreign exchange rate applied (target per source currency).
    */
-  feesApplied: number;
-
-  /**
-   * The foreign exchange rate applied (target_currency / source_currency).
-   */
-  fxRateApplied: number;
+  fxRateApplied: unknown;
 
   /**
    * Unique identifier for the international payment.
    */
-  paymentId: string;
+  paymentId: unknown;
 
   /**
-   * Amount sent from the source account.
+   * The amount sent in the source currency.
    */
-  sourceAmount: number;
+  sourceAmount: unknown;
 
   /**
-   * Currency of the source amount.
+   * The source currency code.
    */
-  sourceCurrency: string;
+  sourceCurrency: unknown;
 
   /**
-   * Current status of the international payment.
+   * Current processing status of the payment.
    */
   status: 'in_progress' | 'held_for_review' | 'completed' | 'failed' | 'cancelled';
 
   /**
-   * Amount received by the beneficiary in target currency (may be estimated).
+   * The amount received by the beneficiary in the target currency.
    */
-  targetAmount: number | null;
+  targetAmount: unknown;
 
   /**
-   * Currency of the target amount.
+   * The target currency code.
    */
-  targetCurrency: string;
+  targetCurrency: unknown;
 
   /**
    * Estimated time when the payment will be completed.
    */
-  estimatedCompletionTime?: string | null;
+  estimatedCompletionTime?: unknown;
 
   /**
-   * Additional message regarding payment status (e.g., reason for hold).
+   * Total fees applied to the payment.
    */
-  message?: string | null;
+  feesApplied?: unknown;
+
+  /**
+   * An optional message providing more context on the status (e.g., reason for
+   * hold).
+   */
+  message?: unknown;
 
   /**
    * URL to track the payment's progress.
    */
-  trackingUrl?: string | null;
+  trackingUrl?: unknown;
 }
 
 export interface InternationalInitiateParams {
   /**
    * The amount to send in the source currency.
    */
-  amount: number;
+  amount: unknown;
 
   /**
-   * Details of the international beneficiary.
+   * Details of the payment beneficiary.
    */
   beneficiary: InternationalInitiateParams.Beneficiary;
 
   /**
-   * Purpose of the payment (e.g., invoice payment, family support).
+   * Purpose of the payment.
    */
-  purpose: string;
+  purpose: unknown;
 
   /**
-   * The ID of the local account from which funds will be sent.
+   * The ID of the user's source account for the payment.
    */
-  sourceAccountId: string;
+  sourceAccountId: unknown;
 
   /**
-   * The currency of the source account.
+   * The ISO 4217 currency code of the source funds.
    */
-  sourceCurrency: string;
+  sourceCurrency: unknown;
 
   /**
-   * The desired currency for the beneficiary.
+   * The ISO 4217 currency code for the beneficiary's currency.
    */
-  targetCurrency: string;
+  targetCurrency: unknown;
 
   /**
-   * If true, attempts to lock the quoted FX rate for the transaction.
+   * If true, attempts to lock the quoted FX rate for a short period.
    */
-  fxRateLock?: boolean;
+  fxRateLock?: unknown;
 
   /**
-   * The desired provider for the foreign exchange rate.
+   * Indicates whether to use AI-optimized FX rates or standard market rates.
    */
-  fxRateProvider?: 'proprietary_ai' | 'external_partner' | 'market_rate';
+  fxRateProvider?: 'proprietary_ai' | 'market_rate';
 
   /**
-   * Optional reference number for the payment (e.g., invoice number).
+   * Optional: Your internal reference for this payment.
    */
-  referenceNumber?: string | null;
+  reference?: unknown;
 }
 
 export namespace InternationalInitiateParams {
   /**
-   * Details of the international beneficiary.
+   * Details of the payment beneficiary.
    */
   export interface Beneficiary {
-    address: string;
+    /**
+     * Full address of the beneficiary.
+     */
+    address: unknown;
 
-    bankName: string;
+    /**
+     * Name of the beneficiary's bank.
+     */
+    bankName: unknown;
 
-    iban: string;
+    /**
+     * Full name of the beneficiary.
+     */
+    name: unknown;
 
-    name: string;
+    /**
+     * Account number (if IBAN/SWIFT not applicable).
+     */
+    accountNumber?: unknown;
 
-    swiftBic: string;
+    /**
+     * IBAN for Eurozone transfers.
+     */
+    iban?: unknown;
+
+    /**
+     * Routing number (if applicable, e.g., for US transfers).
+     */
+    routingNumber?: unknown;
+
+    /**
+     * SWIFT/BIC code for international transfers.
+     */
+    swiftBic?: unknown;
   }
 }
 

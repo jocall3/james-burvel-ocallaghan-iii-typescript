@@ -7,8 +7,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource ads', () => {
-  // Prism tests are disabled
-  test.skip('listGenerated', async () => {
+  test('listGenerated', async () => {
     const responsePromise = client.ai.ads.listGenerated();
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -19,19 +18,17 @@ describe('resource ads', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('listGenerated: request options and params are passed correctly', async () => {
+  test('listGenerated: request options and params are passed correctly', async () => {
     // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
     await expect(
       client.ai.ads.listGenerated(
-        { limit: 50, offset: 0, status: 'done' },
+        { limit: {}, offset: {}, status: 'done' },
         { path: '/_stainless_unknown_path' },
       ),
     ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);
   });
 
-  // Prism tests are disabled
-  test.skip('retrieveStatus', async () => {
+  test('retrieveStatus', async () => {
     const responsePromise = client.ai.ads.retrieveStatus('op-video-gen-12345-abcde');
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);

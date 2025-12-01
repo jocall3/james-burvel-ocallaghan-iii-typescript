@@ -4,9 +4,9 @@ export { Marketplace } from './marketplace';
 export {
   Products,
   type ProductListResponse,
-  type ProductClaimOfferResponse,
+  type ProductRedeemMarketplaceOfferResponse,
   type ProductSimulatePurchaseResponse,
   type ProductListParams,
-  type ProductClaimOfferParams,
+  type ProductRedeemMarketplaceOfferParams,
   type ProductSimulatePurchaseParams,
 } from './products';

@@ -7,16 +7,13 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource international', () => {
-  // Prism tests are disabled
-  test.skip('initiate: only required params', async () => {
+  test('initiate: only required params', async () => {
     const responsePromise = client.payments.international.initiate({
       amount: 5000,
       beneficiary: {
         address: 'Hauptstrasse 1, 10115 Berlin, Germany',
         bankName: 'Deutsche Bank',
-        iban: 'DE89370400440532013000',
         name: 'Maria Schmidt',
-        swiftBic: 'DEUTDEFF',
       },
       purpose: 'Vendor payment for Q2 services.',
       sourceAccountId: 'acc_chase_checking_4567',
@@ -32,15 +29,16 @@ describe('resource international', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('initiate: required and optional params', async () => {
+  test('initiate: required and optional params', async () => {
     const response = await client.payments.international.initiate({
       amount: 5000,
       beneficiary: {
         address: 'Hauptstrasse 1, 10115 Berlin, Germany',
         bankName: 'Deutsche Bank',
-        iban: 'DE89370400440532013000',
         name: 'Maria Schmidt',
+        accountNumber: {},
+        iban: 'DE89370400440532013000',
+        routingNumber: {},
         swiftBic: 'DEUTDEFF',
       },
       purpose: 'Vendor payment for Q2 services.',
@@ -49,12 +47,11 @@ describe('resource international', () => {
       targetCurrency: 'EUR',
       fxRateLock: true,
       fxRateProvider: 'proprietary_ai',
-      referenceNumber: 'INV-2024-00123',
+      reference: {},
     });
   });
 
-  // Prism tests are disabled
-  test.skip('retrieveStatus', async () => {
+  test('retrieveStatus', async () => {
     const responsePromise = client.payments.international.retrieveStatus('int_pmt_xyz7890');
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);

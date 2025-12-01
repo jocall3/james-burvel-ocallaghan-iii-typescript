@@ -3,7 +3,6 @@
 import { APIResource } from '../../../core/resource';
 import * as ChatAPI from './chat';
 import {
-  AIFunctionCall,
   Chat,
   ChatRetrieveHistoryParams,
   ChatRetrieveHistoryResponse,
@@ -26,45 +25,97 @@ export class Advisor extends APIResource {
    * const response = await client.ai.advisor.listTools();
    * ```
    */
-  listTools(options?: RequestOptions): APIPromise<AdvisorListToolsResponse> {
-    return this._client.get('/ai/advisor/tools', options);
+  listTools(
+    query: AdvisorListToolsParams | null | undefined = {},
+    options?: RequestOptions,
+  ): APIPromise<AdvisorListToolsResponse> {
+    return this._client.get('/ai/advisor/tools', { query, ...options });
   }
 }
 
-export type AdvisorListToolsResponse = Array<AdvisorListToolsResponse.AdvisorListToolsResponseItem>;
+export interface AdvisorListToolsResponse {
+  /**
+   * The maximum number of items returned in the current page.
+   */
+  limit: unknown;
+
+  /**
+   * The number of items skipped before the current page.
+   */
+  offset: unknown;
+
+  /**
+   * The total number of items available across all pages.
+   */
+  total: unknown;
+
+  data?: Array<AdvisorListToolsResponse.Data>;
+
+  /**
+   * The offset for the next page of results, if available. Null if no more pages.
+   */
+  nextOffset?: unknown;
+}
 
 export namespace AdvisorListToolsResponse {
-  export interface AdvisorListToolsResponseItem {
+  export interface Data {
     /**
      * The OAuth2 scope required to execute this tool.
      */
-    accessScope: string;
+    accessScope: unknown;
 
     /**
      * A description of what the tool does.
      */
-    description: string;
+    description: unknown;
 
     /**
-     * The name of the tool function.
+     * The unique name of the AI tool (function name).
      */
-    name: string;
+    name: unknown;
 
     /**
-     * An OpenAPI-compatible schema object for the tool's input parameters.
+     * OpenAPI schema object defining the input parameters for the tool function.
      */
-    parameters: unknown;
+    parameters: Data.Parameters;
   }
+
+  export namespace Data {
+    /**
+     * OpenAPI schema object defining the input parameters for the tool function.
+     */
+    export interface Parameters {
+      properties?: unknown;
+
+      required?: Array<unknown>;
+
+      type?: 'object';
+    }
+  }
+}
+
+export interface AdvisorListToolsParams {
+  /**
+   * Maximum number of items to return in a single page.
+   */
+  limit?: unknown;
+
+  /**
+   * Number of items to skip before starting to collect the result set.
+   */
+  offset?: unknown;
 }
 
 Advisor.Chat = Chat;
 
 export declare namespace Advisor {
-  export { type AdvisorListToolsResponse as AdvisorListToolsResponse };
+  export {
+    type AdvisorListToolsResponse as AdvisorListToolsResponse,
+    type AdvisorListToolsParams as AdvisorListToolsParams,
+  };
 
   export {
     Chat as Chat,
-    type AIFunctionCall as AIFunctionCall,
     type ChatRetrieveHistoryResponse as ChatRetrieveHistoryResponse,
     type ChatSendMessageResponse as ChatSendMessageResponse,
     type ChatRetrieveHistoryParams as ChatRetrieveHistoryParams,

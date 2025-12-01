@@ -7,8 +7,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource kyc', () => {
-  // Prism tests are disabled
-  test.skip('retrieveStatus', async () => {
+  test('retrieveStatus', async () => {
     const responsePromise = client.identity.kyc.retrieveStatus();
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -19,11 +18,9 @@ describe('resource kyc', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('submit: only required params', async () => {
+  test('submit: only required params', async () => {
     const responsePromise = client.identity.kyc.submit({
       countryOfIssue: 'US',
-      documentFrontImage: 'U3RhaW5sZXNzIHJvY2tz',
       documentNumber: 'ABC12345',
       documentType: 'drivers_license',
       expirationDate: '2030-01-01',
@@ -38,18 +35,16 @@ describe('resource kyc', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('submit: required and optional params', async () => {
+  test('submit: required and optional params', async () => {
     const response = await client.identity.kyc.submit({
       countryOfIssue: 'US',
-      documentFrontImage: 'U3RhaW5sZXNzIHJvY2tz',
       documentNumber: 'ABC12345',
       documentType: 'drivers_license',
       expirationDate: '2030-01-01',
       issueDate: '2020-01-01',
-      addressProofImage: 'U3RhaW5sZXNzIHJvY2tz',
-      documentBackImage: 'U3RhaW5sZXNzIHJvY2tz',
-      liveSelfieImage: 'U3RhaW5sZXNzIHJvY2tz',
+      additionalDocuments: [{}],
+      documentBackImage: 'base64encoded_image_of_drivers_license_back',
+      documentFrontImage: 'base64encoded_image_of_drivers_license_front',
     });
   });
 });

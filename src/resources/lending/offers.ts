@@ -11,75 +11,120 @@ export class Offers extends APIResource {
    *
    * @example
    * ```ts
-   * const loanOffers =
+   * const response =
    *   await client.lending.offers.listPreApproved();
    * ```
    */
-  listPreApproved(options?: RequestOptions): APIPromise<OfferListPreApprovedResponse> {
-    return this._client.get('/lending/offers/pre-approved', options);
+  listPreApproved(
+    query: OfferListPreApprovedParams | null | undefined = {},
+    options?: RequestOptions,
+  ): APIPromise<OfferListPreApprovedResponse> {
+    return this._client.get('/lending/offers/pre-approved', { query, ...options });
   }
 }
 
 export interface LoanOffer {
   /**
-   * The principal amount of the loan offered.
+   * The offered loan amount.
    */
-  amount: number;
+  amount: unknown;
 
   /**
    * Date the offer expires.
    */
-  expirationDate: string;
+  expirationDate: unknown;
 
   /**
-   * Annual interest rate offered.
+   * Annual interest rate offered (as a percentage).
    */
-  interestRate: number;
+  interestRate: unknown;
 
   /**
-   * True if this is a pre-approved offer, false if from an application.
+   * Indicates if this is a pre-approved offer.
    */
-  isPreApproved: boolean;
+  isPreApproved: unknown;
 
   /**
    * Unique identifier for the loan offer.
    */
-  offerId: string;
+  offerId: unknown;
 
   /**
-   * Type of loan offered.
+   * Type of loan being offered.
    */
-  offerType: 'personal_loan' | 'credit_line' | 'mortgage' | 'auto_loan' | 'microloan';
+  offerType: 'personal_loan' | 'auto_loan' | 'mortgage' | 'credit_line' | 'microloan';
 
   /**
-   * AI's score for how well this offer matches the user's financial profile and
-   * needs.
+   * AI's score for how well this offer is personalized to the user (0-1).
    */
-  aiPersonalizationScore?: number | null;
+  aiPersonalizationScore?: unknown;
 
   /**
    * Estimated monthly payment (if applicable).
    */
-  monthlyPayment?: number | null;
+  monthlyPayment?: unknown;
 
   /**
-   * Any one-time origination fee.
+   * Any origination fees for the loan.
    */
-  originationFee?: number | null;
+  originationFee?: unknown;
 
   /**
    * Repayment term in months (if applicable).
    */
-  repaymentTermMonths?: number | null;
+  repaymentTermMonths?: unknown;
 
   /**
-   * Total amount repayable over the life of the loan.
+   * URL to the full terms and conditions of the loan offer.
    */
-  totalRepayable?: number | null;
+  termsAndConditionsUrl?: unknown;
+
+  /**
+   * Total amount repayable over the loan term.
+   */
+  totalRepayable?: unknown;
 }
 
-export type OfferListPreApprovedResponse = Array<LoanOffer>;
+export interface OfferListPreApprovedResponse {
+  /**
+   * The maximum number of items returned in the current page.
+   */
+  limit: unknown;
+
+  /**
+   * The number of items skipped before the current page.
+   */
+  offset: unknown;
+
+  /**
+   * The total number of items available across all pages.
+   */
+  total: unknown;
+
+  data?: Array<LoanOffer>;
+
+  /**
+   * The offset for the next page of results, if available. Null if no more pages.
+   */
+  nextOffset?: unknown;
+}
+
+export interface OfferListPreApprovedParams {
+  /**
+   * Maximum number of items to return in a single page.
+   */
+  limit?: unknown;
+
+  /**
+   * Number of items to skip before starting to collect the result set.
+   */
+  offset?: unknown;
+}
 
 export declare namespace Offers {
-  export { type LoanOffer as LoanOffer, type OfferListPreApprovedResponse as OfferListPreApprovedResponse };
+  export {
+    type LoanOffer as LoanOffer,
+    type OfferListPreApprovedResponse as OfferListPreApprovedResponse,
+    type OfferListPreApprovedParams as OfferListPreApprovedParams,
+  };
 }

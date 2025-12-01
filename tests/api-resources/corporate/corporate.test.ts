@@ -7,8 +7,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource corporate', () => {
-  // Prism tests are disabled
-  test.skip('performSanctionScreening: only required params', async () => {
+  test('performSanctionScreening: only required params', async () => {
     const responsePromise = client.corporate.performSanctionScreening({
       country: 'US',
       entityType: 'individual',
@@ -23,20 +22,14 @@ describe('resource corporate', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('performSanctionScreening: required and optional params', async () => {
+  test('performSanctionScreening: required and optional params', async () => {
     const response = await client.corporate.performSanctionScreening({
       country: 'US',
       entityType: 'individual',
       name: 'John Doe',
-      address: {
-        city: 'Quantumville',
-        country: 'USA',
-        state: 'CA',
-        street: '100 Innovation Drive',
-        zip: '90210',
-      },
+      address: { city: 'Anytown', country: 'USA', state: 'CA', street: '123 Main St', zip: '90210' },
       dateOfBirth: '1970-01-01',
+      identificationNumber: {},
     });
   });
 });

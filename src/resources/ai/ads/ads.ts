@@ -46,88 +46,83 @@ export class Ads extends APIResource {
    *   );
    * ```
    */
-  retrieveStatus(operationID: string, options?: RequestOptions): APIPromise<VideoOperationStatus> {
+  retrieveStatus(operationID: unknown, options?: RequestOptions): APIPromise<VideoOperationStatus> {
     return this._client.get(path`/ai/ads/operations/${operationID}`, options);
   }
 }
 
 export interface VideoOperationStatus {
   /**
-   * A descriptive message about the current stage or any issues.
+   * A descriptive status message.
    */
-  message: string;
+  message: unknown;
 
   /**
-   * Unique identifier for the video generation operation.
+   * The unique identifier for the video generation operation.
    */
-  operationId: string;
+  operationId: unknown;
 
   /**
-   * Progress of the operation in percentage.
+   * Estimated completion percentage (0-100).
    */
-  progressPercentage: number;
+  progressPercentage: unknown;
 
   /**
-   * Current status of the video generation.
+   * Current status of the video generation job.
    */
   status: 'queued' | 'generating' | 'rendering' | 'done' | 'error';
 
   /**
-   * Timestamp when the video generation was completed or failed.
+   * Error message if the operation failed.
    */
-  completedAt?: string | null;
-
-  /**
-   * Timestamp when the video generation request was created.
-   */
-  createdAt?: string;
-
-  /**
-   * Detailed error message if the status is 'error'.
-   */
-  errorMessage?: string | null;
+  errorMessage?: unknown;
 
   /**
    * Temporary, signed URL to a preview image/thumbnail of the video.
    */
-  previewImageUri?: string | null;
+  previewImageUri?: unknown;
 
   /**
    * Temporary, signed URL to the generated video asset (available when status is
    * 'done').
    */
-  videoUri?: string | null;
+  videoUri?: unknown;
 }
 
 export interface AdListGeneratedResponse {
+  /**
+   * The maximum number of items returned in the current page.
+   */
+  limit: unknown;
+
+  /**
+   * The number of items skipped before the current page.
+   */
+  offset: unknown;
+
+  /**
+   * The total number of items available across all pages.
+   */
+  total: unknown;
+
   data?: Array<VideoOperationStatus>;
 
   /**
-   * The maximum number of items returned per page.
+   * The offset for the next page of results, if available. Null if no more pages.
    */
-  limit?: number;
-
-  /**
-   * The starting index of the list for pagination.
-   */
-  offset?: number;
-
-  /**
-   * The total number of available items.
-   */
-  total?: number;
+  nextOffset?: unknown;
 }
 
 export interface AdListGeneratedParams {
   /**
-   * Maximum number of items to return.
+   * Maximum number of items to return in a single page.
    */
-  limit?: number;
+  limit?: unknown;
 
   /**
    * Number of items to skip before starting to collect the result set.
    */
-  offset?: number;
+  offset?: unknown;
 
   /**
    * Filter ads by their generation status.

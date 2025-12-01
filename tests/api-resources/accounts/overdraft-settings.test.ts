@@ -7,8 +7,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource overdraftSettings', () => {
-  // Prism tests are disabled
-  test.skip('retrieveSettings', async () => {
+  test('retrieveSettings', async () => {
     const responsePromise = client.accounts.overdraftSettings.retrieveSettings('acc_chase_checking_4567');
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -19,8 +18,7 @@ describe('resource overdraftSettings', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('updateSettings', async () => {
+  test('updateSettings', async () => {
     const responsePromise = client.accounts.overdraftSettings.updateSettings('acc_chase_checking_4567', {});
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
