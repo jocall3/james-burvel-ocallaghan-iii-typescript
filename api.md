@@ -35,6 +35,7 @@ Methods:
 Types:
 
 - <code><a href="./src/resources/users/me/preferences.ts">UserPreferences</a></code>
+- <code><a href="./src/resources/users/me/preferences.ts">UserPreferencesNotificationChannels</a></code>
 
 Methods:
 

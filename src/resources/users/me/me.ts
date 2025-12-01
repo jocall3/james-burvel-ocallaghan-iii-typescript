@@ -13,7 +13,12 @@ import {
 import * as DevicesAPI from './devices';
 import { Device, DeviceListParams, DeviceListResponse, DeviceRegisterParams, Devices } from './devices';
 import * as PreferencesAPI from './preferences';
-import { PreferenceUpdateParams, Preferences, UserPreferences } from './preferences';
+import {
+  PreferenceUpdateParams,
+  Preferences,
+  UserPreferences,
+  UserPreferencesNotificationChannels,
+} from './preferences';
 import { APIPromise } from '../../../core/api-promise';
 import { RequestOptions } from '../../../internal/request-options';
 
@@ -82,6 +87,7 @@ export declare namespace Me {
   export {
     Preferences as Preferences,
     type UserPreferences as UserPreferences,
+    type UserPreferencesNotificationChannels as UserPreferencesNotificationChannels,
     type PreferenceUpdateParams as PreferenceUpdateParams,
   };
 
