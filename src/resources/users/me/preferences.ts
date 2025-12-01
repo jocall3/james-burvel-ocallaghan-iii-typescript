@@ -58,7 +58,7 @@ export interface UserPreferences {
   /**
    * Preferred channels for receiving notifications.
    */
-  notificationChannels?: UserPreferences.NotificationChannels;
+  notificationChannels?: UserPreferencesNotificationChannels;
 
   /**
    * Preferred language for the user interface.
@@ -76,19 +76,17 @@ export interface UserPreferences {
   transactionGrouping?: 'category' | 'merchant' | 'date' | 'account';
 }
 
-export namespace UserPreferences {
-  /**
-   * Preferred channels for receiving notifications.
-   */
-  export interface NotificationChannels {
-    email?: unknown;
+/**
+ * Preferred channels for receiving notifications.
+ */
+export interface UserPreferencesNotificationChannels {
+  email?: unknown;
 
-    inApp?: unknown;
+  inApp?: unknown;
 
-    push?: unknown;
+  push?: unknown;
 
-    sms?: unknown;
-  }
+  sms?: unknown;
 }
 
 export interface PreferenceUpdateParams {
@@ -107,7 +105,7 @@ export interface PreferenceUpdateParams {
   /**
    * Preferred channels for receiving notifications.
    */
-  notificationChannels?: PreferenceUpdateParams.NotificationChannels;
+  notificationChannels?: UserPreferencesNotificationChannels;
 
   /**
    * Preferred language for the user interface.
@@ -125,21 +123,10 @@ export interface PreferenceUpdateParams {
   transactionGrouping?: 'category' | 'merchant' | 'date' | 'account';
 }
 
-export namespace PreferenceUpdateParams {
-  /**
-   * Preferred channels for receiving notifications.
-   */
-  export interface NotificationChannels {
-    email?: unknown;
-
-    inApp?: unknown;
-
-    push?: unknown;
-
-    sms?: unknown;
-  }
-}
-
 export declare namespace Preferences {
-  export { type UserPreferences as UserPreferences, type PreferenceUpdateParams as PreferenceUpdateParams };
+  export {
+    type UserPreferences as UserPreferences,
+    type UserPreferencesNotificationChannels as UserPreferencesNotificationChannels,
+    type PreferenceUpdateParams as PreferenceUpdateParams,
+  };
 }
