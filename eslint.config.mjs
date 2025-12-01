@@ -25,7 +25,7 @@ export default tseslint.config(
         {
           patterns: [
             {
-              regex: '^citibankdemobusinessinc-james-burvel-ocallaghan-iii(/.*)?',
+              regex: '^james-burvel-ocallaghan-iii(/.*)?',
               message: 'Use a relative import, not a package import.',
             },
           ],

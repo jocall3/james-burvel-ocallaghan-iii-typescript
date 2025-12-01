@@ -3,7 +3,7 @@ import {
   buildHeaders,
   type HeadersLike,
   type NullableHeaders,
-} from 'citibankdemobusinessinc-james-burvel-ocallaghan-iii/internal/headers';
+} from 'james-burvel-ocallaghan-iii/internal/headers';
 
 function inspectNullableHeaders(headers: NullableHeaders) {
   return `NullableHeaders {${[
