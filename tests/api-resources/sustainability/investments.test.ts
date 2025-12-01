@@ -7,8 +7,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource investments', () => {
-  // Prism tests are disabled
-  test.skip('analyzeImpact', async () => {
+  test('analyzeImpact', async () => {
     const responsePromise = client.sustainability.investments.analyzeImpact();
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);

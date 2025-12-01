@@ -7,8 +7,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource audits', () => {
-  // Prism tests are disabled
-  test.skip('request: only required params', async () => {
+  test('request: only required params', async () => {
     const responsePromise = client.corporate.compliance.audits.request({
       auditScope: 'all_transactions',
       endDate: '2024-06-30',
@@ -24,19 +23,17 @@ describe('resource audits', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('request: required and optional params', async () => {
+  test('request: required and optional params', async () => {
     const response = await client.corporate.compliance.audits.request({
       auditScope: 'all_transactions',
       endDate: '2024-06-30',
       regulatoryFrameworks: ['AML', 'PCI-DSS'],
       startDate: '2024-01-01',
-      specificAccountIds: ['string'],
+      additionalContext: {},
     });
   });
 
-  // Prism tests are disabled
-  test.skip('retrieveReport', async () => {
+  test('retrieveReport', async () => {
     const responsePromise = client.corporate.compliance.audits.retrieveReport('audit_corp_xyz789');
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);

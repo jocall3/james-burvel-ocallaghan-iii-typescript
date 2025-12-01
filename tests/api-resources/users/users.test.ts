@@ -7,8 +7,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource users', () => {
-  // Prism tests are disabled
-  test.skip('login: only required params', async () => {
+  test('login: only required params', async () => {
     const responsePromise = client.users.login({
       email: 'quantum.visionary@demobank.com',
       password: 'YourSecurePassword123',
@@ -22,8 +21,7 @@ describe('resource users', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('login: required and optional params', async () => {
+  test('login: required and optional params', async () => {
     const response = await client.users.login({
       email: 'quantum.visionary@demobank.com',
       password: 'YourSecurePassword123',
@@ -31,13 +29,11 @@ describe('resource users', () => {
     });
   });
 
-  // Prism tests are disabled
-  test.skip('register: only required params', async () => {
+  test('register: only required params', async () => {
     const responsePromise = client.users.register({
       email: 'alice.w@example.com',
       name: 'Alice Wonderland',
       password: 'SecureP@ssw0rd2024!',
-      phone: '+1-555-987-6543',
     });
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -48,21 +44,14 @@ describe('resource users', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('register: required and optional params', async () => {
+  test('register: required and optional params', async () => {
     const response = await client.users.register({
       email: 'alice.w@example.com',
       name: 'Alice Wonderland',
       password: 'SecureP@ssw0rd2024!',
+      address: { city: 'Anytown', country: 'USA', state: 'CA', street: '123 Main St', zip: '90210' },
+      dateOfBirth: '1990-05-10',
       phone: '+1-555-987-6543',
-      address: {
-        city: 'Quantumville',
-        country: 'USA',
-        state: 'CA',
-        street: '100 Innovation Drive',
-        zip: '90210',
-      },
-      dateOfBirth: '1990-01-01',
     });
   });
 });

@@ -41,7 +41,7 @@ export class Webhooks extends APIResource {
    * ```
    */
   update(
-    subscriptionID: string,
+    subscriptionID: unknown,
     body: WebhookUpdateParams,
     options?: RequestOptions,
   ): APIPromise<WebhookSubscription> {
@@ -55,12 +55,14 @@ export class Webhooks extends APIResource {
    *
    * @example
    * ```ts
-   * const webhookSubscriptions =
-   *   await client.developers.webhooks.list();
+   * const webhooks = await client.developers.webhooks.list();
    * ```
    */
-  list(options?: RequestOptions): APIPromise<WebhookListResponse> {
-    return this._client.get('/developers/webhooks', options);
+  list(
+    query: WebhookListParams | null | undefined = {},
+    options?: RequestOptions,
+  ): APIPromise<WebhookListResponse> {
+    return this._client.get('/developers/webhooks', { query, ...options });
   }
 
   /**
@@ -74,7 +76,7 @@ export class Webhooks extends APIResource {
    * );
    * ```
    */
-  delete(subscriptionID: string, options?: RequestOptions): APIPromise<void> {
+  delete(subscriptionID: unknown, options?: RequestOptions): APIPromise<void> {
     return this._client.delete(path`/developers/webhooks/${subscriptionID}`, {
       ...options,
       headers: buildHeaders([{ Accept: '*/*' }, options?.headers]),
@@ -86,79 +88,114 @@ export interface WebhookSubscription {
   /**
    * Unique identifier for the webhook subscription.
    */
-  id: string;
+  id: unknown;
 
   /**
-   * The URL to which webhook events are sent.
+   * The URL where webhook events will be sent.
    */
-  callbackUrl: string;
-
-  /**
-   * List of event types subscribed to (e.g., 'transaction.created',
-   * 'account.updated').
-   */
-  events: Array<string>;
-
-  /**
-   * Consecutive failure count for webhook deliveries (resets on success).
-   */
-  failureCount: number;
-
-  /**
-   * Current status of the subscription.
-   */
-  status: 'active' | 'paused' | 'suspended';
+  callbackUrl: unknown;
 
   /**
    * Timestamp when the subscription was created.
    */
-  createdAt?: string;
+  createdAt: unknown;
+
+  /**
+   * List of event types subscribed to.
+   */
+  events: Array<unknown>;
+
+  /**
+   * Current status of the webhook subscription.
+   */
+  status: 'active' | 'paused' | 'suspended';
+
+  /**
+   * Number of consecutive failed delivery attempts.
+   */
+  failureCount?: unknown;
 
   /**
    * Timestamp of the last successful webhook delivery.
    */
-  lastTriggered?: string | null;
+  lastTriggered?: unknown;
+
+  /**
+   * The shared secret used to sign webhook payloads, for verification. Only returned
+   * on creation.
+   */
+  secret?: unknown;
 }
 
-export type WebhookListResponse = Array<WebhookSubscription>;
+export interface WebhookListResponse {
+  /**
+   * The maximum number of items returned in the current page.
+   */
+  limit: unknown;
+
+  /**
+   * The number of items skipped before the current page.
+   */
+  offset: unknown;
+
+  /**
+   * The total number of items available across all pages.
+   */
+  total: unknown;
+
+  data?: Array<WebhookSubscription>;
+
+  /**
+   * The offset for the next page of results, if available. Null if no more pages.
+   */
+  nextOffset?: unknown;
+}
 
 export interface WebhookCreateParams {
   /**
-   * The URL to which webhook events should be sent.
+   * The URL to which webhook events will be sent.
    */
-  callbackUrl: string;
+  callbackUrl: unknown;
 
   /**
    * List of event types to subscribe to.
    */
-  events: Array<string>;
+  events: Array<unknown>;
 
   /**
-   * Optional: A secret string used to sign webhook payloads, verifying origin.
+   * Optional: A custom shared secret for verifying webhook payloads. If omitted, one
+   * will be generated.
    */
-  secret?: string | null;
+  secret?: unknown;
 }
 
 export interface WebhookUpdateParams {
   /**
-   * The updated URL for webhook deliveries.
+   * Updated URL where webhook events will be sent.
    */
-  callbackUrl?: string;
+  callbackUrl?: unknown;
 
   /**
-   * The new list of event types to subscribe to. Overwrites existing list.
+   * Updated list of event types subscribed to.
    */
-  events?: Array<string>;
+  events?: Array<unknown>;
 
   /**
-   * Optional: A new secret string to update or set for webhook payload signing.
+   * Updated status of the webhook subscription.
    */
-  secret?: string | null;
+  status?: 'active' | 'paused' | 'suspended';
+}
+
+export interface WebhookListParams {
+  /**
+   * Maximum number of items to return in a single page.
+   */
+  limit?: unknown;
 
   /**
-   * Updated status of the subscription.
+   * Number of items to skip before starting to collect the result set.
    */
-  status?: 'active' | 'paused';
+  offset?: unknown;
 }
 
 export declare namespace Webhooks {
@@ -167,5 +204,6 @@ export declare namespace Webhooks {
     type WebhookListResponse as WebhookListResponse,
     type WebhookCreateParams as WebhookCreateParams,
     type WebhookUpdateParams as WebhookUpdateParams,
+    type WebhookListParams as WebhookListParams,
   };
 }

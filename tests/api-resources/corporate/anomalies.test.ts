@@ -7,8 +7,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource anomalies', () => {
-  // Prism tests are disabled
-  test.skip('list', async () => {
+  test('list', async () => {
     const responsePromise = client.corporate.anomalies.list();
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -19,16 +18,15 @@ describe('resource anomalies', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('list: request options and params are passed correctly', async () => {
+  test('list: request options and params are passed correctly', async () => {
     // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
     await expect(
       client.corporate.anomalies.list(
         {
           endDate: '2024-12-31',
           entityType: 'Transaction',
-          limit: 50,
-          offset: 0,
+          limit: {},
+          offset: {},
           severity: 'Critical',
           startDate: '2024-01-01',
           status: 'New',
@@ -38,8 +36,7 @@ describe('resource anomalies', () => {
     ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);
   });
 
-  // Prism tests are disabled
-  test.skip('updateStatus: only required params', async () => {
+  test('updateStatus: only required params', async () => {
     const responsePromise = client.corporate.anomalies.updateStatus('anom_risk-2024-07-21-D1E2F3', {
       status: 'Resolved',
     });
@@ -52,8 +49,7 @@ describe('resource anomalies', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('updateStatus: required and optional params', async () => {
+  test('updateStatus: required and optional params', async () => {
     const response = await client.corporate.anomalies.updateStatus('anom_risk-2024-07-21-D1E2F3', {
       status: 'Resolved',
       resolutionNotes: 'Confirmed legitimate transaction after contacting vendor. Marked as resolved.',

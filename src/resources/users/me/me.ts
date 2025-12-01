@@ -11,7 +11,7 @@ import {
   Biometrics,
 } from './biometrics';
 import * as DevicesAPI from './devices';
-import { Device, DeviceListResponse, DeviceRegisterParams, Devices } from './devices';
+import { Device, DeviceListParams, DeviceListResponse, DeviceRegisterParams, Devices } from './devices';
 import * as PreferencesAPI from './preferences';
 import { PreferenceUpdateParams, Preferences, UserPreferences } from './preferences';
 import { APIPromise } from '../../../core/api-promise';
@@ -54,25 +54,22 @@ export class Me extends APIResource {
 }
 
 export interface MeUpdateParams {
-  /**
-   * Updated residential address of the user.
-   */
   address?: UsersAPI.Address;
-
-  /**
-   * User's self-selected or AI-adjusted financial persona.
-   */
-  aiPersona?: string;
 
   /**
    * Updated full name of the user.
    */
-  name?: string;
+  name?: unknown;
 
   /**
-   * Updated phone number of the user.
+   * Updated primary phone number of the user.
    */
-  phone?: string;
+  phone?: unknown;
+
+  /**
+   * User's personalized preferences for the platform.
+   */
+  preferences?: PreferencesAPI.UserPreferences;
 }
 
 Me.Preferences = Preferences;
@@ -92,6 +89,7 @@ export declare namespace Me {
     Devices as Devices,
     type Device as Device,
     type DeviceListResponse as DeviceListResponse,
+    type DeviceListParams as DeviceListParams,
     type DeviceRegisterParams as DeviceRegisterParams,
   };
 

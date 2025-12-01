@@ -32,8 +32,11 @@ export class APIKeys extends APIResource {
    * const apiKeys = await client.developers.apiKeys.list();
    * ```
    */
-  list(options?: RequestOptions): APIPromise<APIKeyListResponse> {
-    return this._client.get('/developers/api-keys', options);
+  list(
+    query: APIKeyListParams | null | undefined = {},
+    options?: RequestOptions,
+  ): APIPromise<APIKeyListResponse> {
+    return this._client.get('/developers/api-keys', { query, ...options });
   }
 
   /**
@@ -46,7 +49,7 @@ export class APIKeys extends APIResource {
    * );
    * ```
    */
-  revoke(keyID: string, options?: RequestOptions): APIPromise<void> {
+  revoke(keyID: unknown, options?: RequestOptions): APIPromise<void> {
     return this._client.delete(path`/developers/api-keys/${keyID}`, {
       ...options,
       headers: buildHeaders([{ Accept: '*/*' }, options?.headers]),
@@ -58,22 +61,22 @@ export interface APIKey {
   /**
    * Unique identifier for the API key.
    */
-  id: string;
+  id: unknown;
 
   /**
    * Timestamp when the API key was created.
    */
-  createdAt: string;
+  createdAt: unknown;
 
   /**
-   * The visible prefix of the API key (the full key is secret and not exposed).
+   * The non-secret prefix of the API key, used for identification.
    */
-  prefix: string;
+  prefix: unknown;
 
   /**
-   * List of OAuth2 scopes associated with this API key.
+   * List of permissions granted to this API key.
    */
-  scopes: Array<string>;
+  scopes: Array<unknown>;
 
   /**
    * Current status of the API key.
@@ -83,36 +86,66 @@ export interface APIKey {
   /**
    * Timestamp when the API key will expire, if set.
    */
-  expiresAt?: string | null;
+  expiresAt?: unknown;
 
   /**
-   * Timestamp of the last successful use of this API key.
+   * Timestamp of the last time this API key was used.
    */
-  lastUsed?: string | null;
-
-  /**
-   * A friendly name given to the API key for identification.
-   */
-  name?: string | null;
+  lastUsed?: unknown;
 }
 
-export type APIKeyListResponse = Array<APIKey>;
+export interface APIKeyListResponse {
+  /**
+   * The maximum number of items returned in the current page.
+   */
+  limit: unknown;
+
+  /**
+   * The number of items skipped before the current page.
+   */
+  offset: unknown;
+
+  /**
+   * The total number of items available across all pages.
+   */
+  total: unknown;
+
+  data?: Array<APIKey>;
+
+  /**
+   * The offset for the next page of results, if available. Null if no more pages.
+   */
+  nextOffset?: unknown;
+}
 
 export interface APIKeyCreateParams {
   /**
-   * A friendly name for the new API key.
+   * A descriptive name for the API key.
    */
-  name: string;
+  name: unknown;
 
   /**
-   * List of OAuth2 scopes that this API key should have access to.
+   * List of permissions to grant to this API key.
    */
-  scopes: Array<string>;
+  scopes: Array<unknown>;
 
   /**
-   * Optional: Number of days until the API key expires. If null, it does not expire.
+   * Optional: Number of days until the API key expires. If omitted, it will not
+   * expire.
    */
-  expiresInDays?: number | null;
+  expiresInDays?: unknown;
+}
+
+export interface APIKeyListParams {
+  /**
+   * Maximum number of items to return in a single page.
+   */
+  limit?: unknown;
+
+  /**
+   * Number of items to skip before starting to collect the result set.
+   */
+  offset?: unknown;
 }
 
 export declare namespace APIKeys {
@@ -120,5 +153,6 @@ export declare namespace APIKeys {
     type APIKey as APIKey,
     type APIKeyListResponse as APIKeyListResponse,
     type APIKeyCreateParams as APIKeyCreateParams,
+    type APIKeyListParams as APIKeyListParams,
   };
 }

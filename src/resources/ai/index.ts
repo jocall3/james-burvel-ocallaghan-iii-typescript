@@ -7,7 +7,7 @@ export {
   type AdListGeneratedResponse,
   type AdListGeneratedParams,
 } from './ads/index';
-export { Advisor, type AdvisorListToolsResponse } from './advisor/index';
+export { Advisor, type AdvisorListToolsResponse, type AdvisorListToolsParams } from './advisor/index';
 export {
   Incubator,
   type IncubatorListPitchesResponse,

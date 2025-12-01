@@ -7,8 +7,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource passwordReset', () => {
-  // Prism tests are disabled
-  test.skip('confirm: only required params', async () => {
+  test('confirm: only required params', async () => {
     const responsePromise = client.users.passwordReset.confirm({
       identifier: 'reset.user@example.com',
       newPassword: 'MyNewStrongPassword@789',
@@ -23,8 +22,7 @@ describe('resource passwordReset', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('confirm: required and optional params', async () => {
+  test('confirm: required and optional params', async () => {
     const response = await client.users.passwordReset.confirm({
       identifier: 'reset.user@example.com',
       newPassword: 'MyNewStrongPassword@789',
@@ -32,8 +30,7 @@ describe('resource passwordReset', () => {
     });
   });
 
-  // Prism tests are disabled
-  test.skip('initiate: only required params', async () => {
+  test('initiate: only required params', async () => {
     const responsePromise = client.users.passwordReset.initiate({ identifier: 'reset.user@example.com' });
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -44,8 +41,7 @@ describe('resource passwordReset', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('initiate: required and optional params', async () => {
+  test('initiate: required and optional params', async () => {
     const response = await client.users.passwordReset.initiate({ identifier: 'reset.user@example.com' });
   });
 });

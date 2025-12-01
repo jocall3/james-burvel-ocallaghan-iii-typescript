@@ -7,8 +7,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource preferences', () => {
-  // Prism tests are disabled
-  test.skip('retrieve', async () => {
+  test('retrieve', async () => {
     const responsePromise = client.users.me.preferences.retrieve();
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -19,8 +18,7 @@ describe('resource preferences', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('update', async () => {
+  test('update', async () => {
     const responsePromise = client.users.me.preferences.update({});
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
