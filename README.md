@@ -1,6 +1,6 @@
 # James Burvel Ocallaghan Iii TypeScript API Library
 
-[![NPM version](<https://img.shields.io/npm/v/citibankdemobusinessinc-james-burvel-ocallaghan-iii.svg?label=npm%20(stable)>)](https://npmjs.org/package/citibankdemobusinessinc-james-burvel-ocallaghan-iii) ![npm bundle size](https://img.shields.io/bundlephobia/minzip/citibankdemobusinessinc-james-burvel-ocallaghan-iii)
+[![NPM version](<https://img.shields.io/npm/v/james-burvel-ocallaghan-iii.svg?label=npm%20(stable)>)](https://npmjs.org/package/james-burvel-ocallaghan-iii) ![npm bundle size](https://img.shields.io/bundlephobia/minzip/james-burvel-ocallaghan-iii)
 
 This library provides convenient access to the James Burvel Ocallaghan Iii REST API from server-side TypeScript or JavaScript.
 
@@ -11,7 +11,7 @@ It is generated with [Stainless](https://www.stainless.com/).
 ## Installation
 
 ```sh
-npm install citibankdemobusinessinc-james-burvel-ocallaghan-iii
+npm install james-burvel-ocallaghan-iii
 ```
 
 ## Usage
@@ -20,7 +20,7 @@ The full API of this library can be found in [api.md](api.md).
 
 <!-- prettier-ignore -->
 ```js
-import JamesBurvelOcallaghanIii from 'citibankdemobusinessinc-james-burvel-ocallaghan-iii';
+import JamesBurvelOcallaghanIii from 'james-burvel-ocallaghan-iii';
 
 const client = new JamesBurvelOcallaghanIii();
 
@@ -39,7 +39,7 @@ This library includes TypeScript definitions for all request params and response
 
 <!-- prettier-ignore -->
 ```ts
-import JamesBurvelOcallaghanIii from 'citibankdemobusinessinc-james-burvel-ocallaghan-iii';
+import JamesBurvelOcallaghanIii from 'james-burvel-ocallaghan-iii';
 
 const client = new JamesBurvelOcallaghanIii();
 
@@ -170,7 +170,7 @@ The log level can be configured in two ways:
 2. Using the `logLevel` client option (overrides the environment variable if set)
 
 ```ts
-import JamesBurvelOcallaghanIii from 'citibankdemobusinessinc-james-burvel-ocallaghan-iii';
+import JamesBurvelOcallaghanIii from 'james-burvel-ocallaghan-iii';
 
 const client = new JamesBurvelOcallaghanIii({
   logLevel: 'debug', // Show all log messages
@@ -198,7 +198,7 @@ When providing a custom logger, the `logLevel` option still controls which messa
 below the configured level will not be sent to your logger.
 
 ```ts
-import JamesBurvelOcallaghanIii from 'citibankdemobusinessinc-james-burvel-ocallaghan-iii';
+import JamesBurvelOcallaghanIii from 'james-burvel-ocallaghan-iii';
 import pino from 'pino';
 
 const logger = pino();
@@ -267,7 +267,7 @@ globalThis.fetch = fetch;
 Or pass it to the client:
 
 ```ts
-import JamesBurvelOcallaghanIii from 'citibankdemobusinessinc-james-burvel-ocallaghan-iii';
+import JamesBurvelOcallaghanIii from 'james-burvel-ocallaghan-iii';
 import fetch from 'my-fetch';
 
 const client = new JamesBurvelOcallaghanIii({ fetch });
@@ -278,7 +278,7 @@ const client = new JamesBurvelOcallaghanIii({ fetch });
 If you want to set custom `fetch` options without overriding the `fetch` function, you can provide a `fetchOptions` object when instantiating the client or making a request. (Request-specific options override client options.)
 
 ```ts
-import JamesBurvelOcallaghanIii from 'citibankdemobusinessinc-james-burvel-ocallaghan-iii';
+import JamesBurvelOcallaghanIii from 'james-burvel-ocallaghan-iii';
 
 const client = new JamesBurvelOcallaghanIii({
   fetchOptions: {
@@ -295,7 +295,7 @@ options to requests:
 <img src="https://raw.githubusercontent.com/stainless-api/sdk-assets/refs/heads/main/node.svg" align="top" width="18" height="21"> **Node** <sup>[[docs](https://github.com/nodejs/undici/blob/main/docs/docs/api/ProxyAgent.md#example---proxyagent-with-fetch)]</sup>
 
 ```ts
-import JamesBurvelOcallaghanIii from 'citibankdemobusinessinc-james-burvel-ocallaghan-iii';
+import JamesBurvelOcallaghanIii from 'james-burvel-ocallaghan-iii';
 import * as undici from 'undici';
 
 const proxyAgent = new undici.ProxyAgent('http://localhost:8888');
@@ -309,7 +309,7 @@ const client = new JamesBurvelOcallaghanIii({
 <img src="https://raw.githubusercontent.com/stainless-api/sdk-assets/refs/heads/main/bun.svg" align="top" width="18" height="21"> **Bun** <sup>[[docs](https://bun.sh/guides/http/proxy)]</sup>
 
 ```ts
-import JamesBurvelOcallaghanIii from 'citibankdemobusinessinc-james-burvel-ocallaghan-iii';
+import JamesBurvelOcallaghanIii from 'james-burvel-ocallaghan-iii';
 
 const client = new JamesBurvelOcallaghanIii({
   fetchOptions: {
@@ -321,7 +321,7 @@ const client = new JamesBurvelOcallaghanIii({
 <img src="https://raw.githubusercontent.com/stainless-api/sdk-assets/refs/heads/main/deno.svg" align="top" width="18" height="21"> **Deno** <sup>[[docs](https://docs.deno.com/api/deno/~/Deno.createHttpClient)]</sup>
 
 ```ts
-import JamesBurvelOcallaghanIii from 'npm:citibankdemobusinessinc-james-burvel-ocallaghan-iii';
+import JamesBurvelOcallaghanIii from 'npm:james-burvel-ocallaghan-iii';
 
 const httpClient = Deno.createHttpClient({ proxy: { url: 'http://localhost:8888' } });
 const client = new JamesBurvelOcallaghanIii({
