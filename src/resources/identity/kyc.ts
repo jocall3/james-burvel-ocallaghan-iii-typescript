@@ -48,7 +48,7 @@ export interface KYCStatus {
   /**
    * Timestamp of the last KYC document submission.
    */
-  lastSubmissionDate: string | null;
+  lastSubmissionDate: unknown;
 
   /**
    * Overall status of the KYC verification process.
@@ -58,17 +58,17 @@ export interface KYCStatus {
   /**
    * List of actions required from the user if status is 'requires_more_info'.
    */
-  requiredActions: Array<string>;
+  requiredActions: Array<unknown>;
 
   /**
    * The ID of the user whose KYC status is being retrieved.
    */
-  userId: string;
+  userId: unknown;
 
   /**
    * Reason for rejection if status is 'rejected'.
    */
-  rejectionReason?: string | null;
+  rejectionReason?: unknown;
 
   /**
    * The KYC verification tier achieved (e.g., for different service levels).
@@ -80,12 +80,12 @@ export interface KYCSubmitParams {
   /**
    * The two-letter ISO country code where the document was issued.
    */
-  countryOfIssue: string;
+  countryOfIssue: unknown;
 
   /**
    * The identification number on the document.
    */
-  documentNumber: string;
+  documentNumber: unknown;
 
   /**
    * The type of KYC document being submitted.
@@ -95,28 +95,28 @@ export interface KYCSubmitParams {
   /**
    * The expiration date of the document (YYYY-MM-DD).
    */
-  expirationDate: string;
+  expirationDate: unknown;
 
   /**
    * The issue date of the document (YYYY-MM-DD).
    */
-  issueDate: string;
+  issueDate: unknown;
 
   /**
    * Array of additional documents (e.g., utility bills) as base64 encoded images.
    */
-  additionalDocuments?: Array<string> | null;
+  additionalDocuments?: Array<unknown> | null;
 
   /**
    * Base64 encoded image of the back of the document (if applicable).
    */
-  documentBackImage?: string | null;
+  documentBackImage?: unknown;
 
   /**
    * Base64 encoded image of the front of the document. Use 'application/json' with
    * base64 string, or 'multipart/form-data' for direct file upload.
    */
-  documentFrontImage?: string | null;
+  documentFrontImage?: unknown;
 }
 
 export declare namespace KYC {

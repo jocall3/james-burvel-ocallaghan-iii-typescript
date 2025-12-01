@@ -25,24 +25,24 @@ export interface AssetSearchResponse {
   /**
    * The maximum number of items returned in the current page.
    */
-  limit: number;
+  limit: unknown;
 
   /**
    * The number of items skipped before the current page.
    */
-  offset: number;
+  offset: unknown;
 
   /**
    * The total number of items available across all pages.
    */
-  total: number;
+  total: unknown;
 
   data?: Array<AssetSearchResponse.Data>;
 
   /**
    * The offset for the next page of results, if available. Null if no more pages.
    */
-  nextOffset?: number | null;
+  nextOffset?: unknown;
 }
 
 export namespace AssetSearchResponse {
@@ -50,12 +50,12 @@ export namespace AssetSearchResponse {
     /**
      * Full name of the investment asset.
      */
-    assetName: string;
+    assetName: unknown;
 
     /**
      * Symbol of the investment asset.
      */
-    assetSymbol: string;
+    assetSymbol: unknown;
 
     /**
      * Type of the investment asset.
@@ -65,47 +65,47 @@ export namespace AssetSearchResponse {
     /**
      * Currency of the asset's price.
      */
-    currency: string;
+    currency: unknown;
 
     /**
      * Current market price of the asset.
      */
-    currentPrice: number;
+    currentPrice: unknown;
 
     /**
      * Overall ESG score (0-10), higher is better.
      */
-    overallESGScore: number;
+    overallESGScore: unknown;
 
     /**
      * AI-generated insight summarizing the ESG profile.
      */
-    aiESGInsight?: string | null;
+    aiESGInsight?: unknown;
 
     /**
      * Environmental component of the ESG score.
      */
-    environmentalScore?: number | null;
+    environmentalScore?: unknown;
 
     /**
      * List of any significant ESG-related controversies associated with the asset.
      */
-    esgControversies?: Array<string> | null;
+    esgControversies?: Array<unknown> | null;
 
     /**
      * Provider of the ESG rating (e.g., MSCI, Sustainalytics).
      */
-    esgRatingProvider?: string | null;
+    esgRatingProvider?: unknown;
 
     /**
      * Governance component of the ESG score.
      */
-    governanceScore?: number | null;
+    governanceScore?: unknown;
 
     /**
      * Social component of the ESG score.
      */
-    socialScore?: number | null;
+    socialScore?: unknown;
   }
 }
 
@@ -113,22 +113,22 @@ export interface AssetSearchParams {
   /**
    * Search query for asset name or symbol.
    */
-  query: string;
+  query: unknown;
 
   /**
    * Maximum number of items to return in a single page.
    */
-  limit?: number;
+  limit?: unknown;
 
   /**
    * Minimum desired ESG score (0-10).
    */
-  minESGScore?: number;
+  minESGScore?: unknown;
 
   /**
    * Number of items to skip before starting to collect the result set.
    */
-  offset?: number;
+  offset?: unknown;
 }
 
 export declare namespace Assets {

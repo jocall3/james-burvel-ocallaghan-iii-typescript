@@ -40,7 +40,7 @@ export class Portfolios extends APIResource {
    *   );
    * ```
    */
-  retrieve(portfolioID: string, options?: RequestOptions): APIPromise<InvestmentPortfolio> {
+  retrieve(portfolioID: unknown, options?: RequestOptions): APIPromise<InvestmentPortfolio> {
     return this._client.get(path`/investments/portfolios/${portfolioID}`, options);
   }
 
@@ -61,7 +61,7 @@ export class Portfolios extends APIResource {
    * ```
    */
   update(
-    portfolioID: string,
+    portfolioID: unknown,
     body: PortfolioUpdateParams,
     options?: RequestOptions,
   ): APIPromise<InvestmentPortfolio> {
@@ -102,7 +102,7 @@ export class Portfolios extends APIResource {
    * ```
    */
   rebalance(
-    portfolioID: string,
+    portfolioID: unknown,
     body: PortfolioRebalanceParams,
     options?: RequestOptions,
   ): APIPromise<PortfolioRebalanceResponse> {
@@ -114,22 +114,22 @@ export interface InvestmentPortfolio {
   /**
    * Unique identifier for the investment portfolio.
    */
-  id: string;
+  id: unknown;
 
   /**
    * ISO 4217 currency code of the portfolio.
    */
-  currency: string;
+  currency: unknown;
 
   /**
    * Timestamp when the portfolio data was last updated.
    */
-  lastUpdated: string;
+  lastUpdated: unknown;
 
   /**
    * Name of the portfolio.
    */
-  name: string;
+  name: unknown;
 
   /**
    * User's stated or AI-assessed risk tolerance for this portfolio.
@@ -139,12 +139,12 @@ export interface InvestmentPortfolio {
   /**
    * Daily gain or loss on the portfolio.
    */
-  todayGainLoss: number;
+  todayGainLoss: unknown;
 
   /**
    * Current total market value of the portfolio.
    */
-  totalValue: number;
+  totalValue: unknown;
 
   /**
    * General type or strategy of the portfolio.
@@ -154,7 +154,7 @@ export interface InvestmentPortfolio {
   /**
    * Total unrealized gain or loss on the portfolio.
    */
-  unrealizedGainLoss: number;
+  unrealizedGainLoss: unknown;
 
   /**
    * AI-driven insights into portfolio performance and market outlook.
@@ -177,42 +177,42 @@ export namespace InvestmentPortfolio {
     /**
      * Average cost per unit.
      */
-    averageCost: number;
+    averageCost: unknown;
 
     /**
      * Current market price per unit.
      */
-    currentPrice: number;
+    currentPrice: unknown;
 
     /**
      * Total market value of the holding.
      */
-    marketValue: number;
+    marketValue: unknown;
 
     /**
      * Full name of the investment asset.
      */
-    name: string;
+    name: unknown;
 
     /**
      * Percentage of the total portfolio value this holding represents.
      */
-    percentageOfPortfolio: number;
+    percentageOfPortfolio: unknown;
 
     /**
      * Number of units held.
      */
-    quantity: number;
+    quantity: unknown;
 
     /**
      * Stock ticker or asset symbol.
      */
-    symbol: string;
+    symbol: unknown;
 
     /**
      * Overall ESG (Environmental, Social, Governance) score of the asset (0-10).
      */
-    esgScore?: number | null;
+    esgScore?: unknown;
   }
 }
 
@@ -220,36 +220,36 @@ export interface PortfolioListResponse {
   /**
    * The maximum number of items returned in the current page.
    */
-  limit: number;
+  limit: unknown;
 
   /**
    * The number of items skipped before the current page.
    */
-  offset: number;
+  offset: unknown;
 
   /**
    * The total number of items available across all pages.
    */
-  total: number;
+  total: unknown;
 
   data?: Array<InvestmentPortfolio>;
 
   /**
    * The offset for the next page of results, if available. Null if no more pages.
    */
-  nextOffset?: number | null;
+  nextOffset?: unknown;
 }
 
 export interface PortfolioRebalanceResponse {
   /**
    * ID of the portfolio being rebalanced.
    */
-  portfolioId: string;
+  portfolioId: unknown;
 
   /**
    * Unique identifier for the rebalancing operation.
    */
-  rebalanceId: string;
+  rebalanceId: unknown;
 
   /**
    * Current status of the rebalancing operation.
@@ -259,23 +259,23 @@ export interface PortfolioRebalanceResponse {
   /**
    * A descriptive message about the current rebalance status.
    */
-  statusMessage: string;
+  statusMessage: unknown;
 
   /**
    * Timestamp when the rebalance confirmation expires, if `confirmationRequired` is
    * true.
    */
-  confirmationExpiresAt?: string | null;
+  confirmationExpiresAt?: unknown;
 
   /**
    * Indicates if user confirmation is required to proceed with trades.
    */
-  confirmationRequired?: boolean | null;
+  confirmationRequired?: unknown;
 
   /**
    * AI-estimated impact of the rebalance on the portfolio.
    */
-  estimatedImpact?: string | null;
+  estimatedImpact?: unknown;
 
   /**
    * List of proposed trades if `dryRun` was true and status is
@@ -288,11 +288,11 @@ export namespace PortfolioRebalanceResponse {
   export interface ProposedTrade {
     action?: 'buy' | 'sell';
 
-    estimatedPrice?: number;
+    estimatedPrice?: unknown;
 
-    quantity?: number;
+    quantity?: unknown;
 
-    symbol?: string;
+    symbol?: unknown;
   }
 }
 
@@ -300,17 +300,17 @@ export interface PortfolioCreateParams {
   /**
    * ISO 4217 currency code of the portfolio.
    */
-  currency: string;
+  currency: unknown;
 
   /**
    * Initial amount to invest into the portfolio.
    */
-  initialInvestment: number;
+  initialInvestment: unknown;
 
   /**
    * Name for the new investment portfolio.
    */
-  name: string;
+  name: unknown;
 
   /**
    * Desired risk tolerance for this portfolio.
@@ -326,12 +326,12 @@ export interface PortfolioCreateParams {
    * If true, AI will automatically allocate initial investment based on risk
    * tolerance.
    */
-  aiAutoAllocate?: boolean;
+  aiAutoAllocate?: unknown;
 
   /**
    * Optional: ID of a linked account to fund the initial investment.
    */
-  linkedAccountId?: string | null;
+  linkedAccountId?: unknown;
 }
 
 export interface PortfolioUpdateParams {
@@ -343,7 +343,7 @@ export interface PortfolioUpdateParams {
   /**
    * Updated name of the portfolio.
    */
-  name?: string;
+  name?: unknown;
 
   /**
    * Updated risk tolerance for this portfolio. May trigger rebalancing.
@@ -355,12 +355,12 @@ export interface PortfolioListParams {
   /**
    * Maximum number of items to return in a single page.
    */
-  limit?: number;
+  limit?: unknown;
 
   /**
    * Number of items to skip before starting to collect the result set.
    */
-  offset?: number;
+  offset?: unknown;
 }
 
 export interface PortfolioRebalanceParams {
@@ -373,13 +373,13 @@ export interface PortfolioRebalanceParams {
    * If true, user confirmation is required before executing actual trades after a
    * dry run.
    */
-  confirmationRequired?: boolean;
+  confirmationRequired?: unknown;
 
   /**
    * If true, only simulate the rebalance without executing trades. Returns proposed
    * trades.
    */
-  dryRun?: boolean;
+  dryRun?: unknown;
 }
 
 export declare namespace Portfolios {

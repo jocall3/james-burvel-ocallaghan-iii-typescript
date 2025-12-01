@@ -25,8 +25,8 @@ describe('resource accounts', () => {
     const response = await client.accounts.linkNewInstitution({
       countryCode: 'US',
       institutionName: 'Bank of America',
-      providerIdentifier: 'providerIdentifier',
-      redirectUri: 'https://example.com',
+      providerIdentifier: {},
+      redirectUri: {},
     });
   });
 
@@ -44,7 +44,7 @@ describe('resource accounts', () => {
   test('listLinkedAccounts: request options and params are passed correctly', async () => {
     // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
     await expect(
-      client.accounts.listLinkedAccounts({ limit: 1, offset: 0 }, { path: '/_stainless_unknown_path' }),
+      client.accounts.listLinkedAccounts({ limit: {}, offset: {} }, { path: '/_stainless_unknown_path' }),
     ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);
   });
 

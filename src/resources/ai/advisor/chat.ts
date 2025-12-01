@@ -47,24 +47,24 @@ export interface ChatRetrieveHistoryResponse {
   /**
    * The maximum number of items returned in the current page.
    */
-  limit: number;
+  limit: unknown;
 
   /**
    * The number of items skipped before the current page.
    */
-  offset: number;
+  offset: unknown;
 
   /**
    * The total number of items available across all pages.
    */
-  total: number;
+  total: unknown;
 
   data?: Array<ChatRetrieveHistoryResponse.Data>;
 
   /**
    * The offset for the next page of results, if available. Null if no more pages.
    */
-  nextOffset?: number | null;
+  nextOffset?: unknown;
 }
 
 export namespace ChatRetrieveHistoryResponse {
@@ -72,7 +72,7 @@ export namespace ChatRetrieveHistoryResponse {
     /**
      * The textual content of the message.
      */
-    content: string;
+    content: unknown;
 
     /**
      * Role of the speaker (user, assistant, or tool interaction).
@@ -82,7 +82,7 @@ export namespace ChatRetrieveHistoryResponse {
     /**
      * Timestamp of the message.
      */
-    timestamp: string;
+    timestamp: unknown;
 
     /**
      * If role is 'tool_call', details of the tool function called by the AI.
@@ -102,14 +102,14 @@ export namespace ChatRetrieveHistoryResponse {
     export interface FunctionCall {
       args?: unknown;
 
-      name?: string;
+      name?: unknown;
     }
 
     /**
      * If role is 'tool_response', the output from the tool function.
      */
     export interface FunctionResponse {
-      name?: string;
+      name?: unknown;
 
       response?: unknown;
     }
@@ -120,7 +120,7 @@ export interface ChatSendMessageResponse {
   /**
    * The active conversation session ID.
    */
-  sessionId: string;
+  sessionId: unknown;
 
   /**
    * A list of tool functions the AI wants the system to execute.
@@ -136,12 +136,12 @@ export interface ChatSendMessageResponse {
    * Indicates if the AI's response implies that the user needs to take a specific
    * action (e.g., provide more input, confirm a tool call).
    */
-  requiresUserAction?: boolean;
+  requiresUserAction?: unknown;
 
   /**
    * The AI Advisor's textual response.
    */
-  text?: string | null;
+  text?: unknown;
 }
 
 export namespace ChatSendMessageResponse {
@@ -149,7 +149,7 @@ export namespace ChatSendMessageResponse {
     /**
      * Unique ID for this tool call, used to link with `functionResponse`.
      */
-    id?: string;
+    id?: unknown;
 
     /**
      * Key-value pairs representing the arguments to pass to the tool function.
@@ -159,7 +159,7 @@ export namespace ChatSendMessageResponse {
     /**
      * The name of the tool function to call.
      */
-    name?: string;
+    name?: unknown;
   }
 }
 
@@ -167,18 +167,18 @@ export interface ChatRetrieveHistoryParams {
   /**
    * Maximum number of items to return in a single page.
    */
-  limit?: number;
+  limit?: unknown;
 
   /**
    * Number of items to skip before starting to collect the result set.
    */
-  offset?: number;
+  offset?: unknown;
 
   /**
    * Optional: Filter history by a specific session ID. If omitted, recent
    * conversations will be returned.
    */
-  sessionId?: string;
+  sessionId?: unknown;
 }
 
 export interface ChatSendMessageParams {
@@ -186,18 +186,18 @@ export interface ChatSendMessageParams {
    * Optional: The output from a tool function that the AI previously requested to be
    * executed.
    */
-  functionResponse?: ChatSendMessageParams.FunctionResponse | null;
+  functionResponse?: ChatSendMessageParams.FunctionResponse;
 
   /**
    * The user's textual input to the AI Advisor.
    */
-  message?: string;
+  message?: unknown;
 
   /**
    * Optional: Session ID to continue a conversation. If omitted, a new session is
    * started.
    */
-  sessionId?: string | null;
+  sessionId?: unknown;
 }
 
 export namespace ChatSendMessageParams {
@@ -209,7 +209,7 @@ export namespace ChatSendMessageParams {
     /**
      * The name of the tool function for which this is a response.
      */
-    name?: string;
+    name?: unknown;
 
     /**
      * The JSON output from the execution of the tool function.

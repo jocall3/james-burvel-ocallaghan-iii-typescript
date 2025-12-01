@@ -27,7 +27,7 @@ export interface AIInsight {
   /**
    * Unique identifier for the AI insight.
    */
-  id: string;
+  id: unknown;
 
   /**
    * Category of the insight (e.g., spending, saving, investing).
@@ -47,7 +47,7 @@ export interface AIInsight {
   /**
    * Detailed explanation of the insight.
    */
-  description: string;
+  description: unknown;
 
   /**
    * AI-assessed severity or importance of the insight.
@@ -57,23 +57,23 @@ export interface AIInsight {
   /**
    * Timestamp when the insight was generated.
    */
-  timestamp: string;
+  timestamp: unknown;
 
   /**
    * A concise title for the insight.
    */
-  title: string;
+  title: unknown;
 
   /**
    * Optional: A concrete action the user can take based on the insight.
    */
-  actionableRecommendation?: string | null;
+  actionableRecommendation?: unknown;
 
   /**
    * Optional: A programmatic trigger or deep link to initiate the recommended
    * action.
    */
-  actionTrigger?: string | null;
+  actionTrigger?: unknown;
 }
 
 export interface InsightGetSpendingTrendsResponse {
@@ -85,7 +85,7 @@ export interface InsightGetSpendingTrendsResponse {
   /**
    * AI-projected total spending for the next month.
    */
-  forecastNextMonth: number;
+  forecastNextMonth: unknown;
 
   /**
    * Overall trend of spending (increasing, decreasing, stable).
@@ -95,12 +95,12 @@ export interface InsightGetSpendingTrendsResponse {
   /**
    * Percentage change in spending over the period.
    */
-  percentageChange: number;
+  percentageChange: unknown;
 
   /**
    * The period over which the spending trend is analyzed.
    */
-  period: string;
+  period: unknown;
 
   /**
    * Categories with the most significant changes in spending.
@@ -110,11 +110,11 @@ export interface InsightGetSpendingTrendsResponse {
 
 export namespace InsightGetSpendingTrendsResponse {
   export interface TopCategoriesByChange {
-    absoluteChange?: number;
+    absoluteChange?: unknown;
 
-    category?: string;
+    category?: unknown;
 
-    percentageChange?: number;
+    percentageChange?: unknown;
   }
 }
 

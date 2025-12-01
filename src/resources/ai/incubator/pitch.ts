@@ -19,7 +19,7 @@ export class Pitch extends APIResource {
    *   );
    * ```
    */
-  retrieveDetails(pitchID: string, options?: RequestOptions): APIPromise<PitchRetrieveDetailsResponse> {
+  retrieveDetails(pitchID: unknown, options?: RequestOptions): APIPromise<PitchRetrieveDetailsResponse> {
     return this._client.get(path`/ai/incubator/pitch/${pitchID}/details`, options);
   }
 
@@ -96,7 +96,7 @@ export class Pitch extends APIResource {
    * ```
    */
   submitFeedback(
-    pitchID: string,
+    pitchID: unknown,
     body: PitchSubmitFeedbackParams,
     options?: RequestOptions,
   ): APIPromise<QuantumWeaverState> {
@@ -108,17 +108,17 @@ export interface QuantumWeaverState {
   /**
    * Timestamp of the last status update.
    */
-  lastUpdated: string;
+  lastUpdated: unknown;
 
   /**
    * Guidance on the next actions for the user.
    */
-  nextSteps: string;
+  nextSteps: unknown;
 
   /**
    * Unique identifier for the business pitch.
    */
-  pitchId: string;
+  pitchId: unknown;
 
   /**
    * Current stage of the business pitch in the incubation process.
@@ -137,17 +137,17 @@ export interface QuantumWeaverState {
   /**
    * A human-readable status message.
    */
-  statusMessage: string;
+  statusMessage: unknown;
 
   /**
    * AI's estimated funding offer, if the pitch progresses.
    */
-  estimatedFundingOffer?: number | null;
+  estimatedFundingOffer?: unknown;
 
   /**
    * A summary of AI-generated feedback, if applicable.
    */
-  feedbackSummary?: string | null;
+  feedbackSummary?: unknown;
 
   /**
    * List of questions from Quantum Weaver requiring the user's input.
@@ -157,13 +157,13 @@ export interface QuantumWeaverState {
 
 export namespace QuantumWeaverState {
   export interface Question {
-    id?: string;
+    id?: unknown;
 
-    category?: string;
+    category?: unknown;
 
-    isRequired?: boolean;
+    isRequired?: unknown;
 
-    question?: string;
+    question?: unknown;
   }
 }
 
@@ -192,7 +192,7 @@ export interface PitchRetrieveDetailsResponse extends QuantumWeaverState {
    * AI's score for how well the pitch matches potential investors in the network
    * (0-1).
    */
-  investorMatchScore?: number | null;
+  investorMatchScore?: unknown;
 }
 
 export namespace PitchRetrieveDetailsResponse {
@@ -202,29 +202,29 @@ export namespace PitchRetrieveDetailsResponse {
   export interface AICoachingPlan {
     steps?: Array<AICoachingPlan.Step>;
 
-    summary?: string;
+    summary?: unknown;
 
-    title?: string;
+    title?: unknown;
   }
 
   export namespace AICoachingPlan {
     export interface Step {
-      description?: string;
+      description?: unknown;
 
       resources?: Array<Step.Resource>;
 
       status?: 'pending' | 'in_progress' | 'completed';
 
-      timeline?: string;
+      timeline?: unknown;
 
-      title?: string;
+      title?: unknown;
     }
 
     export namespace Step {
       export interface Resource {
-        name?: string;
+        name?: unknown;
 
-        url?: string;
+        url?: unknown;
       }
     }
   }
@@ -233,24 +233,24 @@ export namespace PitchRetrieveDetailsResponse {
    * AI's detailed financial model analysis.
    */
   export interface AIFinancialModel {
-    breakevenPoint?: string;
+    breakevenPoint?: unknown;
 
-    capitalRequirements?: number;
+    capitalRequirements?: unknown;
 
-    costStructureAnalysis?: { [key: string]: string };
+    costStructureAnalysis?: unknown;
 
-    revenueBreakdown?: { [key: string]: string };
+    revenueBreakdown?: unknown;
 
     sensitivityAnalysis?: Array<AIFinancialModel.SensitivityAnalysis>;
   }
 
   export namespace AIFinancialModel {
     export interface SensitivityAnalysis {
-      projectedIRR?: number;
+      projectedIRR?: unknown;
 
-      scenario?: string;
+      scenario?: unknown;
 
-      terminalValue?: number;
+      terminalValue?: unknown;
     }
   }
 
@@ -258,24 +258,24 @@ export namespace PitchRetrieveDetailsResponse {
    * AI's detailed market analysis.
    */
   export interface AIMarketAnalysis {
-    competitiveAdvantages?: Array<string>;
+    competitiveAdvantages?: Array<unknown>;
 
-    growthOpportunities?: string;
+    growthOpportunities?: unknown;
 
-    riskFactors?: string;
+    riskFactors?: unknown;
 
-    targetMarketSize?: string;
+    targetMarketSize?: unknown;
   }
 
   /**
    * AI's assessment of risks associated with the venture.
    */
   export interface AIRiskAssessment {
-    marketRisk?: string;
+    marketRisk?: unknown;
 
-    teamRisk?: string;
+    teamRisk?: unknown;
 
-    technicalRisk?: string;
+    technicalRisk?: unknown;
   }
 }
 
@@ -284,7 +284,7 @@ export interface PitchSubmitParams {
    * The user's detailed narrative business plan (e.g., executive summary, vision,
    * strategy).
    */
-  businessPlan: string;
+  businessPlan: unknown;
 
   /**
    * Key financial metrics and projections for the next 3-5 years.
@@ -300,7 +300,7 @@ export interface PitchSubmitParams {
    * Detailed analysis of the target market, problem statement, and proposed
    * solution's unique value proposition.
    */
-  marketOpportunity: string;
+  marketOpportunity: unknown;
 }
 
 export namespace PitchSubmitParams {
@@ -311,41 +311,41 @@ export namespace PitchSubmitParams {
     /**
      * Estimated time to profitability.
      */
-    profitabilityEstimate?: string;
+    profitabilityEstimate?: unknown;
 
     /**
      * Number of years for financial projections.
      */
-    projectionYears?: number;
+    projectionYears?: unknown;
 
-    revenueForecast?: Array<number>;
+    revenueForecast?: Array<unknown>;
 
     /**
      * Requested seed funding in USD.
      */
-    seedRoundAmount?: number;
+    seedRoundAmount?: unknown;
 
     /**
      * Pre-money valuation in USD.
      */
-    valuationPreMoney?: number;
+    valuationPreMoney?: unknown;
   }
 
   export interface FoundingTeam {
     /**
      * Relevant experience.
      */
-    experience?: string;
+    experience?: unknown;
 
     /**
      * Name of the team member.
      */
-    name?: string;
+    name?: unknown;
 
     /**
      * Role of the team member.
      */
-    role?: string;
+    role?: unknown;
   }
 }
 
@@ -355,7 +355,7 @@ export interface PitchSubmitFeedbackParams {
   /**
    * General textual feedback or additional details for Quantum Weaver.
    */
-  feedback?: string | null;
+  feedback?: unknown;
 }
 
 export namespace PitchSubmitFeedbackParams {
@@ -363,12 +363,12 @@ export namespace PitchSubmitFeedbackParams {
     /**
      * The answer to the specific question.
      */
-    answer: string;
+    answer: unknown;
 
     /**
      * The ID of the question being answered.
      */
-    questionId: string;
+    questionId: unknown;
   }
 }
 

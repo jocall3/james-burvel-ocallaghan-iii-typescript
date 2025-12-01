@@ -42,54 +42,54 @@ export interface TransactionInitiateTransferResponse {
   /**
    * Unique identifier for this cryptocurrency transfer operation.
    */
-  transferId: string;
+  transferId: unknown;
 
   /**
    * The blockchain transaction hash, if available and confirmed.
    */
-  blockchainTxnHash?: string | null;
+  blockchainTxnHash?: unknown;
 
   /**
    * A descriptive message about the transfer status.
    */
-  message?: string | null;
+  message?: unknown;
 }
 
 export interface TransactionInitiateTransferParams {
   /**
    * The amount of cryptocurrency to transfer.
    */
-  amount: number;
+  amount: unknown;
 
   /**
    * Symbol of the crypto asset to transfer (e.g., ETH, USDC).
    */
-  assetSymbol: string;
+  assetSymbol: unknown;
 
   /**
    * The blockchain network for the transfer.
    */
-  blockchainNetwork: string;
+  blockchainNetwork: unknown;
 
   /**
    * The recipient's blockchain address.
    */
-  recipientAddress: string;
+  recipientAddress: unknown;
 
   /**
    * ID of the connected wallet from which to send funds.
    */
-  sourceWalletId: string;
+  sourceWalletId: unknown;
 
   /**
    * Optional: Gas price in Gwei for Ethereum-based transactions.
    */
-  gasPriceGwei?: number | null;
+  gasPriceGwei?: unknown;
 
   /**
    * Optional: A short memo or note for the transaction.
    */
-  memo?: string | null;
+  memo?: unknown;
 }
 
 export declare namespace Transactions {

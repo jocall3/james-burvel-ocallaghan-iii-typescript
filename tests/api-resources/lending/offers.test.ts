@@ -21,7 +21,7 @@ describe('resource offers', () => {
   test('listPreApproved: request options and params are passed correctly', async () => {
     // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
     await expect(
-      client.lending.offers.listPreApproved({ limit: 1, offset: 0 }, { path: '/_stainless_unknown_path' }),
+      client.lending.offers.listPreApproved({ limit: {}, offset: {} }, { path: '/_stainless_unknown_path' }),
     ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);
   });
 });

@@ -21,9 +21,9 @@ describe('resource assets', () => {
   test('search: required and optional params', async () => {
     const response = await client.investments.assets.search({
       query: 'Tesla',
-      limit: 1,
+      limit: {},
       minESGScore: 7,
-      offset: 0,
+      offset: {},
     });
   });
 });

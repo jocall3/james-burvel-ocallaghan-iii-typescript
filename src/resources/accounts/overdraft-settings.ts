@@ -17,7 +17,7 @@ export class OverdraftSettings extends APIResource {
    *   );
    * ```
    */
-  retrieveSettings(accountID: string, options?: RequestOptions): APIPromise<OverdraftSettings> {
+  retrieveSettings(accountID: unknown, options?: RequestOptions): APIPromise<OverdraftSettings> {
     return this._client.get(path`/accounts/${accountID}/overdraft-settings`, options);
   }
 
@@ -35,7 +35,7 @@ export class OverdraftSettings extends APIResource {
    * ```
    */
   updateSettings(
-    accountID: string,
+    accountID: unknown,
     body: OverdraftSettingUpdateSettingsParams,
     options?: RequestOptions,
   ): APIPromise<OverdraftSettings> {
@@ -47,12 +47,12 @@ export interface OverdraftSettings {
   /**
    * The account ID these overdraft settings apply to.
    */
-  accountId: string;
+  accountId: unknown;
 
   /**
    * If true, overdraft protection is enabled.
    */
-  enabled: boolean;
+  enabled: unknown;
 
   /**
    * User's preference for how overdraft fees are handled or if transactions should
@@ -63,24 +63,24 @@ export interface OverdraftSettings {
   /**
    * The ID of the linked savings account, if `linkToSavings` is true.
    */
-  linkedSavingsAccountId?: string | null;
+  linkedSavingsAccountId?: unknown;
 
   /**
    * If true, attempts to draw funds from a linked savings account.
    */
-  linkToSavings?: boolean | null;
+  linkToSavings?: unknown;
 
   /**
    * The maximum amount that can be covered by overdraft protection.
    */
-  protectionLimit?: number | null;
+  protectionLimit?: unknown;
 }
 
 export interface OverdraftSettingUpdateSettingsParams {
   /**
    * Enable or disable overdraft protection.
    */
-  enabled?: boolean;
+  enabled?: unknown;
 
   /**
    * New preference for how overdraft fees are handled.
@@ -91,17 +91,17 @@ export interface OverdraftSettingUpdateSettingsParams {
    * New ID of the linked savings account, if `linkToSavings` is true. Set to null to
    * unlink.
    */
-  linkedSavingsAccountId?: string | null;
+  linkedSavingsAccountId?: unknown;
 
   /**
    * Enable or disable linking to a savings account for overdraft coverage.
    */
-  linkToSavings?: boolean | null;
+  linkToSavings?: unknown;
 
   /**
    * New maximum amount for overdraft protection. Set to null to remove limit.
    */
-  protectionLimit?: number | null;
+  protectionLimit?: unknown;
 }
 
 export declare namespace OverdraftSettings {

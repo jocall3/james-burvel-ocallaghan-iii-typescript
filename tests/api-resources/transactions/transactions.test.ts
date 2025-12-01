@@ -36,10 +36,10 @@ describe('resource transactions', () => {
         {
           category: 'Groceries',
           endDate: '2024-12-31',
-          limit: 1,
+          limit: {},
           maxAmount: 100,
           minAmount: 20,
-          offset: 0,
+          offset: {},
           searchQuery: 'Starbucks',
           startDate: '2024-01-01',
           type: 'expense',

@@ -20,7 +20,7 @@ export class Transactions extends APIResource {
    * ```
    */
   listPendingTransactions(
-    accountID: string,
+    accountID: unknown,
     query: TransactionListPendingTransactionsParams | null | undefined = {},
     options?: RequestOptions,
   ): APIPromise<TransactionListPendingTransactionsResponse> {
@@ -32,36 +32,36 @@ export interface TransactionListPendingTransactionsResponse {
   /**
    * The maximum number of items returned in the current page.
    */
-  limit: number;
+  limit: unknown;
 
   /**
    * The number of items skipped before the current page.
    */
-  offset: number;
+  offset: unknown;
 
   /**
    * The total number of items available across all pages.
    */
-  total: number;
+  total: unknown;
 
   data?: Array<TransactionsTransactionsAPI.Transaction>;
 
   /**
    * The offset for the next page of results, if available. Null if no more pages.
    */
-  nextOffset?: number | null;
+  nextOffset?: unknown;
 }
 
 export interface TransactionListPendingTransactionsParams {
   /**
    * Maximum number of items to return in a single page.
    */
-  limit?: number;
+  limit?: unknown;
 
   /**
    * Number of items to skip before starting to collect the result set.
    */
-  offset?: number;
+  offset?: unknown;
 }
 
 export declare namespace Transactions {

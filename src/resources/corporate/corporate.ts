@@ -70,17 +70,17 @@ export interface CorporatePerformSanctionScreeningResponse {
   /**
    * True if any potential matches were found on sanction lists.
    */
-  matchFound: boolean;
+  matchFound: unknown;
 
   /**
    * Unique identifier for this screening operation.
    */
-  screeningId: string;
+  screeningId: unknown;
 
   /**
    * Timestamp when the screening was performed.
    */
-  screeningTimestamp: string;
+  screeningTimestamp: unknown;
 
   /**
    * Overall status of the screening result.
@@ -90,7 +90,7 @@ export interface CorporatePerformSanctionScreeningResponse {
   /**
    * An optional message providing more context on the status.
    */
-  message?: string | null;
+  message?: unknown;
 }
 
 export namespace CorporatePerformSanctionScreeningResponse {
@@ -98,27 +98,27 @@ export namespace CorporatePerformSanctionScreeningResponse {
     /**
      * Name of the sanction list where a match was found.
      */
-    listName?: string;
+    listName?: unknown;
 
     /**
      * The name on the sanction list that matched.
      */
-    matchedName?: string;
+    matchedName?: unknown;
 
     /**
      * Optional: URL to public record of the sanction list entry.
      */
-    publicUrl?: string | null;
+    publicUrl?: unknown;
 
     /**
      * Reason for the match (e.g., exact name, alias, partial match).
      */
-    reason?: string;
+    reason?: unknown;
 
     /**
      * Match confidence score (0-1).
      */
-    score?: number;
+    score?: unknown;
   }
 }
 
@@ -127,7 +127,7 @@ export interface CorporatePerformSanctionScreeningParams {
    * Two-letter ISO country code related to the entity (e.g., country of residence,
    * registration).
    */
-  country: string;
+  country: unknown;
 
   /**
    * The type of entity being screened.
@@ -137,23 +137,20 @@ export interface CorporatePerformSanctionScreeningParams {
   /**
    * Full name of the individual or organization to screen.
    */
-  name: string;
+  name: unknown;
 
-  /**
-   * Optional: Address details for enhanced screening.
-   */
-  address?: UsersAPI.Address | null;
+  address?: UsersAPI.Address;
 
   /**
    * Date of birth for individuals (YYYY-MM-DD).
    */
-  dateOfBirth?: string | null;
+  dateOfBirth?: unknown;
 
   /**
    * Optional: Any government-issued identification number (e.g., passport, national
    * ID).
    */
-  identificationNumber?: string | null;
+  identificationNumber?: unknown;
 }
 
 Corporate.Cards = Cards;

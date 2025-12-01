@@ -54,45 +54,45 @@ export interface TreasuryGetLiquidityPositionsResponse {
   /**
    * Timestamp of the liquidity snapshot.
    */
-  snapshotTime: string;
+  snapshotTime: unknown;
 
   /**
    * Total value of all liquid assets across the organization.
    */
-  totalLiquidAssets: number;
+  totalLiquidAssets: unknown;
 }
 
 export namespace TreasuryGetLiquidityPositionsResponse {
   export interface AccountTypeBreakdown {
-    amount?: number;
+    amount?: unknown;
 
-    type?: string;
+    type?: unknown;
   }
 
   /**
    * AI's overall assessment of liquidity.
    */
   export interface AILiquidityAssessment {
-    message?: string;
+    message?: unknown;
 
     status?: 'optimal' | 'sufficient' | 'tight' | 'critical';
   }
 
   export interface CurrencyBreakdown {
-    amount?: number;
+    amount?: unknown;
 
-    currency?: string;
+    currency?: unknown;
 
-    percentage?: number;
+    percentage?: unknown;
   }
 
   /**
    * Details on short-term investments contributing to liquidity.
    */
   export interface ShortTermInvestments {
-    maturingNext30Days?: number;
+    maturingNext30Days?: unknown;
 
-    totalValue?: number;
+    totalValue?: unknown;
   }
 }
 

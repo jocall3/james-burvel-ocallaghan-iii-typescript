@@ -70,7 +70,7 @@ export class Accounts extends APIResource {
    * ```
    */
   retrieveAccountDetails(
-    accountID: string,
+    accountID: unknown,
     options?: RequestOptions,
   ): APIPromise<AccountRetrieveAccountDetailsResponse> {
     return this._client.get(path`/accounts/${accountID}/details`, options);
@@ -90,7 +90,7 @@ export class Accounts extends APIResource {
    * ```
    */
   retrieveAccountStatements(
-    accountID: string,
+    accountID: unknown,
     query: AccountRetrieveAccountStatementsParams,
     options?: RequestOptions,
   ): APIPromise<AccountRetrieveAccountStatementsResponse> {
@@ -105,32 +105,32 @@ export interface LinkedAccount {
   /**
    * Unique identifier for the linked account within .
    */
-  id: string;
+  id: unknown;
 
   /**
    * ISO 4217 currency code of the account.
    */
-  currency: string;
+  currency: unknown;
 
   /**
    * Current balance of the account.
    */
-  currentBalance: number;
+  currentBalance: unknown;
 
   /**
    * Name of the financial institution where the account is held.
    */
-  institutionName: string;
+  institutionName: unknown;
 
   /**
    * Timestamp when the account balance was last synced.
    */
-  lastUpdated: string;
+  lastUpdated: unknown;
 
   /**
    * Display name of the account.
    */
-  name: string;
+  name: unknown;
 
   /**
    * General type of the account.
@@ -140,22 +140,22 @@ export interface LinkedAccount {
   /**
    * Available balance (after pending transactions) of the account.
    */
-  availableBalance?: number | null;
+  availableBalance?: unknown;
 
   /**
    * Optional: Identifier from the external data provider (e.g., Plaid).
    */
-  externalId?: string | null;
+  externalId?: unknown;
 
   /**
    * Masked account number (e.g., last 4 digits).
    */
-  mask?: string | null;
+  mask?: unknown;
 
   /**
    * Specific subtype of the account (e.g., checking, savings, IRA, 401k).
    */
-  subtype?: string | null;
+  subtype?: unknown;
 }
 
 export interface AccountLinkNewInstitutionResponse {
@@ -163,12 +163,12 @@ export interface AccountLinkNewInstitutionResponse {
    * The URI to redirect the user to complete authentication with the external
    * institution.
    */
-  authUri: string;
+  authUri: unknown;
 
   /**
    * Unique session ID for the account linking process.
    */
-  linkSessionId: string;
+  linkSessionId: unknown;
 
   /**
    * Current status of the linking process.
@@ -178,31 +178,31 @@ export interface AccountLinkNewInstitutionResponse {
   /**
    * A descriptive message regarding the next steps.
    */
-  message?: string | null;
+  message?: unknown;
 }
 
 export interface AccountListLinkedAccountsResponse {
   /**
    * The maximum number of items returned in the current page.
    */
-  limit: number;
+  limit: unknown;
 
   /**
    * The number of items skipped before the current page.
    */
-  offset: number;
+  offset: unknown;
 
   /**
    * The total number of items available across all pages.
    */
-  total: number;
+  total: unknown;
 
   data?: Array<LinkedAccount>;
 
   /**
    * The offset for the next page of results, if available. Null if no more pages.
    */
-  nextOffset?: number | null;
+  nextOffset?: unknown;
 }
 
 /**
@@ -212,7 +212,7 @@ export interface AccountRetrieveAccountDetailsResponse extends LinkedAccount {
   /**
    * Name of the primary holder for this account.
    */
-  accountHolder?: string;
+  accountHolder?: unknown;
 
   /**
    * Historical daily balance data.
@@ -222,43 +222,43 @@ export interface AccountRetrieveAccountDetailsResponse extends LinkedAccount {
   /**
    * Annual interest rate (if applicable).
    */
-  interestRate?: number | null;
+  interestRate?: unknown;
 
   /**
    * Date the account was opened.
    */
-  openedDate?: string | null;
+  openedDate?: unknown;
 
   projectedCashFlow?: AccountRetrieveAccountDetailsResponse.ProjectedCashFlow;
 
   /**
    * Total number of transactions in this account.
    */
-  transactionsCount?: number;
+  transactionsCount?: unknown;
 }
 
 export namespace AccountRetrieveAccountDetailsResponse {
   export interface BalanceHistory {
-    balance?: number;
+    balance?: unknown;
 
-    date?: string;
+    date?: unknown;
   }
 
   export interface ProjectedCashFlow {
     /**
      * AI confidence score for the cash flow projection (0-100).
      */
-    confidenceScore?: number;
+    confidenceScore?: unknown;
 
     /**
      * Projected cash flow for the next 30 days.
      */
-    days30?: number;
+    days30?: unknown;
 
     /**
      * Projected cash flow for the next 90 days.
      */
-    days90?: number;
+    days90?: unknown;
   }
 }
 
@@ -266,7 +266,7 @@ export interface AccountRetrieveAccountStatementsResponse {
   /**
    * The account ID the statement belongs to.
    */
-  accountId: string;
+  accountId: unknown;
 
   /**
    * Map of available download URLs for different formats.
@@ -276,12 +276,12 @@ export interface AccountRetrieveAccountStatementsResponse {
   /**
    * The period covered by the statement.
    */
-  period: string;
+  period: unknown;
 
   /**
    * Unique identifier for the statement.
    */
-  statementId: string;
+  statementId: unknown;
 }
 
 export namespace AccountRetrieveAccountStatementsResponse {
@@ -292,12 +292,12 @@ export namespace AccountRetrieveAccountStatementsResponse {
     /**
      * Signed URL to download the statement in CSV format.
      */
-    csv?: string;
+    csv?: unknown;
 
     /**
      * Signed URL to download the statement in PDF format.
      */
-    pdf?: string;
+    pdf?: unknown;
   }
 }
 
@@ -305,48 +305,48 @@ export interface AccountLinkNewInstitutionParams {
   /**
    * Two-letter ISO country code of the institution.
    */
-  countryCode: string;
+  countryCode: unknown;
 
   /**
    * Name of the financial institution to link.
    */
-  institutionName: string;
+  institutionName: unknown;
 
   /**
    * Optional: Specific identifier for a third-party linking provider (e.g., 'plaid',
    * 'finicity').
    */
-  providerIdentifier?: string | null;
+  providerIdentifier?: unknown;
 
   /**
    * Optional: URI to redirect the user after completing the external authentication
    * flow.
    */
-  redirectUri?: string | null;
+  redirectUri?: unknown;
 }
 
 export interface AccountListLinkedAccountsParams {
   /**
    * Maximum number of items to return in a single page.
    */
-  limit?: number;
+  limit?: unknown;
 
   /**
    * Number of items to skip before starting to collect the result set.
    */
-  offset?: number;
+  offset?: unknown;
 }
 
 export interface AccountRetrieveAccountStatementsParams {
   /**
    * Month for the statement (1-12).
    */
-  month: number;
+  month: unknown;
 
   /**
    * Year for the statement.
    */
-  year: number;
+  year: unknown;
 
   /**
    * Desired format for the statement. Use 'application/json' Accept header for

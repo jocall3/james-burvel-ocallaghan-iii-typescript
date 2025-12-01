@@ -53,7 +53,7 @@ export interface UserPreferences {
    * Consent status for sharing anonymized data for AI improvement and personalized
    * offers.
    */
-  dataSharingConsent?: boolean;
+  dataSharingConsent?: unknown;
 
   /**
    * Preferred channels for receiving notifications.
@@ -63,12 +63,12 @@ export interface UserPreferences {
   /**
    * Preferred language for the user interface.
    */
-  preferredLanguage?: string;
+  preferredLanguage?: unknown;
 
   /**
    * Preferred UI theme (e.g., Light-Default, Dark-Quantum).
    */
-  theme?: string;
+  theme?: unknown;
 
   /**
    * Default grouping preference for transaction lists.
@@ -81,13 +81,13 @@ export namespace UserPreferences {
    * Preferred channels for receiving notifications.
    */
   export interface NotificationChannels {
-    email?: boolean;
+    email?: unknown;
 
-    inApp?: boolean;
+    inApp?: unknown;
 
-    push?: boolean;
+    push?: unknown;
 
-    sms?: boolean;
+    sms?: unknown;
   }
 }
 
@@ -102,7 +102,7 @@ export interface PreferenceUpdateParams {
    * Consent status for sharing anonymized data for AI improvement and personalized
    * offers.
    */
-  dataSharingConsent?: boolean;
+  dataSharingConsent?: unknown;
 
   /**
    * Preferred channels for receiving notifications.
@@ -112,12 +112,12 @@ export interface PreferenceUpdateParams {
   /**
    * Preferred language for the user interface.
    */
-  preferredLanguage?: string;
+  preferredLanguage?: unknown;
 
   /**
    * Preferred UI theme (e.g., Light-Default, Dark-Quantum).
    */
-  theme?: string;
+  theme?: unknown;
 
   /**
    * Default grouping preference for transaction lists.
@@ -130,13 +130,13 @@ export namespace PreferenceUpdateParams {
    * Preferred channels for receiving notifications.
    */
   export interface NotificationChannels {
-    email?: boolean;
+    email?: unknown;
 
-    inApp?: boolean;
+    inApp?: unknown;
 
-    push?: boolean;
+    push?: unknown;
 
-    sms?: boolean;
+    sms?: unknown;
   }
 }
 

@@ -49,7 +49,7 @@ export class APIKeys extends APIResource {
    * );
    * ```
    */
-  revoke(keyID: string, options?: RequestOptions): APIPromise<void> {
+  revoke(keyID: unknown, options?: RequestOptions): APIPromise<void> {
     return this._client.delete(path`/developers/api-keys/${keyID}`, {
       ...options,
       headers: buildHeaders([{ Accept: '*/*' }, options?.headers]),
@@ -61,22 +61,22 @@ export interface APIKey {
   /**
    * Unique identifier for the API key.
    */
-  id: string;
+  id: unknown;
 
   /**
    * Timestamp when the API key was created.
    */
-  createdAt: string;
+  createdAt: unknown;
 
   /**
    * The non-secret prefix of the API key, used for identification.
    */
-  prefix: string;
+  prefix: unknown;
 
   /**
    * List of permissions granted to this API key.
    */
-  scopes: Array<string>;
+  scopes: Array<unknown>;
 
   /**
    * Current status of the API key.
@@ -86,66 +86,66 @@ export interface APIKey {
   /**
    * Timestamp when the API key will expire, if set.
    */
-  expiresAt?: string | null;
+  expiresAt?: unknown;
 
   /**
    * Timestamp of the last time this API key was used.
    */
-  lastUsed?: string | null;
+  lastUsed?: unknown;
 }
 
 export interface APIKeyListResponse {
   /**
    * The maximum number of items returned in the current page.
    */
-  limit: number;
+  limit: unknown;
 
   /**
    * The number of items skipped before the current page.
    */
-  offset: number;
+  offset: unknown;
 
   /**
    * The total number of items available across all pages.
    */
-  total: number;
+  total: unknown;
 
   data?: Array<APIKey>;
 
   /**
    * The offset for the next page of results, if available. Null if no more pages.
    */
-  nextOffset?: number | null;
+  nextOffset?: unknown;
 }
 
 export interface APIKeyCreateParams {
   /**
    * A descriptive name for the API key.
    */
-  name: string;
+  name: unknown;
 
   /**
    * List of permissions to grant to this API key.
    */
-  scopes: Array<string>;
+  scopes: Array<unknown>;
 
   /**
    * Optional: Number of days until the API key expires. If omitted, it will not
    * expire.
    */
-  expiresInDays?: number | null;
+  expiresInDays?: unknown;
 }
 
 export interface APIKeyListParams {
   /**
    * Maximum number of items to return in a single page.
    */
-  limit?: number;
+  limit?: unknown;
 
   /**
    * Number of items to skip before starting to collect the result set.
    */
-  offset?: number;
+  offset?: unknown;
 }
 
 export declare namespace APIKeys {

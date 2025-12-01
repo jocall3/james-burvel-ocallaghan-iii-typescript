@@ -38,7 +38,7 @@ export class Audits extends APIResource {
    *   );
    * ```
    */
-  retrieveReport(auditID: string, options?: RequestOptions): APIPromise<AuditRetrieveReportResponse> {
+  retrieveReport(auditID: unknown, options?: RequestOptions): APIPromise<AuditRetrieveReportResponse> {
     return this._client.get(path`/corporate/compliance/audits/${auditID}/report`, options);
   }
 }
@@ -47,7 +47,7 @@ export interface AuditRequestResponse {
   /**
    * Unique identifier for the initiated audit.
    */
-  auditId?: string;
+  auditId?: unknown;
 
   /**
    * Current status of the audit.
@@ -59,12 +59,12 @@ export interface AuditRetrieveReportResponse {
   /**
    * Timestamp when the audit report was generated.
    */
-  auditDate: string;
+  auditDate: unknown;
 
   /**
    * Unique identifier for the compliance audit.
    */
-  auditId: string;
+  auditId: unknown;
 
   /**
    * Detailed findings, observations, and recommendations.
@@ -74,7 +74,7 @@ export interface AuditRetrieveReportResponse {
   /**
    * Overall compliance score (0-100), higher is better.
    */
-  overallComplianceScore: number;
+  overallComplianceScore: unknown;
 
   /**
    * The period covered by this audit report.
@@ -94,17 +94,17 @@ export interface AuditRetrieveReportResponse {
   /**
    * A high-level summary of the audit findings.
    */
-  summary: string;
+  summary: unknown;
 }
 
 export namespace AuditRetrieveReportResponse {
   export interface Finding {
-    description?: string;
+    description?: unknown;
 
     /**
      * IDs of entities related to this finding (e.g., transaction IDs).
      */
-    relatedEntities?: Array<string> | null;
+    relatedEntities?: Array<unknown> | null;
 
     severity?: 'Low' | 'Medium' | 'High' | 'Critical';
 
@@ -115,9 +115,9 @@ export namespace AuditRetrieveReportResponse {
    * The period covered by this audit report.
    */
   export interface PeriodCovered {
-    endDate?: string;
+    endDate?: unknown;
 
-    startDate?: string;
+    startDate?: unknown;
   }
 }
 
@@ -130,7 +130,7 @@ export interface AuditRequestParams {
   /**
    * End date for the audit period (inclusive).
    */
-  endDate: string;
+  endDate: unknown;
 
   /**
    * List of regulatory frameworks against which to audit.
@@ -140,12 +140,12 @@ export interface AuditRequestParams {
   /**
    * Start date for the audit period (inclusive).
    */
-  startDate: string;
+  startDate: unknown;
 
   /**
    * Optional: Any additional context or specific areas of concern for the AI.
    */
-  additionalContext?: string | null;
+  additionalContext?: unknown;
 }
 
 export declare namespace Audits {

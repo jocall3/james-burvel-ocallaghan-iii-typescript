@@ -27,27 +27,27 @@ export interface LoanOffer {
   /**
    * The offered loan amount.
    */
-  amount: number;
+  amount: unknown;
 
   /**
    * Date the offer expires.
    */
-  expirationDate: string;
+  expirationDate: unknown;
 
   /**
    * Annual interest rate offered (as a percentage).
    */
-  interestRate: number;
+  interestRate: unknown;
 
   /**
    * Indicates if this is a pre-approved offer.
    */
-  isPreApproved: boolean;
+  isPreApproved: unknown;
 
   /**
    * Unique identifier for the loan offer.
    */
-  offerId: string;
+  offerId: unknown;
 
   /**
    * Type of loan being offered.
@@ -57,68 +57,68 @@ export interface LoanOffer {
   /**
    * AI's score for how well this offer is personalized to the user (0-1).
    */
-  aiPersonalizationScore?: number | null;
+  aiPersonalizationScore?: unknown;
 
   /**
    * Estimated monthly payment (if applicable).
    */
-  monthlyPayment?: number | null;
+  monthlyPayment?: unknown;
 
   /**
    * Any origination fees for the loan.
    */
-  originationFee?: number | null;
+  originationFee?: unknown;
 
   /**
    * Repayment term in months (if applicable).
    */
-  repaymentTermMonths?: number | null;
+  repaymentTermMonths?: unknown;
 
   /**
    * URL to the full terms and conditions of the loan offer.
    */
-  termsAndConditionsUrl?: string | null;
+  termsAndConditionsUrl?: unknown;
 
   /**
    * Total amount repayable over the loan term.
    */
-  totalRepayable?: number | null;
+  totalRepayable?: unknown;
 }
 
 export interface OfferListPreApprovedResponse {
   /**
    * The maximum number of items returned in the current page.
    */
-  limit: number;
+  limit: unknown;
 
   /**
    * The number of items skipped before the current page.
    */
-  offset: number;
+  offset: unknown;
 
   /**
    * The total number of items available across all pages.
    */
-  total: number;
+  total: unknown;
 
   data?: Array<LoanOffer>;
 
   /**
    * The offset for the next page of results, if available. Null if no more pages.
    */
-  nextOffset?: number | null;
+  nextOffset?: unknown;
 }
 
 export interface OfferListPreApprovedParams {
   /**
    * Maximum number of items to return in a single page.
    */
-  limit?: number;
+  limit?: unknown;
 
   /**
    * Number of items to skip before starting to collect the result set.
    */
-  offset?: number;
+  offset?: unknown;
 }
 
 export declare namespace Offers {

@@ -29,7 +29,7 @@ describe('resource goals', () => {
       targetAmount: 15000,
       targetDate: '2026-06-30',
       type: 'large_purchase',
-      contributingAccounts: ['182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e'],
+      contributingAccounts: [{}],
       generateAIPlan: true,
       initialContribution: 1000,
       riskTolerance: 'conservative',
@@ -72,7 +72,7 @@ describe('resource goals', () => {
   test('list: request options and params are passed correctly', async () => {
     // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
     await expect(
-      client.goals.list({ limit: 1, offset: 0 }, { path: '/_stainless_unknown_path' }),
+      client.goals.list({ limit: {}, offset: {} }, { path: '/_stainless_unknown_path' }),
     ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);
   });
 

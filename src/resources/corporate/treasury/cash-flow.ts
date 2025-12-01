@@ -34,12 +34,12 @@ export interface CashFlowForecastResponse {
   /**
    * The currency of the forecast.
    */
-  currency: string;
+  currency: unknown;
 
   /**
    * Unique identifier for the cash flow forecast report.
    */
-  forecastId: string;
+  forecastId: unknown;
 
   /**
    * Forecast of cash inflows by source.
@@ -49,7 +49,7 @@ export interface CashFlowForecastResponse {
   /**
    * AI-assessed risk score for liquidity (0-100, lower is better).
    */
-  liquidityRiskScore: number;
+  liquidityRiskScore: unknown;
 
   /**
    * Forecast of cash outflows by category.
@@ -64,7 +64,7 @@ export interface CashFlowForecastResponse {
   /**
    * The period covered by the forecast.
    */
-  period: string;
+  period: unknown;
 
   /**
    * Projected cash balances at key dates, potentially across different scenarios.
@@ -79,14 +79,14 @@ export namespace CashFlowForecastResponse {
   export interface InflowForecast {
     bySource?: Array<InflowForecast.BySource>;
 
-    totalProjected?: number;
+    totalProjected?: unknown;
   }
 
   export namespace InflowForecast {
     export interface BySource {
-      amount?: number;
+      amount?: unknown;
 
-      source?: string;
+      source?: unknown;
     }
   }
 
@@ -96,21 +96,21 @@ export namespace CashFlowForecastResponse {
   export interface OutflowForecast {
     byCategory?: Array<OutflowForecast.ByCategory>;
 
-    totalProjected?: number;
+    totalProjected?: unknown;
   }
 
   export namespace OutflowForecast {
     export interface ByCategory {
-      amount?: number;
+      amount?: unknown;
 
-      category?: string;
+      category?: unknown;
     }
   }
 
   export interface ProjectedBalance {
-    date?: string;
+    date?: unknown;
 
-    projectedCash?: number;
+    projectedCash?: unknown;
 
     scenario?: 'most_likely' | 'best_case' | 'worst_case';
   }
@@ -121,13 +121,13 @@ export interface CashFlowForecastParams {
    * The number of days into the future for which to generate the cash flow forecast
    * (e.g., 30, 90, 180).
    */
-  forecastHorizonDays?: number;
+  forecastHorizonDays?: unknown;
 
   /**
    * If true, the forecast will include best-case and worst-case scenario analysis
    * alongside the most likely projection.
    */
-  includeScenarioAnalysis?: boolean;
+  includeScenarioAnalysis?: unknown;
 }
 
 export declare namespace CashFlow {

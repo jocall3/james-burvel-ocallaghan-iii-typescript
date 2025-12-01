@@ -46,7 +46,7 @@ export class Ads extends APIResource {
    *   );
    * ```
    */
-  retrieveStatus(operationID: string, options?: RequestOptions): APIPromise<VideoOperationStatus> {
+  retrieveStatus(operationID: unknown, options?: RequestOptions): APIPromise<VideoOperationStatus> {
     return this._client.get(path`/ai/ads/operations/${operationID}`, options);
   }
 }
@@ -55,17 +55,17 @@ export interface VideoOperationStatus {
   /**
    * A descriptive status message.
    */
-  message: string;
+  message: unknown;
 
   /**
    * The unique identifier for the video generation operation.
    */
-  operationId: string;
+  operationId: unknown;
 
   /**
    * Estimated completion percentage (0-100).
    */
-  progressPercentage: number;
+  progressPercentage: unknown;
 
   /**
    * Current status of the video generation job.
@@ -75,54 +75,54 @@ export interface VideoOperationStatus {
   /**
    * Error message if the operation failed.
    */
-  errorMessage?: string | null;
+  errorMessage?: unknown;
 
   /**
    * Temporary, signed URL to a preview image/thumbnail of the video.
    */
-  previewImageUri?: string | null;
+  previewImageUri?: unknown;
 
   /**
    * Temporary, signed URL to the generated video asset (available when status is
    * 'done').
    */
-  videoUri?: string | null;
+  videoUri?: unknown;
 }
 
 export interface AdListGeneratedResponse {
   /**
    * The maximum number of items returned in the current page.
    */
-  limit: number;
+  limit: unknown;
 
   /**
    * The number of items skipped before the current page.
    */
-  offset: number;
+  offset: unknown;
 
   /**
    * The total number of items available across all pages.
    */
-  total: number;
+  total: unknown;
 
   data?: Array<VideoOperationStatus>;
 
   /**
    * The offset for the next page of results, if available. Null if no more pages.
    */
-  nextOffset?: number | null;
+  nextOffset?: unknown;
 }
 
 export interface AdListGeneratedParams {
   /**
    * Maximum number of items to return in a single page.
    */
-  limit?: number;
+  limit?: unknown;
 
   /**
    * Number of items to skip before starting to collect the result set.
    */
-  offset?: number;
+  offset?: unknown;
 
   /**
    * Filter ads by their generation status.
