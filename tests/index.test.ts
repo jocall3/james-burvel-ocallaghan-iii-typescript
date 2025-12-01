@@ -1,10 +1,10 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
-import { APIPromise } from 'james-burvel-ocallaghan-iii/core/api-promise';
+import { APIPromise } from 'citibankdemobusinessinc-james-burvel-ocallaghan-iii/core/api-promise';
 
 import util from 'node:util';
-import JamesBurvelOcallaghanIii from 'james-burvel-ocallaghan-iii';
-import { APIUserAbortError } from 'james-burvel-ocallaghan-iii';
+import JamesBurvelOcallaghanIii from 'citibankdemobusinessinc-james-burvel-ocallaghan-iii';
+import { APIUserAbortError } from 'citibankdemobusinessinc-james-burvel-ocallaghan-iii';
 const defaultFetch = fetch;
 
 describe('instantiate client', () => {

@@ -1,6 +1,6 @@
 import fs from 'fs';
-import type { ResponseLike } from 'james-burvel-ocallaghan-iii/internal/to-file';
-import { toFile } from 'james-burvel-ocallaghan-iii/core/uploads';
+import type { ResponseLike } from 'citibankdemobusinessinc-james-burvel-ocallaghan-iii/internal/to-file';
+import { toFile } from 'citibankdemobusinessinc-james-burvel-ocallaghan-iii/core/uploads';
 import { File } from 'node:buffer';
 
 class MyClass {
@@ -97,7 +97,7 @@ describe('missing File error message', () => {
   });
 
   test('is thrown', async () => {
-    const uploads = await import('james-burvel-ocallaghan-iii/core/uploads');
+    const uploads = await import('citibankdemobusinessinc-james-burvel-ocallaghan-iii/core/uploads');
     await expect(
       uploads.toFile(mockResponse({ url: 'https://example.com/my/audio.mp3' })),
     ).rejects.toMatchInlineSnapshot(

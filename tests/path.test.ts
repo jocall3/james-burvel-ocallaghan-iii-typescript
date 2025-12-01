@@ -1,4 +1,7 @@
-import { createPathTagFunction, encodeURIPath } from 'james-burvel-ocallaghan-iii/internal/utils/path';
+import {
+  createPathTagFunction,
+  encodeURIPath,
+} from 'citibankdemobusinessinc-james-burvel-ocallaghan-iii/internal/utils/path';
 import { inspect } from 'node:util';
 import { runInNewContext } from 'node:vm';
 
