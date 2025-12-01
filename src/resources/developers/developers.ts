@@ -2,10 +2,11 @@
 
 import { APIResource } from '../../core/resource';
 import * as APIKeysAPI from './api-keys';
-import { APIKey, APIKeyCreateParams, APIKeyListResponse, APIKeys } from './api-keys';
+import { APIKey, APIKeyCreateParams, APIKeyListParams, APIKeyListResponse, APIKeys } from './api-keys';
 import * as WebhooksAPI from './webhooks';
 import {
   WebhookCreateParams,
+  WebhookListParams,
   WebhookListResponse,
   WebhookSubscription,
   WebhookUpdateParams,
@@ -27,6 +28,7 @@ export declare namespace Developers {
     type WebhookListResponse as WebhookListResponse,
     type WebhookCreateParams as WebhookCreateParams,
     type WebhookUpdateParams as WebhookUpdateParams,
+    type WebhookListParams as WebhookListParams,
   };
 
   export {
@@ -34,5 +36,6 @@ export declare namespace Developers {
     type APIKey as APIKey,
     type APIKeyListResponse as APIKeyListResponse,
     type APIKeyCreateParams as APIKeyCreateParams,
+    type APIKeyListParams as APIKeyListParams,
   };
 }

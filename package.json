@@ -1,12 +1,12 @@
 {
   "name": "james-burvel-ocallaghan-iii",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "The official TypeScript library for the James Burvel Ocallaghan Iii API",
   "author": "James Burvel Ocallaghan Iii <>",
   "types": "dist/index.d.ts",
   "main": "dist/index.js",
   "type": "commonjs",
-  "repository": "github:jocall3/Citibank_Demo_Business_Inc_Demonstration-",
+  "repository": "github:jocall3/james-burvel-ocallaghan-iii-typescript",
   "license": "Apache-2.0",
   "packageManager": "pnpm@10.14.0",
   "files": [

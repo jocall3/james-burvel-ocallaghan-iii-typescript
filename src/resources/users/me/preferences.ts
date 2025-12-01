@@ -39,31 +39,36 @@ export class Preferences extends APIResource {
   }
 }
 
+/**
+ * User's personalized preferences for the platform.
+ */
 export interface UserPreferences {
   /**
-   * How actively the AI should provide advice and suggestions.
+   * How the user prefers to interact with AI (proactive advice, balanced, or only on
+   * demand).
    */
-  aiInteractionMode?: 'passive' | 'balanced' | 'proactive';
+  aiInteractionMode?: 'proactive' | 'balanced' | 'on_demand';
 
   /**
-   * Consent for sharing anonymized data for AI improvements.
+   * Consent status for sharing anonymized data for AI improvement and personalized
+   * offers.
    */
-  dataSharingConsent?: boolean;
+  dataSharingConsent?: unknown;
 
   /**
-   * Enabled notification channels.
+   * Preferred channels for receiving notifications.
    */
-  notificationChannels?: UserPreferences.NotificationChannels;
+  notificationChannels?: UserPreferencesNotificationChannels;
 
   /**
-   * User's preferred language for the interface.
+   * Preferred language for the user interface.
    */
-  preferredLanguage?: string;
+  preferredLanguage?: unknown;
 
   /**
-   * User's selected UI theme.
+   * Preferred UI theme (e.g., Light-Default, Dark-Quantum).
    */
-  theme?: 'Light-Default' | 'Dark-Quantum' | 'Eco-Green' | 'Minimalist';
+  theme?: unknown;
 
   /**
    * Default grouping preference for transaction lists.
@@ -71,58 +76,46 @@ export interface UserPreferences {
   transactionGrouping?: 'category' | 'merchant' | 'date' | 'account';
 }
 
-export namespace UserPreferences {
-  /**
-   * Enabled notification channels.
-   */
-  export interface NotificationChannels {
-    /**
-     * Receive notifications via email.
-     */
-    email?: boolean;
+/**
+ * Preferred channels for receiving notifications.
+ */
+export interface UserPreferencesNotificationChannels {
+  email?: unknown;
 
-    /**
-     * Receive notifications within the application.
-     */
-    inApp?: boolean;
+  inApp?: unknown;
 
-    /**
-     * Receive push notifications to connected devices.
-     */
-    push?: boolean;
+  push?: unknown;
 
-    /**
-     * Receive notifications via SMS.
-     */
-    sms?: boolean;
-  }
+  sms?: unknown;
 }
 
 export interface PreferenceUpdateParams {
   /**
-   * How actively the AI should provide advice and suggestions.
+   * How the user prefers to interact with AI (proactive advice, balanced, or only on
+   * demand).
    */
-  aiInteractionMode?: 'passive' | 'balanced' | 'proactive';
+  aiInteractionMode?: 'proactive' | 'balanced' | 'on_demand';
 
   /**
-   * Consent for sharing anonymized data for AI improvements.
+   * Consent status for sharing anonymized data for AI improvement and personalized
+   * offers.
    */
-  dataSharingConsent?: boolean;
+  dataSharingConsent?: unknown;
 
   /**
-   * Enabled notification channels.
+   * Preferred channels for receiving notifications.
    */
-  notificationChannels?: PreferenceUpdateParams.NotificationChannels;
+  notificationChannels?: UserPreferencesNotificationChannels;
 
   /**
-   * User's preferred language for the interface.
+   * Preferred language for the user interface.
    */
-  preferredLanguage?: string;
+  preferredLanguage?: unknown;
 
   /**
-   * User's selected UI theme.
+   * Preferred UI theme (e.g., Light-Default, Dark-Quantum).
    */
-  theme?: 'Light-Default' | 'Dark-Quantum' | 'Eco-Green' | 'Minimalist';
+  theme?: unknown;
 
   /**
    * Default grouping preference for transaction lists.
@@ -130,33 +123,10 @@ export interface PreferenceUpdateParams {
   transactionGrouping?: 'category' | 'merchant' | 'date' | 'account';
 }
 
-export namespace PreferenceUpdateParams {
-  /**
-   * Enabled notification channels.
-   */
-  export interface NotificationChannels {
-    /**
-     * Receive notifications via email.
-     */
-    email?: boolean;
-
-    /**
-     * Receive notifications within the application.
-     */
-    inApp?: boolean;
-
-    /**
-     * Receive push notifications to connected devices.
-     */
-    push?: boolean;
-
-    /**
-     * Receive notifications via SMS.
-     */
-    sms?: boolean;
-  }
-}
-
 export declare namespace Preferences {
-  export { type UserPreferences as UserPreferences, type PreferenceUpdateParams as PreferenceUpdateParams };
+  export {
+    type UserPreferences as UserPreferences,
+    type UserPreferencesNotificationChannels as UserPreferencesNotificationChannels,
+    type PreferenceUpdateParams as PreferenceUpdateParams,
+  };
 }

@@ -4,7 +4,7 @@ import { APIResource } from '../../core/resource';
 import * as ApplicationsAPI from './applications';
 import { ApplicationSubmitParams, Applications, LoanApplicationStatus } from './applications';
 import * as OffersAPI from './offers';
-import { LoanOffer, OfferListPreApprovedResponse, Offers } from './offers';
+import { LoanOffer, OfferListPreApprovedParams, OfferListPreApprovedResponse, Offers } from './offers';
 
 export class Lending extends APIResource {
   applications: ApplicationsAPI.Applications = new ApplicationsAPI.Applications(this._client);
@@ -25,5 +25,6 @@ export declare namespace Lending {
     Offers as Offers,
     type LoanOffer as LoanOffer,
     type OfferListPreApprovedResponse as OfferListPreApprovedResponse,
+    type OfferListPreApprovedParams as OfferListPreApprovedParams,
   };
 }

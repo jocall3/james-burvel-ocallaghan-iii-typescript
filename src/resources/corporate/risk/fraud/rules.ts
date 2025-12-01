@@ -63,7 +63,7 @@ export class Rules extends APIResource {
    *   );
    * ```
    */
-  update(ruleID: string, body: RuleUpdateParams, options?: RequestOptions): APIPromise<FraudRule> {
+  update(ruleID: unknown, body: RuleUpdateParams, options?: RequestOptions): APIPromise<FraudRule> {
     return this._client.put(path`/corporate/risk/fraud/rules/${ruleID}`, { body, ...options });
   }
 
@@ -74,12 +74,15 @@ export class Rules extends APIResource {
    *
    * @example
    * ```ts
-   * const fraudRules =
+   * const rules =
    *   await client.corporate.risk.fraud.rules.list();
    * ```
    */
-  list(options?: RequestOptions): APIPromise<RuleListResponse> {
-    return this._client.get('/corporate/risk/fraud/rules', options);
+  list(
+    query: RuleListParams | null | undefined = {},
+    options?: RequestOptions,
+  ): APIPromise<RuleListResponse> {
+    return this._client.get('/corporate/risk/fraud/rules', { query, ...options });
   }
 
   /**
@@ -92,7 +95,7 @@ export class Rules extends APIResource {
    * );
    * ```
    */
-  delete(ruleID: string, options?: RequestOptions): APIPromise<void> {
+  delete(ruleID: unknown, options?: RequestOptions): APIPromise<void> {
     return this._client.delete(path`/corporate/risk/fraud/rules/${ruleID}`, {
       ...options,
       headers: buildHeaders([{ Accept: '*/*' }, options?.headers]),
@@ -102,44 +105,47 @@ export class Rules extends APIResource {
 
 export interface FraudRule {
   /**
-   * Unique identifier for the fraud rule.
+   * Unique identifier for the fraud detection rule.
    */
-  id: string;
+  id: unknown;
 
-  action: FraudRule.Action;
+  /**
+   * Action to take when a fraud rule is triggered.
+   */
+  action: FraudRuleAction;
 
   /**
    * Timestamp when the rule was created.
    */
-  createdAt: string;
+  createdAt: unknown;
 
   /**
-   * Identifier of the creator (user or system).
+   * Identifier of who created the rule (e.g., user ID, 'system:ai-risk-engine').
    */
-  createdBy: string;
+  createdBy: unknown;
 
   /**
-   * A dynamic object defining the conditions that trigger the rule.
+   * Criteria that define when a fraud rule should trigger.
    */
-  criteria: unknown;
+  criteria: FraudRuleCriteria;
 
   /**
    * Detailed description of what the rule detects.
    */
-  description: string;
+  description: unknown;
 
   /**
    * Timestamp when the rule was last updated.
    */
-  lastUpdated: string;
+  lastUpdated: unknown;
 
   /**
-   * A descriptive name for the rule.
+   * Name of the fraud rule.
    */
-  name: string;
+  name: unknown;
 
   /**
-   * Severity level associated with a detected anomaly by this rule.
+   * Severity level when this rule is triggered.
    */
   severity: 'Low' | 'Medium' | 'High' | 'Critical';
 
@@ -147,49 +153,135 @@ export interface FraudRule {
    * Current status of the rule.
    */
   status: 'active' | 'inactive' | 'draft';
+}
+
+/**
+ * Action to take when a fraud rule is triggered.
+ */
+export interface FraudRuleAction {
+  /**
+   * Details or instructions for the action.
+   */
+  details: unknown;
 
   /**
-   * Priority level for rule evaluation (lower number means higher priority).
+   * Type of action to perform.
    */
-  priority?: number;
+  type: 'block' | 'alert' | 'auto_review' | 'manual_review' | 'request_mfa';
+
+  /**
+   * The team or department to notify for alerts/reviews.
+   */
+  targetTeam?: unknown;
 }
 
-export namespace FraudRule {
-  export interface Action {
-    /**
-     * Further details about the action.
-     */
-    details: string;
+/**
+ * Criteria that define when a fraud rule should trigger.
+ */
+export interface FraudRuleCriteria {
+  /**
+   * Number of days an account must be inactive for the rule to apply.
+   */
+  accountInactivityDays?: unknown;
 
-    /**
-     * The automated action to take when the rule is triggered.
-     */
-    type: 'flag' | 'alert' | 'block' | 'auto_review' | 'mfa_challenge';
-  }
+  /**
+   * List of ISO 2-letter country codes for transaction origin.
+   */
+  countryOfOrigin?: Array<unknown> | null;
+
+  /**
+   * Minimum geographic distance (in km) from recent activity for anomaly.
+   */
+  geographicDistanceKm?: unknown;
+
+  /**
+   * Number of days since last user login for anomaly detection.
+   */
+  lastLoginDays?: unknown;
+
+  /**
+   * If true, rule applies only if no prior travel notification was made.
+   */
+  noTravelNotification?: unknown;
+
+  /**
+   * Minimum number of payments in a timeframe.
+   */
+  paymentCountMin?: unknown;
+
+  /**
+   * List of risk levels for recipient countries.
+   */
+  recipientCountryRiskLevel?: Array<'Low' | 'Medium' | 'High' | 'Very High'> | null;
+
+  /**
+   * If true, recipient must be a new payee.
+   */
+  recipientNew?: unknown;
+
+  /**
+   * Timeframe in hours for payment count or other event aggregations.
+   */
+  timeframeHours?: unknown;
+
+  /**
+   * Minimum transaction amount to consider.
+   */
+  transactionAmountMin?: unknown;
+
+  /**
+   * Specific transaction type (e.g., debit, credit).
+   */
+  transactionType?: 'debit' | 'credit' | null;
 }
 
-export type RuleListResponse = Array<FraudRule>;
+export interface RuleListResponse {
+  /**
+   * The maximum number of items returned in the current page.
+   */
+  limit: unknown;
+
+  /**
+   * The number of items skipped before the current page.
+   */
+  offset: unknown;
+
+  /**
+   * The total number of items available across all pages.
+   */
+  total: unknown;
+
+  data?: Array<FraudRule>;
+
+  /**
+   * The offset for the next page of results, if available. Null if no more pages.
+   */
+  nextOffset?: unknown;
+}
 
 export interface RuleCreateParams {
-  action: RuleCreateParams.Action;
-
   /**
-   * The dynamic object defining the conditions that trigger the rule.
+   * Action to take when a fraud rule is triggered.
    */
-  criteria: unknown;
+  action: FraudRuleAction;
 
   /**
-   * Detailed description of what the rule should detect.
+   * Criteria that define when a fraud rule should trigger.
    */
-  description: string;
+  criteria: FraudRuleCriteria;
 
   /**
-   * A descriptive name for the new rule.
+   * Detailed description of what the rule detects.
    */
-  name: string;
+  description: unknown;
 
   /**
-   * Severity level for anomalies detected by this rule.
+   * Name of the new fraud rule.
+   */
+  name: unknown;
+
+  /**
+   * Severity level when this rule is triggered.
    */
   severity: 'Low' | 'Medium' | 'High' | 'Critical';
 
@@ -197,49 +289,28 @@ export interface RuleCreateParams {
    * Initial status of the rule.
    */
   status: 'active' | 'inactive' | 'draft';
-
-  /**
-   * Optional: Priority level for rule evaluation.
-   */
-  priority?: number | null;
-}
-
-export namespace RuleCreateParams {
-  export interface Action {
-    /**
-     * Further details about the action.
-     */
-    details: string;
-
-    /**
-     * The automated action to take when the rule is triggered.
-     */
-    type: 'flag' | 'alert' | 'block' | 'auto_review' | 'mfa_challenge';
-  }
 }
 
 export interface RuleUpdateParams {
-  action?: RuleUpdateParams.Action;
+  /**
+   * Action to take when a fraud rule is triggered.
+   */
+  action?: FraudRuleAction;
 
   /**
-   * The updated dynamic object defining the conditions.
+   * Criteria that define when a fraud rule should trigger.
    */
-  criteria?: { [key: string]: unknown };
+  criteria?: FraudRuleCriteria;
 
   /**
-   * Updated description of the rule.
+   * Updated description of what the rule detects.
    */
-  description?: string;
+  description?: unknown;
 
   /**
-   * Updated name for the fraud rule.
+   * Updated name of the fraud rule.
    */
-  name?: string;
-
-  /**
-   * Updated priority level for rule evaluation.
-   */
-  priority?: number | null;
+  name?: unknown;
 
   /**
    * Updated severity level.
@@ -252,21 +323,26 @@ export interface RuleUpdateParams {
   status?: 'active' | 'inactive' | 'draft';
 }
 
-export namespace RuleUpdateParams {
-  export interface Action {
-    details?: string;
+export interface RuleListParams {
+  /**
+   * Maximum number of items to return in a single page.
+   */
+  limit?: unknown;
 
-    type?: 'flag' | 'alert' | 'block' | 'auto_review' | 'mfa_challenge';
-
-    [k: string]: unknown;
-  }
+  /**
+   * Number of items to skip before starting to collect the result set.
+   */
+  offset?: unknown;
 }
 
 export declare namespace Rules {
   export {
     type FraudRule as FraudRule,
+    type FraudRuleAction as FraudRuleAction,
+    type FraudRuleCriteria as FraudRuleCriteria,
     type RuleListResponse as RuleListResponse,
     type RuleCreateParams as RuleCreateParams,
     type RuleUpdateParams as RuleUpdateParams,
+    type RuleListParams as RuleListParams,
   };
 }

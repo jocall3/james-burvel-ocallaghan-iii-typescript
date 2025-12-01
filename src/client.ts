@@ -11,6 +11,7 @@ import type { APIResponseProps } from './internal/parse';
 import { getPlatformHeaders } from './internal/detect-platform';
 import * as Shims from './internal/shims';
 import * as Opts from './internal/request-options';
+import * as qs from './internal/qs';
 import { VERSION } from './version';
 import * as Errors from './core/error';
 import * as Uploads from './core/uploads';
@@ -19,6 +20,7 @@ import { APIPromise } from './core/api-promise';
 import {
   Budget,
   BudgetCreateParams,
+  BudgetListParams,
   BudgetListResponse,
   BudgetUpdateParams,
   Budgets,
@@ -26,6 +28,7 @@ import {
 import {
   FinancialGoal,
   GoalCreateParams,
+  GoalListParams,
   GoalListResponse,
   GoalUpdateParams,
   Goals,
@@ -33,9 +36,11 @@ import {
 import {
   AccountLinkNewInstitutionParams,
   AccountLinkNewInstitutionResponse,
+  AccountListLinkedAccountsParams,
   AccountListLinkedAccountsResponse,
   AccountRetrieveAccountDetailsResponse,
   AccountRetrieveAccountStatementsParams,
+  AccountRetrieveAccountStatementsResponse,
   Accounts,
   LinkedAccount,
 } from './resources/accounts/accounts';
@@ -75,7 +80,7 @@ import {
   UserRegisterParams,
   Users,
 } from './resources/users/users';
-import { Web3, Web3RetrieveNFTsResponse } from './resources/web3/web3';
+import { Web3, Web3RetrieveNFTsParams, Web3RetrieveNFTsResponse } from './resources/web3/web3';
 import { type Fetch } from './internal/builtin-types';
 import { HeadersLike, NullableHeaders, buildHeaders } from './internal/headers';
 import { FinalRequestOptions, RequestOptions } from './internal/request-options';
@@ -271,10 +276,10 @@ export class JamesBurvelOcallaghanIii {
   }
 
   protected validateHeaders({ values, nulls }: NullableHeaders) {
-    if (this.apiKey && values.get('authorization')) {
+    if (this.apiKey && values.get('x-api-key')) {
       return;
     }
-    if (nulls.has('authorization')) {
+    if (nulls.has('x-api-key')) {
       return;
     }
 
@@ -286,7 +291,7 @@ export class JamesBurvelOcallaghanIii {
     }
 
     throw new Error(
-      'Could not resolve authentication method. Expected either apiKey or bearerToken to be set. Or for one of the "Authorization" or "Authorization" headers to be explicitly omitted',
+      'Could not resolve authentication method. Expected either apiKey or bearerToken to be set. Or for one of the "X-API-Key" or "Authorization" headers to be explicitly omitted',
     );
   }
 
@@ -298,7 +303,7 @@ export class JamesBurvelOcallaghanIii {
     if (this.apiKey == null) {
       return undefined;
     }
-    return buildHeaders([{ Authorization: `Bearer ${this.apiKey}` }]);
+    return buildHeaders([{ 'X-API-Key': this.apiKey }]);
   }
 
   protected async biometricAuth(opts: FinalRequestOptions): Promise<NullableHeaders | undefined> {
@@ -308,24 +313,8 @@ export class JamesBurvelOcallaghanIii {
     return buildHeaders([{ Authorization: `Bearer ${this.bearerToken}` }]);
   }
 
-  /**
-   * Basic re-implementation of `qs.stringify` for primitive types.
-   */
   protected stringifyQuery(query: Record<string, unknown>): string {
-    return Object.entries(query)
-      .filter(([_, value]) => typeof value !== 'undefined')
-      .map(([key, value]) => {
-        if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-          return `${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
-        }
-        if (value === null) {
-          return `${encodeURIComponent(key)}=`;
-        }
-        throw new Errors.JamesBurvelOcallaghanIiiError(
-          `Cannot stringify type ${typeof value}; Expected string, number, boolean, or null. If you need to pass nested query parameters, you can manually encode them, e.g. { query: { 'foo[key1]': value1, 'foo[key2]': value2 } }, and please open a GitHub issue requesting better support for your use case.`,
-        );
-      })
-      .join('&');
+    return qs.stringify(query, { arrayFormat: 'comma' });
   }
 
   private getUserAgent(): string {
@@ -863,7 +852,9 @@ export declare namespace JamesBurvelOcallaghanIii {
     type AccountLinkNewInstitutionResponse as AccountLinkNewInstitutionResponse,
     type AccountListLinkedAccountsResponse as AccountListLinkedAccountsResponse,
     type AccountRetrieveAccountDetailsResponse as AccountRetrieveAccountDetailsResponse,
+    type AccountRetrieveAccountStatementsResponse as AccountRetrieveAccountStatementsResponse,
     type AccountLinkNewInstitutionParams as AccountLinkNewInstitutionParams,
+    type AccountListLinkedAccountsParams as AccountListLinkedAccountsParams,
     type AccountRetrieveAccountStatementsParams as AccountRetrieveAccountStatementsParams,
   };
 
@@ -884,6 +875,7 @@ export declare namespace JamesBurvelOcallaghanIii {
     type BudgetListResponse as BudgetListResponse,
     type BudgetCreateParams as BudgetCreateParams,
     type BudgetUpdateParams as BudgetUpdateParams,
+    type BudgetListParams as BudgetListParams,
   };
 
   export { Investments as Investments };
@@ -896,7 +888,11 @@ export declare namespace JamesBurvelOcallaghanIii {
     type CorporatePerformSanctionScreeningParams as CorporatePerformSanctionScreeningParams,
   };
 
-  export { Web3 as Web3, type Web3RetrieveNFTsResponse as Web3RetrieveNFTsResponse };
+  export {
+    Web3 as Web3,
+    type Web3RetrieveNFTsResponse as Web3RetrieveNFTsResponse,
+    type Web3RetrieveNFTsParams as Web3RetrieveNFTsParams,
+  };
 
   export { Payments as Payments };
 
@@ -919,6 +915,7 @@ export declare namespace JamesBurvelOcallaghanIii {
     type GoalListResponse as GoalListResponse,
     type GoalCreateParams as GoalCreateParams,
     type GoalUpdateParams as GoalUpdateParams,
+    type GoalListParams as GoalListParams,
   };
 
   export { Marketplace as Marketplace };

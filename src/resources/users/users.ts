@@ -55,195 +55,174 @@ export class Users extends APIResource {
 }
 
 export interface Address {
-  /**
-   * City.
-   */
-  city?: string;
+  city?: unknown;
 
-  /**
-   * Country.
-   */
-  country?: string;
+  country?: unknown;
 
-  /**
-   * State or province (if applicable).
-   */
-  state?: string | null;
+  state?: unknown;
 
-  /**
-   * Street name and number.
-   */
-  street?: string;
+  street?: unknown;
 
-  /**
-   * Postal or ZIP code.
-   */
-  zip?: string;
+  zip?: unknown;
 }
 
 export interface User {
   /**
    * Unique identifier for the user.
    */
-  id: string;
+  id: unknown;
 
   /**
-   * Unique email address of the user.
+   * Primary email address of the user.
    */
-  email: string;
+  email: unknown;
+
+  /**
+   * Indicates if the user's identity has been verified (e.g., via KYC).
+   */
+  identityVerified: unknown;
 
   /**
    * Full name of the user.
    */
-  name: string;
+  name: unknown;
 
-  /**
-   * User's residential address.
-   */
   address?: Address;
 
   /**
-   * AI-assigned financial persona based on user behavior and preferences.
+   * AI-identified financial persona for tailored advice.
    */
-  aiPersona?: string;
+  aiPersona?: unknown;
 
   /**
-   * User's date of birth.
+   * Date of birth of the user (YYYY-MM-DD).
    */
-  dateOfBirth?: string | null;
+  dateOfBirth?: unknown;
 
   /**
-   * Current gamification level of the user.
+   * Current gamification level.
    */
-  gamificationLevel?: number;
+  gamificationLevel?: unknown;
 
   /**
-   * Indicates if the user's identity has been fully verified (KYC/AML).
+   * Current balance of loyalty points.
    */
-  identityVerified?: boolean;
+  loyaltyPoints?: unknown;
 
   /**
-   * Total loyalty points accumulated by the user.
+   * Current loyalty program tier.
    */
-  loyaltyPoints?: number;
+  loyaltyTier?: unknown;
 
   /**
-   * Current loyalty tier of the user.
+   * Primary phone number of the user.
    */
-  loyaltyTier?: 'Bronze' | 'Silver' | 'Gold' | 'Platinum' | 'Zenith Platinum';
+  phone?: unknown;
 
   /**
-   * Phone number of the user.
-   */
-  phone?: string | null;
-
-  /**
-   * User's personalization and experience preferences.
+   * User's personalized preferences for the platform.
    */
   preferences?: PreferencesAPI.UserPreferences;
 
   /**
-   * Current security status and settings for the user.
+   * Security-related status for the user account.
    */
   securityStatus?: User.SecurityStatus;
 }
 
 export namespace User {
   /**
-   * Current security status and settings for the user.
+   * Security-related status for the user account.
    */
   export interface SecurityStatus {
     /**
      * Indicates if biometric authentication is enrolled.
      */
-    biometricsEnrolled?: boolean;
+    biometricsEnrolled?: unknown;
 
     /**
-     * Timestamp of the user's last successful login.
+     * Timestamp of the last successful login.
      */
-    lastLogin?: string;
+    lastLogin?: unknown;
 
     /**
-     * IP address from which the last successful login occurred.
+     * IP address of the last successful login.
      */
-    lastLoginIp?: string;
+    lastLoginIp?: unknown;
 
     /**
-     * Indicates if two-factor authentication is enabled.
+     * Indicates if two-factor authentication (2FA) is enabled.
      */
-    twoFactorEnabled?: boolean;
+    twoFactorEnabled?: unknown;
   }
 }
 
 export interface UserLoginResponse {
   /**
-   * JWT access token for authenticated API requests.
+   * JWT access token to authenticate subsequent API requests.
    */
-  accessToken?: string;
+  accessToken: unknown;
 
   /**
    * Lifetime of the access token in seconds.
    */
-  expiresIn?: number;
+  expiresIn: unknown;
 
   /**
-   * Token used to obtain a new access token without re-authenticating.
+   * Token used to obtain new access tokens without re-authenticating.
    */
-  refreshToken?: string;
+  refreshToken: unknown;
 
   /**
-   * Type of the token, usually 'Bearer'.
+   * Type of the access token.
    */
-  tokenType?: string;
+  tokenType: unknown;
 }
 
 export interface UserLoginParams {
   /**
    * User's email address.
    */
-  email: string;
+  email: unknown;
 
   /**
    * User's password.
    */
-  password: string;
+  password: unknown;
 
   /**
-   * Multi-factor authentication code, if required.
+   * Optional: Multi-factor authentication code, if required.
    */
-  mfaCode?: string | null;
+  mfaCode?: unknown;
 }
 
 export interface UserRegisterParams {
   /**
-   * Unique email address for the user.
+   * Email address for registration and login.
    */
-  email: string;
+  email: unknown;
 
   /**
    * Full name of the user.
    */
-  name: string;
+  name: unknown;
 
   /**
-   * Secure password for the user account.
+   * User's chosen password.
    */
-  password: string;
+  password: unknown;
 
-  /**
-   * Phone number for SMS verification and communication.
-   */
-  phone: string;
-
-  /**
-   * User's residential address (optional for initial registration).
-   */
   address?: Address;
 
   /**
-   * User's date of birth (optional for initial registration).
+   * Optional date of birth (YYYY-MM-DD).
    */
-  dateOfBirth?: string | null;
+  dateOfBirth?: unknown;
+
+  /**
+   * Optional phone number for MFA or recovery.
+   */
+  phone?: unknown;
 }
 
 Users.PasswordReset = PasswordReset;

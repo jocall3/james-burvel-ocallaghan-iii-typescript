@@ -7,19 +7,13 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource rules', () => {
-  // Prism tests are disabled
-  test.skip('create: only required params', async () => {
+  test('create: only required params', async () => {
     const responsePromise = client.corporate.risk.fraud.rules.create({
       action: {
         details: 'Hold payment, notify sender for additional verification, and escalate to compliance.',
         type: 'auto_review',
       },
-      criteria: {
-        paymentCountMin: 3,
-        timeframeHours: 24,
-        recipientNew: true,
-        recipientCountryRiskLevel: ['High', 'Very High'],
-      },
+      criteria: {},
       description:
         'Detects multiple international payments to new beneficiaries in high-risk countries within a short timeframe.',
       name: 'Suspicious International Payment Pattern',
@@ -35,30 +29,35 @@ describe('resource rules', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('create: required and optional params', async () => {
+  test('create: required and optional params', async () => {
     const response = await client.corporate.risk.fraud.rules.create({
       action: {
         details: 'Hold payment, notify sender for additional verification, and escalate to compliance.',
         type: 'auto_review',
+        targetTeam: 'Fraud Prevention Team',
       },
       criteria: {
+        accountInactivityDays: 90,
+        countryOfOrigin: ['US', 'CA'],
+        geographicDistanceKm: 5000,
+        lastLoginDays: 7,
+        noTravelNotification: true,
         paymentCountMin: 3,
-        timeframeHours: 24,
-        recipientNew: true,
         recipientCountryRiskLevel: ['High', 'Very High'],
+        recipientNew: true,
+        timeframeHours: 24,
+        transactionAmountMin: 5000,
+        transactionType: 'debit',
       },
       description:
         'Detects multiple international payments to new beneficiaries in high-risk countries within a short timeframe.',
       name: 'Suspicious International Payment Pattern',
       severity: 'Critical',
       status: 'active',
-      priority: 60,
     });
   });
 
-  // Prism tests are disabled
-  test.skip('update', async () => {
+  test('update', async () => {
     const responsePromise = client.corporate.risk.fraud.rules.update('fraud_rule_high_value_inactive', {});
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -69,8 +68,7 @@ describe('resource rules', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('list', async () => {
+  test('list', async () => {
     const responsePromise = client.corporate.risk.fraud.rules.list();
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -81,8 +79,14 @@ describe('resource rules', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('delete', async () => {
+  test('list: request options and params are passed correctly', async () => {
+    // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
+    await expect(
+      client.corporate.risk.fraud.rules.list({ limit: {}, offset: {} }, { path: '/_stainless_unknown_path' }),
+    ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);
+  });
+
+  test('delete', async () => {
     const responsePromise = client.corporate.risk.fraud.rules.delete('fraud_rule_high_value_inactive');
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);

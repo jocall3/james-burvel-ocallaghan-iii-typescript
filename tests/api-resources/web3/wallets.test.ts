@@ -7,8 +7,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource wallets', () => {
-  // Prism tests are disabled
-  test.skip('list', async () => {
+  test('list', async () => {
     const responsePromise = client.web3.wallets.list();
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -19,8 +18,14 @@ describe('resource wallets', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('connect: only required params', async () => {
+  test('list: request options and params are passed correctly', async () => {
+    // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
+    await expect(
+      client.web3.wallets.list({ limit: {}, offset: {} }, { path: '/_stainless_unknown_path' }),
+    ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);
+  });
+
+  test('connect: only required params', async () => {
     const responsePromise = client.web3.wallets.connect({
       blockchainNetwork: 'Ethereum',
       signedMessage:
@@ -37,20 +42,18 @@ describe('resource wallets', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
-  test.skip('connect: required and optional params', async () => {
+  test('connect: required and optional params', async () => {
     const response = await client.web3.wallets.connect({
       blockchainNetwork: 'Ethereum',
       signedMessage:
         '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
       walletAddress: '0x123abc456def7890...',
       walletProvider: 'MetaMask',
-      grantWriteAccess: true,
+      requestWriteAccess: true,
     });
   });
 
-  // Prism tests are disabled
-  test.skip('retrieveBalances', async () => {
+  test('retrieveBalances', async () => {
     const responsePromise = client.web3.wallets.retrieveBalances('wallet_conn_eth_0xabc123');
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -59,5 +62,16 @@ describe('resource wallets', () => {
     const dataAndResponse = await responsePromise.withResponse();
     expect(dataAndResponse.data).toBe(response);
     expect(dataAndResponse.response).toBe(rawResponse);
+  });
+
+  test('retrieveBalances: request options and params are passed correctly', async () => {
+    // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
+    await expect(
+      client.web3.wallets.retrieveBalances(
+        'wallet_conn_eth_0xabc123',
+        { limit: {}, offset: {} },
+        { path: '/_stainless_unknown_path' },
+      ),
+    ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);
   });
 });

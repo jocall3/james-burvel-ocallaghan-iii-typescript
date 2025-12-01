@@ -7,8 +7,7 @@ const client = new JamesBurvelOcallaghanIii({
 });
 
 describe('resource treasury', () => {
-  // Prism tests are disabled
-  test.skip('getLiquidityPositions', async () => {
+  test('getLiquidityPositions', async () => {
     const responsePromise = client.corporate.treasury.getLiquidityPositions();
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);

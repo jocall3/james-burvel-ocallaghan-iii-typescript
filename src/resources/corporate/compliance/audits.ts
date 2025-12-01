@@ -38,7 +38,7 @@ export class Audits extends APIResource {
    *   );
    * ```
    */
-  retrieveReport(auditID: string, options?: RequestOptions): APIPromise<AuditRetrieveReportResponse> {
+  retrieveReport(auditID: unknown, options?: RequestOptions): APIPromise<AuditRetrieveReportResponse> {
     return this._client.get(path`/corporate/compliance/audits/${auditID}/report`, options);
   }
 }
@@ -47,7 +47,7 @@ export interface AuditRequestResponse {
   /**
    * Unique identifier for the initiated audit.
    */
-  auditId?: string;
+  auditId?: unknown;
 
   /**
    * Current status of the audit.
@@ -57,27 +57,27 @@ export interface AuditRequestResponse {
 
 export interface AuditRetrieveReportResponse {
   /**
-   * Date and time when the audit report was generated.
+   * Timestamp when the audit report was generated.
    */
-  auditDate: string;
+  auditDate: unknown;
 
   /**
-   * Unique identifier for the audit report.
+   * Unique identifier for the compliance audit.
    */
-  auditId: string;
+  auditId: unknown;
 
   /**
-   * Detailed findings, including violations, observations, and recommendations.
+   * Detailed findings, observations, and recommendations.
    */
   findings: Array<AuditRetrieveReportResponse.Finding>;
 
   /**
-   * Overall compliance score (0-100), indicating adherence to regulations.
+   * Overall compliance score (0-100), higher is better.
    */
-  overallComplianceScore: number;
+  overallComplianceScore: unknown;
 
   /**
-   * The time period covered by the audit.
+   * The period covered by this audit report.
    */
   periodCovered: AuditRetrieveReportResponse.PeriodCovered;
 
@@ -92,65 +92,60 @@ export interface AuditRetrieveReportResponse {
   status: 'processing' | 'completed' | 'failed';
 
   /**
-   * A summary of the audit findings.
+   * A high-level summary of the audit findings.
    */
-  summary: string;
+  summary: unknown;
 }
 
 export namespace AuditRetrieveReportResponse {
   export interface Finding {
-    description?: string;
+    description?: unknown;
 
-    regulatoryBreach?: string | null;
-
-    relatedEntities?: Array<string> | null;
+    /**
+     * IDs of entities related to this finding (e.g., transaction IDs).
+     */
+    relatedEntities?: Array<unknown> | null;
 
     severity?: 'Low' | 'Medium' | 'High' | 'Critical';
 
-    type?: 'violation' | 'observation' | 'recommendation';
+    type?: 'finding' | 'observation' | 'recommendation';
   }
 
   /**
-   * The time period covered by the audit.
+   * The period covered by this audit report.
    */
   export interface PeriodCovered {
-    endDate?: string;
+    endDate?: unknown;
 
-    startDate?: string;
+    startDate?: unknown;
   }
 }
 
 export interface AuditRequestParams {
   /**
-   * The scope of the compliance audit.
+   * The scope of the audit (e.g., all transactions, specific accounts).
    */
-  auditScope:
-    | 'all_transactions'
-    | 'corporate_cards'
-    | 'international_payments'
-    | 'user_onboarding'
-    | 'specific_accounts';
+  auditScope: 'all_transactions' | 'specific_accounts' | 'specific_cards' | 'all_users';
 
   /**
    * End date for the audit period (inclusive).
    */
-  endDate: string;
+  endDate: unknown;
 
   /**
-   * List of regulatory frameworks to audit against.
+   * List of regulatory frameworks against which to audit.
    */
-  regulatoryFrameworks: Array<'AML' | 'KYC' | 'PCI-DSS' | 'GDPR' | 'CCPA' | 'SOX'>;
+  regulatoryFrameworks: Array<'AML' | 'KYC' | 'PCI-DSS' | 'GDPR' | 'CCPA' | 'SOX' | 'OFAC'>;
 
   /**
    * Start date for the audit period (inclusive).
    */
-  startDate: string;
+  startDate: unknown;
 
   /**
-   * Optional: List of specific account IDs to include if `auditScope` is
-   * 'specific_accounts'.
+   * Optional: Any additional context or specific areas of concern for the AI.
    */
-  specificAccountIds?: Array<string> | null;
+  additionalContext?: unknown;
 }
 
 export declare namespace Audits {
