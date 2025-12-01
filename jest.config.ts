@@ -7,8 +7,8 @@ const config: JestConfigWithTsJest = {
     '^.+\\.(t|j)sx?$': ['@swc/jest', { sourceMaps: 'inline' }],
   },
   moduleNameMapper: {
-    '^james-burvel-ocallaghan-iii$': '<rootDir>/src/index.ts',
-    '^james-burvel-ocallaghan-iii/(.*)$': '<rootDir>/src/$1',
+    '^citibankdemobusinessinc-james-burvel-ocallaghan-iii$': '<rootDir>/src/index.ts',
+    '^citibankdemobusinessinc-james-burvel-ocallaghan-iii/(.*)$': '<rootDir>/src/$1',
   },
   modulePathIgnorePatterns: [
     '<rootDir>/ecosystem-tests/',

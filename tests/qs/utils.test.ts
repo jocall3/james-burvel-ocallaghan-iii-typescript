@@ -3,7 +3,7 @@ import {
   merge,
   is_buffer,
   assign_single_source,
-} from 'james-burvel-ocallaghan-iii/internal/qs/utils';
+} from 'citibankdemobusinessinc-james-burvel-ocallaghan-iii/internal/qs/utils';
 
 describe('merge()', function () {
   // t.deepEqual(merge(null, true), [null, true], 'merges true into null');

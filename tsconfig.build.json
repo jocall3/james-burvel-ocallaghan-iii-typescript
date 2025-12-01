@@ -5,8 +5,8 @@
   "compilerOptions": {
     "rootDir": "./dist/src",
     "paths": {
-      "james-burvel-ocallaghan-iii/*": ["./dist/src/*"],
-      "james-burvel-ocallaghan-iii": ["./dist/src/index.ts"]
+      "citibankdemobusinessinc-james-burvel-ocallaghan-iii/*": ["./dist/src/*"],
+      "citibankdemobusinessinc-james-burvel-ocallaghan-iii": ["./dist/src/index.ts"]
     },
     "noEmit": false,
     "declaration": true,

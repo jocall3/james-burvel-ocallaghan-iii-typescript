@@ -1,7 +1,7 @@
 import iconv from 'iconv-lite';
-import { stringify } from 'james-burvel-ocallaghan-iii/internal/qs';
-import { encode } from 'james-burvel-ocallaghan-iii/internal/qs/utils';
-import { StringifyOptions } from 'james-burvel-ocallaghan-iii/internal/qs/types';
+import { stringify } from 'citibankdemobusinessinc-james-burvel-ocallaghan-iii/internal/qs';
+import { encode } from 'citibankdemobusinessinc-james-burvel-ocallaghan-iii/internal/qs/utils';
+import { StringifyOptions } from 'citibankdemobusinessinc-james-burvel-ocallaghan-iii/internal/qs/types';
 import { empty_test_cases } from './empty-keys-cases';
 import assert from 'assert';
 

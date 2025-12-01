@@ -8,8 +8,8 @@
     "moduleResolution": "node",
     "esModuleInterop": true,
     "paths": {
-      "james-burvel-ocallaghan-iii/*": ["./src/*"],
-      "james-burvel-ocallaghan-iii": ["./src/index.ts"]
+      "citibankdemobusinessinc-james-burvel-ocallaghan-iii/*": ["./src/*"],
+      "citibankdemobusinessinc-james-burvel-ocallaghan-iii": ["./src/index.ts"]
     },
     "noEmit": true,
 

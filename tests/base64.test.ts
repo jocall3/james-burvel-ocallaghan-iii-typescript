@@ -1,4 +1,7 @@
-import { fromBase64, toBase64 } from 'james-burvel-ocallaghan-iii/internal/utils/base64';
+import {
+  fromBase64,
+  toBase64,
+} from 'citibankdemobusinessinc-james-burvel-ocallaghan-iii/internal/utils/base64';
 
 describe.each(['Buffer', 'atob'])('with %s', (mode) => {
   let originalBuffer: BufferConstructor;
