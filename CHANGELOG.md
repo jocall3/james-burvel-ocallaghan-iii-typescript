@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.1 (2025-12-01)
+
+Full Changelog: [v0.1.0...v0.1.1](https://github.com/jocall3/james-burvel-ocallaghan-iii-typescript/compare/v0.1.0...v0.1.1)
+
+### Chores
+
+* update SDK settings ([7413418](https://github.com/jocall3/james-burvel-ocallaghan-iii-typescript/commit/741341851dd60f62b0960f845d490a52dfb012c1))
+* update SDK settings ([404299a](https://github.com/jocall3/james-burvel-ocallaghan-iii-typescript/commit/404299adc6ede4d89de3623cf57942725652a5d6))
+
 ## 0.1.0 (2025-12-01)
 
 Full Changelog: [v0.0.1...v0.1.0](https://github.com/jocall3/james-burvel-ocallaghan-iii-typescript/compare/v0.0.1...v0.1.0)
