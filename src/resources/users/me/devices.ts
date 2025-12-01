@@ -36,7 +36,7 @@ export class Devices extends APIResource {
    * );
    * ```
    */
-  deregister(deviceID: string, options?: RequestOptions): APIPromise<void> {
+  deregister(deviceID: unknown, options?: RequestOptions): APIPromise<void> {
     return this._client.delete(path`/users/me/devices/${deviceID}`, {
       ...options,
       headers: buildHeaders([{ Accept: '*/*' }, options?.headers]),
@@ -72,27 +72,27 @@ export interface Device {
   /**
    * Unique identifier for the device.
    */
-  id: string;
+  id: unknown;
 
   /**
    * Last known IP address of the device.
    */
-  ipAddress: string;
+  ipAddress: unknown;
 
   /**
    * Timestamp of the last activity from this device.
    */
-  lastActive: string;
+  lastActive: unknown;
 
   /**
    * Model of the device.
    */
-  model: string;
+  model: unknown;
 
   /**
    * Operating system of the device.
    */
-  os: string;
+  os: unknown;
 
   /**
    * Security trust level of the device.
@@ -107,48 +107,48 @@ export interface Device {
   /**
    * User-assigned name for the device.
    */
-  deviceName?: string | null;
+  deviceName?: unknown;
 
   /**
    * Push notification token for the device.
    */
-  pushToken?: string | null;
+  pushToken?: unknown;
 }
 
 export interface DeviceListResponse {
   /**
    * The maximum number of items returned in the current page.
    */
-  limit: number;
+  limit: unknown;
 
   /**
    * The number of items skipped before the current page.
    */
-  offset: number;
+  offset: unknown;
 
   /**
    * The total number of items available across all pages.
    */
-  total: number;
+  total: unknown;
 
   data?: Array<Device>;
 
   /**
    * The offset for the next page of results, if available. Null if no more pages.
    */
-  nextOffset?: number | null;
+  nextOffset?: unknown;
 }
 
 export interface DeviceListParams {
   /**
    * Maximum number of items to return in a single page.
    */
-  limit?: number;
+  limit?: unknown;
 
   /**
    * Number of items to skip before starting to collect the result set.
    */
-  offset?: number;
+  offset?: unknown;
 }
 
 export interface DeviceRegisterParams {
@@ -160,28 +160,28 @@ export interface DeviceRegisterParams {
   /**
    * Model of the device.
    */
-  model: string;
+  model: unknown;
 
   /**
    * Operating system of the device.
    */
-  os: string;
+  os: unknown;
 
   /**
    * Optional: Base64 encoded biometric signature for initial enrollment (e.g., for
    * Passkey registration).
    */
-  biometricSignature?: string | null;
+  biometricSignature?: unknown;
 
   /**
    * Optional: A friendly name for the device.
    */
-  deviceName?: string | null;
+  deviceName?: unknown;
 
   /**
    * Optional: Push notification token for the device.
    */
-  pushToken?: string | null;
+  pushToken?: unknown;
 }
 
 export declare namespace Devices {

@@ -36,9 +36,9 @@ describe('resource international', () => {
         address: 'Hauptstrasse 1, 10115 Berlin, Germany',
         bankName: 'Deutsche Bank',
         name: 'Maria Schmidt',
-        accountNumber: 'accountNumber',
+        accountNumber: {},
         iban: 'DE89370400440532013000',
-        routingNumber: 'routingNumber',
+        routingNumber: {},
         swiftBic: 'DEUTDEFF',
       },
       purpose: 'Vendor payment for Q2 services.',
@@ -47,7 +47,7 @@ describe('resource international', () => {
       targetCurrency: 'EUR',
       fxRateLock: true,
       fxRateProvider: 'proprietary_ai',
-      reference: 'reference',
+      reference: {},
     });
   });
 

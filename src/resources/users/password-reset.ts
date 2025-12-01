@@ -45,35 +45,35 @@ export class PasswordReset extends APIResource {
 }
 
 export interface PasswordResetConfirmResponse {
-  message?: string;
+  message?: unknown;
 }
 
 export interface PasswordResetInitiateResponse {
-  message?: string;
+  message?: unknown;
 }
 
 export interface PasswordResetConfirmParams {
   /**
    * User's email or phone number used for verification.
    */
-  identifier: string;
+  identifier: unknown;
 
   /**
    * The new password for the user account.
    */
-  newPassword: string;
+  newPassword: unknown;
 
   /**
    * The verification code received via email or SMS.
    */
-  verificationCode: string;
+  verificationCode: unknown;
 }
 
 export interface PasswordResetInitiateParams {
   /**
    * User's email or phone number for verification.
    */
-  identifier: string;
+  identifier: unknown;
 }
 
 export declare namespace PasswordReset {

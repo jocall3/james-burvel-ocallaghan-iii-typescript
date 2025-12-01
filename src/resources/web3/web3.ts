@@ -46,24 +46,24 @@ export interface Web3RetrieveNFTsResponse {
   /**
    * The maximum number of items returned in the current page.
    */
-  limit: number;
+  limit: unknown;
 
   /**
    * The number of items skipped before the current page.
    */
-  offset: number;
+  offset: unknown;
 
   /**
    * The total number of items available across all pages.
    */
-  total: number;
+  total: unknown;
 
   data?: Array<Web3RetrieveNFTsResponse.Data>;
 
   /**
    * The offset for the next page of results, if available. Null if no more pages.
    */
-  nextOffset?: number | null;
+  nextOffset?: unknown;
 }
 
 export namespace Web3RetrieveNFTsResponse {
@@ -71,42 +71,42 @@ export namespace Web3RetrieveNFTsResponse {
     /**
      * Unique identifier for the NFT within the system.
      */
-    id: string;
+    id: unknown;
 
     /**
      * Blockchain network on which the NFT exists.
      */
-    blockchainNetwork: string;
+    blockchainNetwork: unknown;
 
     /**
      * Name of the NFT collection.
      */
-    collectionName: string;
+    collectionName: unknown;
 
     /**
      * Blockchain contract address of the NFT collection.
      */
-    contractAddress: string;
+    contractAddress: unknown;
 
     /**
      * URL to the NFT's image.
      */
-    imageUrl: string;
+    imageUrl: unknown;
 
     /**
      * Name of the specific NFT.
      */
-    name: string;
+    name: unknown;
 
     /**
      * Blockchain address of the current owner.
      */
-    ownerAddress: string;
+    ownerAddress: unknown;
 
     /**
      * Unique ID of the token within its contract.
      */
-    tokenId: string;
+    tokenId: unknown;
 
     /**
      * Key-value attributes of the NFT (e.g., rarity traits).
@@ -116,24 +116,24 @@ export namespace Web3RetrieveNFTsResponse {
     /**
      * Description of the NFT.
      */
-    description?: string | null;
+    description?: unknown;
 
     /**
      * AI-estimated current market value in USD.
      */
-    estimatedValueUSD?: number | null;
+    estimatedValueUSD?: unknown;
 
     /**
      * Last known sale price in USD.
      */
-    lastSalePriceUSD?: number | null;
+    lastSalePriceUSD?: unknown;
   }
 
   export namespace Data {
     export interface Attribute {
-      trait_type?: string;
+      trait_type?: unknown;
 
-      value?: string;
+      value?: unknown;
     }
   }
 }
@@ -142,12 +142,12 @@ export interface Web3RetrieveNFTsParams {
   /**
    * Maximum number of items to return in a single page.
    */
-  limit?: number;
+  limit?: unknown;
 
   /**
    * Number of items to skip before starting to collect the result set.
    */
-  offset?: number;
+  offset?: unknown;
 }
 
 Web3.Wallets = Wallets;

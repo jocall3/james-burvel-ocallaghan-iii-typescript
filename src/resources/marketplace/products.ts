@@ -38,7 +38,7 @@ export class Products extends APIResource {
    * ```
    */
   redeemMarketplaceOffer(
-    offerID: string,
+    offerID: unknown,
     body: ProductRedeemMarketplaceOfferParams | null | undefined = {},
     options?: RequestOptions,
   ): APIPromise<ProductRedeemMarketplaceOfferResponse> {
@@ -65,7 +65,7 @@ export class Products extends APIResource {
    * ```
    */
   simulatePurchase(
-    productID: string,
+    productID: unknown,
     body: ProductSimulatePurchaseParams,
     options?: RequestOptions,
   ): APIPromise<ProductSimulatePurchaseResponse> {
@@ -77,24 +77,24 @@ export interface ProductListResponse {
   /**
    * The maximum number of items returned in the current page.
    */
-  limit: number;
+  limit: unknown;
 
   /**
    * The number of items skipped before the current page.
    */
-  offset: number;
+  offset: unknown;
 
   /**
    * The total number of items available across all pages.
    */
-  total: number;
+  total: unknown;
 
   data?: Array<ProductListResponse.Data>;
 
   /**
    * The offset for the next page of results, if available. Null if no more pages.
    */
-  nextOffset?: number | null;
+  nextOffset?: unknown;
 }
 
 export namespace ProductListResponse {
@@ -102,12 +102,12 @@ export namespace ProductListResponse {
     /**
      * Unique identifier for the marketplace product.
      */
-    id: string;
+    id: unknown;
 
     /**
      * AI's score for how well this product is personalized to the user (0-1).
      */
-    aiPersonalizationScore: number;
+    aiPersonalizationScore: unknown;
 
     /**
      * Category of the product/service.
@@ -126,47 +126,47 @@ export namespace ProductListResponse {
     /**
      * Detailed description of the product/service.
      */
-    description: string;
+    description: unknown;
 
     /**
      * URL to an image representing the product.
      */
-    imageUrl: string | null;
+    imageUrl: unknown;
 
     /**
      * Name of the product/service.
      */
-    name: string;
+    name: unknown;
 
     /**
      * Pricing information (can be a range or fixed text).
      */
-    price: string;
+    price: unknown;
 
     /**
      * Provider or vendor of the product/service.
      */
-    provider: string;
+    provider: unknown;
 
     /**
      * Average user rating for the product (0-5).
      */
-    rating: number;
+    rating: unknown;
 
     /**
      * AI-generated explanation for recommending this product.
      */
-    aiRecommendationReason?: string | null;
+    aiRecommendationReason?: unknown;
 
     /**
      * Details of any special offers associated with the product.
      */
-    offerDetails?: Data.OfferDetails | null;
+    offerDetails?: Data.OfferDetails;
 
     /**
      * Direct URL to the product on the provider's website.
      */
-    productUrl?: string | null;
+    productUrl?: unknown;
   }
 
   export namespace Data {
@@ -177,11 +177,11 @@ export namespace ProductListResponse {
       /**
        * Optional redemption code.
        */
-      code?: string | null;
+      code?: unknown;
 
       type?: 'discount' | 'special_rate' | 'free_trial';
 
-      value?: string;
+      value?: unknown;
     }
   }
 }
@@ -191,24 +191,24 @@ export interface ProductRedeemMarketplaceOfferResponse {
    * If applicable, the ID of any associated transaction (e.g., a credit or initial
    * payment).
    */
-  associatedTransactionId?: string | null;
+  associatedTransactionId?: unknown;
 
   /**
    * A descriptive message about the redemption.
    */
-  message?: string;
+  message?: unknown;
 
   /**
    * The ID of the redeemed offer.
    */
-  offerId?: string;
+  offerId?: unknown;
 
-  redemptionDate?: string;
+  redemptionDate?: unknown;
 
   /**
    * Unique ID for this redemption.
    */
-  redemptionId?: string;
+  redemptionId?: unknown;
 
   /**
    * Status of the redemption.
@@ -225,17 +225,17 @@ export interface ProductSimulatePurchaseResponse {
   /**
    * A natural language summary of the simulation's results for this product.
    */
-  narrativeSummary: string;
+  narrativeSummary: unknown;
 
   /**
    * The ID of the marketplace product being simulated.
    */
-  productId: string;
+  productId: unknown;
 
   /**
    * Unique identifier for the simulation performed.
    */
-  simulationId: string;
+  simulationId: unknown;
 
   /**
    * Actionable recommendations or advice related to the product and its impact.
@@ -250,23 +250,23 @@ export interface ProductSimulatePurchaseResponse {
 
 export namespace ProductSimulatePurchaseResponse {
   export interface KeyImpact {
-    metric?: string;
+    metric?: unknown;
 
     severity?: 'low' | 'medium' | 'high';
 
-    value?: string;
+    value?: unknown;
   }
 
   export interface ProjectedAmortizationSchedule {
-    interest?: number;
+    interest?: unknown;
 
-    month?: number;
+    month?: unknown;
 
-    payment?: number;
+    payment?: unknown;
 
-    principal?: number;
+    principal?: unknown;
 
-    remainingBalance?: number;
+    remainingBalance?: unknown;
   }
 }
 
@@ -293,24 +293,24 @@ export interface ProductListParams {
   /**
    * Maximum number of items to return in a single page.
    */
-  limit?: number;
+  limit?: unknown;
 
   /**
    * Minimum user rating for products (0-5).
    */
-  minRating?: number;
+  minRating?: unknown;
 
   /**
    * Number of items to skip before starting to collect the result set.
    */
-  offset?: number;
+  offset?: unknown;
 }
 
 export interface ProductRedeemMarketplaceOfferParams {
   /**
    * Optional: The ID of the account to use for any associated payment or credit.
    */
-  paymentAccountId?: string;
+  paymentAccountId?: unknown;
 }
 
 export interface ProductSimulatePurchaseParams {

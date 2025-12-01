@@ -83,7 +83,7 @@ export interface BiometricStatus {
   /**
    * Overall status indicating if any biometrics are enrolled.
    */
-  biometricsEnrolled: boolean;
+  biometricsEnrolled: unknown;
 
   /**
    * List of specific biometric types and devices enrolled.
@@ -93,14 +93,14 @@ export interface BiometricStatus {
   /**
    * Timestamp of the last successful biometric authentication.
    */
-  lastUsed?: string | null;
+  lastUsed?: unknown;
 }
 
 export namespace BiometricStatus {
   export interface EnrolledBiometric {
-    deviceId?: string;
+    deviceId?: unknown;
 
-    enrollmentDate?: string;
+    enrollmentDate?: unknown;
 
     type?: 'fingerprint' | 'facial_recognition' | 'voice_recognition';
   }
@@ -110,7 +110,7 @@ export interface BiometricVerifyResponse {
   /**
    * A descriptive message for the verification result.
    */
-  message?: string;
+  message?: unknown;
 
   /**
    * Status of the biometric verification.
@@ -122,7 +122,7 @@ export interface BiometricEnrollParams {
   /**
    * Base64 encoded representation of the biometric template or proof.
    */
-  biometricSignature: string;
+  biometricSignature: unknown;
 
   /**
    * The type of biometric data being enrolled.
@@ -132,19 +132,19 @@ export interface BiometricEnrollParams {
   /**
    * The ID of the device on which the biometric is being enrolled.
    */
-  deviceId: string;
+  deviceId: unknown;
 
   /**
    * Optional: A friendly name for the device, if not already linked.
    */
-  deviceName?: string | null;
+  deviceName?: unknown;
 }
 
 export interface BiometricVerifyParams {
   /**
    * Base64 encoded representation of the one-time biometric proof for verification.
    */
-  biometricSignature: string;
+  biometricSignature: unknown;
 
   /**
    * The type of biometric data being verified.
@@ -154,7 +154,7 @@ export interface BiometricVerifyParams {
   /**
    * The ID of the device initiating the biometric verification.
    */
-  deviceId: string;
+  deviceId: unknown;
 }
 
 export declare namespace Biometrics {

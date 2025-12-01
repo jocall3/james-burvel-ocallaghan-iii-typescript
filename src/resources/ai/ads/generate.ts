@@ -64,12 +64,12 @@ export interface GenerateVideoRequest {
   /**
    * Desired length of the video in seconds.
    */
-  lengthSeconds: number;
+  lengthSeconds: unknown;
 
   /**
    * The textual prompt to guide the AI video generation.
    */
-  prompt: string;
+  prompt: unknown;
 
   /**
    * Artistic style of the video.
@@ -84,12 +84,12 @@ export interface GenerateVideoRequest {
   /**
    * Optional: Hex color codes to influence the video's aesthetic.
    */
-  brandColors?: Array<string> | null;
+  brandColors?: Array<unknown> | null;
 
   /**
    * Optional: Additional keywords to guide the AI's content generation.
    */
-  keywords?: Array<string> | null;
+  keywords?: Array<unknown> | null;
 }
 
 export interface GenerateAdvancedResponse {
@@ -97,36 +97,36 @@ export interface GenerateAdvancedResponse {
    * Estimated time until advanced video generation is complete. May be longer than
    * standard generation.
    */
-  estimatedCompletionTimeSeconds?: number;
+  estimatedCompletionTimeSeconds?: unknown;
 
   /**
    * The unique identifier for the advanced video generation operation.
    */
-  operationId?: string;
+  operationId?: unknown;
 }
 
 export interface GenerateStandardResponse {
   /**
    * Estimated time until video generation is complete.
    */
-  estimatedCompletionTimeSeconds?: number;
+  estimatedCompletionTimeSeconds?: unknown;
 
   /**
    * The unique identifier for the video generation operation.
    */
-  operationId?: string;
+  operationId?: unknown;
 }
 
 export interface GenerateAdvancedParams {
   /**
    * Desired length of the video in seconds.
    */
-  lengthSeconds: number;
+  lengthSeconds: unknown;
 
   /**
    * The textual prompt to guide the AI video generation.
    */
-  prompt: string;
+  prompt: unknown;
 
   /**
    * Artistic style of the video.
@@ -151,12 +151,12 @@ export interface GenerateAdvancedParams {
   /**
    * URLs to brand assets (e.g., logos, specific imagery) to be incorporated.
    */
-  brandAssets?: Array<string> | null;
+  brandAssets?: Array<unknown> | null;
 
   /**
    * Optional: Hex color codes to influence the video's aesthetic.
    */
-  brandColors?: Array<string> | null;
+  brandColors?: Array<unknown> | null;
 
   /**
    * Call-to-action text and URL to be displayed.
@@ -166,7 +166,7 @@ export interface GenerateAdvancedParams {
   /**
    * Optional: Additional keywords to guide the AI's content generation.
    */
-  keywords?: Array<string> | null;
+  keywords?: Array<unknown> | null;
 
   /**
    * Style/tone for the AI voiceover.
@@ -176,7 +176,7 @@ export interface GenerateAdvancedParams {
   /**
    * Optional: Text for an AI-generated voiceover.
    */
-  voiceoverText?: string | null;
+  voiceoverText?: unknown;
 }
 
 export namespace GenerateAdvancedParams {
@@ -184,11 +184,11 @@ export namespace GenerateAdvancedParams {
    * Call-to-action text and URL to be displayed.
    */
   export interface CallToAction {
-    displayTimeSeconds?: number;
+    displayTimeSeconds?: unknown;
 
-    text?: string;
+    text?: unknown;
 
-    url?: string;
+    url?: unknown;
   }
 }
 
@@ -196,12 +196,12 @@ export interface GenerateStandardParams {
   /**
    * Desired length of the video in seconds.
    */
-  lengthSeconds: number;
+  lengthSeconds: unknown;
 
   /**
    * The textual prompt to guide the AI video generation.
    */
-  prompt: string;
+  prompt: unknown;
 
   /**
    * Artistic style of the video.
@@ -216,12 +216,12 @@ export interface GenerateStandardParams {
   /**
    * Optional: Hex color codes to influence the video's aesthetic.
    */
-  brandColors?: Array<string> | null;
+  brandColors?: Array<unknown> | null;
 
   /**
    * Optional: Additional keywords to guide the AI's content generation.
    */
-  keywords?: Array<string> | null;
+  keywords?: Array<unknown> | null;
 }
 
 export declare namespace Generate {

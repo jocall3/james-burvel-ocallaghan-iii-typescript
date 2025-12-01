@@ -29,7 +29,7 @@ describe('resource corporate', () => {
       name: 'John Doe',
       address: { city: 'Anytown', country: 'USA', state: 'CA', street: '123 Main St', zip: '90210' },
       dateOfBirth: '1970-01-01',
-      identificationNumber: 'identificationNumber',
+      identificationNumber: {},
     });
   });
 });

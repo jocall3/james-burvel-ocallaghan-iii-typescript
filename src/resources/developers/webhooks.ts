@@ -41,7 +41,7 @@ export class Webhooks extends APIResource {
    * ```
    */
   update(
-    subscriptionID: string,
+    subscriptionID: unknown,
     body: WebhookUpdateParams,
     options?: RequestOptions,
   ): APIPromise<WebhookSubscription> {
@@ -76,7 +76,7 @@ export class Webhooks extends APIResource {
    * );
    * ```
    */
-  delete(subscriptionID: string, options?: RequestOptions): APIPromise<void> {
+  delete(subscriptionID: unknown, options?: RequestOptions): APIPromise<void> {
     return this._client.delete(path`/developers/webhooks/${subscriptionID}`, {
       ...options,
       headers: buildHeaders([{ Accept: '*/*' }, options?.headers]),
@@ -88,22 +88,22 @@ export interface WebhookSubscription {
   /**
    * Unique identifier for the webhook subscription.
    */
-  id: string;
+  id: unknown;
 
   /**
    * The URL where webhook events will be sent.
    */
-  callbackUrl: string;
+  callbackUrl: unknown;
 
   /**
    * Timestamp when the subscription was created.
    */
-  createdAt: string;
+  createdAt: unknown;
 
   /**
    * List of event types subscribed to.
    */
-  events: Array<string>;
+  events: Array<unknown>;
 
   /**
    * Current status of the webhook subscription.
@@ -113,72 +113,72 @@ export interface WebhookSubscription {
   /**
    * Number of consecutive failed delivery attempts.
    */
-  failureCount?: number;
+  failureCount?: unknown;
 
   /**
    * Timestamp of the last successful webhook delivery.
    */
-  lastTriggered?: string | null;
+  lastTriggered?: unknown;
 
   /**
    * The shared secret used to sign webhook payloads, for verification. Only returned
    * on creation.
    */
-  secret?: string | null;
+  secret?: unknown;
 }
 
 export interface WebhookListResponse {
   /**
    * The maximum number of items returned in the current page.
    */
-  limit: number;
+  limit: unknown;
 
   /**
    * The number of items skipped before the current page.
    */
-  offset: number;
+  offset: unknown;
 
   /**
    * The total number of items available across all pages.
    */
-  total: number;
+  total: unknown;
 
   data?: Array<WebhookSubscription>;
 
   /**
    * The offset for the next page of results, if available. Null if no more pages.
    */
-  nextOffset?: number | null;
+  nextOffset?: unknown;
 }
 
 export interface WebhookCreateParams {
   /**
    * The URL to which webhook events will be sent.
    */
-  callbackUrl: string;
+  callbackUrl: unknown;
 
   /**
    * List of event types to subscribe to.
    */
-  events: Array<string>;
+  events: Array<unknown>;
 
   /**
    * Optional: A custom shared secret for verifying webhook payloads. If omitted, one
    * will be generated.
    */
-  secret?: string | null;
+  secret?: unknown;
 }
 
 export interface WebhookUpdateParams {
   /**
    * Updated URL where webhook events will be sent.
    */
-  callbackUrl?: string;
+  callbackUrl?: unknown;
 
   /**
    * Updated list of event types subscribed to.
    */
-  events?: Array<string>;
+  events?: Array<unknown>;
 
   /**
    * Updated status of the webhook subscription.
@@ -190,12 +190,12 @@ export interface WebhookListParams {
   /**
    * Maximum number of items to return in a single page.
    */
-  limit?: number;
+  limit?: unknown;
 
   /**
    * Number of items to skip before starting to collect the result set.
    */
-  offset?: number;
+  offset?: unknown;
 }
 
 export declare namespace Webhooks {

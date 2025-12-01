@@ -55,69 +55,69 @@ export class Users extends APIResource {
 }
 
 export interface Address {
-  city?: string;
+  city?: unknown;
 
-  country?: string;
+  country?: unknown;
 
-  state?: string;
+  state?: unknown;
 
-  street?: string;
+  street?: unknown;
 
-  zip?: string;
+  zip?: unknown;
 }
 
 export interface User {
   /**
    * Unique identifier for the user.
    */
-  id: string;
+  id: unknown;
 
   /**
    * Primary email address of the user.
    */
-  email: string;
+  email: unknown;
 
   /**
    * Indicates if the user's identity has been verified (e.g., via KYC).
    */
-  identityVerified: boolean;
+  identityVerified: unknown;
 
   /**
    * Full name of the user.
    */
-  name: string;
+  name: unknown;
 
   address?: Address;
 
   /**
    * AI-identified financial persona for tailored advice.
    */
-  aiPersona?: string;
+  aiPersona?: unknown;
 
   /**
    * Date of birth of the user (YYYY-MM-DD).
    */
-  dateOfBirth?: string | null;
+  dateOfBirth?: unknown;
 
   /**
    * Current gamification level.
    */
-  gamificationLevel?: number;
+  gamificationLevel?: unknown;
 
   /**
    * Current balance of loyalty points.
    */
-  loyaltyPoints?: number;
+  loyaltyPoints?: unknown;
 
   /**
    * Current loyalty program tier.
    */
-  loyaltyTier?: string;
+  loyaltyTier?: unknown;
 
   /**
    * Primary phone number of the user.
    */
-  phone?: string | null;
+  phone?: unknown;
 
   /**
    * User's personalized preferences for the platform.
@@ -138,22 +138,22 @@ export namespace User {
     /**
      * Indicates if biometric authentication is enrolled.
      */
-    biometricsEnrolled?: boolean;
+    biometricsEnrolled?: unknown;
 
     /**
      * Timestamp of the last successful login.
      */
-    lastLogin?: string;
+    lastLogin?: unknown;
 
     /**
      * IP address of the last successful login.
      */
-    lastLoginIp?: string;
+    lastLoginIp?: unknown;
 
     /**
      * Indicates if two-factor authentication (2FA) is enabled.
      */
-    twoFactorEnabled?: boolean;
+    twoFactorEnabled?: unknown;
   }
 }
 
@@ -161,71 +161,68 @@ export interface UserLoginResponse {
   /**
    * JWT access token to authenticate subsequent API requests.
    */
-  accessToken: string;
+  accessToken: unknown;
 
   /**
    * Lifetime of the access token in seconds.
    */
-  expiresIn: number;
+  expiresIn: unknown;
 
   /**
    * Token used to obtain new access tokens without re-authenticating.
    */
-  refreshToken: string;
+  refreshToken: unknown;
 
   /**
    * Type of the access token.
    */
-  tokenType: string;
+  tokenType: unknown;
 }
 
 export interface UserLoginParams {
   /**
    * User's email address.
    */
-  email: string;
+  email: unknown;
 
   /**
    * User's password.
    */
-  password: string;
+  password: unknown;
 
   /**
    * Optional: Multi-factor authentication code, if required.
    */
-  mfaCode?: string | null;
+  mfaCode?: unknown;
 }
 
 export interface UserRegisterParams {
   /**
    * Email address for registration and login.
    */
-  email: string;
+  email: unknown;
 
   /**
    * Full name of the user.
    */
-  name: string;
+  name: unknown;
 
   /**
    * User's chosen password.
    */
-  password: string;
+  password: unknown;
 
-  /**
-   * Optional initial address details.
-   */
   address?: Address;
 
   /**
    * Optional date of birth (YYYY-MM-DD).
    */
-  dateOfBirth?: string | null;
+  dateOfBirth?: unknown;
 
   /**
    * Optional phone number for MFA or recovery.
    */
-  phone?: string | null;
+  phone?: unknown;
 }
 
 Users.PasswordReset = PasswordReset;

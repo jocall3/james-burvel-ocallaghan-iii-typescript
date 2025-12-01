@@ -51,27 +51,27 @@ export interface RecurringTransaction {
   /**
    * Unique identifier for the recurring transaction.
    */
-  id: string;
+  id: unknown;
 
   /**
    * Amount of the recurring transaction.
    */
-  amount: number;
+  amount: unknown;
 
   /**
    * Category of the recurring transaction.
    */
-  category: string;
+  category: unknown;
 
   /**
    * ISO 4217 currency code.
    */
-  currency: string;
+  currency: unknown;
 
   /**
    * Description of the recurring transaction.
    */
-  description: string;
+  description: unknown;
 
   /**
    * Frequency of the recurring transaction.
@@ -86,68 +86,68 @@ export interface RecurringTransaction {
   /**
    * AI confidence score that this is a recurring transaction (0-1).
    */
-  aiConfidenceScore?: number | null;
+  aiConfidenceScore?: unknown;
 
   /**
    * Date of the last payment for this recurring transaction.
    */
-  lastPaidDate?: string | null;
+  lastPaidDate?: unknown;
 
   /**
    * ID of the account typically used for this recurring transaction.
    */
-  linkedAccountId?: string | null;
+  linkedAccountId?: unknown;
 
   /**
    * Next scheduled due date for the transaction.
    */
-  nextDueDate?: string | null;
+  nextDueDate?: unknown;
 }
 
 export interface RecurringListResponse {
   /**
    * The maximum number of items returned in the current page.
    */
-  limit: number;
+  limit: unknown;
 
   /**
    * The number of items skipped before the current page.
    */
-  offset: number;
+  offset: unknown;
 
   /**
    * The total number of items available across all pages.
    */
-  total: number;
+  total: unknown;
 
   data?: Array<RecurringTransaction>;
 
   /**
    * The offset for the next page of results, if available. Null if no more pages.
    */
-  nextOffset?: number | null;
+  nextOffset?: unknown;
 }
 
 export interface RecurringCreateParams {
   /**
    * Amount of the recurring transaction.
    */
-  amount: number;
+  amount: unknown;
 
   /**
    * Category of the recurring transaction.
    */
-  category: string;
+  category: unknown;
 
   /**
    * ISO 4217 currency code.
    */
-  currency: string;
+  currency: unknown;
 
   /**
    * Description of the recurring transaction.
    */
-  description: string;
+  description: unknown;
 
   /**
    * Frequency of the recurring transaction.
@@ -157,24 +157,24 @@ export interface RecurringCreateParams {
   /**
    * ID of the account to associate with this recurring transaction.
    */
-  linkedAccountId: string;
+  linkedAccountId: unknown;
 
   /**
    * The date when this recurring transaction is expected to start.
    */
-  startDate: string;
+  startDate: unknown;
 }
 
 export interface RecurringListParams {
   /**
    * Maximum number of items to return in a single page.
    */
-  limit?: number;
+  limit?: unknown;
 
   /**
    * Number of items to skip before starting to collect the result set.
    */
-  offset?: number;
+  offset?: unknown;
 }
 
 export declare namespace Recurring {

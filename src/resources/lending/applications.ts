@@ -19,7 +19,7 @@ export class Applications extends APIResource {
    *   );
    * ```
    */
-  retrieve(applicationID: string, options?: RequestOptions): APIPromise<LoanApplicationStatus> {
+  retrieve(applicationID: unknown, options?: RequestOptions): APIPromise<LoanApplicationStatus> {
     return this._client.get(path`/lending/applications/${applicationID}`, options);
   }
 
@@ -49,17 +49,17 @@ export interface LoanApplicationStatus {
   /**
    * Timestamp when the application was submitted.
    */
-  applicationDate: string;
+  applicationDate: unknown;
 
   /**
    * Unique identifier for the loan application.
    */
-  applicationId: string;
+  applicationId: unknown;
 
   /**
    * The amount originally requested in the application.
    */
-  loanAmountRequested: number;
+  loanAmountRequested: unknown;
 
   /**
    * The purpose of the loan.
@@ -75,7 +75,7 @@ export interface LoanApplicationStatus {
   /**
    * Guidance on the next actions for the user.
    */
-  nextSteps: string;
+  nextSteps: unknown;
 
   /**
    * Current status of the loan application.
@@ -89,26 +89,17 @@ export interface LoanApplicationStatus {
     | 'funded'
     | 'cancelled';
 
-  /**
-   * The outcome of the AI underwriting process.
-   */
-  aiUnderwritingResult?: LoanApplicationStatus.AIUnderwritingResult | null;
+  aiUnderwritingResult?: LoanApplicationStatus.AIUnderwritingResult;
 
-  /**
-   * Details of the loan offer, if approved.
-   */
-  offerDetails?: OffersAPI.LoanOffer | null;
+  offerDetails?: OffersAPI.LoanOffer;
 }
 
 export namespace LoanApplicationStatus {
-  /**
-   * The outcome of the AI underwriting process.
-   */
   export interface AIUnderwritingResult {
     /**
      * AI's confidence in its underwriting decision (0-1).
      */
-    aiConfidence: number;
+    aiConfidence: unknown;
 
     /**
      * The AI's underwriting decision.
@@ -118,17 +109,17 @@ export namespace LoanApplicationStatus {
     /**
      * Reasoning for the AI's decision.
      */
-    reason: string;
+    reason: unknown;
 
     /**
      * The maximum amount the AI is willing to approve.
      */
-    maxApprovedAmount?: number | null;
+    maxApprovedAmount?: unknown;
 
     /**
      * The interest rate recommended by the AI.
      */
-    recommendedInterestRate?: number | null;
+    recommendedInterestRate?: unknown;
   }
 }
 
@@ -136,7 +127,7 @@ export interface ApplicationSubmitParams {
   /**
    * The desired loan amount.
    */
-  loanAmount: number;
+  loanAmount: unknown;
 
   /**
    * The purpose of the loan.
@@ -152,17 +143,17 @@ export interface ApplicationSubmitParams {
   /**
    * The desired repayment term in months.
    */
-  repaymentTermMonths: number;
+  repaymentTermMonths: unknown;
 
   /**
    * Optional notes or details for the application.
    */
-  additionalNotes?: string | null;
+  additionalNotes?: unknown;
 
   /**
    * Optional: Details of a co-applicant for the loan.
    */
-  coApplicant?: ApplicationSubmitParams.CoApplicant | null;
+  coApplicant?: ApplicationSubmitParams.CoApplicant;
 }
 
 export namespace ApplicationSubmitParams {
@@ -170,11 +161,11 @@ export namespace ApplicationSubmitParams {
    * Optional: Details of a co-applicant for the loan.
    */
   export interface CoApplicant {
-    email?: string;
+    email?: unknown;
 
-    income?: number;
+    income?: unknown;
 
-    name?: string;
+    name?: unknown;
   }
 }
 

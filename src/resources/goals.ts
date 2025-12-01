@@ -39,7 +39,7 @@ export class Goals extends APIResource {
    * );
    * ```
    */
-  retrieve(goalID: string, options?: RequestOptions): APIPromise<FinancialGoal> {
+  retrieve(goalID: unknown, options?: RequestOptions): APIPromise<FinancialGoal> {
     return this._client.get(path`/goals/${goalID}`, options);
   }
 
@@ -55,7 +55,7 @@ export class Goals extends APIResource {
    * );
    * ```
    */
-  update(goalID: string, body: GoalUpdateParams, options?: RequestOptions): APIPromise<FinancialGoal> {
+  update(goalID: unknown, body: GoalUpdateParams, options?: RequestOptions): APIPromise<FinancialGoal> {
     return this._client.put(path`/goals/${goalID}`, { body, ...options });
   }
 
@@ -83,7 +83,7 @@ export class Goals extends APIResource {
    * await client.goals.delete('goal_retirement_2050');
    * ```
    */
-  delete(goalID: string, options?: RequestOptions): APIPromise<void> {
+  delete(goalID: unknown, options?: RequestOptions): APIPromise<void> {
     return this._client.delete(path`/goals/${goalID}`, {
       ...options,
       headers: buildHeaders([{ Accept: '*/*' }, options?.headers]),
@@ -95,27 +95,27 @@ export interface FinancialGoal {
   /**
    * Unique identifier for the financial goal.
    */
-  id: string;
+  id: unknown;
 
   /**
    * The current amount saved or invested towards the goal.
    */
-  currentAmount: number;
+  currentAmount: unknown;
 
   /**
    * Timestamp when the goal's status or progress was last updated.
    */
-  lastUpdated: string;
+  lastUpdated: unknown;
 
   /**
    * Name of the financial goal.
    */
-  name: string;
+  name: unknown;
 
   /**
    * Percentage completion of the goal.
    */
-  progressPercentage: number;
+  progressPercentage: unknown;
 
   /**
    * Current status of the goal's progress.
@@ -125,12 +125,12 @@ export interface FinancialGoal {
   /**
    * The target monetary amount for the goal.
    */
-  targetAmount: number;
+  targetAmount: unknown;
 
   /**
    * The target completion date for the goal.
    */
-  targetDate: string;
+  targetDate: unknown;
 
   /**
    * Type of financial goal.
@@ -145,12 +145,12 @@ export interface FinancialGoal {
   /**
    * AI-generated strategic plan for achieving the goal.
    */
-  aiStrategicPlan?: FinancialGoal.AIStrategicPlan | null;
+  aiStrategicPlan?: FinancialGoal.AIStrategicPlan;
 
   /**
    * List of account IDs contributing to this goal.
    */
-  contributingAccounts?: Array<string> | null;
+  contributingAccounts?: Array<unknown> | null;
 
   /**
    * Recommended or chosen risk tolerance for investments related to this goal.
@@ -163,20 +163,20 @@ export namespace FinancialGoal {
    * AI-generated strategic plan for achieving the goal.
    */
   export interface AIStrategicPlan {
-    planId?: string;
+    planId?: unknown;
 
     steps?: Array<AIStrategicPlan.Step>;
 
-    summary?: string;
+    summary?: unknown;
   }
 
   export namespace AIStrategicPlan {
     export interface Step {
-      description?: string;
+      description?: unknown;
 
       status?: 'pending' | 'in_progress' | 'completed';
 
-      title?: string;
+      title?: unknown;
     }
   }
 }
@@ -185,41 +185,41 @@ export interface GoalListResponse {
   /**
    * The maximum number of items returned in the current page.
    */
-  limit: number;
+  limit: unknown;
 
   /**
    * The number of items skipped before the current page.
    */
-  offset: number;
+  offset: unknown;
 
   /**
    * The total number of items available across all pages.
    */
-  total: number;
+  total: unknown;
 
   data?: Array<FinancialGoal>;
 
   /**
    * The offset for the next page of results, if available. Null if no more pages.
    */
-  nextOffset?: number | null;
+  nextOffset?: unknown;
 }
 
 export interface GoalCreateParams {
   /**
    * Name of the new financial goal.
    */
-  name: string;
+  name: unknown;
 
   /**
    * The target monetary amount for the goal.
    */
-  targetAmount: number;
+  targetAmount: unknown;
 
   /**
    * The target completion date for the goal.
    */
-  targetDate: string;
+  targetDate: unknown;
 
   /**
    * Type of financial goal.
@@ -229,17 +229,17 @@ export interface GoalCreateParams {
   /**
    * Optional: List of account IDs initially contributing to this goal.
    */
-  contributingAccounts?: Array<string> | null;
+  contributingAccounts?: Array<unknown> | null;
 
   /**
    * If true, AI will automatically generate a strategic plan for the goal.
    */
-  generateAIPlan?: boolean;
+  generateAIPlan?: unknown;
 
   /**
    * Optional: Initial amount to contribute to the goal.
    */
-  initialContribution?: number;
+  initialContribution?: unknown;
 
   /**
    * Desired risk tolerance for investments related to this goal.
@@ -251,17 +251,17 @@ export interface GoalUpdateParams {
   /**
    * Updated list of account IDs contributing to this goal.
    */
-  contributingAccounts?: Array<string> | null;
+  contributingAccounts?: Array<unknown> | null;
 
   /**
    * If true, AI will recalculate and update the strategic plan for the goal.
    */
-  generateAIPlan?: boolean;
+  generateAIPlan?: unknown;
 
   /**
    * Updated name of the financial goal.
    */
-  name?: string;
+  name?: unknown;
 
   /**
    * Updated risk tolerance for investments related to this goal.
@@ -276,24 +276,24 @@ export interface GoalUpdateParams {
   /**
    * The updated target monetary amount for the goal.
    */
-  targetAmount?: number;
+  targetAmount?: unknown;
 
   /**
    * The updated target completion date for the goal.
    */
-  targetDate?: string;
+  targetDate?: unknown;
 }
 
 export interface GoalListParams {
   /**
    * Maximum number of items to return in a single page.
    */
-  limit?: number;
+  limit?: unknown;
 
   /**
    * Number of items to skip before starting to collect the result set.
    */
-  offset?: number;
+  offset?: unknown;
 }
 
 export declare namespace Goals {

@@ -32,7 +32,7 @@ export class Transactions extends APIResource {
    * );
    * ```
    */
-  retrieve(transactionID: string, options?: RequestOptions): APIPromise<Transaction> {
+  retrieve(transactionID: unknown, options?: RequestOptions): APIPromise<Transaction> {
     return this._client.get(path`/transactions/${transactionID}`, options);
   }
 
@@ -71,7 +71,7 @@ export class Transactions extends APIResource {
    * ```
    */
   categorize(
-    transactionID: string,
+    transactionID: unknown,
     body: TransactionCategorizeParams,
     options?: RequestOptions,
   ): APIPromise<Transaction> {
@@ -98,7 +98,7 @@ export class Transactions extends APIResource {
    * ```
    */
   dispute(
-    transactionID: string,
+    transactionID: unknown,
     body: TransactionDisputeParams,
     options?: RequestOptions,
   ): APIPromise<TransactionDisputeResponse> {
@@ -120,7 +120,7 @@ export class Transactions extends APIResource {
    * ```
    */
   updateNotes(
-    transactionID: string,
+    transactionID: unknown,
     body: TransactionUpdateNotesParams,
     options?: RequestOptions,
   ): APIPromise<Transaction> {
@@ -132,62 +132,62 @@ export interface PaginatedTransactions {
   /**
    * The maximum number of items returned in the current page.
    */
-  limit: number;
+  limit: unknown;
 
   /**
    * The number of items skipped before the current page.
    */
-  offset: number;
+  offset: unknown;
 
   /**
    * The total number of items available across all pages.
    */
-  total: number;
+  total: unknown;
 
   data?: Array<Transaction>;
 
   /**
    * The offset for the next page of results, if available. Null if no more pages.
    */
-  nextOffset?: number | null;
+  nextOffset?: unknown;
 }
 
 export interface Transaction {
   /**
    * Unique identifier for the transaction.
    */
-  id: string;
+  id: unknown;
 
   /**
    * ID of the account from which the transaction occurred.
    */
-  accountId: string;
+  accountId: unknown;
 
   /**
    * Amount of the transaction.
    */
-  amount: number;
+  amount: unknown;
 
   /**
    * AI-assigned or user-defined category of the transaction (e.g., 'Groceries',
    * 'Utilities').
    */
-  category: string;
+  category: unknown;
 
   /**
    * ISO 4217 currency code of the transaction.
    */
-  currency: string;
+  currency: unknown;
 
   /**
    * Date the transaction occurred (local date).
    */
-  date: string;
+  date: unknown;
 
   /**
    * Detailed description of the transaction.
    */
-  description: string;
+  description: unknown;
 
   /**
    * Type of the transaction.
@@ -197,12 +197,12 @@ export interface Transaction {
   /**
    * AI confidence score for the assigned category (0-1).
    */
-  aiCategoryConfidence?: number | null;
+  aiCategoryConfidence?: unknown;
 
   /**
    * Estimated carbon footprint in kg CO2e for this transaction, derived by AI.
    */
-  carbonFootprint?: number | null;
+  carbonFootprint?: unknown;
 
   /**
    * Current dispute status of the transaction.
@@ -222,7 +222,7 @@ export interface Transaction {
   /**
    * Personal notes added by the user to the transaction.
    */
-  notes?: string | null;
+  notes?: unknown;
 
   /**
    * Channel through which the payment was made.
@@ -232,17 +232,17 @@ export interface Transaction {
   /**
    * Date the transaction was posted to the account (local date).
    */
-  postedDate?: string | null;
+  postedDate?: unknown;
 
   /**
    * URL to a digital receipt for the transaction.
    */
-  receiptUrl?: string | null;
+  receiptUrl?: unknown;
 
   /**
    * User-defined tags for the transaction.
    */
-  tags?: Array<string> | null;
+  tags?: Array<unknown> | null;
 }
 
 export namespace Transaction {
@@ -253,57 +253,54 @@ export namespace Transaction {
     /**
      * City where the transaction occurred.
      */
-    city?: string | null;
+    city?: unknown;
 
     /**
      * Latitude coordinate of the transaction.
      */
-    latitude?: number;
+    latitude?: unknown;
 
     /**
      * Longitude coordinate of the transaction.
      */
-    longitude?: number;
+    longitude?: unknown;
 
     /**
      * State where the transaction occurred.
      */
-    state?: string | null;
+    state?: unknown;
 
     /**
      * Zip code where the transaction occurred.
      */
-    zip?: string | null;
+    zip?: unknown;
   }
 
   /**
    * Detailed information about a merchant associated with a transaction.
    */
   export interface MerchantDetails {
-    /**
-     * Physical address of the merchant.
-     */
     address?: UsersAPI.Address;
 
     /**
      * URL to the merchant's logo.
      */
-    logoUrl?: string | null;
+    logoUrl?: unknown;
 
     /**
      * Official name of the merchant.
      */
-    name?: string;
+    name?: unknown;
 
     /**
      * Merchant's phone number.
      */
-    phone?: string | null;
+    phone?: unknown;
 
     /**
      * Merchant's website URL.
      */
-    website?: string | null;
+    website?: unknown;
   }
 }
 
@@ -311,17 +308,17 @@ export interface TransactionDisputeResponse {
   /**
    * Unique identifier for the dispute case.
    */
-  disputeId: string;
+  disputeId: unknown;
 
   /**
    * Timestamp when the dispute status was last updated.
    */
-  lastUpdated: string;
+  lastUpdated: unknown;
 
   /**
    * Guidance on what to expect next in the dispute process.
    */
-  nextSteps: string;
+  nextSteps: unknown;
 
   /**
    * Current status of the dispute.
@@ -333,42 +330,42 @@ export interface TransactionListParams {
   /**
    * Filter transactions by their AI-assigned or user-defined category.
    */
-  category?: string;
+  category?: unknown;
 
   /**
    * Retrieve transactions up to this date (inclusive).
    */
-  endDate?: string;
+  endDate?: unknown;
 
   /**
    * Maximum number of items to return in a single page.
    */
-  limit?: number;
+  limit?: unknown;
 
   /**
    * Filter for transactions with an amount less than or equal to this value.
    */
-  maxAmount?: number;
+  maxAmount?: unknown;
 
   /**
    * Filter for transactions with an amount greater than or equal to this value.
    */
-  minAmount?: number;
+  minAmount?: unknown;
 
   /**
    * Number of items to skip before starting to collect the result set.
    */
-  offset?: number;
+  offset?: unknown;
 
   /**
    * Free-text search across transaction descriptions, merchants, and notes.
    */
-  searchQuery?: string;
+  searchQuery?: unknown;
 
   /**
    * Retrieve transactions from this date (inclusive).
    */
-  startDate?: string;
+  startDate?: unknown;
 
   /**
    * Filter transactions by type (e.g., income, expense, transfer).
@@ -380,25 +377,25 @@ export interface TransactionCategorizeParams {
   /**
    * The new category for the transaction. Can be hierarchical.
    */
-  category: string;
+  category: unknown;
 
   /**
    * If true, the AI will learn from this correction and try to apply it to similar
    * future transactions.
    */
-  applyToFuture?: boolean;
+  applyToFuture?: unknown;
 
   /**
    * Optional notes to add to the transaction.
    */
-  notes?: string | null;
+  notes?: unknown;
 }
 
 export interface TransactionDisputeParams {
   /**
    * Detailed explanation of the dispute.
    */
-  details: string;
+  details: unknown;
 
   /**
    * The primary reason for disputing the transaction.
@@ -408,14 +405,14 @@ export interface TransactionDisputeParams {
   /**
    * URLs to supporting documents (e.g., receipts, communication).
    */
-  supportingDocuments?: Array<string> | null;
+  supportingDocuments?: Array<unknown> | null;
 }
 
 export interface TransactionUpdateNotesParams {
   /**
    * The personal notes to add or update for the transaction.
    */
-  notes: string;
+  notes: unknown;
 }
 
 Transactions.Recurring = Recurring;

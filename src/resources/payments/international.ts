@@ -51,7 +51,7 @@ export class International extends APIResource {
    *   );
    * ```
    */
-  retrieveStatus(paymentID: string, options?: RequestOptions): APIPromise<InternationalPaymentStatus> {
+  retrieveStatus(paymentID: unknown, options?: RequestOptions): APIPromise<InternationalPaymentStatus> {
     return this._client.get(path`/payments/international/${paymentID}/status`, options);
   }
 }
@@ -60,22 +60,22 @@ export interface InternationalPaymentStatus {
   /**
    * The foreign exchange rate applied (target per source currency).
    */
-  fxRateApplied: number;
+  fxRateApplied: unknown;
 
   /**
    * Unique identifier for the international payment.
    */
-  paymentId: string;
+  paymentId: unknown;
 
   /**
    * The amount sent in the source currency.
    */
-  sourceAmount: number;
+  sourceAmount: unknown;
 
   /**
    * The source currency code.
    */
-  sourceCurrency: string;
+  sourceCurrency: unknown;
 
   /**
    * Current processing status of the payment.
@@ -85,40 +85,40 @@ export interface InternationalPaymentStatus {
   /**
    * The amount received by the beneficiary in the target currency.
    */
-  targetAmount: number;
+  targetAmount: unknown;
 
   /**
    * The target currency code.
    */
-  targetCurrency: string;
+  targetCurrency: unknown;
 
   /**
    * Estimated time when the payment will be completed.
    */
-  estimatedCompletionTime?: string | null;
+  estimatedCompletionTime?: unknown;
 
   /**
    * Total fees applied to the payment.
    */
-  feesApplied?: number | null;
+  feesApplied?: unknown;
 
   /**
    * An optional message providing more context on the status (e.g., reason for
    * hold).
    */
-  message?: string | null;
+  message?: unknown;
 
   /**
    * URL to track the payment's progress.
    */
-  trackingUrl?: string | null;
+  trackingUrl?: unknown;
 }
 
 export interface InternationalInitiateParams {
   /**
    * The amount to send in the source currency.
    */
-  amount: number;
+  amount: unknown;
 
   /**
    * Details of the payment beneficiary.
@@ -128,27 +128,27 @@ export interface InternationalInitiateParams {
   /**
    * Purpose of the payment.
    */
-  purpose: string;
+  purpose: unknown;
 
   /**
    * The ID of the user's source account for the payment.
    */
-  sourceAccountId: string;
+  sourceAccountId: unknown;
 
   /**
    * The ISO 4217 currency code of the source funds.
    */
-  sourceCurrency: string;
+  sourceCurrency: unknown;
 
   /**
    * The ISO 4217 currency code for the beneficiary's currency.
    */
-  targetCurrency: string;
+  targetCurrency: unknown;
 
   /**
    * If true, attempts to lock the quoted FX rate for a short period.
    */
-  fxRateLock?: boolean;
+  fxRateLock?: unknown;
 
   /**
    * Indicates whether to use AI-optimized FX rates or standard market rates.
@@ -158,7 +158,7 @@ export interface InternationalInitiateParams {
   /**
    * Optional: Your internal reference for this payment.
    */
-  reference?: string | null;
+  reference?: unknown;
 }
 
 export namespace InternationalInitiateParams {
@@ -169,37 +169,37 @@ export namespace InternationalInitiateParams {
     /**
      * Full address of the beneficiary.
      */
-    address: string;
+    address: unknown;
 
     /**
      * Name of the beneficiary's bank.
      */
-    bankName: string;
+    bankName: unknown;
 
     /**
      * Full name of the beneficiary.
      */
-    name: string;
+    name: unknown;
 
     /**
      * Account number (if IBAN/SWIFT not applicable).
      */
-    accountNumber?: string | null;
+    accountNumber?: unknown;
 
     /**
      * IBAN for Eurozone transfers.
      */
-    iban?: string | null;
+    iban?: unknown;
 
     /**
      * Routing number (if applicable, e.g., for US transfers).
      */
-    routingNumber?: string | null;
+    routingNumber?: unknown;
 
     /**
      * SWIFT/BIC code for international transfers.
      */
-    swiftBic?: string | null;
+    swiftBic?: unknown;
   }
 }
 

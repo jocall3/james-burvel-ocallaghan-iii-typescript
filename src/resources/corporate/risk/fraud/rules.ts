@@ -63,7 +63,7 @@ export class Rules extends APIResource {
    *   );
    * ```
    */
-  update(ruleID: string, body: RuleUpdateParams, options?: RequestOptions): APIPromise<FraudRule> {
+  update(ruleID: unknown, body: RuleUpdateParams, options?: RequestOptions): APIPromise<FraudRule> {
     return this._client.put(path`/corporate/risk/fraud/rules/${ruleID}`, { body, ...options });
   }
 
@@ -95,7 +95,7 @@ export class Rules extends APIResource {
    * );
    * ```
    */
-  delete(ruleID: string, options?: RequestOptions): APIPromise<void> {
+  delete(ruleID: unknown, options?: RequestOptions): APIPromise<void> {
     return this._client.delete(path`/corporate/risk/fraud/rules/${ruleID}`, {
       ...options,
       headers: buildHeaders([{ Accept: '*/*' }, options?.headers]),
@@ -107,7 +107,7 @@ export interface FraudRule {
   /**
    * Unique identifier for the fraud detection rule.
    */
-  id: string;
+  id: unknown;
 
   /**
    * Action to take when a fraud rule is triggered.
@@ -117,12 +117,12 @@ export interface FraudRule {
   /**
    * Timestamp when the rule was created.
    */
-  createdAt: string;
+  createdAt: unknown;
 
   /**
    * Identifier of who created the rule (e.g., user ID, 'system:ai-risk-engine').
    */
-  createdBy: string;
+  createdBy: unknown;
 
   /**
    * Criteria that define when a fraud rule should trigger.
@@ -132,17 +132,17 @@ export interface FraudRule {
   /**
    * Detailed description of what the rule detects.
    */
-  description: string;
+  description: unknown;
 
   /**
    * Timestamp when the rule was last updated.
    */
-  lastUpdated: string;
+  lastUpdated: unknown;
 
   /**
    * Name of the fraud rule.
    */
-  name: string;
+  name: unknown;
 
   /**
    * Severity level when this rule is triggered.
@@ -162,7 +162,7 @@ export interface FraudRuleAction {
   /**
    * Details or instructions for the action.
    */
-  details: string;
+  details: unknown;
 
   /**
    * Type of action to perform.
@@ -172,7 +172,7 @@ export interface FraudRuleAction {
   /**
    * The team or department to notify for alerts/reviews.
    */
-  targetTeam?: string | null;
+  targetTeam?: unknown;
 }
 
 /**
@@ -182,32 +182,32 @@ export interface FraudRuleCriteria {
   /**
    * Number of days an account must be inactive for the rule to apply.
    */
-  accountInactivityDays?: number | null;
+  accountInactivityDays?: unknown;
 
   /**
    * List of ISO 2-letter country codes for transaction origin.
    */
-  countryOfOrigin?: Array<string> | null;
+  countryOfOrigin?: Array<unknown> | null;
 
   /**
    * Minimum geographic distance (in km) from recent activity for anomaly.
    */
-  geographicDistanceKm?: number | null;
+  geographicDistanceKm?: unknown;
 
   /**
    * Number of days since last user login for anomaly detection.
    */
-  lastLoginDays?: number | null;
+  lastLoginDays?: unknown;
 
   /**
    * If true, rule applies only if no prior travel notification was made.
    */
-  noTravelNotification?: boolean | null;
+  noTravelNotification?: unknown;
 
   /**
    * Minimum number of payments in a timeframe.
    */
-  paymentCountMin?: number | null;
+  paymentCountMin?: unknown;
 
   /**
    * List of risk levels for recipient countries.
@@ -217,17 +217,17 @@ export interface FraudRuleCriteria {
   /**
    * If true, recipient must be a new payee.
    */
-  recipientNew?: boolean | null;
+  recipientNew?: unknown;
 
   /**
    * Timeframe in hours for payment count or other event aggregations.
    */
-  timeframeHours?: number | null;
+  timeframeHours?: unknown;
 
   /**
    * Minimum transaction amount to consider.
    */
-  transactionAmountMin?: number | null;
+  transactionAmountMin?: unknown;
 
   /**
    * Specific transaction type (e.g., debit, credit).
@@ -239,24 +239,24 @@ export interface RuleListResponse {
   /**
    * The maximum number of items returned in the current page.
    */
-  limit: number;
+  limit: unknown;
 
   /**
    * The number of items skipped before the current page.
    */
-  offset: number;
+  offset: unknown;
 
   /**
    * The total number of items available across all pages.
    */
-  total: number;
+  total: unknown;
 
   data?: Array<FraudRule>;
 
   /**
    * The offset for the next page of results, if available. Null if no more pages.
    */
-  nextOffset?: number | null;
+  nextOffset?: unknown;
 }
 
 export interface RuleCreateParams {
@@ -273,12 +273,12 @@ export interface RuleCreateParams {
   /**
    * Detailed description of what the rule detects.
    */
-  description: string;
+  description: unknown;
 
   /**
    * Name of the new fraud rule.
    */
-  name: string;
+  name: unknown;
 
   /**
    * Severity level when this rule is triggered.
@@ -293,24 +293,24 @@ export interface RuleCreateParams {
 
 export interface RuleUpdateParams {
   /**
-   * Updated action to take when the rule is triggered.
+   * Action to take when a fraud rule is triggered.
    */
   action?: FraudRuleAction;
 
   /**
-   * Updated criteria for the rule.
+   * Criteria that define when a fraud rule should trigger.
    */
   criteria?: FraudRuleCriteria;
 
   /**
    * Updated description of what the rule detects.
    */
-  description?: string;
+  description?: unknown;
 
   /**
    * Updated name of the fraud rule.
    */
-  name?: string;
+  name?: unknown;
 
   /**
    * Updated severity level.
@@ -327,12 +327,12 @@ export interface RuleListParams {
   /**
    * Maximum number of items to return in a single page.
    */
-  limit?: number;
+  limit?: unknown;
 
   /**
    * Number of items to skip before starting to collect the result set.
    */
-  offset?: number;
+  offset?: unknown;
 }
 
 export declare namespace Rules {

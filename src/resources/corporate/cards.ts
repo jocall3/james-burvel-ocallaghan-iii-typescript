@@ -68,7 +68,7 @@ export class Cards extends APIResource {
    * );
    * ```
    */
-  freeze(cardID: string, body: CardFreezeParams, options?: RequestOptions): APIPromise<CorporateCard> {
+  freeze(cardID: unknown, body: CardFreezeParams, options?: RequestOptions): APIPromise<CorporateCard> {
     return this._client.post(path`/corporate/cards/${cardID}/freeze`, { body, ...options });
   }
 
@@ -85,7 +85,7 @@ export class Cards extends APIResource {
    * ```
    */
   listTransactions(
-    cardID: string,
+    cardID: unknown,
     query: CardListTransactionsParams | null | undefined = {},
     options?: RequestOptions,
   ): APIPromise<TransactionsAPI.PaginatedTransactions> {
@@ -115,7 +115,7 @@ export class Cards extends APIResource {
    * ```
    */
   updateControls(
-    cardID: string,
+    cardID: unknown,
     body: CardUpdateControlsParams,
     options?: RequestOptions,
   ): APIPromise<CorporateCard> {
@@ -127,12 +127,12 @@ export interface CorporateCard {
   /**
    * Unique identifier for the corporate card.
    */
-  id: string;
+  id: unknown;
 
   /**
    * Masked card number for display purposes.
    */
-  cardNumberMask: string;
+  cardNumberMask: unknown;
 
   /**
    * Type of the card (physical or virtual).
@@ -147,27 +147,27 @@ export interface CorporateCard {
   /**
    * Timestamp when the card was created.
    */
-  createdDate: string;
+  createdDate: unknown;
 
   /**
    * Currency of the card's limits and transactions.
    */
-  currency: string;
+  currency: unknown;
 
   /**
    * Expiration date of the card (YYYY-MM-DD).
    */
-  expirationDate: string;
+  expirationDate: unknown;
 
   /**
    * If true, the card is temporarily frozen and cannot be used.
    */
-  frozen: boolean;
+  frozen: unknown;
 
   /**
    * Name of the card holder.
    */
-  holderName: string;
+  holderName: unknown;
 
   /**
    * Current status of the card.
@@ -177,12 +177,12 @@ export interface CorporateCard {
   /**
    * Optional: ID of the employee associated with this card.
    */
-  associatedEmployeeId?: string | null;
+  associatedEmployeeId?: unknown;
 
   /**
    * Optional: ID of the overarching spending policy applied to this card.
    */
-  spendingPolicyId?: string | null;
+  spendingPolicyId?: unknown;
 }
 
 /**
@@ -192,193 +192,193 @@ export interface CorporateCardControls {
   /**
    * If true, ATM cash withdrawals are allowed.
    */
-  atmWithdrawals?: boolean;
+  atmWithdrawals?: unknown;
 
   /**
    * If true, contactless payments are allowed.
    */
-  contactlessPayments?: boolean;
+  contactlessPayments?: unknown;
 
   /**
    * Maximum spending limit per day (null for no limit).
    */
-  dailyLimit?: number | null;
+  dailyLimit?: unknown;
 
   /**
    * If true, international transactions are allowed.
    */
-  internationalTransactions?: boolean;
+  internationalTransactions?: unknown;
 
   /**
    * List of allowed merchant categories. If empty, all are allowed unless explicitly
    * denied.
    */
-  merchantCategoryRestrictions?: Array<string> | null;
+  merchantCategoryRestrictions?: Array<unknown> | null;
 
   /**
    * Maximum spending limit per month (null for no limit).
    */
-  monthlyLimit?: number | null;
+  monthlyLimit?: unknown;
 
   /**
    * If true, online transactions are allowed.
    */
-  onlineTransactions?: boolean;
+  onlineTransactions?: unknown;
 
   /**
    * Maximum amount for a single transaction (null for no limit).
    */
-  singleTransactionLimit?: number | null;
+  singleTransactionLimit?: unknown;
 
   /**
    * List of allowed vendors/merchants by name.
    */
-  vendorRestrictions?: Array<string> | null;
+  vendorRestrictions?: Array<unknown> | null;
 }
 
 export interface CardListResponse {
   /**
    * The maximum number of items returned in the current page.
    */
-  limit: number;
+  limit: unknown;
 
   /**
    * The number of items skipped before the current page.
    */
-  offset: number;
+  offset: unknown;
 
   /**
    * The total number of items available across all pages.
    */
-  total: number;
+  total: unknown;
 
   data?: Array<CorporateCard>;
 
   /**
    * The offset for the next page of results, if available. Null if no more pages.
    */
-  nextOffset?: number | null;
+  nextOffset?: unknown;
 }
 
 export interface CardListParams {
   /**
    * Maximum number of items to return in a single page.
    */
-  limit?: number;
+  limit?: unknown;
 
   /**
    * Number of items to skip before starting to collect the result set.
    */
-  offset?: number;
+  offset?: unknown;
 }
 
 export interface CardCreateVirtualParams {
   /**
-   * Specific spending controls for this virtual card.
+   * Granular spending controls for a corporate card.
    */
   controls: CorporateCardControls;
 
   /**
    * Expiration date for the virtual card (YYYY-MM-DD).
    */
-  expirationDate: string;
+  expirationDate: unknown;
 
   /**
    * Name to appear on the virtual card.
    */
-  holderName: string;
+  holderName: unknown;
 
   /**
    * Brief description of the virtual card's purpose.
    */
-  purpose: string;
+  purpose: unknown;
 
   /**
    * Optional: ID of the employee or department this card is for.
    */
-  associatedEmployeeId?: string | null;
+  associatedEmployeeId?: unknown;
 
   /**
    * Optional: ID of a spending policy to link with this virtual card.
    */
-  spendingPolicyId?: string | null;
+  spendingPolicyId?: unknown;
 }
 
 export interface CardFreezeParams {
   /**
    * Set to `true` to freeze the card, `false` to unfreeze.
    */
-  freeze: boolean;
+  freeze: unknown;
 }
 
 export interface CardListTransactionsParams {
   /**
    * End date for filtering results (inclusive, YYYY-MM-DD).
    */
-  endDate?: string;
+  endDate?: unknown;
 
   /**
    * Maximum number of items to return in a single page.
    */
-  limit?: number;
+  limit?: unknown;
 
   /**
    * Number of items to skip before starting to collect the result set.
    */
-  offset?: number;
+  offset?: unknown;
 
   /**
    * Start date for filtering results (inclusive, YYYY-MM-DD).
    */
-  startDate?: string;
+  startDate?: unknown;
 }
 
 export interface CardUpdateControlsParams {
   /**
    * If true, ATM cash withdrawals are allowed.
    */
-  atmWithdrawals?: boolean;
+  atmWithdrawals?: unknown;
 
   /**
    * If true, contactless payments are allowed.
    */
-  contactlessPayments?: boolean;
+  contactlessPayments?: unknown;
 
   /**
    * Maximum spending limit per day (null for no limit).
    */
-  dailyLimit?: number | null;
+  dailyLimit?: unknown;
 
   /**
    * If true, international transactions are allowed.
    */
-  internationalTransactions?: boolean;
+  internationalTransactions?: unknown;
 
   /**
    * List of allowed merchant categories. If empty, all are allowed unless explicitly
    * denied.
    */
-  merchantCategoryRestrictions?: Array<string> | null;
+  merchantCategoryRestrictions?: Array<unknown> | null;
 
   /**
    * Maximum spending limit per month (null for no limit).
    */
-  monthlyLimit?: number | null;
+  monthlyLimit?: unknown;
 
   /**
    * If true, online transactions are allowed.
    */
-  onlineTransactions?: boolean;
+  onlineTransactions?: unknown;
 
   /**
    * Maximum amount for a single transaction (null for no limit).
    */
-  singleTransactionLimit?: number | null;
+  singleTransactionLimit?: unknown;
 
   /**
    * List of allowed vendors/merchants by name.
    */
-  vendorRestrictions?: Array<string> | null;
+  vendorRestrictions?: Array<unknown> | null;
 }
 
 export declare namespace Cards {

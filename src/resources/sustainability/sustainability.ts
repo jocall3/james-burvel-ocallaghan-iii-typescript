@@ -53,37 +53,37 @@ export interface SustainabilityPurchaseCarbonOffsetsResponse {
   /**
    * The amount of carbon dioxide equivalent offset by this purchase.
    */
-  amountOffsetKgCO2e: number;
+  amountOffsetKgCO2e: unknown;
 
   /**
    * Timestamp of the purchase.
    */
-  purchaseDate: string;
+  purchaseDate: unknown;
 
   /**
    * Unique identifier for the carbon offset purchase.
    */
-  purchaseId: string;
+  purchaseId: unknown;
 
   /**
    * Total cost of the carbon offset purchase in USD.
    */
-  totalCostUSD: number;
+  totalCostUSD: unknown;
 
   /**
    * URL to the official carbon offset certificate.
    */
-  certificateUrl?: string | null;
+  certificateUrl?: unknown;
 
   /**
    * The carbon offset project supported.
    */
-  projectSupported?: string | null;
+  projectSupported?: unknown;
 
   /**
    * The ID of the internal financial transaction for this purchase.
    */
-  transactionId?: string | null;
+  transactionId?: unknown;
 }
 
 export interface SustainabilityRetrieveCarbonFootprintResponse {
@@ -100,17 +100,17 @@ export interface SustainabilityRetrieveCarbonFootprintResponse {
   /**
    * The period covered by the report.
    */
-  period: string;
+  period: unknown;
 
   /**
    * Unique identifier for the carbon footprint report.
    */
-  reportId: string;
+  reportId: unknown;
 
   /**
    * Total estimated carbon footprint in kilograms of CO2 equivalent.
    */
-  totalCarbonFootprintKgCO2e: number;
+  totalCarbonFootprintKgCO2e: unknown;
 
   /**
    * Recommendations for purchasing carbon offsets.
@@ -120,21 +120,21 @@ export interface SustainabilityRetrieveCarbonFootprintResponse {
 
 export namespace SustainabilityRetrieveCarbonFootprintResponse {
   export interface BreakdownByCategory {
-    carbonFootprintKgCO2e?: number;
+    carbonFootprintKgCO2e?: unknown;
 
-    category?: string;
+    category?: unknown;
 
-    percentage?: number;
+    percentage?: unknown;
   }
 
   export interface OffsetRecommendation {
-    costPerTonUSD?: number;
+    costPerTonUSD?: unknown;
 
-    offsetAmountKgCO2e?: number;
+    offsetAmountKgCO2e?: unknown;
 
-    project?: string;
+    project?: unknown;
 
-    totalCostUSD?: number;
+    totalCostUSD?: unknown;
   }
 }
 
@@ -142,17 +142,17 @@ export interface SustainabilityPurchaseCarbonOffsetsParams {
   /**
    * The amount of carbon dioxide equivalent to offset in kilograms.
    */
-  amountKgCO2e: number;
+  amountKgCO2e: unknown;
 
   /**
    * Optional: The specific carbon offset project to support.
    */
-  offsetProject: string | null;
+  offsetProject: unknown;
 
   /**
    * The ID of the user's account to use for payment.
    */
-  paymentAccountId: string;
+  paymentAccountId: unknown;
 }
 
 Sustainability.Investments = Investments;

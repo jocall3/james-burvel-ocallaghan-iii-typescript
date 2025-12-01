@@ -56,7 +56,7 @@ export class Wallets extends APIResource {
    * ```
    */
   retrieveBalances(
-    walletID: string,
+    walletID: unknown,
     query: WalletRetrieveBalancesParams | null | undefined = {},
     options?: RequestOptions,
   ): APIPromise<WalletRetrieveBalancesResponse> {
@@ -68,23 +68,23 @@ export interface CryptoWalletConnection {
   /**
    * Unique identifier for this wallet connection.
    */
-  id: string;
+  id: unknown;
 
   /**
    * The blockchain network this wallet is primarily connected to (e.g., Ethereum,
    * Solana, Polygon).
    */
-  blockchainNetwork: string;
+  blockchainNetwork: unknown;
 
   /**
    * Timestamp when the wallet's data was last synchronized.
    */
-  lastSynced: string;
+  lastSynced: unknown;
 
   /**
    * Indicates if read access (balances, NFTs) is granted.
    */
-  readAccessGranted: boolean;
+  readAccessGranted: unknown;
 
   /**
    * Current status of the wallet connection.
@@ -94,66 +94,66 @@ export interface CryptoWalletConnection {
   /**
    * Public address of the connected cryptocurrency wallet.
    */
-  walletAddress: string;
+  walletAddress: unknown;
 
   /**
    * Name of the wallet provider (e.g., MetaMask, Ledger, Phantom).
    */
-  walletProvider: string;
+  walletProvider: unknown;
 
   /**
    * Indicates if write access (transactions) is granted. Requires higher
    * permission/security.
    */
-  writeAccessGranted: boolean;
+  writeAccessGranted: unknown;
 }
 
 export interface WalletListResponse {
   /**
    * The maximum number of items returned in the current page.
    */
-  limit: number;
+  limit: unknown;
 
   /**
    * The number of items skipped before the current page.
    */
-  offset: number;
+  offset: unknown;
 
   /**
    * The total number of items available across all pages.
    */
-  total: number;
+  total: unknown;
 
   data?: Array<CryptoWalletConnection>;
 
   /**
    * The offset for the next page of results, if available. Null if no more pages.
    */
-  nextOffset?: number | null;
+  nextOffset?: unknown;
 }
 
 export interface WalletRetrieveBalancesResponse {
   /**
    * The maximum number of items returned in the current page.
    */
-  limit: number;
+  limit: unknown;
 
   /**
    * The number of items skipped before the current page.
    */
-  offset: number;
+  offset: unknown;
 
   /**
    * The total number of items available across all pages.
    */
-  total: number;
+  total: unknown;
 
   data?: Array<WalletRetrieveBalancesResponse.Data>;
 
   /**
    * The offset for the next page of results, if available. Null if no more pages.
    */
-  nextOffset?: number | null;
+  nextOffset?: unknown;
 }
 
 export namespace WalletRetrieveBalancesResponse {
@@ -161,33 +161,33 @@ export namespace WalletRetrieveBalancesResponse {
     /**
      * Full name of the crypto asset.
      */
-    assetName: string;
+    assetName: unknown;
 
     /**
      * Symbol of the crypto asset (e.g., ETH, BTC, USDC).
      */
-    assetSymbol: string;
+    assetSymbol: unknown;
 
     /**
      * Current balance of the asset in the wallet.
      */
-    balance: number;
+    balance: unknown;
 
     /**
      * Current USD value of the asset balance.
      */
-    usdValue: number;
+    usdValue: unknown;
 
     /**
      * The contract address for ERC-20 tokens or similar.
      */
-    contractAddress?: string | null;
+    contractAddress?: unknown;
 
     /**
      * The blockchain network the asset resides on (if different from wallet's
      * primary).
      */
-    network?: string | null;
+    network?: unknown;
   }
 }
 
@@ -195,52 +195,52 @@ export interface WalletListParams {
   /**
    * Maximum number of items to return in a single page.
    */
-  limit?: number;
+  limit?: unknown;
 
   /**
    * Number of items to skip before starting to collect the result set.
    */
-  offset?: number;
+  offset?: unknown;
 }
 
 export interface WalletConnectParams {
   /**
    * The blockchain network for this wallet (e.g., Ethereum, Solana).
    */
-  blockchainNetwork: string;
+  blockchainNetwork: unknown;
 
   /**
    * A message cryptographically signed by the wallet owner to prove
    * ownership/intent.
    */
-  signedMessage: string;
+  signedMessage: unknown;
 
   /**
    * The public address of the cryptocurrency wallet.
    */
-  walletAddress: string;
+  walletAddress: unknown;
 
   /**
    * The name of the wallet provider (e.g., MetaMask, Phantom).
    */
-  walletProvider: string;
+  walletProvider: unknown;
 
   /**
    * If true, requests write access to initiate transactions from this wallet.
    */
-  requestWriteAccess?: boolean;
+  requestWriteAccess?: unknown;
 }
 
 export interface WalletRetrieveBalancesParams {
   /**
    * Maximum number of items to return in a single page.
    */
-  limit?: number;
+  limit?: unknown;
 
   /**
    * Number of items to skip before starting to collect the result set.
    */
-  offset?: number;
+  offset?: unknown;
 }
 
 export declare namespace Wallets {

@@ -22,7 +22,7 @@ describe('resource incubator', () => {
     // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
     await expect(
       client.ai.incubator.listPitches(
-        { limit: 1, offset: 0, status: 'feedback_required' },
+        { limit: {}, offset: {}, status: 'feedback_required' },
         { path: '/_stainless_unknown_path' },
       ),
     ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);

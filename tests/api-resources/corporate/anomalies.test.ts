@@ -25,8 +25,8 @@ describe('resource anomalies', () => {
         {
           endDate: '2024-12-31',
           entityType: 'Transaction',
-          limit: 1,
-          offset: 0,
+          limit: {},
+          offset: {},
           severity: 'Critical',
           startDate: '2024-01-01',
           status: 'New',

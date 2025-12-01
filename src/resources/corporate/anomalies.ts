@@ -42,7 +42,7 @@ export class Anomalies extends APIResource {
    * ```
    */
   updateStatus(
-    anomalyID: string,
+    anomalyID: unknown,
     body: AnomalyUpdateStatusParams,
     options?: RequestOptions,
   ): APIPromise<FinancialAnomaly> {
@@ -54,23 +54,23 @@ export interface FinancialAnomaly {
   /**
    * Unique identifier for the detected anomaly.
    */
-  id: string;
+  id: unknown;
 
   /**
    * AI's confidence in its detection of the anomaly (0-1).
    */
-  aiConfidenceScore: number;
+  aiConfidenceScore: unknown;
 
   /**
    * A brief summary of the anomaly.
    */
-  description: string;
+  description: unknown;
 
   /**
    * The ID of the specific entity (e.g., transaction, user, card) the anomaly is
    * linked to.
    */
-  entityId: string;
+  entityId: unknown;
 
   /**
    * The type of financial entity related to the anomaly.
@@ -80,12 +80,12 @@ export interface FinancialAnomaly {
   /**
    * AI-recommended immediate action to address the anomaly.
    */
-  recommendedAction: string | null;
+  recommendedAction: unknown;
 
   /**
    * AI-assigned risk score (0-100), higher is more risky.
    */
-  riskScore: number;
+  riskScore: unknown;
 
   /**
    * AI-assessed severity of the anomaly.
@@ -100,53 +100,53 @@ export interface FinancialAnomaly {
   /**
    * Timestamp when the anomaly was detected.
    */
-  timestamp: string;
+  timestamp: unknown;
 
   /**
    * Detailed context and reasoning behind the anomaly detection.
    */
-  details?: string | null;
+  details?: unknown;
 
   /**
    * List of IDs of other transactions or entities related to this anomaly.
    */
-  relatedTransactions?: Array<string> | null;
+  relatedTransactions?: Array<unknown> | null;
 
   /**
    * Notes recorded during the resolution or dismissal of the anomaly.
    */
-  resolutionNotes?: string | null;
+  resolutionNotes?: unknown;
 }
 
 export interface AnomalyListResponse {
   /**
    * The maximum number of items returned in the current page.
    */
-  limit: number;
+  limit: unknown;
 
   /**
    * The number of items skipped before the current page.
    */
-  offset: number;
+  offset: unknown;
 
   /**
    * The total number of items available across all pages.
    */
-  total: number;
+  total: unknown;
 
   data?: Array<FinancialAnomaly>;
 
   /**
    * The offset for the next page of results, if available. Null if no more pages.
    */
-  nextOffset?: number | null;
+  nextOffset?: unknown;
 }
 
 export interface AnomalyListParams {
   /**
    * End date for filtering results (inclusive, YYYY-MM-DD).
    */
-  endDate?: string;
+  endDate?: unknown;
 
   /**
    * Filter anomalies by the type of financial entity they are related to.
@@ -156,12 +156,12 @@ export interface AnomalyListParams {
   /**
    * Maximum number of items to return in a single page.
    */
-  limit?: number;
+  limit?: unknown;
 
   /**
    * Number of items to skip before starting to collect the result set.
    */
-  offset?: number;
+  offset?: unknown;
 
   /**
    * Filter anomalies by their AI-assessed severity level.
@@ -171,7 +171,7 @@ export interface AnomalyListParams {
   /**
    * Start date for filtering results (inclusive, YYYY-MM-DD).
    */
-  startDate?: string;
+  startDate?: unknown;
 
   /**
    * Filter anomalies by their current review status.
@@ -188,7 +188,7 @@ export interface AnomalyUpdateStatusParams {
   /**
    * Optional notes regarding the resolution or dismissal of the anomaly.
    */
-  resolutionNotes?: string | null;
+  resolutionNotes?: unknown;
 }
 
 export declare namespace Anomalies {

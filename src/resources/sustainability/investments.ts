@@ -31,7 +31,7 @@ export interface InvestmentAnalyzeImpactResponse {
   /**
    * Average ESG score of a relevant market benchmark for comparison.
    */
-  benchmarkESGScore: number;
+  benchmarkESGScore: unknown;
 
   /**
    * Breakdown of the portfolio's ESG score by individual factors.
@@ -46,12 +46,12 @@ export interface InvestmentAnalyzeImpactResponse {
   /**
    * Overall ESG score of the entire portfolio (0-10).
    */
-  overallESGScore: number;
+  overallESGScore: unknown;
 
   /**
    * ID of the investment portfolio analyzed.
    */
-  portfolioId: string;
+  portfolioId: unknown;
 
   /**
    * Top holdings in the portfolio by ESG score.
@@ -64,27 +64,27 @@ export namespace InvestmentAnalyzeImpactResponse {
    * Breakdown of the portfolio's ESG score by individual factors.
    */
   export interface BreakdownByEsgFactors {
-    environmentalScore?: number;
+    environmentalScore?: unknown;
 
-    governanceScore?: number;
+    governanceScore?: unknown;
 
-    socialScore?: number;
+    socialScore?: unknown;
   }
 
   export interface LowestEsgHolding {
-    assetName?: string;
+    assetName?: unknown;
 
-    assetSymbol?: string;
+    assetSymbol?: unknown;
 
-    esgScore?: number;
+    esgScore?: unknown;
   }
 
   export interface TopEsgHolding {
-    assetName?: string;
+    assetName?: unknown;
 
-    assetSymbol?: string;
+    assetSymbol?: unknown;
 
-    esgScore?: number;
+    esgScore?: unknown;
   }
 }
 

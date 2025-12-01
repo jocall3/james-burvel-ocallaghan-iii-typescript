@@ -54,23 +54,20 @@ export class Me extends APIResource {
 }
 
 export interface MeUpdateParams {
-  /**
-   * Updated address details.
-   */
   address?: UsersAPI.Address;
 
   /**
    * Updated full name of the user.
    */
-  name?: string;
+  name?: unknown;
 
   /**
    * Updated primary phone number of the user.
    */
-  phone?: string | null;
+  phone?: unknown;
 
   /**
-   * Updated personalization preferences.
+   * User's personalized preferences for the platform.
    */
   preferences?: PreferencesAPI.UserPreferences;
 }

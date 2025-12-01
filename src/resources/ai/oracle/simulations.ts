@@ -20,7 +20,7 @@ export class Simulations extends APIResource {
    *   );
    * ```
    */
-  retrieve(simulationID: string, options?: RequestOptions): APIPromise<SimulationRetrieveResponse> {
+  retrieve(simulationID: unknown, options?: RequestOptions): APIPromise<SimulationRetrieveResponse> {
     return this._client.get(path`/ai/oracle/simulations/${simulationID}`, options);
   }
 
@@ -51,7 +51,7 @@ export class Simulations extends APIResource {
    * );
    * ```
    */
-  delete(simulationID: string, options?: RequestOptions): APIPromise<void> {
+  delete(simulationID: unknown, options?: RequestOptions): APIPromise<void> {
     return this._client.delete(path`/ai/oracle/simulations/${simulationID}`, {
       ...options,
       headers: buildHeaders([{ Accept: '*/*' }, options?.headers]),
@@ -67,24 +67,24 @@ export interface SimulationListResponse {
   /**
    * The maximum number of items returned in the current page.
    */
-  limit: number;
+  limit: unknown;
 
   /**
    * The number of items skipped before the current page.
    */
-  offset: number;
+  offset: unknown;
 
   /**
    * The total number of items available across all pages.
    */
-  total: number;
+  total: unknown;
 
   data?: Array<SimulationListResponse.Data>;
 
   /**
    * The offset for the next page of results, if available. Null if no more pages.
    */
-  nextOffset?: number | null;
+  nextOffset?: unknown;
 }
 
 export namespace SimulationListResponse {
@@ -92,17 +92,17 @@ export namespace SimulationListResponse {
     /**
      * Timestamp when the simulation was initiated.
      */
-    creationDate: string;
+    creationDate: unknown;
 
     /**
      * Timestamp when the simulation status or results were last updated.
      */
-    lastUpdated: string;
+    lastUpdated: unknown;
 
     /**
      * Unique identifier for the simulation.
      */
-    simulationId: string;
+    simulationId: unknown;
 
     /**
      * Current status of the simulation.
@@ -112,12 +112,12 @@ export namespace SimulationListResponse {
     /**
      * A brief summary of what the simulation evaluated.
      */
-    summary: string;
+    summary: unknown;
 
     /**
      * A user-friendly title for the simulation.
      */
-    title: string;
+    title: unknown;
   }
 }
 
@@ -125,12 +125,12 @@ export interface SimulationListParams {
   /**
    * Maximum number of items to return in a single page.
    */
-  limit?: number;
+  limit?: unknown;
 
   /**
    * Number of items to skip before starting to collect the result set.
    */
-  offset?: number;
+  offset?: unknown;
 }
 
 export declare namespace Simulations {
