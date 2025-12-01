@@ -1,0 +1,326 @@
+// File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
+
+import { APIResource } from '../../../core/resource';
+import * as InsightsAPI from '../../transactions/insights';
+import { APIPromise } from '../../../core/api-promise';
+import { RequestOptions } from '../../../internal/request-options';
+
+export class Simulate extends APIResource {
+  /**
+   * Engages the Quantum Oracle for highly complex, multi-variable simulations,
+   * allowing precise control over numerous financial parameters, market conditions,
+   * and personal events to generate deep, predictive insights and sensitivity
+   * analysis.
+   *
+   * @example
+   * ```ts
+   * const advancedSimulationResponse = await client.ai.oracle.simulate.runAdvanced({
+   *   prompt:
+   *     'Evaluate the long-term impact of a sudden job loss combined with a variable market downturn, analyzing worst-case and best-case recovery scenarios over a decade.',
+   *   scenarios: [
+   *     {
+   *       name: 'Job Loss & Mild Market Recovery',
+   *       events: [
+   *         { ... },
+   *         { ... },
+   *       ],
+   *       durationYears: 10,
+   *       sensitivityAnalysisParams: [
+   *         { ... },
+   *       ],
+   *     },
+   *   ],
+   * });
+   * ```
+   */
+  runAdvanced(
+    body: SimulateRunAdvancedParams,
+    options?: RequestOptions,
+  ): APIPromise<AdvancedSimulationResponse> {
+    return this._client.post('/ai/oracle/simulate/advanced', { body, ...options });
+  }
+
+  /**
+   * Submits a hypothetical scenario to the Quantum Oracle AI for standard financial
+   * impact analysis. The AI simulates the effect on the user's current financial
+   * state and provides a summary.
+   *
+   * @example
+   * ```ts
+   * const simulationResponse =
+   *   await client.ai.oracle.simulate.runStandard({
+   *     prompt:
+   *       'What if I invest an additional $1,000 per month into my aggressive growth portfolio for the next 5 years?',
+   *     parameters: {
+   *       durationYears: 5,
+   *       monthlyInvestmentAmount: 1000,
+   *       riskTolerance: 'aggressive',
+   *     },
+   *   });
+   * ```
+   */
+  runStandard(body: SimulateRunStandardParams, options?: RequestOptions): APIPromise<SimulationResponse> {
+    return this._client.post('/ai/oracle/simulate', { body, ...options });
+  }
+}
+
+export interface AdvancedSimulationResponse {
+  /**
+   * A high-level summary of findings across all scenarios.
+   */
+  overallSummary: string;
+
+  scenarioResults: Array<AdvancedSimulationResponse.ScenarioResult>;
+
+  /**
+   * Unique identifier for the completed advanced simulation.
+   */
+  simulationId: string;
+
+  /**
+   * Overarching strategic recommendations derived from the comparison of scenarios.
+   */
+  strategicRecommendations?: Array<InsightsAPI.AIInsight> | null;
+}
+
+export namespace AdvancedSimulationResponse {
+  export interface ScenarioResult {
+    /**
+     * Summary of results for this specific scenario.
+     */
+    narrativeSummary: string;
+
+    /**
+     * Name of the individual scenario.
+     */
+    scenarioName: string;
+
+    /**
+     * Specific AI insights for this scenario.
+     */
+    aiInsights?: Array<InsightsAPI.AIInsight> | null;
+
+    /**
+     * Projected net worth at the end of the simulation period for this scenario.
+     */
+    finalNetWorthProjected?: number | null;
+
+    liquidityMetrics?: ScenarioResult.LiquidityMetrics | null;
+
+    /**
+     * Data for generating sensitivity analysis charts (e.g., how net worth changes as
+     * a variable is adjusted).
+     */
+    sensitivityAnalysisGraphs?: Array<ScenarioResult.SensitivityAnalysisGraph> | null;
+  }
+
+  export namespace ScenarioResult {
+    export interface LiquidityMetrics {
+      /**
+       * Minimum cash balance reached during the scenario.
+       */
+      minCashBalance?: number;
+
+      /**
+       * Time in months to recover to pre-event financial state.
+       */
+      recoveryTimeMonths?: number;
+    }
+
+    export interface SensitivityAnalysisGraph {
+      data?: Array<SensitivityAnalysisGraph.Data>;
+
+      paramName?: string;
+    }
+
+    export namespace SensitivityAnalysisGraph {
+      export interface Data {
+        outcomeValue?: number;
+
+        paramValue?: number;
+      }
+    }
+  }
+}
+
+export interface SimulationResponse {
+  /**
+   * Key quantitative and qualitative impacts identified by the AI.
+   */
+  keyImpacts: Array<SimulationResponse.KeyImpact>;
+
+  /**
+   * A natural language summary of the simulation's results and key findings.
+   */
+  narrativeSummary: string;
+
+  /**
+   * Unique identifier for the completed simulation.
+   */
+  simulationId: string;
+
+  /**
+   * Actionable recommendations derived from the simulation.
+   */
+  recommendations?: Array<InsightsAPI.AIInsight> | null;
+
+  /**
+   * AI-driven risk assessment of the simulated scenario.
+   */
+  riskAnalysis?: SimulationResponse.RiskAnalysis | null;
+
+  /**
+   * Optional: URLs to generated visualization data or images.
+   */
+  visualizations?: Array<SimulationResponse.Visualization> | null;
+}
+
+export namespace SimulationResponse {
+  export interface KeyImpact {
+    metric?: string;
+
+    severity?: 'low' | 'medium' | 'high';
+
+    value?: string;
+  }
+
+  /**
+   * AI-driven risk assessment of the simulated scenario.
+   */
+  export interface RiskAnalysis {
+    /**
+     * Maximum potential loss from peak to trough (e.g., 0.25 for 25%).
+     */
+    maxDrawdown?: number;
+
+    /**
+     * Measure of market volatility associated with the scenario.
+     */
+    volatilityIndex?: number;
+  }
+
+  export interface Visualization {
+    dataUri?: string;
+
+    title?: string;
+
+    type?: 'line_chart' | 'bar_chart' | 'table';
+  }
+}
+
+export interface SimulateRunAdvancedParams {
+  /**
+   * A natural language prompt describing the complex, multi-variable scenario.
+   */
+  prompt: string;
+
+  scenarios: Array<SimulateRunAdvancedParams.Scenario>;
+
+  /**
+   * Optional: Global economic conditions to apply to all scenarios.
+   */
+  globalEconomicFactors?: SimulateRunAdvancedParams.GlobalEconomicFactors | null;
+
+  /**
+   * Optional: Personal financial assumptions to override defaults.
+   */
+  personalAssumptions?: SimulateRunAdvancedParams.PersonalAssumptions | null;
+}
+
+export namespace SimulateRunAdvancedParams {
+  export interface Scenario {
+    /**
+     * The duration in years over which this scenario is simulated.
+     */
+    durationYears: number;
+
+    /**
+     * A list of discrete or continuous events that define this scenario.
+     */
+    events: Array<Scenario.Event>;
+
+    /**
+     * A descriptive name for this specific scenario.
+     */
+    name: string;
+
+    /**
+     * Parameters for multi-variable sensitivity analysis within this scenario.
+     */
+    sensitivityAnalysisParams?: Array<Scenario.SensitivityAnalysisParam> | null;
+  }
+
+  export namespace Scenario {
+    export interface Event {
+      /**
+       * Specific parameters for the event (e.g., durationMonths, impactPercentage).
+       */
+      details?: unknown;
+
+      type?: 'job_loss' | 'market_downturn' | 'large_purchase' | 'income_increase' | 'medical_emergency';
+    }
+
+    export interface SensitivityAnalysisParam {
+      /**
+       * Maximum value for the parameter.
+       */
+      max?: number;
+
+      /**
+       * Minimum value for the parameter.
+       */
+      min?: number;
+
+      /**
+       * The name of the parameter to vary for sensitivity analysis (e.g.,
+       * 'interestRate', 'inflationRate', 'marketRecoveryRate').
+       */
+      paramName?: string;
+
+      /**
+       * Step increment for varying the parameter.
+       */
+      step?: number;
+    }
+  }
+
+  /**
+   * Optional: Global economic conditions to apply to all scenarios.
+   */
+  export interface GlobalEconomicFactors {
+    inflationRate?: number;
+
+    interestRateBaseline?: number;
+  }
+
+  /**
+   * Optional: Personal financial assumptions to override defaults.
+   */
+  export interface PersonalAssumptions {
+    annualSavingsRate?: number;
+
+    riskTolerance?: 'conservative' | 'moderate' | 'aggressive';
+  }
+}
+
+export interface SimulateRunStandardParams {
+  /**
+   * A natural language prompt describing the 'what-if' scenario.
+   */
+  prompt: string;
+
+  /**
+   * Optional structured parameters to guide the simulation (e.g., duration, amount,
+   * risk tolerance).
+   */
+  parameters?: unknown | null;
+}
+
+export declare namespace Simulate {
+  export {
+    type AdvancedSimulationResponse as AdvancedSimulationResponse,
+    type SimulationResponse as SimulationResponse,
+    type SimulateRunAdvancedParams as SimulateRunAdvancedParams,
+    type SimulateRunStandardParams as SimulateRunStandardParams,
+  };
+}
