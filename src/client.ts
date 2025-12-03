@@ -16,6 +16,7 @@ import { VERSION } from './version';
 import * as Errors from './core/error';
 import * as Uploads from './core/uploads';
 import * as API from './resources/index';
+import { Notifications, Marketplace, Products, Offers } from './resources/index';
 import { APIPromise } from './core/api-promise';
 import {
   Budget,
@@ -54,7 +55,6 @@ import { Developers } from './resources/developers/developers';
 import { Identity } from './resources/identity/identity';
 import { Investments } from './resources/investments/investments';
 import { Lending } from './resources/lending/lending';
-import { Marketplace } from './resources/marketplace/marketplace';
 import { Payments } from './resources/payments/payments';
 import {
   Sustainability,
@@ -815,6 +815,7 @@ export class JamesBurvelOcallaghanIii {
   developers: API.Developers = new API.Developers(this);
   identity: API.Identity = new API.Identity(this);
   goals: API.Goals = new API.Goals(this);
+  notifications: API.Notifications = new API.Notifications(this);
   marketplace: API.Marketplace = new API.Marketplace(this);
 }
 
@@ -832,6 +833,7 @@ JamesBurvelOcallaghanIii.Lending = Lending;
 JamesBurvelOcallaghanIii.Developers = Developers;
 JamesBurvelOcallaghanIii.Identity = Identity;
 JamesBurvelOcallaghanIii.Goals = Goals;
+JamesBurvelOcallaghanIii.Notifications = Notifications;
 JamesBurvelOcallaghanIii.Marketplace = Marketplace;
 
 export declare namespace JamesBurvelOcallaghanIii {
@@ -918,5 +920,7 @@ export declare namespace JamesBurvelOcallaghanIii {
     type GoalListParams as GoalListParams,
   };
 
-  export { Marketplace as Marketplace };
+  export { Notifications as Notifications };
+
+  export { Marketplace as Marketplace, Products as Products, Offers as Offers };
 }
