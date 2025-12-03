@@ -37,7 +37,8 @@ export {
 export { Identity } from './identity/identity';
 export { Investments } from './investments/investments';
 export { Lending } from './lending/lending';
-export { Marketplace } from './marketplace/marketplace';
+export * from './marketplace';
+export * from './notifications';
 export { Payments } from './payments/payments';
 export {
   Sustainability,
