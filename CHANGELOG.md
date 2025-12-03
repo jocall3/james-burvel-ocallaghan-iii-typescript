@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.2 (2025-12-03)
+
+Full Changelog: [v0.1.1...v0.1.2](https://github.com/jocall3/james-burvel-ocallaghan-iii-typescript/compare/v0.1.1...v0.1.2)
+
+### Chores
+
+* **client:** fix logger property type ([88157be](https://github.com/jocall3/james-burvel-ocallaghan-iii-typescript/commit/88157bef73960cc8d99c6c655e1ffe39497fab64))
+* **internal:** upgrade eslint ([d592ff2](https://github.com/jocall3/james-burvel-ocallaghan-iii-typescript/commit/d592ff2cc69255f58b51ea87d176c443d90515d0))
+
 ## 0.1.1 (2025-12-01)
 
 Full Changelog: [v0.1.0...v0.1.1](https://github.com/jocall3/james-burvel-ocallaghan-iii-typescript/compare/v0.1.0...v0.1.1)
