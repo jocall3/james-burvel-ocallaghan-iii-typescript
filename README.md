@@ -331,6 +331,28 @@ const client = new JamesBurvelOcallaghanIii({
 });
 ```
 
+## Examples
+
+The `examples/` directory contains a comprehensive suite of scripts demonstrating common use cases for every major feature of the API. We encourage you to explore them!
+
+Here are a few quick examples:
+
+List notifications:
+
+<!-- prettier-ignore -->
+```ts
+const notifications = await client.notifications.list();
+console.log(notifications);
+```
+
+List products from the marketplace:
+
+<!-- prettier-ignore -->
+```ts
+const products = await client.marketplace.products.list();
+console.log(products);
+```
+
 ## Frequently Asked Questions
 
 ## Semantic versioning
