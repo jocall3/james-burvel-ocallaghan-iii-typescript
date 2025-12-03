@@ -1,0 +1,328 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. CFMAIN.
+       AUTHOR. MAINFRAME-DEVELOPER.
+      ******************************************************************
+      * CORPORATE FINANCE MAIN MODULE
+      * This program orchestrates various corporate finance operations,
+      * integrating advanced analytical capabilities.
+      * It demonstrates a story-like integration of AI functionalities
+      * for enhanced decision support and operational efficiency.
+      ******************************************************************
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.
+       SOURCE-COMPUTER. IBM-MAINFRAME.
+       OBJECT-COMPUTER. IBM-MAINFRAME.
+
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+      ******************************************************************
+      * Main Control Variables
+      ******************************************************************
+       01 WS-PROGRAM-STATUS          PIC X(10) VALUE 'RUNNING'.
+       01 WS-USER-CHOICE             PIC 9.
+       01 WS-USER-INPUT-DUMMY        PIC X(01).
+
+       01 WS-TRANSACTION-DETAILS.
+          05 WS-TRX-ID               PIC X(15).
+          05 WS-TRX-ACCOUNT-ID       PIC X(10).
+          05 WS-TRX-AMOUNT           PIC S9(13)V99.
+          05 WS-TRX-TYPE             PIC X(05).
+             88 TRX-TYPE-DEBIT       VALUE 'DEBIT'.
+             88 TRX-TYPE-CREDIT      VALUE 'CRDIT'.
+          05 WS-TRX-DATE             PIC 9(08).
+          05 WS-TRX-DESC             PIC X(50).
+
+      ******************************************************************
+      * AI Service Interface Variables
+      * This structure is passed to AI sub-programs (CFAI-ANOMALY, etc.)
+      ******************************************************************
+       01 WS-AI-REQUEST-DATA.
+          05 WS-AI-REQ-TYPE          PIC X(15).
+             88 AI-TYPE-ANOMALY         VALUE 'ANOMALY-DETECT'.
+             88 AI-TYPE-PREDICT         VALUE 'PREDICT-CFLOW'.
+             88 AI-TYPE-INSIGHT         VALUE 'GEN-INSIGHTS'.
+          05 WS-AI-REQ-ACCOUNT-ID   PIC X(10).
+          05 WS-AI-REQ-PERIOD-START PIC 9(08).
+          05 WS-AI-REQ-PERIOD-END   PIC 9(08).
+          05 WS-AI-REQ-TRAN-AMOUNT  PIC S9(13)V99.
+          05 WS-AI-REQ-TRAN-TYPE    PIC X(05).
+          05 WS-AI-REQ-DESCRIPTION  PIC X(50).
+
+       01 WS-AI-RESPONSE-DATA.
+          05 WS-AI-RESP-STATUS       PIC X(10).
+             88 AI-STATUS-SUCCESS       VALUE 'SUCCESS'.
+             88 AI-STATUS-FAILURE       VALUE 'FAILURE'.
+          05 WS-AI-RESP-MESSAGE      PIC X(100).
+          05 WS-AI-RESP-ANOMALY-SCORE PIC 9(03)V9(02).
+          05 WS-AI-RESP-PREDICTION   PIC S9(13)V99.
+          05 WS-AI-RESP-INSIGHT      PIC X(200).
+
+      ******************************************************************
+      * Report Generation Variables
+      ******************************************************************
+       01 WS-REPORT-PARAMS.
+          05 WS-RPT-TYPE             PIC X(15).
+             88 RPT-TYPE-CASH-FLOW      VALUE 'CASH-FLOW'.
+             88 RPT-TYPE-BALANCE-SHEET  VALUE 'BALANCE-SHEET'.
+             88 RPT-TYPE-ANALYTICS      VALUE 'ANALYTICS'.
+          05 WS-RPT-ACCOUNT-ID       PIC X(10).
+          05 WS-RPT-START-DATE       PIC 9(08).
+          05 WS-RPT-END-DATE         PIC 9(08).
+
+      ******************************************************************
+      * User Interface Display Variables
+      ******************************************************************
+       01 WS-MENU-DISPLAY-LINES.
+          05 FILLER                  PIC X(80) VALUE ALL '*'.
+          05 FILLER                  PIC X(80) VALUE '* CORPORATE FINANCE MAIN MENU                                 *'.
+          05 FILLER                  PIC X(80) VALUE '*                                                               *'.
+          05 FILLER                  PIC X(80) VALUE '* 1. Process New Financial Transaction                          *'.
+          05 FILLER                  PIC X(80) VALUE '* 2. Generate Financial Report                                *'.
+          05 FILLER                  PIC X(80) VALUE '* 3. Perform Anomaly Detection (AI-powered)                   *'.
+          05 FILLER                  PIC X(80) VALUE '* 4. Request Cash Flow Prediction (AI-powered)                *'.
+          05 FILLER                  PIC X(80) VALUE '* 5. Generate Business Insights (AI-powered)                  *'.
+          05 FILLER                  PIC X(80) VALUE '* 6. Exit                                                     *'.
+          05 FILLER                  PIC X(80) VALUE ALL '*'.
+       01 WS-USER-PROMPT             PIC X(50) VALUE 'Enter your choice (1-6): '.
+       01 WS-MESSAGE-AREA            PIC X(150).
+
+
+       PROCEDURE DIVISION.
+       MAIN-LOGIC.
+           PERFORM INITIALIZE-PROGRAM.
+           PERFORM PROCESS-MENU-LOOP
+               UNTIL WS-PROGRAM-STATUS = 'STOPPED'.
+           PERFORM TERMINATE-PROGRAM.
+           GOBACK.
+
+      ******************************************************************
+      * 0000-INITIALIZE-PROGRAM: Sets up initial state.
+      ******************************************************************
+       INITIALIZE-PROGRAM.
+           DISPLAY "CORPORATE FINANCE MODULE ACCESSED."
+           DISPLAY "INITIALIZING ADVANCED ANALYTICAL CONNECTORS... PLEASE WAIT.".
+           MOVE 'RUNNING' TO WS-PROGRAM-STATUS.
+           MOVE SPACES TO WS-MESSAGE-AREA.
+
+      ******************************************************************
+      * 1000-PROCESS-MENU-LOOP: Displays menu and handles user input.
+      ******************************************************************
+       PROCESS-MENU-LOOP.
+           PERFORM DISPLAY-MAIN-MENU.
+           PERFORM ACCEPT-USER-CHOICE-FROM-MENU.
+
+           EVALUATE WS-USER-CHOICE
+               WHEN 1
+                   PERFORM HANDLE-TRANSACTION-PROCESSING
+               WHEN 2
+                   PERFORM HANDLE-REPORT-GENERATION
+               WHEN 3
+                   PERFORM HANDLE-ANOMALY-DETECTION
+               WHEN 4
+                   PERFORM HANDLE-PREDICTIVE-ANALYTICS
+               WHEN 5
+                   PERFORM HANDLE-BUSINESS-INSIGHTS
+               WHEN 6
+                   MOVE 'STOPPED' TO WS-PROGRAM-STATUS
+                   DISPLAY "Exiting Corporate Finance Module. Goodbye!"
+               WHEN OTHER
+                   DISPLAY "Invalid choice. Please enter a number between 1 and 6."
+           END-EVALUATE.
+           IF WS-PROGRAM-STATUS = 'RUNNING' THEN
+               DISPLAY WS-MESSAGE-AREA
+               DISPLAY "Press ENTER to continue..."
+               ACCEPT WS-USER-INPUT-DUMMY
+           END-IF.
+
+      ******************************************************************
+      * 1100-DISPLAY-MAIN-MENU: Displays the interactive menu.
+      ******************************************************************
+       DISPLAY-MAIN-MENU.
+           DISPLAY " ".
+           DISPLAY WS-MENU-DISPLAY-LINES.
+           DISPLAY " ".
+
+      ******************************************************************
+      * 1200-ACCEPT-USER-CHOICE-FROM-MENU: Gets user input.
+      ******************************************************************
+       ACCEPT-USER-CHOICE-FROM-MENU.
+           DISPLAY WS-USER-PROMPT WITH NO ADVANCING.
+           ACCEPT WS-USER-CHOICE.
+           MOVE SPACES TO WS-MESSAGE-AREA.
+
+      ******************************************************************
+      * 2000-HANDLE-TRANSACTION-PROCESSING: Manages financial transactions.
+      ******************************************************************
+       HANDLE-TRANSACTION-PROCESSING.
+           DISPLAY "--- Processing New Financial Transaction ---".
+           DISPLAY "Enter Account ID: " WITH NO ADVANCING.
+           ACCEPT WS-TRX-ACCOUNT-ID.
+           DISPLAY "Enter Transaction ID (e.g., TRX0001): " WITH NO ADVANCING.
+           ACCEPT WS-TRX-ID.
+           DISPLAY "Enter Amount (e.g., 12345.67): " WITH NO ADVANCING.
+           ACCEPT WS-TRX-AMOUNT.
+           DISPLAY "Enter Type (DEBIT/CRDIT): " WITH NO ADVANCING.
+           ACCEPT WS-TRX-TYPE.
+           DISPLAY "Enter Date (YYYYMMDD): " WITH NO ADVANCING.
+           ACCEPT WS-TRX-DATE.
+           DISPLAY "Enter Description: " WITH NO ADVANCING.
+           ACCEPT WS-TRX-DESC.
+
+           CALL 'CFTRNSPROC' USING
+               WS-TRX-ACCOUNT-ID,
+               WS-TRX-ID,
+               WS-TRX-AMOUNT,
+               WS-TRX-TYPE,
+               WS-TRX-DATE,
+               WS-TRX-DESC
+           END-CALL.
+
+           STRING "Transaction ", WS-TRX-ID, " for Account ", WS-TRX-ACCOUNT-ID, " processed."
+               DELIMITED BY SIZE INTO WS-MESSAGE-AREA.
+           DISPLAY WS-MESSAGE-AREA.
+
+      ******************************************************************
+      * 3000-HANDLE-REPORT-GENERATION: Generates various financial reports.
+      ******************************************************************
+       HANDLE-REPORT-GENERATION.
+           DISPLAY "--- Generating Financial Report ---".
+           DISPLAY "Enter Report Type (CASH-FLOW, BALANCE-SHEET, ANALYTICS): " WITH NO ADVANCING.
+           ACCEPT WS-RPT-TYPE.
+           DISPLAY "Enter Account ID (or ALL for enterprise-wide): " WITH NO ADVANCING.
+           ACCEPT WS-RPT-ACCOUNT-ID.
+           DISPLAY "Enter Start Date (YYYYMMDD): " WITH NO ADVANCING.
+           ACCEPT WS-RPT-START-DATE.
+           DISPLAY "Enter End Date (YYYYMMDD): " WITH NO ADVANCING.
+           ACCEPT WS-RPT-END-DATE.
+
+           CALL 'CFRPTGEN' USING
+               WS-RPT-TYPE,
+               WS-RPT-ACCOUNT-ID,
+               WS-RPT-START-DATE,
+               WS-RPT-END-DATE
+           END-CALL.
+
+           STRING "Report of type ", WS-RPT-TYPE, " for ", WS-RPT-ACCOUNT-ID, " generated."
+               DELIMITED BY SIZE INTO WS-MESSAGE-AREA.
+           DISPLAY WS-MESSAGE-AREA.
+
+
+      ******************************************************************
+      * 4000-HANDLE-ANOMALY-DETECTION: AI-powered anomaly detection.
+      * This simulates an AI service call to detect unusual patterns
+      * in financial data, e.g., potential fraud or errors.
+      ******************************************************************
+       HANDLE-ANOMALY-DETECTION.
+           DISPLAY "--- Initiating Advanced Anomaly Detection ---".
+           
+           MOVE SPACES TO WS-AI-REQUEST-DATA.
+           MOVE ZEROS TO WS-AI-REQ-TRAN-AMOUNT WS-AI-REQ-PERIOD-START
+               WS-AI-REQ-PERIOD-END.
+
+           DISPLAY "Enter Account ID for analysis: " WITH NO ADVANCING.
+           ACCEPT WS-AI-REQ-ACCOUNT-ID.
+           DISPLAY "Enter Transaction Amount to analyze (or 0 for range): " WITH NO ADVANCING.
+           ACCEPT WS-AI-REQ-TRAN-AMOUNT.
+           DISPLAY "Enter Transaction Type to analyze (DEBIT/CRDIT or ALL): " WITH NO ADVANCING.
+           ACCEPT WS-AI-REQ-TRAN-TYPE.
+           DISPLAY "Enter description keywords for analysis (or ALL): " WITH NO ADVANCING.
+           ACCEPT WS-AI-REQ-DESCRIPTION.
+
+           MOVE 'ANOMALY-DETECT' TO WS-AI-REQ-TYPE.
+           
+           CALL 'CFAI-ANOMALY' USING WS-AI-REQUEST-DATA, WS-AI-RESPONSE-DATA.
+
+           IF AI-STATUS-SUCCESS OF WS-AI-RESPONSE-DATA THEN
+               DISPLAY "Advanced Anomaly Detection successful."
+               DISPLAY "Anomaly Score: " WS-AI-RESP-ANOMALY-SCORE
+               DISPLAY "Message: " WS-AI-RESP-MESSAGE
+               IF WS-AI-RESP-ANOMALY-SCORE > 0.75 THEN
+                   STRING "High anomaly detected for account ", WS-AI-REQ-ACCOUNT-ID, ". Requires immediate review!"
+                       DELIMITED BY SIZE INTO WS-MESSAGE-AREA
+               ELSE
+                   STRING "No significant anomalies detected for account ", WS-AI-REQ-ACCOUNT-ID, "."
+                       DELIMITED BY SIZE INTO WS-MESSAGE-AREA
+               END-IF
+           ELSE
+               STRING "Advanced Anomaly Detection failed: ", WS-AI-RESP-MESSAGE
+                   DELIMITED BY SIZE INTO WS-MESSAGE-AREA
+           END-IF.
+           DISPLAY WS-MESSAGE-AREA.
+
+      ******************************************************************
+      * 5000-HANDLE-PREDICTIVE-ANALYTICS: AI-powered cash flow prediction.
+      * This simulates an AI service call to forecast future cash flows
+      * based on historical data and market trends.
+      ******************************************************************
+       HANDLE-PREDICTIVE-ANALYTICS.
+           DISPLAY "--- Requesting Advanced Cash Flow Prediction ---".
+           
+           MOVE SPACES TO WS-AI-REQUEST-DATA.
+           MOVE ZEROS TO WS-AI-REQ-PERIOD-START WS-AI-REQ-PERIOD-END
+               WS-AI-REQ-TRAN-AMOUNT.
+
+           DISPLAY "Enter Account ID for prediction: " WITH NO ADVANCING.
+           ACCEPT WS-AI-REQ-ACCOUNT-ID.
+           DISPLAY "Enter Start Date for historical data (YYYYMMDD): " WITH NO ADVANCING.
+           ACCEPT WS-AI-REQ-PERIOD-START.
+           DISPLAY "Enter End Date for prediction period (YYYYMMDD): " WITH NO ADVANCING.
+           ACCEPT WS-AI-REQ-PERIOD-END.
+
+           MOVE 'PREDICT-CFLOW' TO WS-AI-REQ-TYPE.
+
+           CALL 'CFAI-PREDICT' USING WS-AI-REQUEST-DATA, WS-AI-RESPONSE-DATA.
+
+           IF AI-STATUS-SUCCESS OF WS-AI-RESPONSE-DATA THEN
+               DISPLAY "Advanced Cash Flow Prediction successful."
+               DISPLAY "Predicted Cash Flow: " WS-AI-RESP-PREDICTION (WITH SIGN)
+               DISPLAY "Message: " WS-AI-RESP-MESSAGE
+               STRING "Predicted future cash flow for account ", WS-AI-REQ-ACCOUNT-ID, " is ", WS-AI-RESP-PREDICTION (WITH SIGN), "."
+                   DELIMITED BY SIZE INTO WS-MESSAGE-AREA
+           ELSE
+               STRING "Advanced Cash Flow Prediction failed: ", WS-AI-RESP-MESSAGE
+                   DELIMITED BY SIZE INTO WS-MESSAGE-AREA
+           END-IF.
+           DISPLAY WS-MESSAGE-AREA.
+
+      ******************************************************************
+      * 6000-HANDLE-BUSINESS-INSIGHTS: AI-powered business insight generation.
+      * This simulates an AI service call to generate high-level
+      * strategic insights from aggregated financial data.
+      ******************************************************************
+       HANDLE-BUSINESS-INSIGHTS.
+           DISPLAY "--- Generating Advanced Business Insights ---".
+           
+           MOVE SPACES TO WS-AI-REQUEST-DATA.
+           MOVE ZEROS TO WS-AI-REQ-PERIOD-START WS-AI-REQ-PERIOD-END
+               WS-AI-REQ-TRAN-AMOUNT.
+
+           DISPLAY "Enter Account ID for insights (or ALL for enterprise-wide): " WITH NO ADVANCING.
+           ACCEPT WS-AI-REQ-ACCOUNT-ID.
+           DISPLAY "Enter Start Date for data analysis (YYYYMMDD): " WITH NO ADVANCING.
+           ACCEPT WS-AI-REQ-PERIOD-START.
+           DISPLAY "Enter End Date for data analysis (YYYYMMDD): " WITH NO ADVANCING.
+           ACCEPT WS-AI-REQ-PERIOD-END.
+
+           MOVE 'GEN-INSIGHTS' TO WS-AI-REQ-TYPE.
+
+           CALL 'CFAI-INSIGHTS' USING WS-AI-REQUEST-DATA, WS-AI-RESPONSE-DATA.
+
+           IF AI-STATUS-SUCCESS OF WS-AI-RESPONSE-DATA THEN
+               DISPLAY "Advanced Business Insights generated successfully."
+               DISPLAY "Insight: " WS-AI-RESP-INSIGHT
+               DISPLAY "Message: " WS-AI-RESP-MESSAGE
+               STRING "Strategic insights provided for ", WS-AI-REQ-ACCOUNT-ID, ": ", WS-AI-RESP-INSIGHT
+                   DELIMITED BY SIZE INTO WS-MESSAGE-AREA
+           ELSE
+               STRING "Advanced Business Insights generation failed: ", WS-AI-RESP-MESSAGE
+                   DELIMITED BY SIZE INTO WS-MESSAGE-AREA
+           END-IF.
+           DISPLAY WS-MESSAGE-AREA.
+
+      ******************************************************************
+      * 9000-TERMINATE-PROGRAM: Clean up and exit.
+      ******************************************************************
+       TERMINATE-PROGRAM.
+           DISPLAY "CORPORATE FINANCE MODULE SHUTTING DOWN.".
+           DISPLAY "ADVANCED ANALYTICAL CONNECTORS DISENGAGED.".
+           CLOSE ALL.

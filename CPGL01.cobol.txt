@@ -1,0 +1,125 @@
+      ******************************************************************
+      * GENERAL LEDGER ACCOUNT RECORD DEFINITION (V2.0)
+      * THIS STRUCTURE DEFINES A SINGLE ACCOUNT WITHIN THE GENERAL LEDGER,
+      * INCORPORATING DATA FIELDS FOR TRADITIONAL ACCOUNTING, HISTORICAL
+      * TRACKING, AND ANALYTIC INSIGHTS. IT IS DESIGNED TO SUPPORT
+      * MODERN FINANCIAL REPORTING AND AUGMENTATION BY ADVANCED ANALYTICAL
+      * SYSTEMS, INCLUDING MAINFRAME-INTEGRATED AI COMPONENTS.
+      ******************************************************************
+       01 GL-ACCOUNT-RECORD.
+          05 GL-ACCOUNT-NUMBER      PIC X(15).
+          05 GL-ACCOUNT-DESC        PIC X(50).
+          05 GL-HIERARCHY.
+             10 GL-PARENT-ACCOUNT   PIC X(15).
+             10 GL-LEVEL            PIC 9(02).
+             10 GL-SEGMENT-1        PIC X(05).
+             10 GL-SEGMENT-2        PIC X(05).
+             10 GL-SEGMENT-3        PIC X(05).
+             10 GL-SEGMENT-4        PIC X(05).
+             10 GL-ROLLUP-CODE      PIC X(10).
+          05 GL-ACCOUNT-TYPE        PIC X(01).
+             88 IS-ASSET            VALUE 'A'.
+             88 IS-LIABILITY        VALUE 'L'.
+             88 IS-EQUITY           VALUE 'E'.
+             88 IS-REVENUE          VALUE 'R'.
+             88 IS-EXPENSE          VALUE 'X'.
+             88 IS-CONTRA           VALUE 'C'.
+             88 IS-STATISTICAL      VALUE 'S'.
+          05 GL-ACCOUNT-ATTRIBUTES.
+             10 GL-CURRENCY-CODE    PIC X(03).
+             10 GL-ACTIVE-STATUS    PIC X(01).
+                88 ACCOUNT-ACTIVE   VALUE 'A'.
+                88 ACCOUNT-INACTIVE VALUE 'I'.
+                88 ACCOUNT-PENDING  VALUE 'P'.
+                88 ACCOUNT-CLOSED   VALUE 'C'.
+             10 GL-EFFECTIVE-DATE   PIC X(08).  *> YYYYMMDD - Date account became active
+             10 GL-EXPIRATION-DATE  PIC X(08).  *> YYYYMMDD - Date account becomes inactive/closed
+             10 GL-RECON-REQUIRED   PIC X(01).  *> 'Y' for Yes, 'N' for No - Requires reconciliation
+             10 GL-NATURE-OF-BALANCE PIC X(01). *> 'D' for Debit, 'C' for Credit (expected normal balance)
+                88 NORMAL-BALANCE-DEBIT VALUE 'D'.
+                88 NORMAL-BALANCE-CREDIT VALUE 'C'.
+          05 GL-BALANCES.
+             10 GL-CURRENT-BALANCE  PIC S9(15)V99 COMP-3.
+             10 GL-DEBIT-CREDIT-IND PIC X(01).
+                88 IS-DEBIT          VALUE 'D'.
+                88 IS-CREDIT         VALUE 'C'.
+             10 GL-START-PERIOD-BAL PIC S9(15)V99 COMP-3. *> Balance at beginning of current period
+             10 GL-START-YEAR-BAL   PIC S9(15)V99 COMP-3. *> Balance at beginning of current year
+             10 GL-PRIOR-PERIOD-BAL PIC S9(15)V99 COMP-3. *> Balance at end of previous period
+             10 GL-PRIOR-YEAR-BAL   PIC S9(15)V99 COMP-3. *> Balance at end of previous year
+          05 GL-PERIOD-TOTALS.
+             10 GL-CURRENT-PERIOD-NUMBER PIC X(06).       *> YYYYPP
+             10 GL-PTD-DEBITS       PIC S9(13)V99 COMP-3.
+             10 GL-PTD-CREDITS      PIC S9(13)V99 COMP-3.
+             10 GL-YTD-DEBITS       PIC S9(15)V99 COMP-3.
+             10 GL-YTD-CREDITS      PIC S9(15)V99 COMP-3.
+             10 GL-QTD-DEBITS       PIC S9(14)V99 COMP-3. *> Quarter-to-date debits
+             10 GL-QTD-CREDITS      PIC S9(14)V99 COMP-3. *> Quarter-to-date credits
+             10 GL-MTD-DEBITS       PIC S9(13)V99 COMP-3. *> Month-to-date debits
+             10 GL-MTD-CREDITS      PIC S9(13)V99 COMP-3. *> Month-to-date credits
+          05 GL-HISTORICAL-BALANCES.
+             10 GL-PRIOR-YEAR-END-BALANCE PIC S9(15)V99 COMP-3.
+             10 GL-LAST-12-MONTH-DATA.
+                15 GL-HIST-MONTH-REC OCCURS 12 TIMES.
+                   20 GL-HIST-MONTH-PERIOD PIC X(06).     *> YYYYMM
+                   20 GL-HIST-MONTH-BALANCE PIC S9(15)V99 COMP-3.
+                   20 GL-HIST-MONTH-DEBITS PIC S9(13)V99 COMP-3.
+                   20 GL-HIST-MONTH-CREDITS PIC S9(13)V99 COMP-3.
+             10 GL-LAST-4-QUARTER-DATA.
+                15 GL-HIST-QUARTER-REC OCCURS 4 TIMES.
+                   20 GL-HIST-QUARTER-PERIOD PIC X(06).   *> YYYYQQ
+                   20 GL-HIST-QUARTER-BALANCE PIC S9(15)V99 COMP-3.
+                   20 GL-HIST-QUARTER-DEBITS PIC S9(14)V99 COMP-3.
+                   20 GL-HIST-QUARTER-CREDITS PIC S9(14)V99 COMP-3.
+          05 GL-BUDGET-INFO.
+             10 GL-BUDGET-YEAR      PIC X(04).             *> Budget year
+             10 GL-ANNUAL-BUDGET    PIC S9(15)V99 COMP-3.
+             10 GL-BUDGET-PERIOD-TABLE.
+                15 GL-BUDGET-PERIOD-REC OCCURS 12 TIMES.
+                   20 GL-BUDGET-PERIOD-AMOUNT PIC S9(13)V99 COMP-3.
+                   20 GL-BUDGET-PERIOD-CODE   PIC X(02).   *> e.g., '01' for January
+             10 GL-BUDGET-YTD-VARIANCE PIC S9(15)V99 COMP-3. *> Actual vs. Budget YTD
+             10 GL-BUDGET-PTD-VARIANCE PIC S9(13)V99 COMP-3. *> Actual vs. Budget PTD
+             10 GL-BUDGET-PROJECTION-NEXT-PERIOD PIC S9(13)V99 COMP-3.
+          05 GL-TRANSACTION-SUMMARY.
+             10 GL-LAST-TRAN-DATE   PIC X(08).  *> YYYYMMDD
+             10 GL-LAST-TRAN-AMOUNT PIC S9(13)V99 COMP-3.
+             10 GL-LAST-TRAN-REF    PIC X(20).  *> Last transaction reference
+             10 GL-TOTAL-TRAN-COUNT-PTD PIC 9(09) COMP-3.
+             10 GL-TOTAL-TRAN-COUNT-YTD PIC 9(11) COMP-3.
+             10 GL-HIGH-TRAN-AMOUNT-PTD PIC S9(13)V99 COMP-3.
+             10 GL-LOW-TRAN-AMOUNT-PTD  PIC S9(13)V99 COMP-3.
+          05 GL-AI-ANALYTICS-DATA.
+             10 GL-AI-LAST-ANALYSIS-DATE PIC X(08).       *> YYYYMMDD - Date of most recent AI processing
+             10 GL-AI-PREDICTED-BALANCE-NEXT-PERIOD PIC S9(15)V99 COMP-3.
+             10 GL-AI-ANOMALY-SCORE PIC 9(03).            *> 000-100, higher indicates unusual activity
+             10 GL-AI-TREND-INDICATOR PIC X(01).
+                88 AI-TREND-UP        VALUE 'U'.
+                88 AI-TREND-DOWN      VALUE 'D'.
+                88 AI-TREND-STABLE    VALUE 'S'.
+                88 AI-TREND-UNCLEAR   VALUE 'N'.
+             10 GL-AI-MODEL-REFERENCE PIC X(10).          *> Identifier for the AI model version used (e.g., 'V1.0-GL-ML')
+             10 GL-AI-FLAGGED-FOR-REVIEW PIC X(01).       *> 'Y' if AI suggests human review, 'N' otherwise
+                88 AI-REQUIRES-REVIEW VALUE 'Y'.
+             10 GL-AI-RECOMMENDED-ACTION PIC X(05).       *> Short code for AI's suggestion (e.g., 'INVST', 'MONIT', 'ALERT')
+             10 GL-AI-CONFIDENCE-LEVEL PIC 9(02).         *> 0-99% - Confidence in prediction/anomaly detection
+             10 GL-AI-VARIANCE-TO-PREDICTION PIC S9(13)V99 COMP-3. *> Current balance vs. AI's last prediction
+             10 GL-AI-ALERT-THRESHOLD PIC S9(10)V99 COMP-3. *> Threshold for triggering an AI alert
+          05 GL-AUDIT-INFO.
+             10 GL-CREATION-DATE    PIC X(08).  *> YYYYMMDD
+             10 GL-CREATED-BY-USER  PIC X(08).
+             10 GL-LAST-MAINT-DATE  PIC X(08).  *> YYYYMMDD
+             10 GL-LAST-MAINT-USER  PIC X(08).
+             10 GL-MAINT-REASON-CODE PIC X(04).
+             10 GL-DATA-SOURCE      PIC X(10).  *> Source system (e.g., 'BATCH', 'ONLINE', 'AI-ADJ')
+          05 GL-AUTHORIZATION-INFO.
+             10 GL-APPROVER-ID      PIC X(08).
+             10 GL-APPROVAL-STATUS  PIC X(01).
+                88 STATUS-PENDING   VALUE 'P'.
+                88 STATUS-APPROVED  VALUE 'A'.
+                88 STATUS-REJECTED  VALUE 'R'.
+                88 STATUS-REQUIRED  VALUE 'Q'. *> Approval Required
+                88 STATUS-EXEMPT    VALUE 'E'. *> Exempt from approval
+             10 GL-APPROVAL-DATE    PIC X(08).  *> YYYYMMDD
+             10 GL-APPROVAL-COMMENT PIC X(50).
+          05 GL-FILLER              PIC X(20).  *> Reserved for future expansion

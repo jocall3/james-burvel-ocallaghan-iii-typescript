@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Comprehensive Favicon strategy for broad device compatibility and brand consistency -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+    <meta name="msapplication-TileColor" content="#00aba9">
+    <meta name="theme-color" content="#ffffff">
+
+    <!-- Preload critical resources to optimize user experience and Core Web Vitals (LCP, FCP) -->
+    <link rel="preload" href="/IMG_5610.webp" as="image" type="image/webp" crossorigin="anonymous" />
+    <link rel="preload" href="/thumb1.webp" as="image" type="image/webp" crossorigin="anonymous" />
+    <link rel="preload" href="/thumb2.webp" as="image" type="image/webp" crossorigin="anonymous" />
+    <link rel="preload" href="/thumb3.webp" as="image" type="image/webp" crossorigin="anonymous" />
+    <link rel="preload" href="/nft-pass.webp" as="image" type="image/webp" crossorigin="anonymous" />
+    <!-- Preload high-resolution hero assets, potentially AI-generated backgrounds or videos -->
+    <link rel="preload" href="/hero-background-video.webm" as="video" type="video/webm" crossorigin="anonymous" />
+    <link rel="preload" href="/hero-background-image-large.webp" as="image" type="image/webp" crossorigin="anonymous" media="(min-width: 1024px)" />
+    <!-- Preload custom brand fonts for consistent typography and faster rendering -->
+    <link rel="preload" href="/fonts/Inter-Light.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
+    <link rel="preload" href="/fonts/Inter-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
+    <link rel="preload" href="/fonts/Inter-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
+    <link rel="preload" href="/fonts/Inter-Bold.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
+    <!-- Preload critical CSS if not inlined for initial paint -->
+    <link rel="preload" href="/style.css" as="style" />
+    <link rel="stylesheet" href="/style.css" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Advanced SEO & Social Sharing Meta Tags -->
+    <meta name="description" content="Unlock unparalleled financial intelligence with our AI-powered platform. Experience advanced wealth management, predictive analytics, and secure digital banking designed for the future of finance." />
+    <meta name="keywords" content="AI finance, intelligent banking, wealth management, predictive analytics, secure transactions, digital assets, blockchain, fintech, investment platform, AI trading, personalized finance, financial intelligence, next-gen banking" />
+    <meta name="author" content="Quantum Leap Financial Solutions" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://www.quantumleapfinancial.com/" />
+
+    <!-- Open Graph / Facebook Meta Tags -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://www.quantumleapfinancial.com/" />
+    <meta property="og:title" content="Quantum Leap Financial AI - The Apex of Intelligent Wealth Management" />
+    <meta property="og:description" content="Unlock unparalleled financial intelligence with our AI-powered platform. Experience advanced wealth management, predictive analytics, and secure digital banking designed for the future of finance." />
+    <meta property="og:image" content="https://www.quantumleapfinancial.com/social-share-image.jpg" />
+    <meta property="og:image:alt" content="Quantum Leap Financial AI platform screenshot with intelligent dashboards" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter Card Meta Tags -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://www.quantumleapfinancial.com/" />
+    <meta property="twitter:title" content="Quantum Leap Financial AI - The Apex of Intelligent Wealth Management" />
+    <meta property="twitter:description" content="Unlock unparalleled financial intelligence with our AI-powered platform. Experience advanced wealth management, predictive analytics, and secure digital banking designed for the future of finance." />
+    <meta property="twitter:image" content="https://www.quantumleapfinancial.com/social-share-image.jpg" />
+    <meta property="twitter:image:alt" content="Quantum Leap Financial AI platform screenshot" />
+    <meta property="twitter:creator" content="@QuantumLeapFin" />
+    <meta property="twitter:site" content="@QuantumLeapFin" />
+
+    <title>Quantum Leap Financial AI - The Apex of Intelligent Wealth Management</title>
+
+    <!-- Global CSS Frameworks and Essential Utilities for a robust foundation -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Plaid Link for secure, compliant bank account connectivity -->
+    <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
+    <!-- D3.js for high-fidelity, interactive data visualization and custom charting -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
+    <!-- AI/ML Integration & Advanced Development Libraries via Importmap -->
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.3.1",
+    "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+    "recharts": "https://esm.sh/recharts@2.12.7",
+    "@google/genai": "https://esm.sh/@google/genai@0.12.0",
+    "@apollo/client": "https://esm.sh/@apollo/client@3.10.8",
+    "react-dom/": "https://esm.sh/react-dom@18.3.1/",
+    "react/": "https://esm.sh/react@18.3.1/",
+    "cors": "https://aistudiocdn.com/cors@^2.8.5",
+    "sqlite3": "https://aistudiocdn.com/sqlite3@^5.1.7",
+    "express": "https://aistudiocdn.com/express@^5.1.0",
+    "dotenv": "https://aistudiocdn.com/dotenv@^17.2.3",
+    "d3-graphviz": "https://esm.sh/d3-graphviz@5.4.0",
+    "web-push": "https://esm.sh/web-push@3.6.7", <!-- For robust, cross-platform push notifications -->
+    "framer-motion": "https://esm.sh/framer-motion@11.2.10", <!-- For sophisticated, high-performance UI animations -->
+    "zustand": "https://esm.sh/zustand@4.5.2", <!-- For an optimized, scalable state management solution -->
+    "chart.js": "https://esm.sh/chart.js@4.4.3", <!-- Complementary charting library for diverse visualization needs -->
+    "dayjs": "https://esm.sh/dayjs@1.11.11" <!-- Lightweight library for date parsing, validating, manipulating, and formatting -->
+  }
+}
+</script>
+
+    <!-- Advanced Analytics, Performance Monitoring & User Engagement Tools -->
+    <!-- Google Analytics (GA4) for comprehensive user behavior insights -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XXXXXXXXXX', { 'anonymize_ip': true }); // Replace with your actual GA4 Measurement ID
+    </script>
+    <!-- Hotjar for deep user behavior analytics, heatmaps, and session recordings -->
+    <script>
+        (function(h,o,t,j,a,r){
+            h.hj=h.hj||function(){(h.hj.q=h.hj.q||[]).push(arguments)};
+            h._hjSettings={hjid:1234567,hjsv:6}; // Replace with your Hotjar Site ID
+            a=o.getElementsByTagName('head')[0];
+            r=o.createElement('script');r.async=1;
+            r.src=t+h._hjSettings.hjid+j+h._hjSettings.hjsv;
+            a.appendChild(r);
+        })(window,document,'https://static.hotjar.com/c/hotjar-','.js?sv=');
+    </script>
+    <!-- Intercom for real-time customer support, targeted messaging, and user engagement -->
+    <script>
+      (function(){var w=window;var ic=w.Intercom;if(typeof ic==="function"){ic('reattach_activator');ic('update',w.intercomSettings);}else{var d=document;var i=function(){i.c(arguments);};i.q=[];i.c=function(args){i.q.push(args);};w.Intercom=i;var l=function(){var s=d.createElement('script');s.type='text/javascript';s.async=true;s.src='https://widget.intercom.io/widget/your_app_id'; // Replace with your Intercom App ID
+      var x=d.getElementsByTagName('script')[0];x.parentNode.insertBefore(s,x);};if(document.readyState==='complete'){l();}else if(w.attachEvent){w.attachEvent('onload',l);}else{w.addEventListener('load',l,false);}}})();
+    </script>
+    <!-- Cookie Consent Management Platform (e.g., Cookiebot, OneTrust) for GDPR/CCPA compliance -->
+    <script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="00000000-0000-0000-0000-000000000000" type="text/javascript" async></script> <!-- Replace with your Cookiebot Domain Group ID -->
+
+    <!-- Inline styles for advanced aesthetic effects, initial loading states, and robust theme definitions -->
+    <style>
+      /* Defining a sophisticated design system with CSS variables */
+      :root {
+        --color-brand-primary: #06b6d4; /* Teal */
+        --color-brand-secondary: #4f46e5; /* Indigo */
+        --color-brand-accent: #fbbf24; /* Amber */
+        --color-brand-dark: #0a0a0a; /* Near-black for deep contrast */
+        --color-text-light: #e0e0e0; /* Off-white for readability */
+        --color-text-muted: #a0a0a0; /* Grey for secondary text */
+        --font-family-primary: 'Inter', sans-serif;
+        --border-radius-lg: 12px;
+        --shadow-elevation-high: 0 20px 60px rgba(0, 0, 0, 0.7), 0 10px 30px rgba(0, 0, 0, 0.4);
+      }
+
+      body {
+        font-family: var(--font-family-primary);
+        color: var(--color-text-light);
+        background-color: var(--color-brand-dark);
+        overflow-x: hidden; /* Prevent horizontal scroll on dynamic effects */
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      /* Enhanced Aurora Illusion - a dynamic, subtle background animation for premium feel */
+      .aurora-illusion {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(ellipse at 15% 25%, var(--color-brand-primary) 0%, transparent 35%),
+                    radial-gradient(ellipse at 85% 75%, var(--color-brand-secondary) 0%, transparent 35%),
+                    radial-gradient(ellipse at 50% 10%, var(--color-brand-accent) 0%, transparent 50%),
+                    radial-gradient(ellipse at 20% 80%, rgba(255, 255, 255, 0.05) 0%, transparent 60%); /* Subtle white glow */
+        background-size: 300% 300%;
+        animation: aurora-flow-complex 30s ease-in-out infinite alternate,
+                   aurora-pulse 10s ease-out infinite;
+        opacity: 0.07; /* Very subtle and non-distracting */
+        pointer-events: none;
+        z-index: -1; /* Always behind main content */
+        will-change: background-position, transform, opacity; /* Optimize for animation performance */
+      }
+
+      @keyframes aurora-flow-complex {
+        0% { background-position: 0% 0%, 100% 100%, 50% 0%, 20% 80%; }
+        25% { background-position: 50% 100%, 0% 0%, 100% 50%, 80% 20%; }
+        50% { background-position: 100% 0%, 0% 100%, 0% 50%, 50% 0%; }
+        75% { background-position: 0% 50%, 50% 0%, 80% 100%, 20% 50%; }
+        100% { background-position: 0% 0%, 100% 100%, 50% 0%, 20% 80%; }
+      }
+
+      @keyframes aurora-pulse {
+        0% { transform: scale(1); opacity: 0.07; }
+        50% { transform: scale(1.02); opacity: 0.1; }
+        100% { transform: scale(1); opacity: 0.07; }
+      }
+
+      /* Sophisticated Preloader for a seamless, branded application launch experience */
+      #initial-loader {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: var(--color-brand-dark);
+        display: flex;
+        flex-direction: column; /* Center items vertically */
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        transition: opacity 0.7s ease-out, visibility 0.7s ease-out;
+        will-change: opacity, visibility;
+      }
+
+      .loader-spinner {
+        width: 96px; /* Larger spinner */
+        height: 96px;
+        border: 8px solid rgba(255, 255, 255, 0.15);
+        border-top-color: var(--color-brand-primary);
+        border-radius: 50%;
+        animation: spin 1.8s cubic-bezier(0.5, 0, 0.5, 1) infinite; /* More sophisticated animation curve */
+        margin-bottom: 24px; /* Space between spinner and text */
+      }
+
+      .loader-logo {
+        position: absolute; /* Keep logo within spinner visually */
+        width: 50px;
+        height: 50px;
+        opacity: 0.9;
+      }
+
+      .loader-text {
+        font-family: var(--font-family-primary);
+        font-size: 1.2rem;
+        font-weight: 500;
+        color: var(--color-text-light);
+        opacity: 0.8;
+        letter-spacing: 0.05em;
+        text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      #initial-loader.fade-out {
+        opacity: 0;
+        visibility: hidden;
+      }
+
+      /* Utility classes for a modern, premium UI design language */
+      .glassmorphism-card {
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(15px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: var(--border-radius-lg);
+        box-shadow: var(--shadow-elevation-high);
+        transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+      }
+      .glassmorphism-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 25px 80px rgba(0, 0, 0, 0.8), 0 15px 40px rgba(0, 0, 0, 0.5);
+      }
+      .gradient-text-primary {
+        background: linear-gradient(90deg, var(--color-brand-primary), var(--color-brand-secondary));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .gradient-overlay-animated {
+        position: relative;
+        overflow: hidden;
+      }
+      .gradient-overlay-animated::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient(60deg, transparent 40%, rgba(255, 255, 255, 0.05) 50%, transparent 60%);
+        transform: rotate(45deg);
+        animation: pulse-gradient 15s infinite linear;
+        pointer-events: none;
+      }
+      @keyframes pulse-gradient {
+        0% { transform: translate(-25%, -25%) rotate(45deg); opacity: 0.7; }
+        50% { transform: translate(25%, 25%) rotate(45deg); opacity: 1; }
+        100% { transform: translate(-25%, -25%) rotate(45deg); opacity: 0.7; }
+      }
+    </style>
+    <!-- WebFont Loader for optimal font loading and FOUC prevention -->
+    <script src="https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js"></script>
+    <script>
+      WebFont.load({
+        google: {
+          families: ['Inter:300,400,500,700&display=swap']
+        },
+        custom: {
+            families: ['Inter'],
+            urls: ['/style.css'] // Assuming custom fonts are defined/imported in style.css or a dedicated font.css
+        },
+        active: function() {
+          document.body.classList.add('fonts-loaded');
+        },
+        inactive: function() {
+          console.warn('Custom fonts could not be loaded. Falling back to system fonts.');
+        }
+      });
+    </script>
+</head>
+  <body class="bg-gray-950 antialiased font-sans">
+    <!-- Sophisticated Preloader for a smooth, branded application launch experience -->
+    <div id="initial-loader">
+      <div class="loader-spinner"></div>
+      <img src="/logo-animated-svg.svg" alt="Quantum Leap Financial AI Logo" class="loader-logo" />
+      <span class="loader-text mt-6">Initializing AI Engines...</span>
+    </div>
+
+    <!-- Main application root where React will hydrate the content -->
+    <div id="root" class="relative z-0 min-h-screen">
+      <!-- AI-powered background visualizer (e.g., generative data display or ambient graphics) -->
+      <div class="aurora-illusion"></div>
+      <!-- Placeholder for a high-definition, AI-generated hero video or interactive WebGL canvas -->
+      <div id="hero-interactive-background" class="absolute inset-0 w-full h-full overflow-hidden z-[-2]">
+        <!-- This area can host advanced visual experiences dynamically loaded by React/Three.js/etc. -->
+        <!-- Example: <video src="/hero-background-video.webm" autoplay loop muted playsinline class="w-full h-full object-cover"></video> -->
+      </div>
+      <!-- A no-script message for users with JavaScript disabled, providing crucial context -->
+      <noscript>
+        <div class="flex flex-col items-center justify-center h-screen text-center p-6 bg-gradient-to-br from-gray-900 to-black text-white">
+          <h1 class="text-5xl font-extrabold mb-6 gradient-text-primary">JavaScript Required for Quantum Leap Financial AI</h1>
+          <p class="text-xl mb-10 max-w-2xl text-gray-300">This cutting-edge financial intelligence platform leverages advanced AI and interactive features that require JavaScript to be enabled in your browser. Please enable JavaScript to access a world of personalized insights and secure wealth management.</p>
+          <p class="text-md text-gray-500">For an optimal and secure experience, we recommend using the latest version of Chrome, Firefox, Safari, or Edge.</p>
+          <img src="/placeholder-hero-ai-dashboard.webp" alt="Quantum Leap Financial AI platform screenshot" class="mt-12 max-w-3xl w-full h-auto rounded-xl deep-shadow border border-gray-700" loading="lazy" />
+          <p class="text-sm mt-8 text-gray-600">If you continue to experience issues, please contact our support team.</p>
+        </div>
+      </noscript>
+    </div>
+
+    <!-- Structured Data for comprehensive SEO - Organization, Website, and Financial Service Schema -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Quantum Leap Financial Solutions",
+      "url": "https://www.quantumleapfinancial.com",
+      "logo": "https://www.quantumleapfinancial.com/logo.png",
+      "description": "Pioneering the future of finance with AI-driven wealth management, predictive analytics, and secure digital banking solutions.",
+      "sameAs": [
+        "https://www.facebook.com/QuantumLeapFinancial",
+        "https://twitter.com/QuantumLeapFin",
+        "https://www.linkedin.com/company/quantum-leap-financial-solutions",
+        "https://www.instagram.com/quantumleapfinancial"
+      ],
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "telephone": "+1-800-AI-FINANCE",
+        "contactType": "Customer Support",
+        "email": "support@quantumleapfinancial.com",
+        "areaServed": ["US", "CA", "EU", "UK", "AU"],
+        "availableLanguage": ["English", "Spanish", "French", "German"]
+      },
+      "foundingDate": "2023-01-15",
+      "numberOfEmployees": {
+        "@type": "QuantitativeValue",
+        "value": "250",
+        "unitText": "employees"
+      }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Quantum Leap Financial AI",
+      "url": "https://www.quantumleapfinancial.com",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://www.quantumleapfinancial.com/search?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FinancialService",
+      "name": "Quantum Leap Financial AI - The Apex of Intelligent Wealth Management",
+      "url": "https://www.quantumleapfinancial.com",
+      "description": "Offering AI-powered wealth management, predictive analytics, secure digital banking, intelligent investment strategies, and personalized financial planning.",
+      "serviceType": ["Financial Advisory", "Investment Management", "Digital Banking", "AI Consulting"],
+      "provider": {
+        "@type": "Organization",
+        "name": "Quantum Leap Financial Solutions"
+      },
+      "areaServed": "Global",
+      "review": [
+        {
+          "@type": "Review",
+          "author": { "@type": "Person", "name": "Sarah L." },
+          "reviewRating": { "@type": "Rating", "ratingValue": "5" },
+          "reviewBody": "Revolutionary platform! The AI insights are incredibly accurate and have transformed my investment strategy."
+        },
+        {
+          "@type": "Review",
+          "author": { "@type": "Person", "name": "David M." },
+          "reviewRating": { "@type": "Rating", "ratingValue": "4.8" },
+          "reviewBody": "Secure, intuitive, and truly intelligent. A must-have for anyone serious about their financial future."
+        }
+      ],
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "reviewCount": "2500"
+      }
+    }
+    </script>
+
+
+    <!-- Main application entry point - React.tsx for dynamic content rendering -->
+    <script type="module" src="/index.tsx"></script>
+    <script>
+      // Graceful preloader fade-out once the core application script is initiated
+      document.addEventListener('DOMContentLoaded', () => {
+        const loader = document.getElementById('initial-loader');
+        if (loader) {
+          // A configurable delay to ensure visual smoothness, even on fast connections
+          setTimeout(() => {
+            loader.classList.add('fade-out');
+            loader.addEventListener('transitionend', () => {
+              loader.remove(); // Clean up the loader element from the DOM
+            }, { once: true });
+          }, 750); // Increased delay for a more noticeable transition
+        }
+      });
+      // Optionally, expose a global function for index.tsx to trigger fade-out after full React mount
+      window.hideInitialLoader = () => {
+        const loader = document.getElementById('initial-loader');
+        if (loader && !loader.classList.contains('fade-out')) {
+          loader.classList.add('fade-out');
+          loader.addEventListener('transitionend', () => {
+            loader.remove();
+          }, { once: true });
+        }
+      };
+    </script>
+  </body>
+</html>

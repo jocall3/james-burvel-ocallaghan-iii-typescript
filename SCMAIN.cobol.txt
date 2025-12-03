@@ -1,0 +1,147 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. SCMAIN.
+       AUTHOR. AI-INTEGRATION-TEAM.
+       DATE-WRITTEN. 2024-07-27.
+      ******************************************************************
+      * ENTERPRISE SECURITY CONTROL MAIN
+      *
+      * THIS IS THE SUB-MENU CONTROLLER FOR THE ENTERPRISE SECURITY
+      * CONTROL SYSTEM (SCS). Leveraging Advanced AI for Robust
+      * Security Oversight, providing proactive threat prediction,
+      * adaptive protocol management, and continuous system monitoring
+      * through its integrated AI Sentinel.
+      ******************************************************************
+       ENVIRONMENT DIVISION.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01 WS-MENU-SWITCHES.
+          05 WS-USER-CHOICE       PIC X(01).
+             88 EXIT-SC-MENU      VALUE 'X'.
+
+       01 WS-SECURITY-STATUS.
+          05 WS-AI-SENTINEL-STATUS PIC X(10) VALUE 'OFFLINE'.
+          05 WS-ACTIVE-THREATS     PIC 9(03) VALUE ZEROS.
+          05 WS-LAST-AI-SCAN-TIME  PIC X(08).
+          05 WS-LAST-AI-SCAN-DATE  PIC X(10).
+
+       01 WS-AUTHORIZATION-STATUS.
+          05 WS-AUTH-STATUS        PIC X(04).
+             88 AUTH-SUCCESS       VALUE 'AUTH'.
+             88 AUTH-FAILURE       VALUE 'FAIL'.
+
+       01 WS-MENU-SCREEN.
+          05 FILLER PIC X(80) VALUE ALL "*".
+          05 FILLER PIC X(80) VALUE
+             "*        ENTERPRISE SECURITY CONTROL SYSTEM (SCS)        *".
+          05 FILLER PIC X(80) VALUE ALL "*".
+          05 FILLER PIC X(80) VALUE "*                                                    *".
+          05 FILLER PIC X(80) VALUE "*   1. VIEW USER ACCESS LOGS                       *".
+          05 FILLER PIC X(80) VALUE "*   2. MANAGE USER PERMISSIONS                     *".
+          05 FILLER PIC X(80) VALUE "*   3. MANUALLY TRIGGER SECURITY ALERT             *".
+          05 FILLER PIC X(80) VALUE "*                                                    *".
+          05 FILLER PIC X(80) VALUE "*   4. AI THREAT PREDICTION & ANALYSIS             *".
+          05 FILLER PIC X(80) VALUE "*   5. AI SECURITY PROTOCOL ADAPTATION             *".
+          05 FILLER PIC X(80) VALUE "*   6. REVIEW AI SYSTEM STATUS                     *".
+          05 FILLER PIC X(80) VALUE "*                                                    *".
+          05 FILLER PIC X(80) VALUE "*   X. EXIT TO MAIN MENU                           *".
+          05 FILLER PIC X(80) VALUE ALL "*".
+
+       PROCEDURE DIVISION.
+       0000-MAIN-LOGIC.
+           DISPLAY SPACE.
+           DISPLAY "**********************************************".
+           DISPLAY "*   ENTERPRISE SECURITY CONTROL SYSTEM       *".
+           DISPLAY "*   AI Sentinel Initializing...              *".
+           DISPLAY "**********************************************".
+
+           PERFORM 0010-INITIALIZE-SECURITY-CONTEXT.
+           PERFORM 0020-AUTHORIZE-USER.
+
+           IF AUTH-FAILURE
+               PERFORM 9000-TERMINATE-SYSTEM
+               GOBACK
+           END-IF.
+
+           PERFORM 1000-CONTROL-LOOP UNTIL EXIT-SC-MENU.
+           PERFORM 9000-TERMINATE-SYSTEM.
+           GOBACK.
+
+       0010-INITIALIZE-SECURITY-CONTEXT.
+      *    Here, the AI Sentinel would perform initial system checks.
+      *    It verifies the integrity of security modules and loads
+      *    the latest threat intelligence models.
+           DISPLAY "AI Sentinel: Running initial system diagnostics...".
+           DISPLAY "AI Sentinel: Loading adaptive threat models...".
+           CALL "SCAIBOOT"  USING WS-AI-SENTINEL-STATUS
+                                  WS-LAST-AI-SCAN-DATE
+                                  WS-LAST-AI-SCAN-TIME.
+           IF WS-AI-SENTINEL-STATUS = 'ONLINE'
+               DISPLAY "AI Sentinel: Core systems online and operational."
+           ELSE
+               DISPLAY "AI Sentinel: WARNING! Core systems not fully online. Proceed with caution."
+               MOVE 'OFFLINE' TO WS-AI-SENTINEL-STATUS
+           END-IF.
+           DISPLAY SPACE.
+
+       0020-AUTHORIZE-USER.
+      *    Enhanced authorization, potentially leveraging AI for
+      *    behavioral analysis or multi-factor authentication.
+           DISPLAY "*** USER AUTHORIZATION REQUIRED ***".
+           MOVE 'FAIL' TO WS-AUTH-STATUS.
+           CALL "SCAUTH"  USING WS-AUTH-STATUS.
+           IF AUTH-SUCCESS
+               DISPLAY "Authorization successful. Welcome to SCS."
+           ELSE
+               DISPLAY "Authorization failed. Access denied."
+           END-IF.
+           DISPLAY SPACE.
+
+       1000-CONTROL-LOOP.
+           DISPLAY WS-MENU-SCREEN.
+           DISPLAY "AI Sentinel Status: " WS-AI-SENTINEL-STATUS.
+           DISPLAY "Active Threats (AI-Monitored): " WS-ACTIVE-THREATS.
+           DISPLAY "Last AI Scan: " WS-LAST-AI-SCAN-DATE " " WS-LAST-AI-SCAN-TIME.
+           DISPLAY "Enter your choice: ".
+           ACCEPT WS-USER-CHOICE.
+           MOVE FUNCTION UPPER-CASE(WS-USER-CHOICE) TO WS-USER-CHOICE.
+
+           EVALUATE WS-USER-CHOICE
+               WHEN "1"
+                   DISPLAY "Accessing User Access Logs (AI-Assisted Analysis)..."
+                   CALL "SCULOG"
+               WHEN "2"
+                   DISPLAY "Entering User Permissions Management (AI-Recommended Policies)..."
+                   CALL "SCPERM"
+               WHEN "3"
+                   DISPLAY "Manually triggering Security Alert (AI will cross-verify and escalate)..."
+                   CALL "SCALRT"
+               WHEN "4"
+                   DISPLAY "Launching AI Threat Prediction and Analysis Module..."
+                   CALL "SCTHRA"
+               WHEN "5"
+                   DISPLAY "Activating AI Security Protocol Adaptation Module..."
+                   CALL "SCPROA"
+               WHEN "6"
+                   DISPLAY "Reviewing AI System Status and Performance..."
+                   CALL "SCAIST"
+               WHEN "X"
+                   DISPLAY "Initiating graceful shutdown of Security Control System..."
+               WHEN OTHER
+                   DISPLAY "INVALID SELECTION. Please choose from the menu."
+                   PERFORM 2000-WAIT-FOR-ACK
+           END-EVALUATE.
+
+       2000-WAIT-FOR-ACK.
+      *    Simple pause to allow user to read messages
+           DISPLAY "Press ENTER to continue...".
+           ACCEPT WS-USER-CHOICE.
+
+       9000-TERMINATE-SYSTEM.
+           DISPLAY SPACE.
+           DISPLAY "**********************************************".
+           DISPLAY "*   ENTERPRISE SECURITY CONTROL SYSTEM       *".
+           DISPLAY "*   AI Sentinel Deactivating...              *".
+           DISPLAY "*   System securely offline.                 *".
+           DISPLAY "**********************************************".
+           DISPLAY SPACE.
+           CALL "SCAISHUT" USING WS-AI-SENTINEL-STATUS.

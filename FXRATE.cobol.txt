@@ -1,0 +1,338 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. FXRATE.
+       AUTHOR. AI-MAINFRAME-PROJECT.
+      ******************************************************************
+      * MAINFRAME FX RATE SERVICE - POWERED BY AI INSIGHTS
+      * This program simulates a foreign exchange rate retrieval
+      * and analysis service, demonstrating integration with
+      * an AI-driven prediction and validation layer.
+      * It provides live (simulated) rates and contextual information
+      * to users, offering a glimpse into future financial systems.
+      ******************************************************************
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+      *----------------------------------------------------------------*
+      * Program Control Flags and General Variables
+      *----------------------------------------------------------------*
+       01 WS-PROGRAM-FLAGS.
+          05 WS-CONTINUE-FLAG        PIC X(01) VALUE 'Y'.
+             88 WS-CONTINUE-PROGRAM            VALUE 'Y'.
+             88 WS-TERMINATE-PROGRAM           VALUE 'N'.
+          05 WS-RATE-FOUND-FLAG      PIC X(01) VALUE 'N'.
+             88 WS-RATE-FOUND                  VALUE 'Y'.
+             88 WS-RATE-NOT-FOUND              VALUE 'N'.
+
+       01 WS-CURRENT-DATETIME.
+          05 WS-DATE                 PIC X(08).  *> YYYYMMDD
+          05 WS-TIME                 PIC X(06).  *> HHMMSS
+
+      *----------------------------------------------------------------*
+      * FX Rate Data Structures - Enhanced with AI Insights
+      *----------------------------------------------------------------*
+       01 WS-RATE-TABLE.
+          05 WS-RATES OCCURS 10 TIMES INDEXED BY WS-RATE-IDX.
+             10 WS-CURRENCY-PAIR      PIC X(07).       *> e.g., 'USD/EUR'
+             10 WS-RATE               PIC 9(05)V9(06). *> Rate, e.g., 1.085000 is stored as 1085000
+             10 WS-LAST-UPDATED       PIC X(12).       *> YYYYMMDDHHMM
+             10 WS-AI-CONFIDENCE      PIC 9(03)V9(02). *> AI's confidence in the rate (0.00-100.00%)
+             10 WS-AI-TREND-IND       PIC X(01).       *> U=Up, D=Down, S=Stable, V=Volatile
+                88 TREND-UP                     VALUE 'U'.
+                88 TREND-DOWN                   VALUE 'D'.
+                88 TREND-STABLE                 VALUE 'S'.
+                88 TREND-VOLATILE               VALUE 'V'.
+             10 WS-AI-REASONING       PIC X(50).       *> Brief explanation from AI
+
+       01 WS-TEMP-RATE-DATA.
+          05 WS-TEMP-PAIR            PIC X(07).
+          05 WS-TEMP-RATE            PIC 9(05)V9(06).
+          05 WS-TEMP-UPDATED         PIC X(12).
+          05 WS-TEMP-CONFIDENCE      PIC 9(03)V9(02).
+          05 WS-TEMP-TREND           PIC X(01).
+          05 WS-TEMP-REASONING       PIC X(50).
+
+      *----------------------------------------------------------------*
+      * User Input Variables
+      *----------------------------------------------------------------*
+       01 WS-USER-INPUT.
+          05 WS-REQUESTED-PAIR       PIC X(07).
+          05 WS-EXIT-CHOICE          PIC X(01).
+
+      *----------------------------------------------------------------*
+      * AI Interaction Messages (Simulated)
+      * These messages provide a "story-like" narrative of AI's actions.
+      *----------------------------------------------------------------*
+       01 WS-AI-MESSAGES.
+          05 AI-MSG-FETCH-START      PIC X(80) VALUE
+             "AI-INTEGRATION-LAYER: Initiating quantum-aligned data fetch for rates...".
+          05 AI-MSG-FETCH-COMPLETE   PIC X(80) VALUE
+             "AI-INTEGRATION-LAYER: Raw rate data secured and pre-processed.".
+          05 AI-MSG-PREDICT-START    PIC X(80) VALUE
+             "AI-INTEGRATION-LAYER: Analyzing global market sentiment for trends...".
+          05 AI-MSG-PREDICT-COMPLETE PIC X(80) VALUE
+             "AI-INTEGRATION-LAYER: Predictive trend models updated.".
+          05 AI-MSG-ANOMALY-CHECK    PIC X(80) VALUE
+             "AI-INTEGRATION-LAYER: Running anomaly detection on current data points...".
+          05 AI-MSG-ANOMALY-REPORT   PIC X(80) VALUE
+             "AI-INTEGRATION-LAYER: No significant market anomalies detected at this time.".
+          05 AI-MSG-VALIDATION       PIC X(80) VALUE
+             "AI-INTEGRATION-LAYER: Cross-referencing rates with historical patterns.".
+          05 AI-MSG-CONFIDENCE       PIC X(80) VALUE
+             "AI-INTEGRATION-LAYER: Confidence levels computed and applied.".
+          05 AI-MSG-HIGH-CONFIDENCE  PIC X(80) VALUE
+             "AI reports high confidence in this rate, reflecting strong market consensus.".
+          05 AI-MSG-MEDIUM-CONFIDENCE PIC X(80) VALUE
+             "AI notes moderate confidence; monitor for potential shifts.".
+          05 AI-MSG-LOW-CONFIDENCE   PIC X(80) VALUE
+             "AI indicates lower confidence; exercise caution, high volatility possible.".
+          05 AI-MSG-TREND-UP         PIC X(80) VALUE
+             "AI predicts a short-term upward trend based on recent economic indicators.".
+          05 AI-MSG-TREND-DOWN       PIC X(80) VALUE
+             "AI predicts a short-term downward trend due to global financial adjustments.".
+          05 AI-MSG-TREND-STABLE     PIC X(80) VALUE
+             "AI predicts short-term stability, likely consolidation phase.".
+          05 AI-MSG-TREND-VOLATILE   PIC X(80) VALUE
+             "AI predicts high short-term volatility, influenced by geopolitical events.".
+          05 AI-MSG-REASON-STABLE    PIC X(50) VALUE
+             "Driven by consistent economic data.".
+          05 AI-MSG-REASON-UP        PIC X(50) VALUE
+             "Strong demand and positive sentiment.".
+          05 AI-MSG-REASON-DOWN      PIC X(50) VALUE
+             "Increasing supply pressures.".
+          05 AI-MSG-REASON-VOLATILE  PIC X(50) VALUE
+             "Market reacting to sudden news.".
+
+       PROCEDURE DIVISION.
+       MAIN-LOGIC.
+           PERFORM INITIALIZE-PROGRAM
+           PERFORM FETCH-RATES-FROM-AI
+           PERFORM DISPLAY-RATES
+
+           PERFORM UNTIL WS-TERMINATE-PROGRAM
+               PERFORM GET-USER-QUERY
+               IF WS-CONTINUE-PROGRAM
+                   PERFORM PROCESS-USER-QUERY
+               END-IF
+           END-PERFORM
+
+           PERFORM TERMINATE-PROGRAM
+           STOP RUN.
+
+       INITIALIZE-PROGRAM.
+           DISPLAY " "
+           DISPLAY "**************************************************"
+           DISPLAY "* MAINFRAME FX RATE SERVICE (AI-Enhanced)      *"
+           DISPLAY "* Initializing secure rate retrieval system    *"
+           DISPLAY "* Current Date: " WS-DATE                      "*"
+           DISPLAY "* Current Time: " WS-TIME                      "*"
+           DISPLAY "**************************************************"
+           DISPLAY " "
+
+           * Get current date and time for timestamps
+           ACCEPT WS-DATE FROM DATE YYYYMMDD
+           ACCEPT WS-TIME FROM TIME.
+
+           * Initialize rate table with placeholder data and AI insights
+           * In a real system, the AI-INTEGRATION-LAYER would populate this.
+           * For this expansion, we're simulating the AI layer's output.
+
+           MOVE 'USD/EUR'    TO WS-CURRENCY-PAIR(1)
+           MOVE 1085000      TO WS-RATE(1)      *> 1.085000
+           STRING WS-DATE WS-TIME(1:4) DELIMITED BY SIZE INTO WS-LAST-UPDATED(1)
+           MOVE 98.75        TO WS-AI-CONFIDENCE(1)
+           MOVE 'S'          TO WS-AI-TREND-IND(1)
+           MOVE AI-MSG-REASON-STABLE TO WS-AI-REASONING(1)
+
+           MOVE 'USD/GBP'    TO WS-CURRENCY-PAIR(2)
+           MOVE 1272000      TO WS-RATE(2)      *> 1.272000
+           STRING WS-DATE WS-TIME(1:4) DELIMITED BY SIZE INTO WS-LAST-UPDATED(2)
+           MOVE 92.10        TO WS-AI-CONFIDENCE(2)
+           MOVE 'U'          TO WS-AI-TREND-IND(2)
+           MOVE AI-MSG-REASON-UP TO WS-AI-REASONING(2)
+
+           MOVE 'USD/JPY'    TO WS-CURRENCY-PAIR(3)
+           MOVE 15705000     TO WS-RATE(3)      *> 157.050000
+           STRING WS-DATE WS-TIME(1:4) DELIMITED BY SIZE INTO WS-LAST-UPDATED(3)
+           MOVE 85.50        TO WS-AI-CONFIDENCE(3)
+           MOVE 'V'          TO WS-AI-TREND-IND(3)
+           MOVE AI-MSG-REASON-VOLATILE TO WS-AI-REASONING(3)
+
+           MOVE 'EUR/USD'    TO WS-CURRENCY-PAIR(4)
+           MOVE 921600       TO WS-RATE(4)      *> 0.921600 (Approx 1/1.085)
+           STRING WS-DATE WS-TIME(1:4) DELIMITED BY SIZE INTO WS-LAST-UPDATED(4)
+           MOVE 97.20        TO WS-AI-CONFIDENCE(4)
+           MOVE 'S'          TO WS-AI-TREND-IND(4)
+           MOVE AI-MSG-REASON-STABLE TO WS-AI-REASONING(4)
+
+           MOVE 'GBP/USD'    TO WS-CURRENCY-PAIR(5)
+           MOVE 786100       TO WS-RATE(5)      *> 0.786100 (Approx 1/1.272)
+           STRING WS-DATE WS-TIME(1:4) DELIMITED BY SIZE INTO WS-LAST-UPDATED(5)
+           MOVE 90.50        TO WS-AI-CONFIDENCE(5)
+           MOVE 'D'          TO WS-AI-TREND-IND(5)
+           MOVE AI-MSG-REASON-DOWN TO WS-AI-REASONING(5)
+
+           MOVE 'EUR/JPY'    TO WS-CURRENCY-PAIR(6)
+           MOVE 17046000     TO WS-RATE(6)      *> 170.460000 (Approx 1.085 * 157.05)
+           STRING WS-DATE WS-TIME(1:4) DELIMITED BY SIZE INTO WS-LAST-UPDATED(6)
+           MOVE 89.90        TO WS-AI-CONFIDENCE(6)
+           MOVE 'U'          TO WS-AI-TREND-IND(6)
+           MOVE AI-MSG-REASON-UP TO WS-AI-REASONING(6)
+
+           * Remaining entries are left for future expansion or can be marked as empty
+           SET WS-RATE-IDX TO 7
+           PERFORM VARYING WS-RATE-IDX FROM 7 BY 1 UNTIL WS-RATE-IDX > 10
+               MOVE SPACES TO WS-CURRENCY-PAIR(WS-RATE-IDX)
+               MOVE 0          TO WS-RATE(WS-RATE-IDX)
+               MOVE SPACES TO WS-LAST-UPDATED(WS-RATE-IDX)
+               MOVE 0          TO WS-AI-CONFIDENCE(WS-RATE-IDX)
+               MOVE SPACES TO WS-AI-TREND-IND(WS-RATE-IDX)
+               MOVE SPACES TO WS-AI-REASONING(WS-RATE-IDX)
+           END-PERFORM
+
+           DISPLAY "System initialized successfully, AI sub-modules ready."
+           DISPLAY " ".
+
+       FETCH-RATES-FROM-AI.
+           DISPLAY " "
+           DISPLAY AI-MSG-FETCH-START
+           * Simulate AI processing time
+           CALL "AI-SIM-PROCESS-DELAY" USING 1 *> A hypothetical AI delay program
+           DISPLAY AI-MSG-FETCH-COMPLETE
+           DISPLAY AI-MSG-ANOMALY-CHECK
+           CALL "AI-SIM-PROCESS-DELAY" USING 1
+           DISPLAY AI-MSG-ANOMALY-REPORT
+           DISPLAY AI-MSG-PREDICT-START
+           CALL "AI-SIM-PROCESS-DELAY" USING 1
+           DISPLAY AI-MSG-PREDICT-COMPLETE
+           DISPLAY AI-MSG-VALIDATION
+           CALL "AI-SIM-PROCESS-DELAY" USING 1
+           DISPLAY AI-MSG-CONFIDENCE
+           DISPLAY " "
+           * (In a real scenario, the AI-INTEGRATION-LAYER would have just updated WS-RATE-TABLE)
+           * (Here, the data was pre-populated in INITIALIZE-PROGRAM as if the AI did it)
+
+       DISPLAY-RATES.
+           DISPLAY " "
+           DISPLAY "---------------------------------------------------------------------------------------------------"
+           DISPLAY "CURRENT EXCHANGE RATES (AI-validated Insights)"
+           DISPLAY "---------------------------------------------------------------------------------------------------"
+           DISPLAY "CURRENCY   RATE            LAST UPDATED   AI-CONFIDENCE   AI-TREND   AI-REASONING"
+           DISPLAY "-------    --------------  ------------   -------------   --------   --------------------------------------------------"
+
+           SET WS-RATE-IDX TO 1
+           PERFORM VARYING WS-RATE-IDX FROM 1 BY 1 UNTIL WS-RATE-IDX > 10
+               IF WS-CURRENCY-PAIR(WS-RATE-IDX) NOT = SPACES
+                   DISPLAY WS-CURRENCY-PAIR(WS-RATE-IDX)
+                       "    "
+                       WS-RATE(WS-RATE-IDX)
+                       "   "
+                       WS-LAST-UPDATED(WS-RATE-IDX)
+                       "     "
+                       WS-AI-CONFIDENCE(WS-RATE-IDX)
+                       "%"
+                       "         "
+                       WS-AI-TREND-IND(WS-RATE-IDX)
+                       "        "
+                       WS-AI-REASONING(WS-RATE-IDX)
+               END-IF
+           END-PERFORM
+           DISPLAY "---------------------------------------------------------------------------------------------------"
+           DISPLAY "Trend Indicators: U=Up, D=Down, S=Stable, V=Volatile"
+           DISPLAY "AI-Confidence: Higher % means higher certainty from the AI analysis engine."
+           DISPLAY " "
+
+       GET-USER-QUERY.
+           DISPLAY " "
+           DISPLAY "Enter a currency pair (e.g., USD/EUR) to get AI-enhanced details."
+           DISPLAY "Or type 'DISPLAY' to see all rates again, or 'EXIT' to quit:"
+           ACCEPT WS-REQUESTED-PAIR
+
+           IF WS-REQUESTED-PAIR = "EXIT" OR WS-REQUESTED-PAIR = "exit"
+               MOVE 'N' TO WS-CONTINUE-FLAG
+           ELSE IF WS-REQUESTED-PAIR = "DISPLAY" OR WS-REQUESTED-PAIR = "display"
+               PERFORM DISPLAY-RATES
+               MOVE 'Y' TO WS-CONTINUE-FLAG *> Continue the loop for more queries
+           ELSE
+               MOVE 'Y' TO WS-CONTINUE-FLAG
+           END-IF.
+
+       PROCESS-USER-QUERY.
+           MOVE 'N' TO WS-RATE-FOUND-FLAG
+           SET WS-RATE-IDX TO 1
+
+           SEARCH ALL WS-RATES
+               AT END
+                   DISPLAY " "
+                   DISPLAY "ERROR: Rate for " WS-REQUESTED-PAIR " not found."
+                   DISPLAY "       Please check the currency pair and try again."
+                   DISPLAY "       AI suggests verifying input for common typos."
+               WHEN WS-CURRENCY-PAIR(WS-RATE-IDX) = WS-REQUESTED-PAIR
+                   MOVE 'Y' TO WS-RATE-FOUND-FLAG
+                   DISPLAY " "
+                   DISPLAY "--------------------------------------------------"
+                   DISPLAY "AI-Enhanced Rate Details for: " WS-CURRENCY-PAIR(WS-RATE-IDX)
+                   DISPLAY "--------------------------------------------------"
+                   DISPLAY "Current Rate:   " WS-RATE(WS-RATE-IDX)
+                   DISPLAY "Last Updated:   " WS-LAST-UPDATED(WS-RATE-IDX)
+                   DISPLAY "AI Confidence:  " WS-AI-CONFIDENCE(WS-RATE-IDX) "%"
+                   DISPLAY "AI Trend:       " WS-AI-TREND-IND(WS-RATE-IDX)
+                   DISPLAY "AI Reasoning:   " WS-AI-REASONING(WS-RATE-IDX)
+                   DISPLAY " "
+                   PERFORM DISPLAY-AI-INSIGHTS
+                   DISPLAY "--------------------------------------------------"
+           END-SEARCH.
+
+       DISPLAY-AI-INSIGHTS.
+           DISPLAY "AI-INTEGRATION-LAYER Contextual Insights:"
+
+           IF WS-AI-CONFIDENCE(WS-RATE-IDX) >= 95
+               DISPLAY AI-MSG-HIGH-CONFIDENCE
+           ELSE IF WS-AI-CONFIDENCE(WS-RATE-IDX) >= 80
+               DISPLAY AI-MSG-MEDIUM-CONFIDENCE
+           ELSE
+               DISPLAY AI-MSG-LOW-CONFIDENCE
+           END-IF.
+
+           EVALUATE TRUE
+               WHEN TREND-UP(WS-RATE-IDX)
+                   DISPLAY AI-MSG-TREND-UP
+               WHEN TREND-DOWN(WS-RATE-IDX)
+                   DISPLAY AI-MSG-TREND-DOWN
+               WHEN TREND-STABLE(WS-RATE-IDX)
+                   DISPLAY AI-MSG-TREND-STABLE
+               WHEN TREND-VOLATILE(WS-RATE-IDX)
+                   DISPLAY AI-MSG-TREND-VOLATILE
+               WHEN OTHER
+                   DISPLAY "AI: Trend analysis currently unavailable for this specific pair."
+           END-EVALUATE.
+           DISPLAY "AI suggests continued monitoring for optimal decision-making."
+           .
+
+       TERMINATE-PROGRAM.
+           DISPLAY " "
+           DISPLAY "**************************************************"
+           DISPLAY "* MAINFRAME FX RATE SERVICE (AI-Enhanced)      *"
+           DISPLAY "* AI systems are powering down.                *"
+           DISPLAY "* Thank you for using our service. Goodbye.    *"
+           DISPLAY "**************************************************"
+           DISPLAY " "
+           .
+
+      *
+      * Hypothetical AI Simulation Program: AI-SIM-PROCESS-DELAY
+      * This program would simulate a delay or complex AI processing.
+      * In a real mainframe environment, this could be a COBOL program
+      * calling system services to pause, or performing CPU-intensive
+      * calculations to represent AI model inference time.
+      * For this demonstration, its presence signifies a conceptual call
+      * to an external AI service.
+      *
+      * IDENTIFICATION DIVISION.
+      * PROGRAM-ID. AI-SIM-PROCESS-DELAY.
+      * DATA DIVISION.
+      * LINKAGE SECTION.
+      * 01 LS-DELAY-SECONDS PIC 9(02).
+      * PROCEDURE DIVISION USING LS-DELAY-SECONDS.
+      *    DISPLAY "Simulating AI processing for " LS-DELAY-SECONDS " seconds...".
+      *    (Actual delay logic would go here, e.g., using system calls)
+      *    GOBACK.
+      *

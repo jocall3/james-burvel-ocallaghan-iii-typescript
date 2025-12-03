@@ -1,0 +1,98 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. LAMAIN.
+       AUTHOR. AI-AUGMENTATION-TEAM.
+       DATE-WRITTEN. 2024-07-27.
+      ******************************************************************
+      * LOANS ADMINISTRATION SYSTEM (LAS) - MAIN MENU CONTROLLER
+      *
+      * This program manages the main menu for the AI-enhanced Loans
+      * Administration System, directing users to various functionalities.
+      * It provides an interface for both traditional loan operations
+      * and advanced AI-driven features, ensuring a cohesive and
+      * intelligent financial processing environment.
+      * The system aims to augment human decision-making with powerful
+      * analytical capabilities, streamline processes, and enhance
+      * overall efficiency and fairness in lending.
+      ******************************************************************
+       ENVIRONMENT DIVISION.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01 WS-MENU-SWITCHES.
+          05 WS-USER-CHOICE       PIC X(01).
+             88 EXIT-LA-MENU      VALUE 'X'.
+          05 WS-INVALID-CHOICE-MSG PIC X(40) VALUE SPACES.
+
+       01 WS-MENU-SCREEN.
+          05 FILLER PIC X(80) VALUE ALL "*".
+          05 FILLER PIC X(80) VALUE
+             "*           AI-ENHANCED LOANS ADMINISTRATION SYSTEM      *".
+          05 FILLER PIC X(80) VALUE ALL "*".
+          05 FILLER PIC X(80) VALUE "*                                                    *".
+          05 FILLER PIC X(80) VALUE "*   1. ORIGINATE NEW LOAN                            *".
+          05 FILLER PIC X(80) VALUE "*   2. INQUIRE LOAN STATUS                           *".
+          05 FILLER PIC X(80) VALUE "*   3. PROCESS LOAN PAYMENT                          *".
+          05 FILLER PIC X(80) VALUE "*                                                    *".
+          05 FILLER PIC X(80) VALUE "*   4. AI-ASSISTED RISK EVALUATION                   *".
+          05 FILLER PIC X(80) VALUE "*   5. AI-DRIVEN LOAN OPTIMIZATION                   *".
+          05 FILLER PIC X(80) VALUE "*   6. GENERATE AI PREDICTIVE REPORT                 *".
+          05 FILLER PIC X(80) VALUE "*   7. CONFIGURE AI SYSTEM SETTINGS                  *".
+          05 FILLER PIC X(80) VALUE "*                                                    *".
+          05 FILLER PIC X(80) VALUE "*   8. VIEW LOAN SYSTEM AUDIT LOGS                   *".
+          05 FILLER PIC X(80) VALUE "*   9. USER MANAGEMENT AND ACCESS CONTROLS           *".
+          05 FILLER PIC X(80) VALUE "*                                                    *".
+          05 FILLER PIC X(80) VALUE "*   X. EXIT TO MAIN MENU                             *".
+          05 FILLER PIC X(80) VALUE ALL "*".
+
+       PROCEDURE DIVISION.
+       0000-MAIN-LOGIC.
+           PERFORM 1000-CONTROL-LOOP UNTIL EXIT-LA-MENU.
+           GOBACK.
+
+       1000-CONTROL-LOOP.
+           DISPLAY WS-MENU-SCREEN.
+           MOVE SPACES TO WS-INVALID-CHOICE-MSG.
+           DISPLAY "ENTER YOUR CHOICE: ".
+           ACCEPT WS-USER-CHOICE.
+           MOVE FUNCTION UPPER-CASE(WS-USER-CHOICE) TO WS-USER-CHOICE.
+
+           EVALUATE WS-USER-CHOICE
+               WHEN "1"
+                   DISPLAY "NAVIGATING TO LOAN ORIGINATION...       "
+                   CALL "LAOPEN"
+               WHEN "2"
+                   DISPLAY "NAVIGATING TO LOAN INQUIRY...           "
+                   CALL "LAINQ"
+               WHEN "3"
+                   DISPLAY "NAVIGATING TO LOAN PAYMENT PROCESSING..."
+                   CALL "LAPAY"
+               WHEN "4"
+                   DISPLAY "LAUNCHING AI-ASSISTED RISK EVALUATION..."
+                   CALL "LA_AIRISK"
+               WHEN "5"
+                   DISPLAY "INITIATING AI-DRIVEN LOAN OPTIMIZATION..."
+                   CALL "LA_AIOPT"
+               WHEN "6"
+                   DISPLAY "GENERATING AI PREDICTIVE ANALYTICS..."
+                   CALL "LA_REPORT"
+               WHEN "7"
+                   DISPLAY "ACCESSING AI SYSTEM CONFIGURATION...    "
+                   CALL "LA_AICONF"
+               WHEN "8"
+                   DISPLAY "VIEWING LOAN SYSTEM AUDIT LOGS...       "
+                   CALL "LASLOG"
+               WHEN "9"
+                   DISPLAY "MANAGING USER ACCESS CONTROLS...        "
+                   CALL "LAUSER"
+               WHEN "X"
+                   DISPLAY "RETURNING TO MAIN MENU..."
+               WHEN OTHER
+                   MOVE "INVALID SELECTION. PLEASE TRY AGAIN." TO WS-INVALID-CHOICE-MSG
+                   DISPLAY WS-INVALID-CHOICE-MSG
+                   PERFORM 1000-WAIT-FOR-ACK.
+
+       1000-WAIT-FOR-ACK.
+           DISPLAY "PRESS ENTER TO CONTINUE..."
+           ACCEPT WS-USER-CHOICE. *> Dummy accept to pause execution after invalid input.
+                                *> In a real CICS environment, this would involve a
+                                *> `RETURN` to a map with a message field.
+                                *> For console execution, it serves as a simple pause.

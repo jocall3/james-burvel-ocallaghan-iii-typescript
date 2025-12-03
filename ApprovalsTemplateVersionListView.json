@@ -1,0 +1,9 @@
+// Copyright James Burvel O’Callaghan III
+// President Citibank Demo Business Inc.
+
+{
+  "id": "REDACTED",
+  "name": "ApprovalsTemplateVersionListView",
+  "type": "query",
+  "body": "query ApprovalsTemplateVersionListView($first: Int, $after: String, $last: Int, $before: String, $status: TemplateVersion__StatusEnum, $description: String, $name: String, $id: ID, $createdAt: DateTimeFilterInput, $scopeByPendingMyCurrentApproval: Boolean, $scopeByPendingReviewer: Boolean, $includeFutureApprovals: Boolean, $reviewAsGroupId: ID) {\\n  templateVersions(\\n    first: $first\\n    after: $after\\n    last: $last\\n    before: $before\\n    status: $status\\n    scopeByPendingMyCurrentApproval: $scopeByPendingMyCurrentApproval\\n    scopeByPendingReviewer: $scopeByPendingReviewer\\n    includeFutureApprovals: $includeFutureApprovals\\n    reviewAsGroupId: $reviewAsGroupId\\n    description: $description\\n    name: $name\\n    id: $id\\n    createdAt: $createdAt\\n  ) {\\n    totalCount\\n    ...TemplateVersionList\\n    __typename\\n  }\\n}\\n\\nfragment TemplateVersionList on TemplateVersionConnection {\\n  edges {\\n    node {\\n      typename: __typename\\n      id\\n      createdBy\\n      description\\n      prettyName\\n      waitingOn\\n      path\\n    }\\n    __typename\\n  }\\n  pageInfo {\\n    startCursor\\n    endCursor\\n    hasNextPage\\n    hasPreviousPage\\n    __typename\\n  }\\n  __typename\\n}\\n"
+}

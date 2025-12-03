@@ -1,0 +1,272 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. FXMAIN.
+       AUTHOR. AI-Assisted Development Team.
+      ******************************************************************
+      * AI-Enhanced Financial Services - Foreign Exchange Main Module
+      *
+      * This program serves as the central control for the Foreign
+      * Exchange (FX) system, providing an interactive menu for users
+      * to access various FX functionalities, including real-time
+      * rates, transaction execution, historical data, and AI-driven
+      * market insights. It aims to offer a robust and intelligent
+      * platform for currency management, integrating advanced
+      * analytical capabilities to support informed decision-making.
+      ******************************************************************
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+      *----------------------------------------------------------------*
+      * Menu Control Variables
+      *----------------------------------------------------------------*
+       01 WS-MENU-SWITCHES.
+          05 WS-USER-CHOICE       PIC X(01).
+             88 EXIT-FX-MENU      VALUE 'X'.
+             88 DISPLAY-RATES     VALUE '1'.
+             88 EXECUTE-BUY       VALUE '2'.
+             88 EXECUTE-SELL      VALUE '3'.
+             88 VIEW-HISTORY      VALUE '4'.
+             88 GET-TRENDS        VALUE '5'.
+             88 INVOKE-AI-ADVISOR VALUE '6'.
+             88 AI-MANAGEMENT     VALUE '7'.
+
+      *----------------------------------------------------------------*
+      * AI Integration Status Variables
+      * These variables track the status of the integrated AI model
+      * and its last activity, providing contextual information to
+      * the user.
+      *----------------------------------------------------------------*
+       01 WS-AI-STATUS-AREA.
+          05 WS-AI-MODEL-STATUS   PIC X(10) VALUE 'UNKNOWN'. *> READY, TRAINING, ERROR, UNKNOWN
+             88 AI-MODEL-READY     VALUE 'READY'.
+             88 AI-MODEL-TRAINING  VALUE 'TRAINING'.
+             88 AI-MODEL-ERROR     VALUE 'ERROR'.
+          05 WS-AI-LAST-UPDATE    PIC X(08) VALUE '00000000'. *> YYYYMMDD
+          05 WS-AI-ADVICE-MSG     PIC X(80) VALUE SPACES.
+          05 WS-AI-SUB-CHOICE     PIC X(01).
+             88 RETRAIN-AI        VALUE '1'.
+             88 CHECK-AI-STATUS   VALUE '2'.
+             88 RETURN-TO-FX-MENU VALUE 'R'.
+
+      *----------------------------------------------------------------*
+      * General Display Variables
+      * Used for formatting and displaying messages to the user.
+      *----------------------------------------------------------------*
+       01 WS-DISPLAY-MESSAGE     PIC X(80) VALUE SPACES.
+       01 WS-SCREEN-LINE         PIC X(80) VALUE SPACES.
+       01 WS-CURRENT-DATE-FORMATTED.
+          05 WS-CURRENT-YEAR     PIC 9(04).
+          05 FILLER              PIC X(01) VALUE '-'.
+          05 WS-CURRENT-MONTH    PIC 9(02).
+          05 FILLER              PIC X(01) VALUE '-'.
+          05 WS-CURRENT-DAY      PIC 9(02).
+
+
+       PROCEDURE DIVISION.
+       MAIN-LOGIC.
+           *> Initialize AI status on program start
+           MOVE "READY" TO WS-AI-MODEL-STATUS.
+           MOVE FUNCTION CURRENT-DATE(1:8) TO WS-AI-LAST-UPDATE.
+           PERFORM 1000-CONTROL-LOOP UNTIL EXIT-FX-MENU.
+           GOBACK.
+
+      ******************************************************************
+      * 1000-CONTROL-LOOP: Main program loop. This paragraph orchestrates
+      *                    the display of the main FX menu, accepts
+      *                    user input, and dispatches control to
+      *                    appropriate sub-modules or paragraphs.
+      ******************************************************************
+       1000-CONTROL-LOOP.
+           PERFORM 1100-DISPLAY-MENU.
+           PERFORM 1200-ACCEPT-CHOICE.
+           PERFORM 1300-PROCESS-CHOICE.
+
+      ******************************************************************
+      * 1100-DISPLAY-MENU: Displays the Foreign Exchange System menu
+      *                    with options for transactions, data access,
+      *                    and AI-driven insights.
+      ******************************************************************
+       1100-DISPLAY-MENU.
+           DISPLAY " ".
+           DISPLAY "*************************************************".
+           DISPLAY "*     AI-ENHANCED FOREIGN EXCHANGE SYSTEM       *".
+           DISPLAY "*       (FXS - INTELLIGENT TRADING PORTAL)      *".
+           DISPLAY "*************************************************".
+           DISPLAY "*                                               *".
+           DISPLAY "*   1. Get Live FX Rates                        *".
+           DISPLAY "*   2. Execute FX Buy Order                     *".
+           DISPLAY "*   3. Execute FX Sell Order                    *".
+           DISPLAY "*   4. View Historical FX Data                  *".
+           DISPLAY "*   5. Analyze Predictive FX Trends             *".
+           DISPLAY "*   6. Invoke AI Strategic Advisor              *".
+           DISPLAY "*   7. AI Model Management (Retrain/Status)     *".
+           DISPLAY "*                                               *".
+           DISPLAY "*   X. Exit to Main Application Menu            *".
+           DISPLAY "*************************************************".
+
+           MOVE WS-AI-LAST-UPDATE(1:4) TO WS-CURRENT-YEAR.
+           MOVE WS-AI-LAST-UPDATE(5:2) TO WS-CURRENT-MONTH.
+           MOVE WS-AI-LAST-UPDATE(7:2) TO WS-CURRENT-DAY.
+
+           STRING "AI Model Status: " WS-AI-MODEL-STATUS
+                  " Last Update: " WS-CURRENT-DATE-FORMATTED
+                  DELIMITED BY SIZE INTO WS-DISPLAY-MESSAGE.
+           DISPLAY WS-DISPLAY-MESSAGE.
+           DISPLAY " ".
+
+      ******************************************************************
+      * 1200-ACCEPT-CHOICE: Prompts the user for their menu selection
+      *                     and stores the input.
+      ******************************************************************
+       1200-ACCEPT-CHOICE.
+           DISPLAY "Enter your choice: " WITH NO ADVANCING.
+           ACCEPT WS-USER-CHOICE.
+           MOVE FUNCTION UPPER-CASE(WS-USER-CHOICE) TO WS-USER-CHOICE.
+
+      ******************************************************************
+      * 1300-PROCESS-CHOICE: Evaluates the user's selection and calls
+      *                      the corresponding processing paragraph
+      *                      or sub-program.
+      ******************************************************************
+       1300-PROCESS-CHOICE.
+           EVALUATE TRUE
+               WHEN DISPLAY-RATES
+                   PERFORM 2000-GET-LIVE-RATES
+               WHEN EXECUTE-BUY
+                   PERFORM 3000-EXECUTE-FX-BUY
+               WHEN EXECUTE-SELL
+                   PERFORM 4000-EXECUTE-FX-SELL
+               WHEN VIEW-HISTORY
+                   PERFORM 5000-VIEW-HISTORY-DATA
+               WHEN GET-TRENDS
+                   PERFORM 6000-ANALYZE-FX-TRENDS
+               WHEN INVOKE-AI-ADVISOR
+                   PERFORM 7000-INVOKE-AI-ADVISOR
+               WHEN AI-MANAGEMENT
+                   PERFORM 8000-AI-MODEL-MANAGEMENT
+               WHEN EXIT-FX-MENU
+                   DISPLAY "RETURNING TO MAIN APPLICATION MENU..."
+               WHEN OTHER
+                   DISPLAY "INVALID SELECTION. Please review options and try again."
+           END-EVALUATE.
+           DISPLAY " ". *> Add a blank line for better readability between cycles.
+
+      ******************************************************************
+      * 2000-GET-LIVE-RATES: Calls the `FXRATE` sub-program to fetch
+      *                      and display real-time foreign exchange rates.
+      *                      It might pass AI model status for context.
+      ******************************************************************
+       2000-GET-LIVE-RATES.
+           DISPLAY "Fetching live FX rates using market data feeds...".
+           *> Assuming FXRATE might use AI status for enriched display
+           CALL "FXRATE" USING WS-AI-MODEL-STATUS.
+           DISPLAY "Live rates display initiated.".
+
+      ******************************************************************
+      * 3000-EXECUTE-FX-BUY: Calls the `FXBUY` sub-program to guide
+      *                      the user through executing a buy order.
+      ******************************************************************
+       3000-EXECUTE-FX-BUY.
+           DISPLAY "Initiating FX buy order process. Preparing transaction module...".
+           CALL "FXBUY".
+           DISPLAY "FX Buy process concluded. Check transaction log for details.".
+
+      ******************************************************************
+      * 4000-EXECUTE-FX-SELL: Calls the `FXSELL` sub-program to guide
+      *                       the user through executing a sell order.
+      ******************************************************************
+       4000-EXECUTE-FX-SELL.
+           DISPLAY "Initiating FX sell order process. Preparing transaction module...".
+           CALL "FXSELL".
+           DISPLAY "FX Sell process concluded. Check transaction log for details.".
+
+      ******************************************************************
+      * 5000-VIEW-HISTORY-DATA: Calls the `FXHISTORY` sub-program to
+      *                         access and display historical foreign
+      *                         exchange rate data.
+      ******************************************************************
+       5000-VIEW-HISTORY-DATA.
+           DISPLAY "Accessing extensive historical FX data archive...".
+           CALL "FXHISTORY". *> New hypothetical subprogram
+           DISPLAY "Historical data view initiated. Please review presented data.".
+
+      ******************************************************************
+      * 6000-ANALYZE-FX-TRENDS: Calls the `FXTREND` sub-program, which
+      *                         leverages AI to provide predictive
+      *                         analysis and potential future trends.
+      ******************************************************************
+       6000-ANALYZE-FX-TRENDS.
+           DISPLAY "Consulting AI for predictive FX trends and market indicators...".
+           IF AI-MODEL-READY
+               CALL "FXTREND" USING WS-AI-ADVICE-MSG
+               DISPLAY "AI Trend Analysis Result: "
+               DISPLAY WS-AI-ADVICE-MSG
+           ELSE
+               DISPLAY "AI model not ready for trend analysis. Status: "
+                       WS-AI-MODEL-STATUS
+               DISPLAY "Please check AI Model Management for details."
+           END-IF.
+           DISPLAY "Predictive trend analysis concluded.".
+
+      ******************************************************************
+      * 7000-INVOKE-AI-ADVISOR: Calls the `AIADVISOR` sub-program for
+      *                         personalized AI-driven strategic advice
+      *                         on FX trading based on current market
+      *                         conditions and user preferences.
+      ******************************************************************
+       7000-INVOKE-AI-ADVISOR.
+           DISPLAY "Invoking AI Strategic Advisor for personalized guidance...".
+           IF AI-MODEL-READY
+               CALL "AIADVISOR" USING WS-AI-ADVICE-MSG
+               DISPLAY "AI Strategic Advice: "
+               DISPLAY WS-AI-ADVICE-MSG
+           ELSE
+               DISPLAY "AI Strategic Advisor not available. Model status: "
+                       WS-AI-MODEL-STATUS
+               DISPLAY "Please ensure the AI model is ready."
+           END-IF.
+           DISPLAY "AI Advisor session ended. Consider the insights wisely.".
+
+      ******************************************************************
+      * 8000-AI-MODEL-MANAGEMENT: Provides a sub-menu for managing the
+      *                           AI model, including options to retrain
+      *                           it or check its current status.
+      ******************************************************************
+       8000-AI-MODEL-MANAGEMENT.
+           DISPLAY " ".
+           DISPLAY "*************************************************".
+           DISPLAY "*        AI MODEL MANAGEMENT                    *".
+           DISPLAY "*************************************************".
+           DISPLAY "*   1. Retrain AI Model                         *".
+           DISPLAY "*   2. Check AI Model Status                    *".
+           DISPLAY "*   R. Return to FX Menu                        *".
+           DISPLAY "*************************************************".
+           DISPLAY "Enter AI Management choice: " WITH NO ADVANCING.
+           ACCEPT WS-AI-SUB-CHOICE.
+           MOVE FUNCTION UPPER-CASE(WS-AI-SUB-CHOICE) TO WS-AI-SUB-CHOICE.
+
+           EVALUATE TRUE
+               WHEN RETRAIN-AI
+                   DISPLAY "Initiating AI Model retraining process. This may take some time..."
+                   MOVE "TRAINING" TO WS-AI-MODEL-STATUS
+                   CALL "AITRAIN" *> New hypothetical subprogram for AI training
+                   MOVE "READY" TO WS-AI-MODEL-STATUS
+                   MOVE FUNCTION CURRENT-DATE(1:8) TO WS-AI-LAST-UPDATE
+                   MOVE WS-AI-LAST-UPDATE(1:4) TO WS-CURRENT-YEAR
+                   MOVE WS-AI-LAST-UPDATE(5:2) TO WS-CURRENT-MONTH
+                   MOVE WS-AI-LAST-UPDATE(7:2) TO WS-CURRENT-DAY
+                   STRING "AI Model retraining complete. Model is now "
+                          WS-AI-MODEL-STATUS ". Last updated: "
+                          WS-CURRENT-DATE-FORMATTED
+                          DELIMITED BY SIZE INTO WS-DISPLAY-MESSAGE
+                   DISPLAY WS-DISPLAY-MESSAGE
+               WHEN CHECK-AI-STATUS
+                   MOVE WS-AI-LAST-UPDATE(1:4) TO WS-CURRENT-YEAR
+                   MOVE WS-AI-LAST-UPDATE(5:2) TO WS-CURRENT-MONTH
+                   MOVE WS-AI-LAST-UPDATE(7:2) TO WS-CURRENT-DAY
+                   DISPLAY "Current AI Model Status: " WS-AI-MODEL-STATUS
+                   DISPLAY "Last Model Update: " WS-CURRENT-DATE-FORMATTED
+               WHEN RETURN-TO-FX-MENU
+                   DISPLAY "Returning to Foreign Exchange System menu..."
+               WHEN OTHER
+                   DISPLAY "Invalid AI Management selection. Please try again."
+           END-EVALUATE.
+           DISPLAY " ".

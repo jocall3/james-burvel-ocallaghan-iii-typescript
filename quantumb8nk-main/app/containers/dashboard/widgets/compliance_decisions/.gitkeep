@@ -1,0 +1,976 @@
+export const bUrl = 'citibankdemobusiness.dev';
+export const compName = 'Citibank demo business Inc';
+
+export const genRndStr = (len) => {
+    let res = '';
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    for (let i = 0; i < len; i++) {
+        res += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return res;
+};
+
+export const genRndInt = (min, max) => {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+};
+
+export const createTmStmp = () => {
+    return new Date().toISOString();
+};
+
+export class NetHdlr {
+    constructor(cfg) {
+        this.cfg = cfg || {};
+        this.tmout = this.cfg.tmout || 5000;
+        this.retries = this.cfg.retries || 3;
+    }
+
+    async rqst(mthd, url, body, hdrs) {
+        let attempts = 0;
+        while (attempts < this.retries) {
+            try {
+                const prms = {
+                    method: mthd,
+                    headers: { 'Content-Type': 'application/json', ...hdrs },
+                    body: body ? JSON.stringify(body) : null,
+                };
+                const rsp = await this.simHttp(url, prms);
+                if (rsp.stts >= 200 && rsp.stts < 300) {
+                    return rsp.bdy;
+                } else {
+                    throw new Error(`HTTP_ERR_${rsp.stts}`);
+                }
+            } catch (e) {
+                attempts++;
+                if (attempts >= this.retries) {
+                    throw e;
+                }
+                await new Promise(res => setTimeout(res, 1000 * attempts));
+            }
+        }
+    }
+
+    async simHttp(url, prms) {
+        return new Promise(res => setTimeout(() => {
+            const isSuccess = Math.random() > 0.1;
+            if (isSuccess) {
+                res({
+                    stts: 200,
+                    bdy: {
+                        rqstId: `req_${genRndStr(16)}`,
+                        data: {
+                            msg: `Success for ${prms.method} to ${url}`,
+                            ts: createTmStmp(),
+                        },
+                        v: '1.0'
+                    }
+                });
+            } else {
+                res({
+                    stts: 503,
+                    bdy: {
+                        error: {
+                            code: 'SRVC_UNAVL',
+                            msg: 'Service temporarily unavailable'
+                        }
+                    }
+                });
+            }
+        }, genRndInt(50, 500)));
+    }
+
+    async get(url, hdrs) {
+        return this.rqst('GET', url, null, hdrs);
+    }
+
+    async post(url, body, hdrs) {
+        return this.rqst('POST', url, body, hdrs);
+    }
+
+    async put(url, body, hdrs) {
+        return this.rqst('PUT', url, body, hdrs);
+    }
+
+    async del(url, hdrs) {
+        return this.rqst('DELETE', url, null, hdrs);
+    }
+}
+
+export const srvcCfgs = {
+    gemini: { url: `https://api.gemini.com/v1`, key: genRndStr(32) },
+    chatgpt: { url: `https://api.openai.com/v1`, key: `sk-${genRndStr(48)}` },
+    pipedream: { url: `https://api.pipedream.com/v1`, key: genRndStr(32) },
+    github: { url: `https://api.github.com`, key: `ghp_${genRndStr(36)}` },
+    huggingface: { url: `https://api-inference.huggingface.co`, key: `hf_${genRndStr(34)}` },
+    plaid: { url: `https://production.plaid.com`, key: genRndStr(30) },
+    moderntreasury: { url: `https://app.moderntreasury.com/api`, key: genRndStr(32) },
+    googledrive: { url: `https://www.googleapis.com/drive/v3`, key: genRndStr(40) },
+    onedrive: { url: `https://graph.microsoft.com/v1.0/me/drive`, key: genRndStr(40) },
+    azure: { url: `https://management.azure.com`, key: genRndStr(40) },
+    googlecloud: { url: `https://cloud.googleapis.com`, key: genRndStr(40) },
+    supabase: { url: `https://${genRndStr(12)}.supabase.co`, key: genRndStr(160) },
+    vercel: { url: `https://api.vercel.com`, key: genRndStr(24) },
+    salesforce: { url: `https://${genRndStr(10)}.my.salesforce.com`, key: genRndStr(40) },
+    oracle: { url: `https://api.oraclecloud.com`, key: genRndStr(40) },
+    marqeta: { url: `https://api.marqeta.com/v3`, key: genRndStr(36) },
+    citibank: { url: `https://api.citi.com`, key: genRndStr(32) },
+    shopify: { url: `https://${genRndStr(12)}.myshopify.com/admin/api/2023-04`, key: `shpat_${genRndStr(40)}` },
+    woocommerce: { url: `https://example.com/wp-json/wc/v3`, key: `ck_${genRndStr(20)}` },
+    godaddy: { url: `https://api.godaddy.com/v1`, key: `sso-key ${genRndStr(20)}:${genRndStr(20)}` },
+    cpanel: { url: `https://example.com:2083/execute`, key: `cpanel ${genRndStr(8)}:${genRndStr(22)}` },
+    adobe: { url: `https://ims-na1.adobelogin.com`, key: genRndStr(32) },
+    twilio: { url: `https://api.twilio.com/2010-04-01`, key: `AC${genRndStr(32)}` },
+    stripe: { url: `https://api.stripe.com/v1`, key: `sk_live_${genRndStr(24)}` },
+    adyen: { url: `https://checkout-live.adyen.com/v67`, key: genRndStr(64) },
+    braintree: { url: `https://api.braintreegateway.com`, key: genRndStr(32) },
+    paypal: { url: `https://api.paypal.com/v1`, key: genRndStr(80) },
+    hubspot: { url: `https://api.hubapi.com`, key: genRndStr(36) },
+    zoho: { url: `https://www.zohoapis.com/crm/v2`, key: genRndStr(32) },
+    sendgrid: { url: `https://api.sendgrid.com/v3`, key: `SG.${genRndStr(22)}.${genRndStr(43)}` },
+    mailgun: { url: `https://api.mailgun.net/v3`, key: `key-${genRndStr(32)}` },
+    circleci: { url: `https://circleci.com/api/v2`, key: genRndStr(40) },
+    jenkins: { url: `https://jenkins.example.com/api/json`, key: `${genRndStr(10)}:${genRndStr(32)}` },
+    datadog: { url: `https://api.datadoghq.com`, key: genRndStr(32) },
+    sentry: { url: `https://sentry.io/api/0`, key: genRndStr(64) },
+    mongodb: { url: `mongodb+srv://${genRndStr(12)}:${genRndStr(24)}@cluster0.mongodb.net/`, key: 'db_conn_str' },
+    redis: { url: `redis://:${genRndStr(32)}@redis-12345.c1.us-east-1-2.ec2.cloud.redislabs.com:12345`, key: 'redis_uri' },
+    postgresql: { url: `postgresql://user:${genRndStr(16)}@host:port/db`, key: 'psql_uri' },
+    slack: { url: `https://slack.com/api`, key: `xoxb-${genRndStr(24)}-${genRndStr(24)}-${genRndStr(24)}` },
+    jira: { url: `https://${genRndStr(10)}.atlassian.net/rest/api/3`, key: `Basic ${btoa(genRndStr(20) + ':' + genRndStr(24))}` },
+    asana: { url: `https://app.asana.com/api/1.0`, key: `1/${genRndStr(24)}:${genRndStr(32)}` },
+    trello: { url: `https://api.trello.com/1`, key: genRndStr(32) },
+    aws: { url: `https://*.amazonaws.com`, key: `AKIA${genRndStr(16)}` },
+    digitalocean: { url: `https://api.digitalocean.com/v2`, key: `dop_v1_${genRndStr(64)}` },
+    linode: { url: `https://api.linode.com/v4`, key: genRndStr(64) },
+    cloudflare: { url: `https://api.cloudflare.com/client/v4`, key: genRndStr(40) },
+    fastly: { url: `https://api.fastly.com`, key: genRndStr(32) },
+    docusign: { url: `https://demo.docusign.net/restapi`, key: genRndStr(128) },
+    dropbox: { url: `https://api.dropboxapi.com/2`, key: `sl.${genRndStr(135)}` },
+    box: { url: `https://api.box.com/2.0`, key: genRndStr(32) },
+    zoom: { url: `https://api.zoom.us/v2`, key: genRndStr(128) },
+    discord: { url: `https://discord.com/api/v10`, key: `Bot ${genRndStr(72)}` },
+    telegram: { url: `https://api.telegram.org/bot${genRndStr(9)}:${genRndStr(35)}`, key: 'bot_token' },
+    whatsapp: { url: `https://graph.facebook.com/v17.0`, key: genRndStr(128) },
+    mixpanel: { url: `https://api.mixpanel.com`, key: genRndStr(32) },
+    segment: { url: `https://api.segment.io/v1`, key: genRndStr(32) },
+    amplitude: { url: `https://api.amplitude.com`, key: genRndStr(32) },
+    launchdarkly: { url: `https://app.launchdarkly.com/api/v2`, key: `api-${genRndStr(32)}` },
+    auth0: { url: `https://${genRndStr(12)}.auth0.com/api/v2`, key: genRndStr(32) },
+    okta: { url: `https://${genRndStr(12)}.okta.com/api/v1`, key: `SSWS ${genRndStr(42)}` },
+    intercom: { url: `https://api.intercom.io`, key: `dG9rOj_${genRndStr(60)}` },
+    zendesk: { url: `https://${genRndStr(10)}.zendesk.com/api/v2`, key: `${genRndStr(20)}/token:${genRndStr(32)}` },
+    freshdesk: { url: `https://${genRndStr(10)}.freshdesk.com/api/v2`, key: genRndStr(24) },
+    algolia: { url: `https://${genRndStr(8)}-dsn.algolia.net/1`, key: genRndStr(32) },
+    elasticsearch: { url: `https://${genRndStr(12)}.elastic-cloud.com:9243`, key: genRndStr(24) },
+    splunk: { url: `https://api.splunk.com`, key: genRndStr(32) },
+    newrelic: { url: `https://api.newrelic.com/v2`, key: `NRAK-${genRndStr(27)}` },
+    pagerduty: { url: `https://api.pagerduty.com`, key: `Token token=${genRndStr(20)}` },
+    github_actions: { url: `https://api.github.com/actions`, key: `v1.${genRndStr(36)}` },
+    gitlab: { url: `https://gitlab.com/api/v4`, key: `glpat-${genRndStr(20)}` },
+    bitbucket: { url: `https://api.bitbucket.org/2.0`, key: genRndStr(24) },
+    dockerhub: { url: `https://hub.docker.com/v2`, key: `dckr_pat_${genRndStr(24)}` },
+    kubernetes: { url: `https://kube.example.com`, key: 'token' },
+    terraform_cloud: { url: `https://app.terraform.io/api/v2`, key: genRndStr(20) },
+    ansible_tower: { url: `https://tower.example.com/api/v2`, key: genRndStr(40) },
+    chef_automate: { url: `https://automate.example.com`, key: genRndStr(64) },
+    puppet_enterprise: { url: `https://puppet.example.com:8140`, key: genRndStr(128) },
+    snowflake: { url: `https://${genRndStr(8)}.snowflakecomputing.com`, key: genRndStr(200) },
+    databricks: { url: `https://${genRndStr(10)}.cloud.databricks.com`, key: `dapi${genRndStr(32)}` },
+    tableau: { url: `https://10ax.online.tableau.com/api/3.19`, key: genRndStr(24) },
+    powerbi: { url: `https://api.powerbi.com/v1.0/myorg`, key: genRndStr(128) },
+    looker: { url: `https://${genRndStr(10)}.looker.com:19999`, key: genRndStr(32) },
+    dbt_cloud: { url: `https://cloud.getdbt.com`, key: `dbtc_${genRndStr(32)}` },
+    fivetran: { url: `https://api.fivetran.com/v1`, key: genRndStr(28) },
+    stitch: { url: `https://api.stitchdata.com/v4`, key: genRndStr(32) },
+    airbyte: { url: `https://api.airbyte.com/v1`, key: genRndStr(24) },
+    confluent_cloud: { url: `https://pkc-${genRndStr(5)}.region.provider.confluent.cloud:9092`, key: genRndStr(16) },
+    apache_kafka: { url: `kafka.example.com:9092`, key: 'conn_string' },
+    rabbitmq: { url: `amqp://user:pass@host:5672`, key: 'conn_string' },
+    google_analytics: { url: `https://analyticsdata.googleapis.com/v1beta`, key: genRndStr(40) },
+    facebook_ads: { url: `https://graph.facebook.com/v17.0`, key: genRndStr(128) },
+    linkedin_ads: { url: `https://api.linkedin.com/v2`, key: genRndStr(128) },
+    twitter_ads: { url: `https://ads-api.twitter.com/12`, key: genRndStr(40) },
+    tiktok_ads: { url: `https://business-api.tiktok.com/open_api/v1.3`, key: genRndStr(32) },
+    snapchat_ads: { url: `https://adsapi.snapchat.com/v1`, key: genRndStr(32) },
+    pinterest_ads: { url: `https://api.pinterest.com/v5`, key: genRndStr(128) },
+    reddit_ads: { url: `https://ads-api.reddit.com`, key: genRndStr(128) },
+    mailchimp: { url: `https://${genRndStr(4)}.api.mailchimp.com/3.0`, key: genRndStr(32) },
+    constantcontact: { url: `https://api.cc.email/v3`, key: genRndStr(32) },
+    sendinblue: { url: `https://api.sendinblue.com/v3`, key: `xkeysib-${genRndStr(64)}` },
+    getresponse: { url: `https://api.getresponse.com/v3`, key: genRndStr(32) },
+    activecampaign: { url: `https://${genRndStr(10)}.api-us1.com/api/3`, key: genRndStr(80) },
+    quickbooks: { url: `https://quickbooks.api.intuit.com/v3`, key: genRndStr(128) },
+    xero: { url: `https://api.xero.com/api.xro/2.0`, key: genRndStr(128) },
+    freshbooks: { url: `https://api.freshbooks.com`, key: genRndStr(32) },
+    wave: { url: `https://gql.waveapps.com/graphql/public`, key: genRndStr(128) },
+    netsuite: { url: `https://${genRndStr(8)}.suitetalk.api.netsuite.com`, key: 'token' },
+    sap: { url: `https://api.sap.com`, key: genRndStr(32) },
+    workday: { url: `https://wd2-impl-services1.workday.com`, key: 'token' },
+    bamboohr: { url: `https://api.bamboohr.com/api/gateway.php`, key: genRndStr(40) },
+    gusto: { url: `https://api.gusto.com/v1`, key: genRndStr(32) },
+    rippling: { url: `https://api.rippling.com/platform/api`, key: genRndStr(32) },
+    avalara: { url: `https://rest.avatax.com/api/v2`, key: 'token' },
+    taxjar: { url: `https://api.taxjar.com/v2`, key: genRndStr(40) },
+    shippo: { url: `https://api.goshippo.com`, key: `shippo_live_${genRndStr(32)}` },
+    easypost: { url: `https://api.easypost.com/v2`, key: `EZAK${genRndStr(58)}` },
+    fedex: { url: `https://apis.fedex.com`, key: genRndStr(32) },
+    ups: { url: `https://www.ups.com/ups.app/xml`, key: genRndStr(32) },
+    dhl: { url: `https://xmlpitest-ea.dhl.com/XMLShippingServlet`, key: genRndStr(32) },
+    usps: { url: `https://secure.shippingapis.com/ShippingAPI.dll`, key: 'token' },
+    canadapost: { url: `https://soa-gw.canadapost.ca`, key: 'token' },
+    royalmail: { url: `https://api.royalmail.com`, key: 'token' },
+    yotpo: { url: `https://api.yotpo.com`, key: genRndStr(24) },
+    trustpilot: { url: `https://api.trustpilot.com/v1`, key: genRndStr(24) },
+    gorgias: { url: `https://${genRndStr(10)}.gorgias.com/api`, key: 'token' },
+    recharge: { url: `https://api.rechargeapps.com`, key: `sk_${genRndStr(32)}` },
+    klaviyo: { url: `https://a.klaviyo.com/api`, key: `pk_${genRndStr(22)}` },
+    attentive: { url: `https://api.attentivemobile.com/v1`, key: genRndStr(32) },
+    postscript: { url: `https://api.postscript.io`, key: `psk_${genRndStr(32)}` },
+    webflow: { url: `https://api.webflow.com`, key: genRndStr(64) },
+    contentful: { url: `https://api.contentful.com`, key: `CFPAT-${genRndStr(59)}` },
+    sanity: { url: `https://${genRndStr(8)}.api.sanity.io/v2021-03-25`, key: `sk${genRndStr(78)}` },
+    strapi: { url: `https://strapi.example.com/api`, key: genRndStr(24) },
+    wordpress: { url: `https://public-api.wordpress.com/rest/v1.1`, key: 'token' },
+    magento: { url: `https://magento.example.com/rest/V1`, key: genRndStr(32) },
+    bigcommerce: { url: `https://api.bigcommerce.com/stores/${genRndStr(8)}/v3`, key: genRndStr(32) },
+    squarespace: { url: `https://api.squarespace.com/1.0`, key: genRndStr(32) },
+    wix: { url: `https://www.wixapis.com`, key: 'token' },
+    eventbrite: { url: `https://www.eventbriteapi.com/v3`, key: genRndStr(16) },
+    meetup: { url: `https://api.meetup.com`, key: genRndStr(32) },
+    calendly: { url: `https://api.calendly.com`, key: genRndStr(64) },
+    doodle: { url: `https://api.doodle.com/v1.0`, key: 'token' },
+    surveymonkey: { url: `https://api.surveymonkey.com/v3`, key: 'token' },
+    typeform: { url: `https://api.typeform.com`, key: `tfp_${genRndStr(20)}-${genRndStr(20)}` },
+    airtable: { url: `https://api.airtable.com/v0`, key: `key${genRndStr(14)}` },
+    notion: { url: `https://api.notion.com/v1`, key: `secret_${genRndStr(43)}` },
+    clickup: { url: `https://api.clickup.com/api/v2`, key: `pk_${genRndStr(7)}_${genRndStr(24)}` },
+    monday: { url: `https://api.monday.com/v2`, key: genRndStr(128) },
+    smartsheet: { url: `https://api.smartsheet.com/2.0`, key: genRndStr(24) },
+    zapier: { url: `https://nla.zapier.com`, key: genRndStr(32) },
+    integromat: { url: `https://api.integromat.com/v1`, key: 'token' },
+    workato: { url: `https://www.workato.com/api`, key: 'token' },
+    mulesoft: { url: `https://anypoint.mulesoft.com/api`, key: 'token' },
+    heap: { url: `https://heapanalytics.com/api`, key: genRndStr(10) },
+    fullstory: { url: `https://api.fullstory.com`, key: genRndStr(24) },
+    hotjar: { url: `https://api.hotjar.com`, key: 'token' },
+    optimizely: { url: `https://api.optimizely.com/v2`, key: 'token' },
+    vwo: { url: `https://app.vwo.com/api`, key: 'token' },
+    clearbit: { url: `https://person.clearbit.com/v2`, key: `sk_${genRndStr(32)}` },
+    hunter: { url: `https://api.hunter.io/v2`, key: genRndStr(40) },
+    zoominfo: { url: `https://api.zoominfo.com`, key: 'token' },
+    crunchbase: { url: `https://api.crunchbase.com/v4`, key: genRndStr(32) },
+    pitchbook: { url: `https://api.pitchbook.com`, key: 'token' },
+    owlr: { url: `https://api.owler.com/v1`, key: 'token' },
+    stockx: { url: `https://api.stockx.com/v2`, key: 'token' },
+    coinbase: { url: `https://api.coinbase.com/v2`, key: 'token' },
+    binance: { url: `https://api.binance.com/api/v3`, key: genRndStr(64) },
+    kraken: { url: `https://api.kraken.com/0`, key: genRndStr(88) },
+    kucoin: { url: `https://api.kucoin.com`, key: genRndStr(24) },
+    ftx: { url: `https://ftx.com/api`, key: genRndStr(32) },
+    etherscan: { url: `https://api.etherscan.io/api`, key: genRndStr(34) },
+    polygonscan: { url: `https://api.polygonscan.com/api`, key: genRndStr(34) },
+    bscscan: { url: `https://api.bscscan.com/api`, key: genRndStr(34) },
+    infura: { url: `https://mainnet.infura.io/v3`, key: genRndStr(32) },
+    alchemy: { url: `https://eth-mainnet.g.alchemy.com/v2`, key: `_${genRndStr(31)}` },
+    moralis: { url: `https://deep-index.moralis.io/api/v2`, key: genRndStr(64) },
+    chainlink: { url: `https://api.chain.link`, key: 'token' },
+    thegraph: { url: `https://api.thegraph.com/v1`, key: 'token' },
+    opensea: { url: `https://api.opensea.io/api/v1`, key: genRndStr(32) },
+    rarible: { url: `https://api.rarible.org/v0.1`, key: 'token' },
+    superrare: { url: `https://api.superrare.com`, key: 'token' },
+    foundation: { url: `https://api.foundation.app`, key: 'token' },
+    zora: { url: `https://api.zora.co`, key: 'token' },
+    uniswap: { url: `https://api.uniswap.org`, key: 'token' },
+    sushiswap: { url: `https://api.sushiswap.fi`, key: 'token' },
+    pancakeswap: { url: `https://api.pancakeswap.info/api/v2`, key: 'token' },
+    aave: { url: `https://aave-api-v2.aave.com`, key: 'token' },
+    compound: { url: `https://api.compound.finance/api/v2`, key: 'token' },
+    makerdao: { url: `https://api.makerdao.com`, key: 'token' },
+    yearn: { url: `https://api.yearn.finance`, key: 'token' },
+    curve: { url: `https://api.curve.fi`, key: 'token' },
+    balancer: { url: `https://api.balancer.fi`, key: 'token' },
+    filecoin: { url: `https://api.filecoin.io`, key: 'token' },
+    ipfs: { url: `https://dweb.link`, key: 'gateway' },
+    arweave: { url: `https://arweave.net`, key: 'gateway' },
+    storj: { url: `https://api.storj.io`, key: 'token' },
+    siacoin: { url: `https://sia.tech/api`, key: 'token' },
+    bittorrent: { url: `https://api.bittorrent.com`, key: 'token' },
+    chainalysis: { url: `https://api.chainalysis.com`, key: 'token' },
+    elliptic: { url: `https://api.elliptic.co`, key: 'token' },
+    ciphertrace: { url: `https://api.ciphertrace.com`, key: 'token' },
+    trulioo: { url: `https://api.trulioo.com`, key: 'token' },
+    onfido: { url: `https://api.onfido.com/v3`, key: `api_live.${genRndStr(32)}` },
+    socure: { url: `https://api.socure.com`, key: 'token' },
+    jumio: { url: `https://api.jumio.com`, key: 'token' },
+    veriff: { url: `https://magic.veriff.me`, key: genRndStr(32) },
+    yodlee: { url: `https://api.yodlee.com`, key: 'token' },
+    finicity: { url: `https://api.finicity.com`, key: 'token' },
+    mx: { url: `https://api.mx.com`, key: 'token' },
+    fiserv: { url: `https://api.fiserv.com`, key: 'token' },
+    fis: { url: `https://api.fisglobal.com`, key: 'token' },
+    jackhenry: { url: `https://api.jackhenry.com`, key: 'token' },
+    experian: { url: `https://api.experian.com`, key: 'token' },
+    equifax: { url: `https://api.equifax.com`, key: 'token' },
+    transunion: { url: `https://api.transunion.com`, key: 'token' },
+    lexisnexis: { url: `https://api.lexisnexis.com`, key: 'token' },
+    thomsonreuters: { url: `https://api.thomsonreuters.com`, key: 'token' },
+    bloomberg: { url: `https://api.bloomberg.com`, key: 'token' },
+    factset: { url: `https://api.factset.com`, key: 'token' },
+    spglobal: { url: `https://api.spglobal.com`, key: 'token' },
+    moodys: { url: `https://api.moodys.com`, key: 'token' },
+    fitch: { url: `https://api.fitchratings.com`, key: 'token' },
+    morningstar: { url: `https://api.morningstar.com`, key: 'token' },
+    refinitiv: { url: `https://api.refinitiv.com`, key: 'token' },
+    ice: { url: `https://api.theice.com`, key: 'token' },
+    nasdaq: { url: `https://api.nasdaq.com`, key: 'token' },
+    nyse: { url: `https://api.nyse.com`, key: 'token' },
+    lseg: { url: `https://api.lseg.com`, key: 'token' },
+    deutscheboerse: { url: `https://api.deutsche-boerse.com`, key: 'token' },
+    euronext: { url: `https://api.euronext.com`, key: 'token' },
+    hkex: { url: `https://api.hkex.com.hk`, key: 'token' },
+    tse: { url: `https://api.jpx.co.jp`, key: 'token' },
+    sse: { url: `https://api.sse.com.cn`, key: 'token' },
+    nseindia: { url: `https://api.nseindia.com`, key: 'token' },
+    bseindia: { url: `https://api.bseindia.com`, key: 'token' },
+    swift: { url: `https://api.swift.com`, key: 'token' },
+    fedwire: { url: `https://api.federalreserve.gov`, key: 'token' },
+    chips: { url: `https://api.theclearinghouse.org`, key: 'token' },
+    sepa: { url: `https://api.europeanpaymentscouncil.eu`, key: 'token' },
+    bacs: { url: `https://api.bacs.co.uk`, key: 'token' },
+    chaps: { url: `https://api.bankofengland.co.uk`, key: 'token' },
+    fasterpayments: { url: `https://api.fasterpayments.org.uk`, key: 'token' },
+    interac: { url: `https://api.interac.ca`, key: 'token' },
+    visa: { url: `https://api.visa.com`, key: 'token' },
+    mastercard: { url: `https://api.mastercard.com`, key: 'token' },
+    amex: { url: `https://api.americanexpress.com`, key: 'token' },
+    discover: { url: `https://api.discover.com`, key: 'token' },
+    jcb: { url: `https://api.jcb.co.jp`, key: 'token' },
+    dinersclub: { url: `https://api.dinersclub.com`, key: 'token' },
+    unionpay: { url: `https://api.unionpayintl.com`, key: 'token' },
+    applepay: { url: `https://api.apple.com/pay`, key: 'token' },
+    googlepay: { url: `https://pay.google.com/apis`, key: 'token' },
+    samsungpay: { url: `https://api.samsung.com/pay`, key: 'token' },
+    alipay: { url: `https://global.alipay.com/api`, key: 'token' },
+    wechatpay: { url: `https://pay.weixin.qq.com/wiki`, key: 'token' },
+    paytm: { url: `https://developer.paytm.com/docs`, key: 'token' },
+    phonepe: { url: `https://developer.phonepe.com/v1`, key: 'token' },
+    upi: { url: `https://api.npci.org.in`, key: 'token' },
+    dwolla: { url: `https://api.dwolla.com`, key: 'token' },
+    verizon: { url: `https://api.verizon.com`, key: 'token' },
+    att: { url: `https://api.att.com`, key: 'token' },
+    tmobile: { url: `https://api.t-mobile.com`, key: 'token' },
+    sprint: { url: `https://api.sprint.com`, key: 'token' },
+    comcast: { url: `https://api.xfinity.com`, key: 'token' },
+    charter: { url: `https://api.spectrum.com`, key: 'token' },
+    cox: { url: `https://api.cox.com`, key: 'token' },
+    centurylink: { url: `https://api.centurylink.com`, key: 'token' },
+    walmart: { url: `https://developer.walmart.com`, key: 'token' },
+    amazon: { url: `https://sellingpartnerapi.amazon.com`, key: 'token' },
+    target: { url: `https://api.target.com`, key: 'token' },
+    bestbuy: { url: `https://api.bestbuy.com`, key: 'token' },
+    homedepot: { url: `https://api.homedepot.com`, key: 'token' },
+    lowes: { url: `https://api.lowes.com`, key: 'token' },
+    costco: { url: `https://api.costco.com`, key: 'token' },
+    kroger: { url: `https://api.kroger.com`, key: 'token' },
+    walgreens: { url: `https://api.walgreens.com`, key: 'token' },
+    cvs: { url: `https://api.cvs.com`, key: 'token' },
+    uber: { url: `https://api.uber.com`, key: 'token' },
+    lyft: { url: `https://api.lyft.com`, key: 'token' },
+    doordash: { url: `https://developer.doordash.com`, key: 'token' },
+    grubhub: { url: `https://api.grubhub.com`, key: 'token' },
+    instacart: { url: `https://api.instacart.com`, key: 'token' },
+    postmates: { url: `https://api.postmates.com`, key: 'token' },
+    airbnb: { url: `https://api.airbnb.com`, key: 'token' },
+    bookingcom: { url: `https://developers.booking.com`, key: 'token' },
+    expedia: { url: `https://developers.expediagroup.com`, key: 'token' },
+    tripadvisor: { url: `https://api.tripadvisor.com`, key: 'token' },
+    marriott: { url: `https://api.marriott.com`, key: 'token' },
+    hilton: { url: `https://api.hilton.com`, key: 'token' },
+    hyatt: { url: `https://api.hyatt.com`, key: 'token' },
+    ihg: { url: `https://api.ihg.com`, key: 'token' },
+    delta: { url: `https://api.delta.com`, key: 'token' },
+    united: { url: `https://api.united.com`, key: 'token' },
+    americanairlines: { url: `https://api.aa.com`, key: 'token' },
+    southwest: { url: `https://api.southwest.com`, key: 'token' },
+    lufthansa: { url: `https://api.lufthansa.com`, key: 'token' },
+    britishairways: { url: `https://api.ba.com`, key: 'token' },
+    emirates: { url: `https://api.emirates.com`, key: 'token' },
+    qatarairways: { url: `https://api.qatarairways.com`, key: 'token' },
+    hertz: { url: `https://api.hertz.com`, key: 'token' },
+    avis: { url: `https://api.avis.com`, key: 'token' },
+    enterprise: { url: `https://api.enterprise.com`, key: 'token' },
+    netflix: { url: `https://api.netflix.com`, key: 'token' },
+    disneyplus: { url: `https://api.disneyplus.com`, key: 'token' },
+    hbomax: { url: `https://api.hbomax.com`, key: 'token' },
+    hulu: { url: `https://api.hulu.com`, key: 'token' },
+    youtube: { url: `https://www.googleapis.com/youtube/v3`, key: 'token' },
+    spotify: { url: `https://api.spotify.com/v1`, key: 'token' },
+    applemusic: { url: `https://api.music.apple.com`, key: 'token' },
+    soundcloud: { url: `https://api.soundcloud.com`, key: 'token' },
+    pandora: { url: `https://api.pandora.com`, key: 'token' },
+    tidal: { url: `https://api.tidal.com`, key: 'token' },
+    twitch: { url: `https://api.twitch.tv/helix`, key: 'token' },
+    tiktok: { url: `https://open-api.tiktok.com`, key: 'token' },
+    instagram: { url: `https://graph.instagram.com`, key: 'token' },
+    facebook: { url: `https://graph.facebook.com`, key: 'token' },
+    twitter: { url: `https://api.twitter.com/2`, key: 'token' },
+    linkedin: { url: `https://api.linkedin.com/v2`, key: 'token' },
+    pinterest: { url: `https://api.pinterest.com/v5`, key: 'token' },
+    snapchat: { url: `https://kit.snapchat.com`, key: 'token' },
+    reddit: { url: `https://www.reddit.com/dev/api`, key: 'token' },
+    quora: { url: `https://api.quora.com`, key: 'token' },
+    medium: { url: `https://api.medium.com/v1`, key: 'token' },
+    stackoverflow: { url: `https://api.stackexchange.com/2.3`, key: 'token' },
+    foursquare: { url: `https://api.foursquare.com/v3`, key: 'token' },
+    yelp: { url: `https://api.yelp.com/v3`, key: 'token' },
+    googlemaps: { url: `https://maps.googleapis.com/maps/api`, key: 'token' },
+    mapbox: { url: `https://api.mapbox.com`, key: 'token' },
+    here: { url: `https://developer.here.com/documentation`, key: 'token' },
+    waze: { url: `https://www.waze.com/row-api`, key: 'token' },
+    weatherchannel: { url: `https://api.weather.com`, key: 'token' },
+    accuweather: { url: `https://dataservice.accuweather.com`, key: 'token' },
+    openweathermap: { url: `https://api.openweathermap.org/data/2.5`, key: 'token' },
+    who: { url: `https://api.who.int`, key: 'token' },
+    cdc: { url: `https://api.cdc.gov`, key: 'token' },
+    nih: { url: `https://api.nih.gov`, key: 'token' },
+    fda: { url: `https://api.fda.gov`, key: 'token' },
+    usagov: { url: `https://api.data.gov`, key: 'token' },
+    nasa: { url: `https://api.nasa.gov`, key: 'token' },
+    spacex: { url: `https://api.spacexdata.com/v4`, key: 'token' },
+    esa: { url: `https://api.esa.int`, key: 'token' },
+    cern: { url: `https://api.cern.ch`, key: 'token' },
+    mit: { url: `https://api.mit.edu`, key: 'token' },
+    stanford: { url: `https://api.stanford.edu`, key: 'token' },
+    harvard: { url: `https://api.harvard.edu`, key: 'token' },
+    oxford: { url: `https://api.ox.ac.uk`, key: 'token' },
+    cambridge: { url: `https://api.cam.ac.uk`, key: 'token' },
+    coursera: { url: `https://api.coursera.org`, key: 'token' },
+    edx: { url: `https://api.edx.org`, key: 'token' },
+    udacity: { url: `https://www.udacity.com/api`, key: 'token' },
+    udemy: { url: `https://www.udemy.com/api-2.0`, key: 'token' },
+    khanacademy: { url: `https://www.khanacademy.org/api`, key: 'token' },
+    wikipedia: { url: `https://en.wikipedia.org/w/api.php`, key: 'token' },
+    imdb: { url: `https://www.omdbapi.com`, key: 'token' },
+    tmdb: { url: `https://api.themoviedb.org/3`, key: 'token' },
+    rottentomatoes: { url: `https://api.rottentomatoes.com`, key: 'token' },
+    metacritic: { url: `https://api.metacritic.com`, key: 'token' },
+    ign: { url: `https://api.ign.com`, key: 'token' },
+    gamespot: { url: `https://api.gamespot.com`, key: 'token' },
+    polygon: { url: `https://api.polygon.com`, key: 'token' },
+    kotaku: { url: `https://api.kotaku.com`, key: 'token' },
+    steam: { url: `https://api.steampowered.com`, key: 'token' },
+    epicgames: { url: `https://api.epicgames.dev`, key: 'token' },
+    gog: { url: `https://api.gog.com`, key: 'token' },
+    playstation: { url: `https://api.playstation.com`, key: 'token' },
+    xbox: { url: `https://api.xbox.com`, key: 'token' },
+    nintendo: { url: `https://api.nintendo.com`, key: 'token' },
+    ea: { url: `https://api.ea.com`, key: 'token' },
+    ubisoft: { url: `https://api.ubisoft.com`, key: 'token' },
+    activisionblizzard: { url: `https://develop.battle.net`, key: 'token' },
+    riotgames: { url: `https://developer.riotgames.com`, key: 'token' },
+    take2: { url: `https://api.take2games.com`, key: 'token' },
+    sony: { url: `https://api.sony.com`, key: 'token' },
+    microsoft: { url: `https://graph.microsoft.com`, key: 'token' },
+    apple: { url: `https://developer.apple.com/documentation/appstoreconnectapi`, key: 'token' },
+    google: { url: `https://www.googleapis.com`, key: 'token' },
+    ibm: { url: `https://api.ibm.com`, key: 'token' },
+    intel: { url: `https://api.intel.com`, key: 'token' },
+    amd: { url: `https://api.amd.com`, key: 'token' },
+    nvidia: { url: `https://api.developer.nvidia.com`, key: 'token' },
+    qualcomm: { url: `https://api.qualcomm.com`, key: 'token' },
+    samsung: { url: `https://api.samsung.com`, key: 'token' },
+    lg: { url: `https://api.lg.com`, key: 'token' },
+    panasonic: { url: `https://api.panasonic.com`, key: 'token' },
+    toshiba: { url: `https://api.toshiba.com`, key: 'token' },
+    hitachi: { url: `https://api.hitachi.com`, key: 'token' },
+    nec: { url: `https://api.nec.com`, key: 'token' },
+    fujitsu: { url: `https://api.fujitsu.com`, key: 'token' },
+    dell: { url: `https://api.dell.com`, key: 'token' },
+    hp: { url: `https://api.hp.com`, key: 'token' },
+    lenovo: { url: `https://api.lenovo.com`, key: 'token' },
+    acer: { url: `https://api.acer.com`, key: 'token' },
+    asus: { url: `https://api.asus.com`, key: 'token' },
+    cisco: { url: `https://api.cisco.com`, key: 'token' },
+    juniper: { url: `https://api.juniper.net`, key: 'token' },
+    arista: { url: `https://api.arista.com`, key: 'token' },
+    vmware: { url: `https://developer.vmware.com`, key: 'token' },
+    redhat: { url: `https://api.redhat.com`, key: 'token' },
+    canonical: { url: `https://api.canonical.com`, key: 'token' },
+    suse: { url: `https://api.suse.com`, key: 'token' },
+    ford: { url: `https://api.ford.com`, key: 'token' },
+    gm: { url: `https://api.gm.com`, key: 'token' },
+    toyota: { url: `https://api.toyota.com`, key: 'token' },
+    honda: { url: `https://api.honda.com`, key: 'token' },
+    nissan: { url: `https://api.nissan.com`, key: 'token' },
+    volkswagen: { url: `https://api.vw.com`, key: 'token' },
+    bmw: { url: `https://api.bmwgroup.com`, key: 'token' },
+    mercedes: { url: `https://api.mercedes-benz.com`, key: 'token' },
+    tesla: { url: `https://owner-api.teslamotors.com`, key: 'token' },
+    rivian: { url: `https://api.rivian.com`, key: 'token' },
+    lucid: { url: `https://api.lucidmotors.com`, key: 'token' },
+    boeing: { url: `https://api.boeing.com`, key: 'token' },
+    airbus: { url: `https://api.airbus.com`, key: 'token' },
+    lockheedmartin: { url: `https://api.lockheedmartin.com`, key: 'token' },
+    northropgrumman: { url: `https://api.northropgrumman.com`, key: 'token' },
+    raytheon: { url: `https://api.rtx.com`, key: 'token' },
+    generalelectric: { url: `https://api.ge.com`, key: 'token' },
+    siemens: { url: `https://api.siemens.com`, key: 'token' },
+    bosch: { url: `https://api.bosch.com`, key: 'token' },
+    honeywell: { url: `https://api.honeywell.com`, key: 'token' },
+    abb: { url: `https://api.abb.com`, key: 'token' },
+    schneiderelectric: { url: `https://api.se.com`, key: 'token' },
+    exxonmobil: { url: `https://api.exxonmobil.com`, key: 'token' },
+    shell: { url: `https://api.shell.com`, key: 'token' },
+    bp: { url: `https://api.bp.com`, key: 'token' },
+    chevron: { url: `https://api.chevron.com`, key: 'token' },
+    totalenergies: { url: `https://api.totalenergies.com`, key: 'token' },
+    pfizer: { url: `https://api.pfizer.com`, key: 'token' },
+    jnj: { url: `https://api.jnj.com`, key: 'token' },
+    moderna: { url: `https://api.modernatx.com`, key: 'token' },
+    merck: { url: `https://api.merck.com`, key: 'token' },
+    roche: { url: `https://api.roche.com`, key: 'token' },
+    novartis: { url: `https://api.novartis.com`, key: 'token' },
+    gsk: { url: `https://api.gsk.com`, key: 'token' },
+    sanofi: { url: `https://api.sanofi.com`, key: 'token' },
+    astrazeneca: { url: `https://api.astrazeneca.com`, key: 'token' },
+    goldmansachs: { url: `https://developer.gs.com`, key: 'token' },
+    jpmorgan: { url: `https://developer.jpmorgan.com`, key: 'token' },
+    morganstanley: { url: `https://api.morganstanley.com`, key: 'token' },
+    bankofamerica: { url: `https://developer.bankofamerica.com`, key: 'token' },
+    wellsfargo: { url: `https://api.wellsfargo.com`, key: 'token' },
+    hsbc: { url: `https://developer.hsbc.com`, key: 'token' },
+    barclays: { url: `https://developer.barclays.com`, key: 'token' },
+    ubs: { url: `https://developer.ubs.com`, key: 'token' },
+    creditsuisse: { url: `https://developer.credit-suisse.com`, key: 'token' },
+    deutschebank: { url: `https://developer.db.com`, key: 'token' },
+    blackrock: { url: `https://api.blackrock.com`, key: 'token' },
+    vanguard: { url: `https://api.vanguard.com`, key: 'token' },
+    fidelity: { url: `https://api.fidelity.com`, key: 'token' },
+    berkshirehathaway: { url: `https://api.berkshirehathaway.com`, key: 'token' },
+    pg: { url: `https://api.pg.com`, key: 'token' },
+    unilever: { url: `https://api.unilever.com`, key: 'token' },
+    nestle: { url: `https://api.nestle.com`, key: 'token' },
+    cocacola: { url: `https://api.coca-colacompany.com`, key: 'token' },
+    pepsico: { url: `https://api.pepsico.com`, key: 'token' },
+    mcdonalds: { url: `https://api.mcdonalds.com`, key: 'token' },
+    starbucks: { url: `https://api.starbucks.com`, key: 'token' },
+    nike: { url: `https://developer.nike.com`, key: 'token' },
+    adidas: { url: `https://developer.adidas.com`, key: 'token' },
+    lvmh: { url: `https://api.lvmh.com`, key: 'token' },
+    kering: { url: `https://api.kering.com`, key: 'token' },
+    fedex_api: { url: `https://api.fedex.com`, key: genRndStr(32) },
+    ups_api: { url: `https://api.ups.com`, key: genRndStr(32) },
+    usps_api: { url: `https://api.usps.com`, key: genRndStr(32) },
+    dhl_api: { url: `https://api.dhl.com`, key: genRndStr(32) },
+    twilio_verify: { url: `https://verify.twilio.com`, key: genRndStr(32) },
+    foursquare_places: { url: `https://api.foursquare.com`, key: genRndStr(32) },
+    sendinblue_smtp: { url: `https://smtp-relay.sendinblue.com`, key: genRndStr(32) },
+    mailjet: { url: `https://api.mailjet.com/v3.1`, key: genRndStr(32) },
+    postmark: { url: `https://api.postmarkapp.com`, key: genRndStr(32) },
+    mandrill: { url: `https://mandrillapp.com/api/1.0`, key: genRndStr(22) },
+    new_relic_insights: { url: `https://insights-api.newrelic.com`, key: genRndStr(32) },
+    rollbar: { url: `https://api.rollbar.com/api/1`, key: genRndStr(32) },
+    bugsnag: { url: `https://api.bugsnag.com`, key: genRndStr(32) },
+    loggly: { url: `https://logs-01.loggly.com`, key: genRndStr(36) },
+    papertrail: { url: `https://logs.papertrailapp.com`, key: genRndStr(16) },
+    sumologic: { url: `https://api.sumologic.com/api/v1`, key: genRndStr(32) },
+    logz_io: { url: `https://listener.logz.io:8071`, key: genRndStr(32) },
+    codecov: { url: `https://codecov.io/api`, key: genRndStr(36) },
+    coveralls: { url: `https://coveralls.io/api`, key: 'repo_token' },
+    travis_ci: { url: `https://api.travis-ci.com`, key: genRndStr(22) },
+    appveyor: { url: `https://ci.appveyor.com/api`, key: `v1.${genRndStr(32)}` },
+    teamcity: { url: `https://teamcity.example.com`, key: 'auth_token' },
+    gocd: { url: `https://ci.example.com/go/api`, key: 'auth_token' },
+    spinnaker: { url: `https://gate.spinnaker.example.com`, key: 'auth_token' },
+    harbor: { url: `https://harbor.example.com/api/v2.0`, key: 'auth_token' },
+    quay: { url: `https://quay.io/api/v1`, key: 'auth_token' },
+    artifactory: { url: `https://artifactory.example.com/artifactory/api`, key: 'auth_token' },
+    nexus: { url: `https://nexus.example.com/service/rest/v1`, key: 'auth_token' },
+    sonarqube: { url: `https://sonar.example.com/api`, key: genRndStr(40) },
+    checkmarx: { url: `https://api.checkmarx.com`, key: 'auth_token' },
+    veracode: { url: `https://api.veracode.com`, key: 'auth_token' },
+    fortify: { url: `https://api.fortify.com`, key: 'auth_token' },
+    grafana: { url: `https://grafana.example.com/api`, key: `glc_${genRndStr(32)}` },
+    prometheus: { url: `https://prometheus.example.com/api/v1`, key: 'auth_token' },
+    influxdb: { url: `https://us-west-2-1.aws.cloud2.influxdata.com`, key: `Token ${genRndStr(86)}` },
+    graphite: { url: `https://graphite.example.com`, key: 'auth_token' },
+    kibana: { url: `https://kibana.example.com/api`, key: 'auth_token' },
+    jaeger: { url: `https://jaeger.example.com/api`, key: 'auth_token' },
+    zipkin: { url: `https://zipkin.example.com/api/v2`, key: 'auth_token' },
+    openapi: { url: `https://generator.swagger.io/api`, key: 'auth_token' },
+    postman: { url: `https://api.getpostman.com`, key: `PMAK-${genRndStr(24)}-${genRndStr(32)}` },
+    insomnia: { url: `https://api.insomnia.rest`, key: `ins_${genRndStr(32)}` },
+    stoplight: { url: `https://stoplight.io/api`, key: genRndStr(32) },
+    apollographql: { url: `https://graphql.api.apollographql.com/api`, key: `service:${genRndStr(12)}:${genRndStr(22)}` },
+    hasura: { url: `https://${genRndStr(12)}.hasura.app/v1/graphql`, key: genRndStr(32) },
+    prisma: { url: `https://api.prisma.io`, key: genRndStr(32) },
+    faunadb: { url: `https://db.fauna.com`, key: `fn${genRndStr(25)}` },
+    cockroachdb: { url: `https://api.cockroachlabs.cloud`, key: genRndStr(32) },
+    planetscale: { url: `https://api.planetscale.com/v1`, key: `pscale_auth_${genRndStr(32)}` },
+    neon: { url: `https://console.neon.tech/api/v2`, key: genRndStr(32) },
+    heroku: { url: `https://api.heroku.com`, key: genRndStr(36) },
+    netlify: { url: `https://api.netlify.com/api/v1`, key: `nfp_${genRndStr(28)}` },
+    flyio: { url: `https://api.fly.io/graphql`, key: `fly_api_${genRndStr(32)}` },
+    render: { url: `https://api.render.com/v1`, key: `rnd_${genRndStr(24)}` },
+    railway: { url: `https://backboard.railway.app/graphql/v2`, key: genRndStr(36) },
+};
+
+export class SrvcCnctr {
+    constructor(srvcName) {
+        if (!srvcCfgs[srvcName]) throw new Error(`CNF_MISS_${srvcName}`);
+        this.cfg = srvcCfgs[srvcName];
+        this.nh = new NetHdlr();
+        this.athHdr = this.getAthHdr();
+    }
+    getAthHdr() {
+        const key = this.cfg.key;
+        if (key.startsWith('sk_') || key.startsWith('pk_')) return { 'Authorization': `Bearer ${key}` };
+        if (key.startsWith('ghp_') || key.startsWith('dop_') || key.startsWith('nfp_')) return { 'Authorization': `Bearer ${key}` };
+        if (key.startsWith('sso-key')) return { 'Authorization': `${key}` };
+        if (key.startsWith('cpanel') || key.startsWith('Basic')) return { 'Authorization': `${key}` };
+        if (key.startsWith('Token')) return { 'Authorization': `${key}` };
+        if (key.includes(':')) return { 'Authorization': `Basic ${btoa(key)}` };
+        return { 'X-Api-Key': key };
+    }
+    async get(path, prms) {
+        const url = new URL(`${this.cfg.url}${path}`);
+        if (prms) Object.keys(prms).forEach(k => url.searchParams.append(k, prms[k]));
+        return this.nh.get(url.toString(), this.athHdr);
+    }
+    async post(path, bdy) {
+        return this.nh.post(`${this.cfg.url}${path}`, bdy, this.athHdr);
+    }
+    async put(path, bdy) {
+        return this.nh.put(`${this.cfg.url}${path}`, bdy, this.athHdr);
+    }
+    async del(path) {
+        return this.nh.del(`${this.cfg.url}${path}`, this.athHdr);
+    }
+}
+
+export class PlaidAdptr extends SrvcCnctr {
+    constructor() { super('plaid'); }
+    async getTrans(tok, start, end) { return this.post('/transactions/get', { access_token: tok, start_date: start, end_date: end }); }
+    async getBal(tok) { return this.post('/accounts/balance/get', { access_token: tok }); }
+    async getIdent(tok) { return this.post('/identity/get', { access_token: tok }); }
+    async createLinkTok(usrId) { return this.post('/link/token/create', { user: { client_user_id: usrId } }); }
+}
+
+export class GeminiAdptr extends SrvcCnctr {
+    constructor() { super('gemini'); }
+    async getSymbs() { return this.get('/symbols'); }
+    async getTicker(sym) { return this.get(`/pubticker/${sym}`); }
+    async newOrd(sym, amt, pr, side) { return this.post('/order/new', { symbol: sym, amount: amt, price: pr, side: side }); }
+}
+
+export class GithubAdptr extends SrvcCnctr {
+    constructor() { super('github'); }
+    async getRepo(owner, repo) { return this.get(`/repos/${owner}/${repo}`); }
+    async getCommits(owner, repo) { return this.get(`/repos/${owner}/${repo}/commits`); }
+    async createIssue(owner, repo, title, body) { return this.post(`/repos/${owner}/${repo}/issues`, { title, body }); }
+}
+
+export class TwilioAdptr extends SrvcCnctr {
+    constructor() { super('twilio'); }
+    async sendSMS(to, from, body) { return this.post(`/Accounts/${genRndStr(34)}/Messages.json`, { To: to, From: from, Body: body }); }
+    async makeCall(to, from, url) { return this.post(`/Accounts/${genRndStr(34)}/Calls.json`, { To: to, From: from, Url: url }); }
+}
+
+export class GDriveAdptr extends SrvcCnctr {
+    constructor() { super('googledrive'); }
+    async listFiles(qry) { return this.get('/files', { q: qry }); }
+    async uploadFile(meta, data) {
+        const upUrl = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+        return this.nh.post(upUrl, { metadata: meta, file: data }, { ...this.athHdr, 'Content-Type': 'multipart/related' });
+    }
+}
+
+export class SalesForceAdptr extends SrvcCnctr {
+    constructor() { super('salesforce'); }
+    async query(soql) { return this.get('/services/data/v58.0/query', { q: soql }); }
+    async createRecord(objType, fields) { return this.post(`/services/data/v58.0/sobjects/${objType}`, fields); }
+    async updateRecord(objType, id, fields) { return this.nh.patch(`${this.cfg.url}/services/data/v58.0/sobjects/${objType}/${id}`, fields, this.athHdr); }
+}
+
+export class StripeAdptr extends SrvcCnctr {
+    constructor() { super('stripe'); }
+    async createCharge(amt, cur, src) { return this.post('/charges', { amount: amt, currency: cur, source: src }); }
+    async createCust(email, name) { return this.post('/customers', { email, name }); }
+    async listTrans() { return this.get('/balance_transactions'); }
+}
+
+export class DSourceMngr {
+    constructor() {
+        this.srcs = {
+            plaid: new PlaidAdptr(),
+            gemini: new GeminiAdptr(),
+            github: new GithubAdptr(),
+            twilio: new TwilioAdptr(),
+            gdrive: new GDriveAdptr(),
+            salesforce: new SalesForceAdptr(),
+            stripe: new StripeAdptr(),
+        };
+        Object.keys(srvcCfgs).forEach(key => {
+            if (!this.srcs[key]) {
+                this.srcs[key] = new SrvcCnctr(key);
+            }
+        });
+    }
+
+    async fetch(srcName, method, ...args) {
+        if (!this.srcs[srcName] || typeof this.srcs[srcName][method] !== 'function') {
+            throw new Error(`NO_SRC_MTHD_${srcName}_${method}`);
+        }
+        return this.srcs[srcName][method](...args);
+    }
+}
+
+export class RulePrcsr {
+    constructor() {
+        this.ops = {
+            equal: (a, b) => a === b,
+            notEqual: (a, b) => a !== b,
+            greaterThan: (a, b) => a > b,
+            lessThan: (a, b) => a < b,
+            in: (a, b) => b.includes(a),
+            notIn: (a, b) => !b.includes(a),
+            ageIsGreaterThan: (a, b) => {
+                const birthDate = new Date(a);
+                const age = new Date().getFullYear() - birthDate.getFullYear();
+                const m = new Date().getMonth() - birthDate.getMonth();
+                if (m < 0 || (m === 0 && new Date().getDate() < birthDate.getDate())) {
+                    return age - 1 > b;
+                }
+                return age > b;
+            },
+            contains: (a, b) => a.includes(b),
+        };
+    }
+
+    getFactVal(fact, data) {
+        return fact.split('.').reduce((o, i) => (o ? o[i] : undefined), data);
+    }
+
+    evalCond(cond, data) {
+        if (cond.and) {
+            return cond.and.every(c => this.evalCond(c, data));
+        }
+        if (cond.or) {
+            return cond.or.some(c => this.evalCond(c, data));
+        }
+        const { fact, operator, value } = cond;
+        const factVal = this.getFactVal(fact, data);
+        if (this.ops[operator]) {
+            return this.ops[operator](factVal, value);
+        }
+        return false;
+    }
+
+    async run(rules, data) {
+        const results = [];
+        for (const rule of rules) {
+            const outcome = this.evalCond(rule.condition, data);
+            const result = {
+                ruleId: rule.id,
+                outcome,
+                action: outcome ? rule.on_true : rule.on_false,
+            };
+            results.push(result);
+        }
+        return results;
+    }
+}
+
+export class ActnDspchr {
+    constructor(dsm) {
+        this.dsm = dsm;
+        this.actionMap = {
+            flag_user_sf: async (params) => this.dsm.fetch('salesforce', 'updateRecord', 'Contact', params.id, { Status__c: 'Flagged', Flag_Reason__c: params.reason }),
+            approve_user_sf: async (params) => this.dsm.fetch('salesforce', 'updateRecord', 'Contact', params.id, { Status__c: 'Approved' }),
+            send_sms_alert: async (params) => this.dsm.fetch('twilio', 'sendSMS', params.to, params.from, params.message),
+            create_jira_ticket: async (params) => this.dsm.fetch('jira', 'post', '/issue', {
+                fields: {
+                    project: { key: params.project },
+                    summary: params.summary,
+                    description: params.description,
+                    issuetype: { name: 'Task' }
+                }
+            }),
+            post_to_slack: async (params) => this.dsm.fetch('slack', 'post', '/chat.postMessage', { channel: params.channel, text: params.text }),
+            create_pipedream_event: async (params) => this.dsm.fetch('pipedream', 'post', `/${params.endpoint}`, params.payload),
+        };
+    }
+
+    async dispatch(action) {
+        if (this.actionMap[action.name]) {
+            return this.actionMap[action.name](action.params);
+        }
+        console.log(`NO_ACTN_MAP_${action.name}`);
+        return null;
+    }
+}
+
+export class CmplDcsnOrch {
+    constructor() {
+        this.dsm = new DSourceMngr();
+        this.rp = new RulePrcsr();
+        this.ad = new ActnDspchr(this.dsm);
+        this.rulesets = {
+            kyc_onboarding: [
+                {
+                    id: 'KYC_AGE_V1',
+                    condition: { and: [{ fact: 'user.dob', operator: 'ageIsGreaterThan', value: 17 }] },
+                    on_true: { name: 'approve_user_sf', params: { id: '{user.sf_id}' } },
+                    on_false: { name: 'flag_user_sf', params: { id: '{user.sf_id}', reason: 'AGE_FAIL' } },
+                },
+                {
+                    id: 'KYC_ADDR_V1',
+                    condition: { and: [{ fact: 'user.address.country', operator: 'notIn', value: ['XX', 'YY'] }] },
+                    on_true: { name: 'approve_user_sf', params: { id: '{user.sf_id}' } },
+                    on_false: { name: 'flag_user_sf', params: { id: '{user.sf_id}', reason: 'SANCTIONED_COUNTRY' } },
+                }
+            ],
+            txn_monitoring: [
+                {
+                    id: 'TXN_AMT_V1',
+                    condition: { and: [{ fact: 'transaction.amount', operator: 'lessThan', value: 10000 }] },
+                    on_true: { name: 'log_txn_ok', params: {} },
+                    on_false: {
+                        name: 'create_jira_ticket',
+                        params: {
+                            project: 'COMP',
+                            summary: 'High Value Transaction Review: {transaction.id}',
+                            description: 'Txn {transaction.id} for {transaction.amount} {transaction.currency} requires review.'
+                        }
+                    },
+                },
+                {
+                    id: 'TXN_VELOCITY_V1',
+                    condition: { and: [{ fact: 'user.recent_txn_count', operator: 'lessThan', value: 50 }] },
+                    on_true: { name: 'log_vel_ok', params: {} },
+                    on_false: {
+                        name: 'post_to_slack',
+                        params: { channel: '#fraud-alerts', text: 'High velocity alert for user {user.id}' }
+                    }
+                }
+            ]
+        };
+    }
+
+    interpolateParams(params, data) {
+        const ip = (str) => str.replace(/\{([^}]+)\}/g, (match, p) => this.rp.getFactVal(p, data));
+        const newParams = {};
+        for (const key in params) {
+            if (typeof params[key] === 'string') {
+                newParams[key] = ip(params[key]);
+            } else {
+                newParams[key] = params[key];
+            }
+        }
+        return newParams;
+    }
+
+    async runWorkflow(workflowName, data) {
+        const ruleset = this.rulesets[workflowName];
+        if (!ruleset) throw new Error(`NO_WF_${workflowName}`);
+
+        const enrichedData = await this.enrich(data);
+
+        const ruleResults = await this.rp.run(ruleset, enrichedData);
+        const actionPromises = [];
+
+        for (const res of ruleResults) {
+            if (res.action.name) {
+                const finalParams = this.interpolateParams(res.action.params, enrichedData);
+                const finalAction = { name: res.action.name, params: finalParams };
+                actionPromises.push(this.ad.dispatch(finalAction));
+            }
+        }
+
+        const actionResults = await Promise.all(actionPromises);
+        return { ruleResults, actionResults };
+    }
+
+    async enrich(data) {
+        let enriched = { ...data };
+        try {
+            if (data.user && data.user.email) {
+                const sfQuery = `SELECT Id, Status__c, (SELECT COUNT() FROM Transactions__r WHERE CreatedDate = THIS_MONTH) FROM Contact WHERE Email = '${data.user.email}'`;
+                const sfData = await this.dsm.fetch('salesforce', 'query', sfQuery);
+                if (sfData && sfData.records && sfData.records.length > 0) {
+                    enriched.user.sf_id = sfData.records[0].Id;
+                    enriched.user.sf_status = sfData.records[0].Status__c;
+                    enriched.user.recent_txn_count = sfData.records[0].Transactions__r.totalSize;
+                }
+            }
+            if (data.transaction && data.transaction.plaid_token) {
+                const balData = await this.dsm.fetch('plaid', 'getBal', data.transaction.plaid_token);
+                enriched.user.account_balance = balData.accounts[0].balances.current;
+            }
+        } catch (e) {
+            console.log(`ENRICH_FAIL_${e.message}`);
+        }
+        return enriched;
+    }
+}
+
+export async function mainComplianceDecisionProcess() {
+    const orchestrator = new CmplDcsnOrch();
+
+    const testUserOnboarding = {
+        user: {
+            id: 'usr_123',
+            email: 'test@example.com',
+            dob: '1985-05-20',
+            address: { country: 'US' },
+        }
+    };
+
+    const testTransaction = {
+        user: {
+            id: 'usr_456',
+            email: 'fraud@example.com',
+        },
+        transaction: {
+            id: 'txn_abc',
+            amount: 15000,
+            currency: 'USD',
+            plaid_token: 'access-sandbox-12345',
+        }
+    };
+
+    try {
+        console.log("Running KYC Onboarding Workflow...");
+        const kycResult = await orchestrator.runWorkflow('kyc_onboarding', testUserOnboarding);
+        console.log(JSON.stringify(kycResult, null, 2));
+
+        console.log("Running Transaction Monitoring Workflow...");
+        const txnResult = await orchestrator.runWorkflow('txn_monitoring', testTransaction);
+        console.log(JSON.stringify(txnResult, null, 2));
+
+    } catch (e) {
+        console.error(`MAIN_PROC_ERR: ${e.message}`);
+    }
+}
+
+export function getWidgetConfig() {
+    return {
+        id: 'compliance_decisions_widget_v1',
+        title: 'Compliance Decision Center',
+        version: '1.0.0',
+        author: compName,
+        baseApiUrl: bUrl,
+        dataSources: Object.keys(srvcCfgs),
+        ui: {
+            component: 'ComplianceDecisionPanel',
+            defaultHeight: 400,
+            defaultWidth: 600,
+            minHeight: 200,
+            minWidth: 300,
+        },
+        settings: [
+            { id: 'refresh_interval', label: 'Refresh Interval (sec)', type: 'number', default: 300 },
+            { id: 'default_workflow', label: 'Default Workflow', type: 'select', options: ['kyc_onboarding', 'txn_monitoring'] },
+        ]
+    };
+}

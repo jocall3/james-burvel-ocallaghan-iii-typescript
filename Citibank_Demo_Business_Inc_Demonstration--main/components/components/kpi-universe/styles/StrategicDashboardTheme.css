@@ -1,0 +1,260 @@
+/*
+ * StrategicDashboardTheme.css
+ *
+ * This CSS module provides the minimalist, high-impact visual styling tailored for the
+ * executive strategic KPI dashboards. It ensures clarity and focus on critical metrics
+ * within a sophisticated dark-themed interface.
+ *
+ * The design philosophy emphasizes:
+ * - **Minimalism**: Clean lines, subtle borders, and uncluttered layouts.
+ * - **High-Impact Visuals**: Strategic use of color for alerts, progress, and key data points.
+ * - **Clarity & Focus**: Optimal typography and spacing to highlight actionable intelligence.
+ * - **Dark Theme Integration**: Complementary styles for a comfortable viewing experience,
+ *   aligning with the existing component's Tailwind CSS usage.
+ */
+
+/* --------------------------------------------------- */
+/* 1. CSS Variables for Centralized Theming */
+/* --------------------------------------------------- */
+:root {
+  /* Backgrounds - aligned with Tailwind's gray palette */
+  --theme-bg-primary: #1f2937; /* gray-800 */
+  --theme-bg-secondary: #374151; /* gray-700 - for cards/panels */
+  --theme-bg-tertiary: #4b5563; /* gray-600 - for deeper elements/borders */
+
+  /* Text Colors */
+  --theme-text-primary: #e5e7eb; /* gray-200 */
+  --theme-text-secondary: #d1d5db; /* gray-300 */
+  --theme-text-muted: #9ca3af; /* gray-400 */
+  --theme-text-placeholder: #6b7280; /* gray-500 */
+
+  /* Accent Colors - aligned with component's usage */
+  --theme-accent-indigo-300: #a78bfa; /* text-indigo-300 */
+  --theme-accent-indigo-400: #818cf8; /* text-indigo-400 */
+  --theme-accent-green-400: #34d399; /* text-green-400 */
+  --theme-accent-red-400: #f87171; /* text-red-400 */
+  --theme-accent-yellow-400: #fcd34d; /* text-yellow-400 */
+  --theme-accent-blue-400: #60a5fa; /* text-blue-400 */
+  --theme-accent-orange-400: #fb923c; /* text-orange-400 */
+
+  /* Button Colors (primary actions) */
+  --theme-button-primary-bg: #4f46e5; /* bg-indigo-600 */
+  --theme-button-primary-hover-bg: #4338ca; /* hover:bg-indigo-700 */
+  --theme-button-primary-focus-ring: #6366f1; /* focus:ring-indigo-500 */
+
+  --theme-button-success-bg: #10b981; /* bg-green-600 */
+  --theme-button-success-hover-bg: #059669; /* hover:bg-green-700 */
+  --theme-button-success-focus-ring: #34d399; /* focus:ring-green-500 */
+
+  --theme-button-warning-bg: #f59e0b; /* bg-yellow-600 */
+  --theme-button-warning-hover-bg: #d97706; /* hover:bg-yellow-700 */
+  --theme-button-warning-focus-ring: #fcd34d; /* focus:ring-yellow-500 */
+
+  /* Border & Shadow */
+  --theme-border-color: #4b5563; /* border-gray-600 */
+  --theme-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+  --theme-border-radius-lg: 0.5rem; /* rounded-lg */
+  --theme-border-radius-md: 0.375rem; /* rounded-md */
+}
+
+/* --------------------------------------------------- */
+/* 2. Base HTML & Typography Styles */
+/* --------------------------------------------------- */
+body {
+  font-family: 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  color: var(--theme-text-primary);
+  background-color: var(--theme-bg-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5; /* Default line height for readability */
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600; /* Matches font-semibold */
+  color: var(--theme-text-primary);
+}
+
+h2 {
+  font-size: 1.25rem; /* text-xl */
+  color: var(--theme-accent-indigo-300);
+  margin-bottom: 0.75rem; /* Equivalent to mb-3 */
+}
+
+h3 {
+  font-size: 1.125rem; /* text-lg */
+  color: var(--theme-text-primary);
+  margin-bottom: 0.5rem; /* Equivalent to mb-2 */
+}
+
+p {
+  color: var(--theme-text-secondary);
+  font-size: 0.875rem; /* text-sm */
+}
+
+a {
+  color: var(--theme-accent-indigo-400);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+/* --------------------------------------------------- */
+/* 3. Dashboard Component-Level Styles & Utilities */
+/* --------------------------------------------------- */
+
+/* Overall Dashboard Container - Provides consistent padding and centering */
+.kpi-dashboard-container {
+  padding: 1.5rem; /* p-6 */
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+/* Common Section/Panel Styling */
+.kpi-panel {
+  background-color: var(--theme-bg-primary);
+  padding: 1rem; /* p-4 */
+  border-radius: var(--theme-border-radius-lg);
+  box-shadow: var(--theme-shadow-md);
+  margin-bottom: 1.5rem; /* mb-6 */
+}
+
+/* Card/Item within a panel */
+.kpi-card-item {
+  background-color: var(--theme-bg-secondary);
+  padding: 0.75rem; /* p-3 */
+  border-radius: var(--theme-border-radius-md);
+  border: 1px solid var(--theme-border-color);
+}
+
+/* Specific text styles for KPIs and data */
+.kpi-metric-value {
+  font-size: 1.5rem; /* Larger for impact, text-2xl in component is 1.5rem */
+  font-weight: 700; /* font-bold */
+  margin-top: 0.25rem; /* mt-1 */
+}
+
+.kpi-label-text {
+  font-size: 0.875rem; /* text-sm */
+  color: var(--theme-text-muted);
+}
+
+.kpi-sub-text {
+  font-size: 0.75rem; /* text-xs */
+  color: var(--theme-text-muted);
+  margin-top: 0.25rem;
+}
+
+/* Status Colors (matching insight severity and goal status) */
+.status-critical {
+  color: var(--theme-accent-red-400);
+}
+
+.status-warning {
+  color: var(--theme-accent-yellow-400);
+}
+
+.status-info, .status-optimal {
+  color: var(--theme-accent-blue-400);
+}
+
+.status-positive, .status-achieved {
+  color: var(--theme-accent-green-400);
+}
+
+/* Input Fields (textarea, input, select) */
+.kpi-input {
+  display: block;
+  width: 100%;
+  padding: 0.75rem;
+  background-color: var(--theme-bg-secondary);
+  border: 1px solid var(--theme-border-color);
+  border-radius: var(--theme-border-radius-md);
+  color: var(--theme-text-primary);
+  outline: none;
+  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+.kpi-input::placeholder {
+  color: var(--theme-text-placeholder);
+}
+.kpi-input:focus {
+  border-color: var(--theme-accent-indigo-400);
+  box-shadow: 0 0 0 2px var(--theme-accent-indigo-400), 0 0 0 4px var(--theme-bg-primary); /* Simulates focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-900 */
+}
+
+/* Specific styling for select inputs to align with overall theme */
+select.kpi-input {
+  appearance: none; /* Remove default browser styling for select */
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3e%3cpath d='M7 7l3-3 3 3m0 6l-3 3-3-3' stroke='%239ca3af' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1.5em 1.5em; /* Adjust arrow size */
+  padding-right: 2.5rem; /* Make space for the custom arrow */
+}
+
+
+/* Buttons */
+.kpi-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem; /* px-4 py-2 */
+  border-radius: var(--theme-border-radius-md);
+  font-weight: 500;
+  transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  color: white; /* Default for primary/action buttons */
+}
+
+.kpi-button:focus {
+  box-shadow: 0 0 0 2px var(--theme-button-primary-focus-ring), 0 0 0 4px var(--theme-bg-primary); /* focus:ring-offset-2 focus:ring-offset-gray-900 */
+}
+
+.kpi-button-primary {
+  background-color: var(--theme-button-primary-bg);
+}
+.kpi-button-primary:hover {
+  background-color: var(--theme-button-primary-hover-bg);
+}
+.kpi-button-primary:focus {
+  box-shadow: 0 0 0 2px var(--theme-button-primary-focus-ring), 0 0 0 4px var(--theme-bg-primary);
+}
+
+.kpi-button-success {
+  background-color: var(--theme-button-success-bg);
+}
+.kpi-button-success:hover {
+  background-color: var(--theme-button-success-hover-bg);
+}
+.kpi-button-success:focus {
+  box-shadow: 0 0 0 2px var(--theme-button-success-focus-ring), 0 0 0 4px var(--theme-bg-primary);
+}
+
+.kpi-button-warning {
+  background-color: var(--theme-button-warning-bg);
+}
+.kpi-button-warning:hover {
+  background-color: var(--theme-button-warning-hover-bg);
+}
+.kpi-button-warning:focus {
+  box-shadow: 0 0 0 2px var(--theme-button-warning-focus-ring), 0 0 0 4px var(--theme-bg-primary);
+}
+
+/* Text-based buttons, like 'Manage' or 'Investigate' */
+.kpi-button-text {
+  background: none;
+  color: var(--theme-accent-indigo-400);
+  padding: 0;
+  font-weight: normal;
+  text-decoration: none;
+}
+.kpi-button-text:hover {
+  color: var(--theme-accent-indigo-300);
+  text-decoration: underline;
+}
+.kpi-button-text:focus {
+  box-shadow: none;
+  text-decoration: underline;
+}

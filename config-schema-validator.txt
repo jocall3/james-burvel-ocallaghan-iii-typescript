@@ -1,0 +1,70 @@
+name: Config Schema Validator
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  validate_schemas:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [ 22 ]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+
+    - name: Install JSON Schema Validator (AJV-CLI)
+      run: npm install -g ajv-cli
+
+    - name: Validate Configuration Files Against Schemas
+      run: |
+        # Define an array of (config_file, schema_file) pairs to validate.
+        # Add all configuration files and their corresponding schema files here.
+        declare -a config_schema_pairs=(
+          "config/app.json config/app.schema.json"
+          "config/database.json config/database.schema.json"
+          "project.json schemas/project.schema.json"
+          # Example for a YAML file (requires additional setup if not using AJV-CLI compatible format directly)
+          # For YAML, you might need a different tool or conversion, e.g., 'yq -o json' before validation.
+          # "config/settings.yaml config/settings.schema.yaml"
+        )
+
+        VALIDATION_FAILED=0
+
+        for pair in "${config_schema_pairs[@]}"; do
+          IFS=' ' read -r config_file schema_file <<< "$pair"
+
+          if [ ! -f "$config_file" ]; then
+            echo "Skipping validation: Config file '$config_file' not found."
+            continue
+          fi
+          if [ ! -f "$schema_file" ]; then
+            echo "Error: Schema file '$schema_file' not found for config '$config_file'. Please create it."
+            VALIDATION_FAILED=1
+            continue
+          fi
+
+          echo "Validating '$config_file' against schema '$schema_file'..."
+          # For YAML files, you might convert to JSON first, e.g., 'yq -o json "$config_file" | ajv validate -s "$schema_file" -d -'
+          if ! ajv validate -s "$schema_file" -d "$config_file"; then
+            echo "Validation FAILED for $config_file!"
+            VALIDATION_FAILED=1
+          else
+            echo "Validation PASSED for $config_file."
+          fi
+        done
+
+        if [ "$VALIDATION_FAILED" -eq 1 ]; then
+          echo "One or more configuration files failed schema validation."
+          exit 1
+        fi
+        echo "All specified configuration files passed schema validation."

@@ -1,0 +1,37 @@
+# === Production Deployment ===
+# This workflow is triggered MANUALLY to deploy a specific version to production.
+# It includes a manual approval step, a critical safety feature for production.
+# It assumes a previous workflow has created a release and a corresponding tag.
+
+name: 'Deploy to Production'
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'The release version to deploy (e.g., v1.2.3)'
+        required: true
+        type: string
+
+jobs:
+  deploy-production:
+    name: 'Deploy ${{ github.event.inputs.version }} to Production'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://app.demobank.com
+
+    steps:
+      - name: 'Checkout specific version'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.version }}
+
+      # In a real workflow, you would have steps to build/fetch artifacts here.
+      # For example, pull the specific Docker images for this version from the registry.
+
+      - name: 'Deployment to Production Cloud Environment'
+        run: |
+          echo "Beginning production deployment for version ${{ github.event.inputs.version }}..."
+          # Add your production deployment script here (e.g., Terraform apply, kubectl apply)
+          echo "Deployment successful."

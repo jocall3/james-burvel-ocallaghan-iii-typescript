@@ -1,0 +1,2152 @@
+export const GBLCNFG = {
+  _BSE_URL: "https://citibankdemobusiness.dev",
+  _CMP_NM: "Citibank demo business Inc",
+  _VRSN: "1.0.0-bl",
+  _API_KY_LMT: 9999,
+  _TRN_LMT: 500000000000000000,
+  _SYS_ID: "CBDB_FIN_CORE_SYS",
+  _EVT_SQ_MAX: 10000000000,
+  _SESH_LIF: 3600000
+};
+export class DTUTL {
+  static _TS() {
+    return new Date().getTime();
+  }
+  static _FMTD(a) {
+    const d = new Date(a);
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const D = String(d.getUTCDate()).padStart(2, '0');
+    const H = String(d.getUTCHours()).padStart(2, '0');
+    const M = String(d.getUTCMinutes()).padStart(2, '0');
+    const S = String(d.getUTCSeconds()).padStart(2, '0');
+    return `${y}-${m}-${D}T${H}:${M}:${S}Z`;
+  }
+  static _PRSD(a) {
+    return new Date(a).getTime();
+  }
+  static _DIFF(a, b) {
+    return Math.abs(a - b);
+  }
+  static _ADDD(a, b, u) {
+    let d = new Date(a);
+    if (u === 'ms') d.setTime(d.getTime() + b);
+    else if (u === 's') d.setTime(d.getTime() + b * 1000);
+    else if (u === 'm') d.setTime(d.getTime() + b * 60 * 1000);
+    else if (u === 'h') d.setTime(d.getTime() + b * 60 * 60 * 1000);
+    else if (u === 'd') d.setTime(d.getTime() + b * 24 * 60 * 60 * 1000);
+    return d.getTime();
+  }
+}
+export class STRUTL {
+  static _GUNI() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      let r = Math.random() * 16 | 0,
+        v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  }
+  static _TOUPR(a) {
+    if (typeof a === 'string') return a.toUpperCase();
+    return a;
+  }
+  static _TOLWR(a) {
+    if (typeof a === 'string') return a.toLowerCase();
+    return a;
+  }
+  static _TRIM(a) {
+    if (typeof a === 'string') return a.trim();
+    return a;
+  }
+  static _ISBLNK(a) {
+    return !a || (typeof a === 'string' && a.trim().length === 0);
+  }
+  static _LNDT(a, l, c) {
+    return String(a).padStart(l, c || '0');
+  }
+  static _RNDT(a, l, c) {
+    return String(a).padEnd(l, c || '0');
+  }
+  static _SPTT(a, s) {
+    if (typeof a === 'string') return a.split(s);
+    return [];
+  }
+}
+export class OBJUTL {
+  static _MRGO(t, s) {
+    let r = {};
+    for (let k in t) r[k] = t[k];
+    for (let k in s) r[k] = s[k];
+    return r;
+  }
+  static _DPCP(o) {
+    if (typeof o !== 'object' || o === null) return o;
+    if (o instanceof Date) return new Date(o.getTime());
+    if (o instanceof Array) {
+      let c = [];
+      for (let i = 0; i < o.length; i++) c[i] = OBJUTL._DPCP(o[i]);
+      return c;
+    }
+    let c = {};
+    for (let k in o) {
+      if (Object.prototype.hasOwnProperty.call(o, k)) {
+        c[k] = OBJUTL._DPCP(o[k]);
+      }
+    }
+    return c;
+  }
+  static _GETP(o, p, d = undefined) {
+    let cs = STRUTL._SPTT(p, '.');
+    let c = o;
+    for (let i = 0; i < cs.length; i++) {
+      let s = cs[i];
+      if (c && typeof c === 'object' && Object.prototype.hasOwnProperty.call(c, s)) {
+        c = c[s];
+      } else {
+        return d;
+      }
+    }
+    return c;
+  }
+  static _SETP(o, p, v) {
+    let cs = STRUTL._SPTT(p, '.');
+    let c = o;
+    for (let i = 0; i < cs.length - 1; i++) {
+      let s = cs[i];
+      if (!c[s] || typeof c[s] !== 'object') c[s] = {};
+      c = c[s];
+    }
+    c[cs[cs.length - 1]] = v;
+    return o;
+  }
+}
+export class HSHUTL {
+  static _CRT_HSH(d) {
+    let h = 0;
+    for (let i = 0; i < d.length; i++) {
+      h = (h << 5) - h + d.charCodeAt(i);
+      h |= 0;
+    }
+    return h.toString(16);
+  }
+  static _CRT_HMAC(k, d) {
+    let i = HSHUTL._CRT_HSH(k + d);
+    let o = HSHUTL._CRT_HSH(d + k);
+    return HSHUTL._CRT_HSH(i + o);
+  }
+}
+export class ENCDEC {
+  static _ENCB64(s) {
+    const cs = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+    let o = "";
+    let i = 0;
+    while (i < s.length) {
+      let c1 = s.charCodeAt(i++);
+      let c2 = s.charCodeAt(i++);
+      let c3 = s.charCodeAt(i++);
+      let e1 = c1 >> 2;
+      let e2 = ((c1 & 3) << 4) | (c2 >> 4);
+      let e3 = ((c2 & 15) << 2) | (c3 >> 6);
+      let e4 = c3 & 63;
+      if (isNaN(c2)) e3 = e4 = 64;
+      else if (isNaN(c3)) e4 = 64;
+      o = o + cs.charAt(e1) + cs.charAt(e2) + cs.charAt(e3) + cs.charAt(e4);
+    }
+    return o;
+  }
+  static _DECB64(s) {
+    const cs = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+    let o = "";
+    let i = 0;
+    s = s.replace(/[^A-Za-z0-9\+\/\=]/g, "");
+    while (i < s.length) {
+      let e1 = cs.indexOf(s.charAt(i++));
+      let e2 = cs.indexOf(s.charAt(i++));
+      let e3 = cs.indexOf(s.charAt(i++));
+      let e4 = cs.indexOf(s.charAt(i++));
+      let c1 = (e1 << 2) | (e2 >> 4);
+      let c2 = ((e2 & 15) << 4) | (e3 >> 2);
+      let c3 = ((e3 & 3) << 6) | e4;
+      o = o + String.fromCharCode(c1);
+      if (e3 !== 64) o = o + String.fromCharCode(c2);
+      if (e4 !== 64) o = o + String.fromCharCode(c3);
+    }
+    return o;
+  }
+  static _JSNPRS(s) {
+    try {
+      return eval('(' + s + ')');
+    } catch (e) {
+      return null;
+    }
+  }
+  static _JSNSTR(o) {
+    if (o === null) return 'null';
+    if (typeof o === 'boolean') return String(o);
+    if (typeof o === 'number') return String(o);
+    if (typeof o === 'string') return '"' + o.replace(/"/g, '\\"') + '"';
+    if (o instanceof Array) {
+      let a = [];
+      for (let i = 0; i < o.length; i++) a.push(ENCDEC._JSNSTR(o[i]));
+      return '[' + a.join(',') + ']';
+    }
+    if (typeof o === 'object') {
+      let a = [];
+      for (let k in o) {
+        if (Object.prototype.hasOwnProperty.call(o, k)) {
+          a.push(ENCDEC._JSNSTR(k) + ':' + ENCDEC._JSNSTR(o[k]));
+        }
+      }
+      return '{' + a.join(',') + '}';
+    }
+    return undefined;
+  }
+  static _URLENC(s) {
+    let o = '';
+    for (let i = 0; i < s.length; i++) {
+      let c = s.charCodeAt(i);
+      if ((c >= 48 && c <= 57) || (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || c === 45 || c === 46 || c === 95 || c === 126) {
+        o += String.fromCharCode(c);
+      } else {
+        o += '%' + STRUTL._LNDT(c.toString(16), 2, '0').toUpperCase();
+      }
+    }
+    return o;
+  }
+}
+export class ERRHNDL {
+  constructor(c, m, d = {}) {
+    this._c = c;
+    this._m = m;
+    this._d = d;
+    this._ts = DTUTL._TS();
+  }
+  _GETC() {
+    return this._c;
+  }
+  _GETM() {
+    return this._m;
+  }
+  _GETD() {
+    return this._d;
+  }
+  _ASJSN() {
+    return ENCDEC._JSNSTR({
+      c: this._c,
+      m: this._m,
+      d: this._d,
+      ts: this._ts
+    });
+  }
+}
+export class HTTPIO {
+  constructor(u, m, h = {}, b = null) {
+    this._u = u;
+    this._m = m;
+    this._h = h;
+    this._b = b;
+    this._rsps = {};
+    this._sts = 0;
+    this._tx_id = STRUTL._GUNI();
+  }
+  _SEND() {
+    console.log(`_TX_ID: ${this._tx_id} _URL: ${this._u} _MTHD: ${this._m}`);
+    let rsc = Math.random() > 0.1 ? 200 : 500;
+    if (this._u.includes('gemini') && this._m === 'GET') {
+      this._rsps = {
+        _dta: {
+          bal: {
+            BTC: 1.234,
+            ETH: 5.678
+          },
+          last_tx: DTUTL._FMTD(DTUTL._TS())
+        },
+        _sts: 'ok',
+        _tx_id: this._tx_id
+      };
+      this._sts = 200;
+      return this;
+    } else if (this._u.includes('plaid') && this._m === 'POST' && this._b.includes('public_token')) {
+      this._rsps = {
+        _dta: {
+          access_token: `access-${STRUTL._GUNI()}`,
+          item_id: `item-${STRUTL._GUNI()}`,
+          request_id: STRUTL._GUNI()
+        },
+        _sts: 'ok',
+        _tx_id: this._tx_id
+      };
+      this._sts = 200;
+      return this;
+    } else if (this._u.includes('salesforce') && this._m === 'POST' && this._b.includes('user')) {
+      this._rsps = {
+        _dta: {
+          id: `sf-${STRUTL._GUNI()}`,
+          success: true
+        },
+        _sts: 'ok',
+        _tx_id: this._tx_id
+      };
+      this._sts = 201;
+      return this;
+    }
+    this._sts = rsc;
+    this._rsps = {
+      _dta: {
+        msg: rsc === 200 ? 'SUCCESS' : 'FAILURE',
+        req_body: this._b
+      },
+      _sts: rsc === 200 ? 'ok' : 'error',
+      _tx_id: this._tx_id,
+      _err_c: rsc === 200 ? null : `ERR${rsc}`
+    };
+    return this;
+  }
+  _GETSTS() {
+    return this._sts;
+  }
+  _GETRSP() {
+    return this._rsps;
+  }
+  _GETTXID() {
+    return this._tx_id;
+  }
+}
+export class VALDR {
+  static _ISSTR(v) {
+    return typeof v === 'string';
+  }
+  static _ISNUM(v) {
+    return typeof v === 'number' && !isNaN(v);
+  }
+  static _ISOBJ(v) {
+    return typeof v === 'object' && v !== null && !Array.isArray(v);
+  }
+  static _ISARY(v) {
+    return Array.isArray(v);
+  }
+  static _ISEML(e) {
+    return VALDR._ISSTR(e) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+  }
+  static _ISUID(i) {
+    return VALDR._ISSTR(i) && i.length === 36 && i.includes('-');
+  }
+  static _ISPOSNUM(n) {
+    return VALDR._ISNUM(n) && n > 0;
+  }
+  static _REQFLD(o, f) {
+    if (!VALDR._ISOBJ(o)) return new ERRHNDL('VAL001', 'Input must be object');
+    for (let i = 0; i < f.length; i++) {
+      let fl = f[i];
+      if (!Object.prototype.hasOwnProperty.call(o, fl) || o[fl] === undefined || o[fl] === null || (VALDR._ISSTR(o[fl]) && STRUTL._ISBLNK(o[fl]))) {
+        return new ERRHNDL('VAL002', `Missing or empty field: ${fl}`);
+      }
+    }
+    return null;
+  }
+}
+export class EVTB {
+  constructor() {
+    this._sub = {};
+  }
+  _ON(e, cb) {
+    if (!this._sub[e]) this._sub[e] = [];
+    this._sub[e].push(cb);
+  }
+  _EMIT(e, d) {
+    if (this._sub[e]) {
+      for (let i = 0; i < this._sub[e].length; i++) {
+        this._sub[e][i](d);
+      }
+    }
+  }
+  _OFF(e, cb) {
+    if (this._sub[e]) {
+      this._sub[e] = this._sub[e].filter(c => c !== cb);
+    }
+  }
+}
+export class MSGQ {
+  constructor() {
+    this._q = [];
+    this._psd = false;
+  }
+  _ENQ(d) {
+    this._q.push(d);
+    if (!this._psd) this._PRCSQ();
+  }
+  _DEQ() {
+    if (this._q.length > 0) {
+      return this._q.shift();
+    }
+    return null;
+  }
+  _PRCSQ() {
+    this._psd = true;
+    while (this._q.length > 0) {
+      let m = this._DEQ();
+      if (m) {
+        console.log(`_PRCS_MSG: ${ENCDEC._JSNSTR(m)}`);
+      }
+    }
+    this._psd = false;
+  }
+  _LEN() {
+    return this._q.length;
+  }
+}
+export class DTR {
+  constructor() {
+    this._str = {};
+    this._idx = {};
+  }
+  _ADDT(k, v) {
+    if (!VALDR._ISSTR(k) || !VALDR._ISOBJ(v) || !v._id) {
+      return new ERRHNDL('DTR001', 'Invalid data for add');
+    }
+    if (this._str[k] && this._str[k][v._id]) {
+      return new ERRHNDL('DTR002', `_ID ${v._id} already exists in ${k}`);
+    }
+    if (!this._str[k]) this._str[k] = {};
+    this._str[k][v._id] = OBJUTL._DPCP(v);
+    this._UPDIDX(k, v);
+    return null;
+  }
+  _UPDT(k, i, d) {
+    if (!VALDR._ISSTR(k) || !VALDR._ISSTR(i) || !VALDR._ISOBJ(d)) {
+      return new ERRHNDL('DTR003', 'Invalid data for update');
+    }
+    if (!this._str[k] || !this._str[k][i]) {
+      return new ERRHNDL('DTR004', `_ID ${i} not found in ${k}`);
+    }
+    let oldD = this._str[k][i];
+    this._str[k][i] = OBJUTL._MRGO(oldD, d);
+    this._UPDIDX(k, this._str[k][i], oldD);
+    return null;
+  }
+  _GETT(k, i) {
+    if (!VALDR._ISSTR(k) || !VALDR._ISSTR(i)) {
+      return new ERRHNDL('DTR005', 'Invalid data for get');
+    }
+    if (!this._str[k]) return null;
+    return OBJUTL._DPCP(this._str[k][i]);
+  }
+  _DELT(k, i) {
+    if (!VALDR._ISSTR(k) || !VALDR._ISSTR(i)) {
+      return new ERRHNDL('DTR006', 'Invalid data for delete');
+    }
+    if (!this._str[k] || !this._str[k][i]) {
+      return new ERRHNDL('DTR007', `_ID ${i} not found in ${k}`);
+    }
+    let d = this._str[k][i];
+    delete this._str[k][i];
+    this._RMV_IDX(k, d);
+    return null;
+  }
+  _QRY(k, f) {
+    if (!VALDR._ISSTR(k) || !VALDR._ISOBJ(f)) {
+      return new ERRHNDL('DTR008', 'Invalid data for query');
+    }
+    let r = [];
+    if (!this._str[k]) return r;
+    for (let i in this._str[k]) {
+      let mtch = true;
+      let itm = this._str[k][i];
+      for (let fk in f) {
+        if (!Object.prototype.hasOwnProperty.call(itm, fk) || itm[fk] !== f[fk]) {
+          mtch = false;
+          break;
+        }
+      }
+      if (mtch) r.push(OBJUTL._DPCP(itm));
+    }
+    return r;
+  }
+  _UPDIDX(k, nV, oV = null) {
+    if (!this._idx[k]) this._idx[k] = {};
+    for (let f in nV) {
+      if (typeof nV[f] === 'string' || typeof nV[f] === 'number') {
+        let fv = String(nV[f]);
+        if (!this._idx[k][f]) this._idx[k][f] = {};
+        if (oV && oV[f] && oV[f] !== nV[f]) {
+          let oldFv = String(oV[f]);
+          if (this._idx[k][f][oldFv]) {
+            this._idx[k][f][oldFv] = this._idx[k][f][oldFv].filter(id => id !== nV._id);
+            if (this._idx[k][f][oldFv].length === 0) delete this._idx[k][f][oldFv];
+          }
+        }
+        if (!this._idx[k][f][fv]) this._idx[k][f][fv] = [];
+        if (!this._idx[k][f][fv].includes(nV._id)) {
+          this._idx[k][f][fv].push(nV._id);
+        }
+      }
+    }
+  }
+  _RMV_IDX(k, v) {
+    if (!this._idx[k]) return;
+    for (let f in v) {
+      if (typeof v[f] === 'string' || typeof v[f] === 'number') {
+        let fv = String(v[f]);
+        if (this._idx[k][f] && this._idx[k][f][fv]) {
+          this._idx[k][f][fv] = this._idx[k][f][fv].filter(id => id !== v._id);
+          if (this._idx[k][f][fv].length === 0) delete this._idx[k][f][fv];
+        }
+      }
+    }
+  }
+  _GET_BY_IDX(k, f, v) {
+    if (!this._idx[k] || !this._idx[k][f] || !this._idx[k][f][String(v)]) {
+      return [];
+    }
+    return this._idx[k][f][String(v)].map(id => this._GETT(k, id));
+  }
+  _GET_ALL(k) {
+    if (!this._str[k]) return [];
+    let r = [];
+    for (let i in this._str[k]) {
+      r.push(OBJUTL._DPCP(this._str[k][i]));
+    }
+    return r;
+  }
+}
+export const GBDTR = new DTR();
+export class FNCY {
+  constructor(o) {
+    this._id = o._id || STRUTL._GUNI();
+    this._nm = o._nm;
+    this._typ = o._typ || 'INDV';
+    this._sts = o._sts || 'ACTV';
+    this._crdt = o._crdt || DTUTL._TS();
+    this._updt = DTUTL._TS();
+    this._eml = o._eml;
+    this._phn = o._phn;
+    this._adr = o._adr || {};
+    this._tx_inf = o._tx_inf || {};
+  }
+  _TO_OBJ() {
+    return OBJUTL._DPCP(this);
+  }
+  static _CRT(d) {
+    let e = VALDR._REQFLD(d, ['_nm', '_eml']);
+    if (e) return e;
+    let nF = new FNCY(d);
+    let adE = GBDTR._ADDT('FIN_ENTT', nF._TO_OBJ());
+    if (adE) return adE;
+    return nF;
+  }
+  static _GET(i) {
+    return GBDTR._GETT('FIN_ENTT', i);
+  }
+  _UPDT(d) {
+    let e = VALDR._REQFLD(d, []);
+    if (e) return e;
+    this._updt = DTUTL._TS();
+    let updE = GBDTR._UPDT('FIN_ENTT', this._id, OBJUTL._MRGO(d, {
+      _updt: this._updt
+    }));
+    if (updE) return updE;
+    for (let k in d) {
+      if (Object.prototype.hasOwnProperty.call(this, k)) {
+        this[k] = d[k];
+      }
+    }
+    return null;
+  }
+}
+export class USRS {
+  constructor(o) {
+    this._id = o._id || STRUTL._GUNI();
+    this._unm = o._unm;
+    this._pw_hsh = o._pw_hsh;
+    this._eml = o._eml;
+    this._fnc_entt_id = o._fnc_entt_id;
+    this._rls = o._rls || ['USR'];
+    this._sts = o._sts || 'ACTV';
+    this._crdt = o._crdt || DTUTL._TS();
+    this._updt = DTUTL._TS();
+    this._lst_lgn = o._lst_lgn || null;
+  }
+  _TO_OBJ() {
+    return OBJUTL._DPCP(this);
+  }
+  static _CRT(d) {
+    let e = VALDR._REQFLD(d, ['_unm', '_pw', '_eml', '_fnc_entt_id']);
+    if (e) return e;
+    if (!VALDR._ISEML(d._eml)) return new ERRHNDL('USR001', 'Invalid email format');
+    let exUsr = GBDTR._QRY('USRS', {
+      _unm: d._unm
+    });
+    if (exUsr && exUsr.length > 0) return new ERRHNDL('USR002', 'Username already exists');
+    let pwHsh = HSHUTL._CRT_HSH(d._pw + GBLCNFG._SYS_ID);
+    let nU = new USRS(OBJUTL._MRGO(d, {
+      _pw_hsh: pwHsh
+    }));
+    let adE = GBDTR._ADDT('USRS', nU._TO_OBJ());
+    if (adE) return adE;
+    return nU;
+  }
+  static _GET(i) {
+    return GBDTR._GETT('USRS', i);
+  }
+  _UPDT(d) {
+    this._updt = DTUTL._TS();
+    let updE = GBDTR._UPDT('USRS', this._id, OBJUTL._MRGO(d, {
+      _updt: this._updt
+    }));
+    if (updE) return updE;
+    for (let k in d) {
+      if (Object.prototype.hasOwnProperty.call(this, k)) {
+        if (k === '_pw' && VALDR._ISSTR(d._pw)) {
+          this._pw_hsh = HSHUTL._CRT_HSH(d._pw + GBLCNFG._SYS_ID);
+        } else {
+          this[k] = d[k];
+        }
+      }
+    }
+    return null;
+  }
+  _CHKP(p) {
+    return HSHUTL._CRT_HSH(p + GBLCNFG._SYS_ID) === this._pw_hsh;
+  }
+}
+export class ACCT {
+  constructor(o) {
+    this._id = o._id || STRUTL._GUNI();
+    this._fnc_entt_id = o._fnc_entt_id;
+    this._nm = o._nm;
+    this._typ = o._typ || 'CHCKG';
+    this._bal = o._bal || 0;
+    this._cur = o._cur || 'USD';
+    this._sts = o._sts || 'ACTV';
+    this._crdt = o._crdt || DTUTL._TS();
+    this._updt = DTUTL._TS();
+    this._bnk_inf = o._bnk_inf || {};
+  }
+  _TO_OBJ() {
+    return OBJUTL._DPCP(this);
+  }
+  static _CRT(d) {
+    let e = VALDR._REQFLD(d, ['_fnc_entt_id', '_nm', '_cur']);
+    if (e) return e;
+    if (!VALDR._ISNUM(d._bal) && d._bal !== undefined) return new ERRHNDL('ACC001', 'Invalid balance');
+    if (d._bal < 0) return new ERRHNDL('ACC002', 'Initial balance cannot be negative');
+    let nA = new ACCT(d);
+    let adE = GBDTR._ADDT('ACCT', nA._TO_OBJ());
+    if (adE) return adE;
+    return nA;
+  }
+  static _GET(i) {
+    return GBDTR._GETT('ACCT', i);
+  }
+  _UPDT(d) {
+    this._updt = DTUTL._TS();
+    let updE = GBDTR._UPDT('ACCT', this._id, OBJUTL._MRGO(d, {
+      _updt: this._updt
+    }));
+    if (updE) return updE;
+    for (let k in d) {
+      if (Object.prototype.hasOwnProperty.call(this, k)) {
+        this[k] = d[k];
+      }
+    }
+    return null;
+  }
+  _DEPT(a) {
+    if (!VALDR._ISPOSNUM(a)) return new ERRHNDL('ACC003', 'Deposit amount must be positive');
+    this._bal += a;
+    this._updt = DTUTL._TS();
+    let updE = GBDTR._UPDT('ACCT', this._id, {
+      _bal: this._bal,
+      _updt: this._updt
+    });
+    if (updE) return updE;
+    return null;
+  }
+  _WDRW(a) {
+    if (!VALDR._ISPOSNUM(a)) return new ERRHNDL('ACC004', 'Withdrawal amount must be positive');
+    if (this._bal < a) return new ERRHNDL('ACC005', 'Insufficient balance');
+    this._bal -= a;
+    this._updt = DTUTL._TS();
+    let updE = GBDTR._UPDT('ACCT', this._id, {
+      _bal: this._bal,
+      _updt: this._updt
+    });
+    if (updE) return updE;
+    return null;
+  }
+}
+export class TRNC {
+  constructor(o) {
+    this._id = o._id || STRUTL._GUNI();
+    this._s_acc_id = o._s_acc_id;
+    this._t_acc_id = o._t_acc_id;
+    this._amt = o._amt;
+    this._cur = o._cur;
+    this._typ = o._typ || 'PAYMT';
+    this._sts = o._sts || 'PNDG';
+    this._crdt = o._crdt || DTUTL._TS();
+    this._updt = DTUTL._TS();
+    this._dcr = o._dcr;
+    this._ref_id = o._ref_id || null;
+    this._ext_sys = o._ext_sys || null;
+  }
+  _TO_OBJ() {
+    return OBJUTL._DPCP(this);
+  }
+  static _CRT(d) {
+    let e = VALDR._REQFLD(d, ['_s_acc_id', '_t_acc_id', '_amt', '_cur', '_dcr']);
+    if (e) return e;
+    if (!VALDR._ISPOSNUM(d._amt)) return new ERRHNDL('TRN001', 'Amount must be positive');
+    let sA = ACCT._GET(d._s_acc_id);
+    if (!sA) return new ERRHNDL('TRN002', 'Source account not found');
+    let tA = ACCT._GET(d._t_acc_id);
+    if (!tA) return new ERRHNDL('TRN003', 'Target account not found');
+    if (sA._cur !== d._cur) return new ERRHNDL('TRN004', 'Source account currency mismatch');
+    if (tA._cur !== d._cur) return new ERRHNDL('TRN005', 'Target account currency mismatch');
+    if (sA._bal < d._amt) return new ERRHNDL('TRN006', 'Insufficient funds in source account');
+    let nT = new TRNC(d);
+    let adE = GBDTR._ADDT('TRNC', nT._TO_OBJ());
+    if (adE) return adE;
+    return nT;
+  }
+  static _GET(i) {
+    return GBDTR._GETT('TRNC', i);
+  }
+  _UPDT(d) {
+    this._updt = DTUTL._TS();
+    let updE = GBDTR._UPDT('TRNC', this._id, OBJUTL._MRGO(d, {
+      _updt: this._updt
+    }));
+    if (updE) return updE;
+    for (let k in d) {
+      if (Object.prototype.hasOwnProperty.call(this, k)) {
+        this[k] = d[k];
+      }
+    }
+    return null;
+  }
+  _PRCS() {
+    if (this._sts !== 'PNDG') return new ERRHNDL('TRN007', 'Transaction not in pending state');
+    let sA = ACCT._GET(this._s_acc_id);
+    let tA = ACCT._GET(this._t_acc_id);
+    if (!sA || !tA) return new ERRHNDL('TRN008', 'Accounts not found');
+    let wE = sA._WDRW(this._amt);
+    if (wE) return wE;
+    let dE = tA._DEPT(this._amt);
+    if (dE) {
+      sA._DEPT(this._amt);
+      return dE;
+    }
+    this._sts = 'CMPL';
+    let updE = GBDTR._UPDT('TRNC', this._id, {
+      _sts: this._sts,
+      _updt: DTUTL._TS()
+    });
+    if (updE) return updE;
+    return null;
+  }
+}
+export class PPLD {
+  constructor(o) {
+    this._id = o._id || STRUTL._GUNI();
+    this._tkn = o._tkn;
+    this._typ = o._typ;
+    this._crdt = o._crdt || DTUTL._TS();
+    this._exp = o._exp || DTUTL._ADDD(this._crdt, 5, 'm');
+    this._dta = o._dta || {};
+    this._sts = o._sts || 'ACTV';
+  }
+  _TO_OBJ() {
+    return OBJUTL._DPCP(this);
+  }
+  static _CRT(d) {
+    let e = VALDR._REQFLD(d, ['_tkn', '_typ', '_dta']);
+    if (e) return e;
+    let nP = new PPLD(d);
+    let adE = GBDTR._ADDT('PAY_PLD', nP._TO_OBJ());
+    if (adE) return adE;
+    return nP;
+  }
+  static _GET(i) {
+    return GBDTR._GETT('PAY_PLD', i);
+  }
+  _CHCK_EXP() {
+    return DTUTL._TS() > this._exp;
+  }
+}
+export class AUTHX {
+  constructor() {
+    this._s_tkns = {};
+  }
+  _LGN(un, pw) {
+    let usrs = GBDTR._QRY('USRS', {
+      _unm: un
+    });
+    if (!usrs || usrs.length === 0) return new ERRHNDL('AUTH001', 'Invalid credentials');
+    let usr = new USRS(usrs[0]);
+    if (!usr._CHKP(pw)) return new ERRHNDL('AUTH002', 'Invalid credentials');
+    let tkn = TOKNM._GNRT_TKN(usr._id, usr._rls);
+    let sesId = STRUTL._GUNI();
+    this._s_tkns[sesId] = {
+      _usr_id: usr._id,
+      _tkn: tkn,
+      _exp: DTUTL._ADDD(DTUTL._TS(), GBLCNFG._SESH_LIF, 'ms'),
+      _rls: usr._rls
+    };
+    usr._UPDT({
+      _lst_lgn: DTUTL._TS()
+    });
+    return {
+      _ses_id: sesId,
+      _tkn: tkn,
+      _usr_id: usr._id,
+      _rls: usr._rls
+    };
+  }
+  _VLD_TKN(tkn) {
+    return TOKNM._VLD_TKN(tkn);
+  }
+  _VLD_SES(sesId) {
+    let ses = this._s_tkns[sesId];
+    if (!ses) return new ERRHNDL('AUTH003', 'Invalid session');
+    if (DTUTL._TS() > ses._exp) {
+      delete this._s_tkns[sesId];
+      return new ERRHNDL('AUTH004', 'Session expired');
+    }
+    let tknV = TOKNM._VLD_TKN(ses._tkn);
+    if (tknV instanceof ERRHNDL) return tknV;
+    return ses;
+  }
+  _LGOUT(sesId) {
+    if (this._s_tkns[sesId]) {
+      delete this._s_tkns[sesId];
+      return true;
+    }
+    return false;
+  }
+}
+export class SECG {
+  static _HAS_RL(ses, rl) {
+    if (!ses || !ses._rls || !Array.isArray(ses._rls)) return false;
+    return ses._rls.includes(rl);
+  }
+  static _VLD_ACCESS(ses, op) {
+    if (!ses) return false;
+    let r = ses._rls;
+    if (r.includes('ADMN')) return true;
+    if (op === 'READ_ACCT') return r.includes('USR') || r.includes('FIN_ADVR');
+    if (op === 'WRT_ACCT') return r.includes('FN_OPR');
+    if (op === 'PRCS_TRN') return r.includes('TRN_PRC');
+    return false;
+  }
+}
+export class TOKNM {
+  static _SCRT = 'CBDB_SUPR_SECRT_KEY_DONT_SHAR';
+  static _GNRT_TKN(id, rls, exp = GBLCNFG._SESH_LIF) {
+    let pl = {
+      _id: id,
+      _rls: rls,
+      _exp: DTUTL._ADDD(DTUTL._TS(), exp, 'ms')
+    };
+    let hdr = ENCDEC._ENCB64(ENCDEC._JSNSTR({
+      _alg: 'HS256',
+      _typ: 'JWT'
+    }));
+    let pld = ENCDEC._ENCB64(ENCDEC._JSNSTR(pl));
+    let sig = ENCDEC._ENCB64(HSHUTL._CRT_HMAC(TOKNM._SCRT, hdr + '.' + pld));
+    return `${hdr}.${pld}.${sig}`;
+  }
+  static _VLD_TKN(tkn) {
+    let pts = STRUTL._SPTT(tkn, '.');
+    if (pts.length !== 3) return new ERRHNDL('TKN001', 'Invalid token format');
+    let hdr = pts[0];
+    let pld = pts[1];
+    let sig = pts[2];
+    let expSig = ENCDEC._ENCB64(HSHUTL._CRT_HMAC(TOKNM._SCRT, hdr + '.' + pld));
+    if (sig !== expSig) return new ERRHNDL('TKN002', 'Invalid token signature');
+    let dcdPld = ENCDEC._JSNPRS(ENCDEC._DECB64(pld));
+    if (!dcdPld || !dcdPld._exp || DTUTL._TS() > dcdPld._exp) {
+      return new ERRHNDL('TKN003', 'Token expired or invalid payload');
+    }
+    return dcdPld;
+  }
+}
+export class DBHND {
+  constructor(t) {
+    this._t = t;
+  }
+  _ADDT(v) {
+    return GBDTR._ADDT(this._t, v);
+  }
+  _UPDT(i, d) {
+    return GBDTR._UPDT(this._t, i, d);
+  }
+  _GETT(i) {
+    return GBDTR._GETT(this._t, i);
+  }
+  _DELT(i) {
+    return GBDTR._DELT(this._t, i);
+  }
+  _QRY(f) {
+    return GBDTR._QRY(this._t, f);
+  }
+  _GET_ALL() {
+    return GBDTR._GET_ALL(this._t);
+  }
+}
+export const FIN_ENTT_DB = new DBHND('FIN_ENTT');
+export const USRS_DB = new DBHND('USRS');
+export const ACCT_DB = new DBHND('ACCT');
+export const TRNC_DB = new DBHND('TRNC');
+export const PAY_PLD_DB = new DBHND('PAY_PLD');
+export const AUDT_LOG_DB = new DBHND('AUDT_LOG');
+export class AUDT {
+  static _LGR(u, a, d, r = null) {
+    let l = {
+      _id: STRUTL._GUNI(),
+      _u: u,
+      _a: a,
+      _d: d,
+      _r: r,
+      _ts: DTUTL._TS()
+    };
+    AUDT_LOG_DB._ADDT(l);
+  }
+}
+export class GNRCADPT {
+  constructor(cnfg) {
+    this._nm = cnfg._nm;
+    this._bse_url = cnfg._bse_url;
+    this._api_key = cnfg._api_key;
+    this._sec_key = cnfg._sec_key;
+    this._vrsn = cnfg._vrsn || '1.0';
+    this._typ = cnfg._typ || 'API';
+    this._last_rq = null;
+    this._last_rsp = null;
+  }
+  _MK_RQ(pth, mth, hds = {}, bdy = null) {
+    let url = `${this._bse_url}${pth}`;
+    let authHdr = `Bearer ${this._api_key}`;
+    if (this._sec_key) authHdr = `HMAC-SHA256 ${HSHUTL._CRT_HMAC(this._sec_key, bdy || '')}`;
+    let reqHds = OBJUTL._MRGO({
+      'Content-Type': 'application/json',
+      'Authorization': authHdr
+    }, hds);
+    this._last_rq = {
+      url: url,
+      method: mth,
+      headers: reqHds,
+      body: bdy
+    };
+    let http = new HTTPIO(url, mth, reqHds, bdy);
+    let rsp = http._SEND()._GETRSP();
+    this._last_rsp = rsp;
+    if (http._GETSTS() >= 400) {
+      return new ERRHNDL('EXTERR', `Ext API error: ${this._nm} ${http._GETSTS()}`, rsp);
+    }
+    return rsp;
+  }
+  _GET_INFO() {
+    return {
+      nm: this._nm,
+      bse_url: this._bse_url,
+      vrsn: this._vrsn,
+      typ: this._typ
+    };
+  }
+}
+export class GMNA extends GNRCADPT {
+  constructor(c) {
+    super(OBJUTL._MRGO(c, {
+      _nm: 'Gemini',
+      _bse_url: 'https://api.gemini.com'
+    }));
+  }
+  _GET_BAL(usrId) {
+    AUDT._LGR(usrId, 'GMNA_GET_BAL', {
+      ext: this._nm
+    });
+    return this._MK_RQ('/v1/balances', 'GET');
+  }
+  _PL_ORD(usrId, sym, sd, amt, prc) {
+    AUDT._LGR(usrId, 'GMNA_PL_ORD', {
+      ext: this._nm,
+      sym,
+      sd,
+      amt,
+      prc
+    });
+    let b = ENCDEC._JSNSTR({
+      request: '/v1/order/new',
+      nonce: DTUTL._TS(),
+      symbol: sym,
+      amount: String(amt),
+      price: String(prc),
+      side: sd,
+      type: 'exchange limit'
+    });
+    return this._MK_RQ('/v1/order/new', 'POST', {}, b);
+  }
+}
+export class CHTHA extends GNRCADPT {
+  constructor(c) {
+    super(OBJUTL._MRGO(c, {
+      _nm: 'ChatHot',
+      _bse_url: 'https://chat.hot.com'
+    }));
+  }
+  _SND_MSG(usrId, txt) {
+    AUDT._LGR(usrId, 'CHTHA_SND_MSG', {
+      ext: this._nm,
+      txt
+    });
+    let b = ENCDEC._JSNSTR({
+      usr: usrId,
+      msg: txt,
+      ts: DTUTL._TS()
+    });
+    return this._MK_RQ('/api/msg', 'POST', {}, b);
+  }
+  _GET_HIST(usrId, lmt) {
+    AUDT._LGR(usrId, 'CHTHA_GET_HIST', {
+      ext: this._nm,
+      lmt
+    });
+    return this._MK_RQ(`/api/history?usr=${usrId}&lmt=${lmt}`, 'GET');
+  }
+}
+export class GTHBA extends GNRCADPT {
+  constructor(c) {
+    super(OBJUTL._MRGO(c, {
+      _nm: 'GitHub',
+      _bse_url: 'https://api.github.com'
+    }));
+  }
+  _GET_REPOS(usrId, owner) {
+    AUDT._LGR(usrId, 'GTHBA_GET_REPOS', {
+      ext: this._nm,
+      owner
+    });
+    return this._MK_RQ(`/users/${owner}/repos`, 'GET');
+  }
+  _CRTE_ISS(usrId, owner, repo, ttl, bdy) {
+    AUDT._LGR(usrId, 'GTHBA_CRTE_ISS', {
+      ext: this._nm,
+      owner,
+      repo,
+      ttl
+    });
+    let b = ENCDEC._JSNSTR({
+      title: ttl,
+      body: bdy
+    });
+    return this._MK_RQ(`/repos/${owner}/${repo}/issues`, 'POST', {}, b);
+  }
+}
+export class HGFCA extends GNRCADPT {
+  constructor(c) {
+    super(OBJUTL._MRGO(c, {
+      _nm: 'HuggingFaces',
+      _bse_url: 'https://api-inference.huggingface.co'
+    }));
+  }
+  _TX_GN(usrId, mdl, prp) {
+    AUDT._LGR(usrId, 'HGFCA_TX_GN', {
+      ext: this._nm,
+      mdl,
+      prp
+    });
+    let b = ENCDEC._JSNSTR({
+      inputs: prp
+    });
+    return this._MK_RQ(`/models/${mdl}`, 'POST', {
+      'Accept': 'application/json'
+    }, b);
+  }
+}
+export class PLDA extends GNRCADPT {
+  constructor(c) {
+    super(OBJUTL._MRGO(c, {
+      _nm: 'Plaid',
+      _bse_url: 'https://api.plaid.com'
+    }));
+  }
+  _EXCH_TKN(usrId, pTkn) {
+    AUDT._LGR(usrId, 'PLDA_EXCH_TKN', {
+      ext: this._nm,
+      pTkn
+    });
+    let b = ENCDEC._JSNSTR({
+      client_id: this._api_key,
+      secret: this._sec_key,
+      public_token: pTkn
+    });
+    return this._MK_RQ('/item/public_token/exchange', 'POST', {}, b);
+  }
+  _GET_TXS(usrId, accTkn, sD, eD) {
+    AUDT._LGR(usrId, 'PLDA_GET_TXS', {
+      ext: this._nm,
+      accTkn,
+      sD,
+      eD
+    });
+    let b = ENCDEC._JSNSTR({
+      client_id: this._api_key,
+      secret: this._sec_key,
+      access_token: accTkn,
+      start_date: sD,
+      end_date: eD
+    });
+    return this._MK_RQ('/transactions/get', 'POST', {}, b);
+  }
+}
+export class MDNTA extends GNRCADPT {
+  constructor(c) {
+    super(OBJUTL._MRGO(c, {
+      _nm: 'ModernTreasury',
+      _bse_url: 'https://api.moderntreasury.com'
+    }));
+  }
+  _CRTE_PYMT_ORD(usrId, d) {
+    AUDT._LGR(usrId, 'MDNTA_CRTE_PYMT_ORD', {
+      ext: this._nm,
+      d
+    });
+    return this._MK_RQ('/api/payment_orders', 'POST', {}, ENCDEC._JSNSTR(d));
+  }
+  _GET_PYMT_ORD(usrId, id) {
+    AUDT._LGR(usrId, 'MDNTA_GET_PYMT_ORD', {
+      ext: this._nm,
+      id
+    });
+    return this._MK_RQ(`/api/payment_orders/${id}`, 'GET');
+  }
+}
+export class GGDVA extends GNRCADPT {
+  constructor(c) {
+    super(OBJUTL._MRGO(c, {
+      _nm: 'GoogleDrive',
+      _bse_url: 'https://www.googleapis.com/drive/v3'
+    }));
+  }
+  _LST_FLS(usrId, q) {
+    AUDT._LGR(usrId, 'GGDVA_LST_FLS', {
+      ext: this._nm,
+      q
+    });
+    return this._MK_RQ(`/files?q=${ENCDEC._URLENC(q)}`, 'GET');
+  }
+  _UPLD_FL(usrId, flDta, flNm, mime) {
+    AUDT._LGR(usrId, 'GGDVA_UPLD_FL', {
+      ext: this._nm,
+      flNm,
+      mime
+    });
+    let mDta = {
+      name: flNm,
+      mimeType: mime
+    };
+    let hdr = {
+      'Content-Type': 'multipart/related',
+      'X-Upload-Content-Type': mime,
+      'X-Upload-Content-Length': flDta.length
+    };
+    return this._MK_RQ('/files?uploadType=multipart', 'POST', hdr, `--BOUNDARY\nContent-Type: application/json; charset=UTF-8\n\n${ENCDEC._JSNSTR(mDta)}\n\n--BOUNDARY\nContent-Type: ${mime}\n\n${flDta}\n--BOUNDARY--`);
+  }
+}
+export class ONDVA extends GNRCADPT {
+  constructor(c) {
+    super(OBJUTL._MRGO(c, {
+      _nm: 'OneDrive',
+      _bse_url: 'https://graph.microsoft.com/v1.0'
+    }));
+  }
+  _LST_ITMS(usrId, pth) {
+    AUDT._LGR(usrId, 'ONDVA_LST_ITMS', {
+      ext: this._nm,
+      pth
+    });
+    return this._MK_RQ(`/me/drive/root:/${pth}:/children`, 'GET');
+  }
+  _UPLD_FLE(usrId, pth, flNm, flDta) {
+    AUDT._LGR(usrId, 'ONDVA_UPLD_FLE', {
+      ext: this._nm,
+      pth,
+      flNm
+    });
+    return this._MK_RQ(`/me/drive/root:/${pth}/${flNm}:/content`, 'PUT', {
+      'Content-Type': 'application/octet-stream'
+    }, flDta);
+  }
+}
+export class AZRA extends GNRCADPT {
+  constructor(c) {
+    super(OBJUTL._MRGO(c, {
+      _nm: 'Azure',
+      _bse_url: 'https://management.azure.com'
+    }));
+  }
+  _GET_RSC_GPS(usrId, subId) {
+    AUDT._LGR(usrId, 'AZRA_GET_RSC_GPS', {
+      ext: this._nm,
+      subId
+    });
+    return this._MK_RQ(`/subscriptions/${subId}/resourcegroups?api-version=2020-06-01`, 'GET');
+  }
+  _CRTE_VM(usrId, subId, rgNm, vmNm, loc) {
+    AUDT._LGR(usrId, 'AZRA_CRTE_VM', {
+      ext: this._nm,
+      subId,
+      rgNm,
+      vmNm
+    });
+    let b = ENCDEC._JSNSTR({
+      location: loc,
+      properties: {
+        hardwareProfile: {
+          vmSize: 'Standard_DS1_v2'
+        },
+        osProfile: {
+          computerName: vmNm,
+          adminUsername: 'azureuser',
+          adminPassword: 'Password12345!'
+        },
+        storageProfile: {
+          imageReference: {
+            publisher: 'MicrosoftWindowsServer',
+            offer: 'WindowsServer',
+            sku: '2016-Datacenter',
+            version: 'latest'
+          }
+        },
+        networkProfile: {
+          networkInterfaces: [{
+            id: `/subscriptions/${subId}/resourceGroups/${rgNm}/providers/Microsoft.Network/networkInterfaces/${vmNm}-nic`
+          }]
+        }
+      }
+    });
+    return this._MK_RQ(`/subscriptions/${subId}/resourceGroups/${rgNm}/providers/Microsoft.Compute/virtualMachines/${vmNm}?api-version=2020-12-01`, 'PUT', {}, b);
+  }
+}
+export class GGCXA extends GNRCADPT {
+  constructor(c) {
+    super(OBJUTL._MRGO(c, {
+      _nm: 'GoogleCloud',
+      _bse_url: 'https://compute.googleapis.com/compute/v1'
+    }));
+  }
+  _LST_INSTS(usrId, projId, zn) {
+    AUDT._LGR(usrId, 'GGCXA_LST_INSTS', {
+      ext: this._nm,
+      projId,
+      zn
+    });
+    return this._MK_RQ(`/projects/${projId}/zones/${zn}/instances`, 'GET');
+  }
+  _CRTE_INST(usrId, projId, zn, instNm, imgFam) {
+    AUDT._LGR(usrId, 'GGCXA_CRTE_INST', {
+      ext: this._nm,
+      projId,
+      zn,
+      instNm
+    });
+    let b = ENCDEC._JSNSTR({
+      name: instNm,
+      machineType: `zones/${zn}/machineTypes/e2-medium`,
+      disks: [{
+        boot: true,
+        initializeParams: {
+          sourceImage: `projects/debian-cloud/global/images/family/${imgFam}`
+        }
+      }],
+      networkInterfaces: [{
+        network: 'global/networks/default'
+      }]
+    });
+    return this._MK_RQ(`/projects/${projId}/zones/${zn}/instances`, 'POST', {}, b);
+  }
+}
+export class SPBSE extends GNRCADPT {
+  constructor(c) {
+    super(OBJUTL._MRGO(c, {
+      _nm: 'Supabase',
+      _bse_url: 'https://your-project-id.supabase.co/rest/v1'
+    }));
+  }
+  _SEL_TBL(usrId, tblNm, qry) {
+    AUDT._LGR(usrId, 'SPBSE_SEL_TBL', {
+      ext: this._nm,
+      tblNm,
+      qry
+    });
+    return this._MK_RQ(`/${tblNm}?${qry}`, 'GET', {
+      'apikey': this._api_key,
+      'Authorization': `Bearer ${this._api_key}`
+    });
+  }
+  _INS_ROW(usrId, tblNm, row) {
+    AUDT._LGR(usrId, 'SPBSE_INS_ROW', {
+      ext: this._nm,
+      tblNm,
+      row
+    });
+    return this._MK_RQ(`/${tblNm}`, 'POST', {
+      'apikey': this._api_key,
+      'Authorization': `Bearer ${this._api_key}`,
+      'Prefer': 'return=representation'
+    }, ENCDEC._JSNSTR(row));
+  }
+}
+export class VRVTA extends GNRCADPT {
+  constructor(c) {
+    super(OBJUTL._MRGO(c, {
+      _nm: 'Vervet',
+      _bse_url: 'https://api.vervet.com'
+    }));
+  }
+  _CRTE_EVT(usrId, evtDta) {
+    AUDT._LGR(usrId, 'VRVTA_CRTE_EVT', {
+      ext: this._nm,
+      evtDta
+    });
+    return this._MK_RQ('/events', 'POST', {}, ENCDEC._JSNSTR(evtDta));
+  }
+}
+export class SLSFCA extends GNRCADPT {
+  constructor(c) {
+    super(OBJUTL._MRGO(c, {
+      _nm: 'Salesforce',
+      _bse_url: 'https://your-domain.my.salesforce.com/services/data/v58.0'
+    }));
+  }
+  _CRTE_RCRD(usrId, sObj, rcdDta) {
+    AUDT._LGR(usrId, 'SLSFCA_CRTE_RCRD', {
+      ext: this._nm,
+      sObj,
+      rcdDta
+    });
+    return this._MK_RQ(`/sobjects/${sObj}/`, 'POST', {
+      'Content-Type': 'application/json'
+    }, ENCDEC._JSNSTR(rcdDta));
+  }
+  _QRY_SOQL(usrId, qry) {
+    AUDT._LGR(usrId, 'SLSFCA_QRY_SOQL', {
+      ext: this._nm,
+      qry
+    });
+    return this._MK_RQ(`/query?q=${ENCDEC._URLENC(qry)}`, 'GET');
+  }
+}
+export class ORCLA extends GNRCADPT {
+  constructor(c) {
+    super(OBJUTL._MRGO(c, {
+      _nm: 'OracleCloud',
+      _bse_url: 'https://api.oraclecloud.com'
+    }));
+  }
+  _LST_OCPT(usrId, tmId) {
+    AUDT._LGR(usrId, 'ORCLA_LST_OCPT', {
+      ext: this._nm,
+      tmId
+    });
+    return this._MK_RQ(`/20160918/compartments/${tmId}`, 'GET');
+  }
+}
+export class MRQTA extends GNRCADPT {
+  constructor(c) {
+    super(OBJUTL._MRGO(c, {
+      _nm: 'Marqeta',
+      _bse_url: 'https://api.marqeta.com/v3'
+    }));
+  }
+  _CRTE_CRD(usrId, crdDta) {
+    AUDT._LGR(usrId, 'MRQTA_CRTE_CRD', {
+      ext: this._nm,
+      crdDta
+    });
+    return this._MK_RQ('/cards', 'POST', {}, ENCDEC._JSNSTR(crdDta));
+  }
+  _GET_CRD(usrId, crdTk) {
+    AUDT._LGR(usrId, 'MRQTA_GET_CRD', {
+      ext: this._nm,
+      crdTk
+    });
+    return this._MK_RQ(`/cards/${crdTk}`, 'GET');
+  }
+}
+export class CTBNKA extends GNRCADPT {
+  constructor(c) {
+    super(OBJUTL._MRGO(c, {
+      _nm: 'Citibank',
+      _bse_url: 'https://api.citibank.com'
+    }));
+  }
+  _GET_ACC_BAL(usrId, accId) {
+    AUDT._LGR(usrId, 'CTBNKA_GET_ACC_BAL', {
+      ext: this._nm,
+      accId
+    });
+    return this._MK_RQ(`/v1/accounts/${accId}/balances`, 'GET');
+  }
+  _INIT_PYMT(usrId, pDta) {
+    AUDT._LGR(usrId, 'CTBNKA_INIT_PYMT', {
+      ext: this._nm,
+      pDta
+    });
+    return this._MK_RQ('/v1/payments', 'POST', {}, ENCDEC._JSNSTR(pDta));
+  }
+}
+export class SHFYA extends GNRCADPT {
+  constructor(c) {
+    super(OBJUTL._MRGO(c, {
+      _nm: 'Shopify',
+      _bse_url: 'https://your-shop-name.myshopify.com/admin/api/2023-10'
+    }));
+  }
+  _GET_PRDS(usrId) {
+    AUDT._LGR(usrId, 'SHFYA_GET_PRDS', {
+      ext: this._nm
+    });
+    return this._MK_RQ('/products.json', 'GET', {
+      'X-Shopify-Access-Token': this._api_key
+    });
+  }
+  _CRTE_ORD(usrId, ordDta) {
+    AUDT._LGR(usrId, 'SHFYA_CRTE_ORD', {
+      ext: this._nm,
+      ordDta
+    });
+    return this._MK_RQ('/orders.json', 'POST', {
+      'X-Shopify-Access-Token': this._api_key
+    }, ENCDEC._JSNSTR({
+      order: ordDta
+    }));
+  }
+}
+export class WCMRA extends GNRCADPT {
+  constructor(c) {
+    super(OBJUTL._MRGO(c, {
+      _nm: 'WooCommerce',
+      _bse_url: 'https://your-store.com/wp-json/wc/v3'
+    }));
+  }
+  _GET_CPNS(usrId) {
+    AUDT._LGR(usrId, 'WCMRA_GET_CPNS', {
+      ext: this._nm
+    });
+    let auth = ENCDEC._ENCB64(`${this._api_key}:${this._sec_key}`);
+    return this._MK_RQ('/coupons', 'GET', {
+      'Authorization': `Basic ${auth}`
+    });
+  }
+  _CRTE_CST(usrId, cstDta) {
+    AUDT._LGR(usrId, 'WCMRA_CRTE_CST', {
+      ext: this._nm,
+      cstDta
+    });
+    let auth = ENCDEC._ENCB64(`${this._api_key}:${this._sec_key}`);
+    return this._MK_RQ('/customers', 'POST', {
+      'Authorization': `Basic ${auth}`
+    }, ENCDEC._JSNSTR({
+      customer: cstDta
+    }));
+  }
+}
+export class GDDYA extends GNRCADPT {
+  constructor(c) {
+    super(OBJUTL._MRGO(c, {
+      _nm: 'GoDaddy',
+      _bse_url: 'https://api.godaddy.com/v1'
+    }));
+  }
+  _LST_DMNS(usrId, custId) {
+    AUDT._LGR(usrId, 'GDDYA_LST_DMNS', {
+      ext: this._nm,
+      custId
+    });
+    return this._MK_RQ(`/domains?customer_id=${custId}`, 'GET', {
+      'Authorization': `sso-key ${this._api_key}:${this._sec_key}`
+    });
+  }
+}
+export class CPNLA extends GNRCADPT {
+  constructor(c) {
+    super(OBJUTL._MRGO(c, {
+      _nm: 'CPanel',
+      _bse_url: 'https://your-cpanel-domain:2087/json-api'
+    }));
+  }
+  _LST_ACCS(usrId) {
+    AUDT._LGR(usrId, 'CPNLA_LST_ACCS', {
+      ext: this._nm
+    });
+    let auth = ENCDEC._ENCB64(`${this._api_key}:${this._sec_key}`);
+    return this._MK_RQ('/listaccts?api.version=1', 'GET', {
+      'Authorization': `Basic ${auth}`
+    });
+  }
+}
+export class ADBEA extends GNRCADPT {
+  constructor(c) {
+    super(OBJUTL._MRGO(c, {
+      _nm: 'Adobe',
+      _bse_url: 'https://api.adobe.com'
+    }));
+  }
+  _LST_ASSTS(usrId, projId) {
+    AUDT._LGR(usrId, 'ADBEA_LST_ASSTS', {
+      ext: this._nm,
+      projId
+    });
+    return this._MK_RQ(`/project/${projId}/assets`, 'GET');
+  }
+}
+export class TWLIA extends GNRCADPT {
+  constructor(c) {
+    super(OBJUTL._MRGO(c, {
+      _nm: 'Twilio',
+      _bse_url: 'https://api.twilio.com/2010-04-01'
+    }));
+  }
+  _SND_SMS(usrId, fro, to, bdy) {
+    AUDT._LGR(usrId, 'TWLIA_SND_SMS', {
+      ext: this._nm,
+      fro,
+      to,
+      bdy
+    });
+    let auth = ENCDEC._ENCB64(`${this._api_key}:${this._sec_key}`);
+    let data = ENCDEC._URLENC('To=' + to + '&From=' + fro + '&Body=' + bdy);
+    return this._MK_RQ(`/Accounts/${this._api_key}/Messages.json`, 'POST', {
+      'Authorization': `Basic ${auth}`,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    }, data);
+  }
+}
+export class PIPEDRM extends GNRCADPT {
+  constructor(c) {
+    super(OBJUTL._MRGO(c, {
+      _nm: 'Pipedream',
+      _bse_url: 'https://api.pipedream.com/v1'
+    }));
+  }
+  _SND_EVT(usrId, wkflId, evtDta) {
+    AUDT._LGR(usrId, 'PIPEDRM_SND_EVT', {
+      ext: this._nm,
+      wkflId,
+      evtDta
+    });
+    return this._MK_RQ(`/sources/${wkflId}/events`, 'POST', {}, ENCDEC._JSNSTR(evtDta));
+  }
+}
+export class EXTINTMD {
+  constructor() {
+    this._adpts = {};
+    this._cnfg_adpts();
+  }
+  _cnfg_adpts() {
+    this._adpts['GEMINI'] = new GMNA({
+      _api_key: 'GEM_API_KEY_1',
+      _sec_key: 'GEM_SEC_KEY_1'
+    });
+    this._adpts['CHATHOT'] = new CHTHA({
+      _api_key: 'CHT_API_KEY_1'
+    });
+    this._adpts['GITHUB'] = new GTHBA({
+      _api_key: 'GTH_API_KEY_1'
+    });
+    this._adpts['HUGGINGFACES'] = new HGFCA({
+      _api_key: 'HGF_API_KEY_1'
+    });
+    this._adpts['PLAID'] = new PLDA({
+      _api_key: 'PLD_CLNT_ID_1',
+      _sec_key: 'PLD_SECR_1'
+    });
+    this._adpts['MODERNTREASURY'] = new MDNTA({
+      _api_key: 'MDT_API_KEY_1',
+      _sec_key: 'MDT_ORG_ID_1'
+    });
+    this._adpts['GOOGLEDRIVE'] = new GGDVA({
+      _api_key: 'GGD_API_KEY_1'
+    });
+    this._adpts['ONEDRIVE'] = new ONDVA({
+      _api_key: 'OND_ACC_TKN_1'
+    });
+    this._adpts['AZURE'] = new AZRA({
+      _api_key: 'AZR_TKN_1'
+    });
+    this._adpts['GOOGLECLOUD'] = new GGCXA({
+      _api_key: 'GGC_TKN_1'
+    });
+    this._adpts['SUPABASE'] = new SPBSE({
+      _api_key: 'SPB_ANON_KEY_1',
+      _bse_url: 'https://abcsupabase.co/rest/v1'
+    });
+    this._adpts['VERVET'] = new VRVTA({
+      _api_key: 'VRV_API_KEY_1'
+    });
+    this._adpts['SALESFORCE'] = new SLSFCA({
+      _api_key: 'SLF_ACC_TKN_1',
+      _bse_url: 'https://myinstance.my.salesforce.com/services/data/v58.0'
+    });
+    this._adpts['ORACLE'] = new ORCLA({
+      _api_key: 'ORC_API_KEY_1'
+    });
+    this._adpts['MARQETA'] = new MRQTA({
+      _api_key: 'MRQ_APP_TKN_1',
+      _sec_key: 'MRQ_USR_TKN_1'
+    });
+    this._adpts['CITIBANK'] = new CTBNKA({
+      _api_key: 'CTB_API_KEY_1'
+    });
+    this._adpts['SHOPIFY'] = new SHFYA({
+      _api_key: 'SHF_ACC_TKN_1',
+      _bse_url: 'https://my-shop.myshopify.com/admin/api/2023-10'
+    });
+    this._adpts['WOOCOMMERCE'] = new WCMRA({
+      _api_key: 'WCM_CK_1',
+      _sec_key: 'WCM_CS_1',
+      _bse_url: 'https://my-woo-store.com/wp-json/wc/v3'
+    });
+    this._adpts['GODADDY'] = new GDDYA({
+      _api_key: 'GDD_KEY_1',
+      _sec_key: 'GDD_SCRT_1'
+    });
+    this._adpts['CPANEL'] = new CPNLA({
+      _api_key: 'CPN_USR_1',
+      _sec_key: 'CPN_PW_1',
+      _bse_url: 'https://mycpanel.com:2087/json-api'
+    });
+    this._adpts['ADOBE'] = new ADBEA({
+      _api_key: 'ADB_CLI_ID_1'
+    });
+    this._adpts['TWILIO'] = new TWLIA({
+      _api_key: 'TWL_ACC_SID_1',
+      _sec_key: 'TWL_AUTH_TKN_1'
+    });
+    this._adpts['PIPEDREAM'] = new PIPEDRM({
+      _api_key: 'PIP_API_KEY_1'
+    });
+    // Add 1000 more generic "company" adapters
+    for (let i = 1; i <= 977; i++) {
+      let nm = `CMPNY_${STRUTL._LNDT(i, 3, '0')}`;
+      this._adpts[nm] = new GNRCADPT({
+        _nm: nm,
+        _bse_url: `https://api.${STRUTL._TOLWR(nm)}.com`,
+        _api_key: `${nm}_API_KEY_${i}`,
+        _sec_key: `${nm}_SEC_KEY_${i}`
+      });
+    }
+  }
+  _GET_ADPT(nm) {
+    let un = STRUTL._TOUPR(nm);
+    if (!this._adpts[un]) return new ERRHNDL('EIM001', `Adapter not found: ${nm}`);
+    return this._adpts[un];
+  }
+}
+export const GBL_EXT_INT_MGR = new EXTINTMD();
+export class PYMTTRNSL {
+  static _XFRM_PLD_TO_GEMINI_ORD(pld) {
+    let d = pld._dta;
+    if (!d || !VALDR._ISSTR(d.sym) || !VALDR._ISSTR(d.sd) || !VALDR._ISNUM(d.amt) || !VALDR._ISNUM(d.prc)) {
+      return new ERRHNDL('PXLT001', 'Invalid Gemini order payload');
+    }
+    return {
+      sym: d.sym,
+      sd: d.sd,
+      amt: d.amt,
+      prc: d.prc
+    };
+  }
+  static _XFRM_ACCT_TO_PLAID_ITEM(acc) {
+    if (!acc || !VALDR._ISSTR(acc._id) || !VALDR._ISSTR(acc._nm)) {
+      return new ERRHNDL('PXLT002', 'Invalid account for Plaid item');
+    }
+    return {
+      item_id: acc._id,
+      institution_name: acc._bnk_inf._nm || GBLCNFG._CMP_NM,
+      account_name: acc._nm,
+      balance: acc._bal,
+      currency: acc._cur
+    };
+  }
+  static _XFRM_TRN_TO_MOD_TRSRY_PYMT(trn) {
+    if (!trn || !VALDR._ISSTR(trn._s_acc_id) || !VALDR._ISSTR(trn._t_acc_id) || !VALDR._ISPOSNUM(trn._amt)) {
+      return new ERRHNDL('PXLT003', 'Invalid transaction for Modern Treasury payment');
+    }
+    let sA = ACCT_DB._GETT(trn._s_acc_id);
+    let tA = ACCT_DB._GETT(trn._t_acc_id);
+    if (!sA || !tA) {
+      return new ERRHNDL('PXLT004', 'Source or target account not found for MT payment');
+    }
+    return {
+      amount: trn._amt,
+      currency: trn._cur,
+      direction: 'credit',
+      originating_account_id: sA._id,
+      receiving_account_id: tA._id,
+      description: trn._dcr,
+      external_id: trn._id
+    };
+  }
+}
+export class FNCMNGR {
+  constructor() {
+    this._evt_bus = new EVTB();
+    this._msg_q = new MSGQ();
+    this._sub_evts();
+  }
+  _sub_evts() {
+    this._evt_bus._ON('ACCT_CRTE', d => {
+      console.log('FNC_MGR: New account created', d);
+      AUDT._LGR(d._fnc_entt_id, 'ACCT_CRTE_EVT', d);
+    });
+    this._evt_bus._ON('TRN_PRCSD', d => {
+      console.log('FNC_MGR: Transaction processed', d);
+      AUDT._LGR(d._s_acc_id, 'TRN_PRCSD_EVT', d);
+      this._msg_q._ENQ({
+        _typ: 'TRN_NTF',
+        _d: d
+      });
+    });
+    this._evt_bus._ON('EXT_PYMT_REQ', d => {
+      console.log('FNC_MGR: External payment request', d);
+      AUDT._LGR(d.usrId, 'EXT_PYMT_REQ_EVT', d);
+      this._msg_q._ENQ({
+        _typ: 'EXT_PYMT',
+        _d: d
+      });
+    });
+  }
+  _CRT_FN_ENTT(usrId, dta) {
+    let s = AUTHX_INST._VLD_SES(usrId);
+    if (s instanceof ERRHNDL) return s;
+    if (!SECG._VLD_ACCESS(s, 'WRT_FN_ENTT')) return new ERRHNDL('FNC001', 'Unauthorized');
+    let fe = FNCY._CRT(dta);
+    if (fe instanceof ERRHNDL) return fe;
+    this._evt_bus._EMIT('FN_ENTT_CRTE', fe._TO_OBJ());
+    return fe._TO_OBJ();
+  }
+  _CRT_ACC(usrId, dta) {
+    let s = AUTHX_INST._VLD_SES(usrId);
+    if (s instanceof ERRHNDL) return s;
+    if (!SECG._VLD_ACCESS(s, 'WRT_ACCT')) return new ERRHNDL('FNC002', 'Unauthorized');
+    let acc = ACCT._CRT(dta);
+    if (acc instanceof ERRHNDL) return acc;
+    this._evt_bus._EMIT('ACCT_CRTE', acc._TO_OBJ());
+    return acc._TO_OBJ();
+  }
+  _PRCS_TRN(usrId, dta) {
+    let s = AUTHX_INST._VLD_SES(usrId);
+    if (s instanceof ERRHNDL) return s;
+    if (!SECG._VLD_ACCESS(s, 'PRCS_TRN')) return new ERRHNDL('FNC003', 'Unauthorized');
+    let trn = TRNC._CRT(dta);
+    if (trn instanceof ERRHNDL) return trn;
+    let pE = trn._PRCS();
+    if (pE) return pE;
+    this._evt_bus._EMIT('TRN_PRCSD', trn._TO_OBJ());
+    return trn._TO_OBJ();
+  }
+  _LST_FN_ENTTS(usrId) {
+    let s = AUTHX_INST._VLD_SES(usrId);
+    if (s instanceof ERRHNDL) return s;
+    if (!SECG._VLD_ACCESS(s, 'READ_FN_ENTT')) return new ERRHNDL('FNC004', 'Unauthorized');
+    return FIN_ENTT_DB._GET_ALL();
+  }
+  _GET_FN_ENTT_ACCTS(usrId, fnEnttId) {
+    let s = AUTHX_INST._VLD_SES(usrId);
+    if (s instanceof ERRHNDL) return s;
+    if (!SECG._VLD_ACCESS(s, 'READ_ACCT')) return new ERRHNDL('FNC005', 'Unauthorized');
+    return ACCT_DB._QRY({
+      _fnc_entt_id: fnEnttId
+    });
+  }
+  _GET_ACC_TRNS(usrId, accId) {
+    let s = AUTHX_INST._VLD_SES(usrId);
+    if (s instanceof ERRHNDL) return s;
+    if (!SECG._VLD_ACCESS(s, 'READ_TRN')) return new ERRHNDL('FNC006', 'Unauthorized');
+    return TRNC_DB._QRY({
+      _s_acc_id: accId
+    });
+  }
+}
+export class PMENTORC {
+  constructor() {
+    this._evt_bus = new EVTB();
+    this._sub_evts();
+  }
+  _sub_evts() {
+    this._evt_bus._ON('EXT_PYMT_REQ', async d => {
+      console.log('PMT_ORC: Processing external payment request', d);
+      AUDT._LGR(d.usrId, 'PMT_ORC_EXT_REQ', d);
+      let adpt = GBL_EXT_INT_MGR._GET_ADPT(d.extSys);
+      if (adpt instanceof ERRHNDL) {
+        console.error('PMT_ORC: Adapter not found for external payment', adpt);
+        return;
+      }
+      if (d.extSys === 'GEMINI') {
+        let pld = PPLD._GET(d.payloadId);
+        if (!pld) {
+          console.error('PMT_ORC: Payload not found for Gemini');
+          return;
+        }
+        let ordDta = PYMTTRNSL._XFRM_PLD_TO_GEMINI_ORD(pld);
+        if (ordDta instanceof ERRHNDL) {
+          console.error('PMT_ORC: Failed to transform Gemini order', ordDta);
+          return;
+        }
+        let rsp = adpt._PL_ORD(d.usrId, ordDta.sym, ordDta.sd, ordDta.amt, ordDta.prc);
+        if (rsp instanceof ERRHNDL) {
+          console.error('PMT_ORC: Gemini order placement failed', rsp);
+          return;
+        }
+        console.log('PMT_ORC: Gemini order placed successfully', rsp);
+        AUDT._LGR(d.usrId, 'GMNA_ORD_PLCD', rsp);
+      } else if (d.extSys === 'PLAID') {
+        let rsp = adpt._EXCH_TKN(d.usrId, d.publicToken);
+        if (rsp instanceof ERRHNDL) {
+          console.error('PMT_ORC: Plaid public token exchange failed', rsp);
+          return;
+        }
+        console.log('PMT_ORC: Plaid public token exchanged successfully', rsp);
+        AUDT._LGR(d.usrId, 'PLD_TKN_EXCHD', rsp);
+      } else if (d.extSys === 'MODERNTREASURY') {
+        let trn = TRNC._GET(d.trnId);
+        if (!trn) {
+          console.error('PMT_ORC: Transaction not found for Modern Treasury');
+          return;
+        }
+        let mtPymt = PYMTTRNSL._XFRM_TRN_TO_MOD_TRSRY_PYMT(trn);
+        if (mtPymt instanceof ERRHNDL) {
+          console.error('PMT_ORC: Failed to transform MT payment', mtPymt);
+          return;
+        }
+        let rsp = adpt._CRTE_PYMT_ORD(d.usrId, mtPymt);
+        if (rsp instanceof ERRHNDL) {
+          console.error('PMT_ORC: Modern Treasury payment order creation failed', rsp);
+          return;
+        }
+        console.log('PMT_ORC: Modern Treasury payment order created successfully', rsp);
+        AUDT._LGR(d.usrId, 'MDT_PYMT_ORD_CRT', rsp);
+      } else {
+        console.warn(`PMT_ORC: Unhandled external system: ${d.extSys}`);
+      }
+    });
+  }
+  _INIT_EXT_PYMT(usrId, extSys, dta) {
+    let s = AUTHX_INST._VLD_SES(usrId);
+    if (s instanceof ERRHNDL) return s;
+    if (!SECG._VLD_ACCESS(s, 'INIT_EXT_PYMT')) return new ERRHNDL('PMO001', 'Unauthorized');
+    let adpt = GBL_EXT_INT_MGR._GET_ADPT(extSys);
+    if (adpt instanceof ERRHNDL) return adpt;
+    let pl = PPLD._CRT({
+      _tkn: STRUTL._GUNI(),
+      _typ: extSys,
+      _dta: dta
+    });
+    if (pl instanceof ERRHNDL) return pl;
+    this._evt_bus._EMIT('EXT_PYMT_REQ', {
+      usrId: s._usr_id,
+      extSys: extSys,
+      payloadId: pl._id,
+      ...dta
+    });
+    return {
+      _sts: 'PNDG',
+      _pl_id: pl._id
+    };
+  }
+}
+export class RPTGEN {
+  static _GEN_ACC_SUM_RPT(usrId, accId) {
+    let s = AUTHX_INST._VLD_SES(usrId);
+    if (s instanceof ERRHNDL) return s;
+    if (!SECG._VLD_ACCESS(s, 'READ_ACCT')) return new ERRHNDL('RPT001', 'Unauthorized');
+    let acc = ACCT_DB._GETT(accId);
+    if (!acc) return new ERRHNDL('RPT002', 'Account not found');
+    let trns = TRNC_DB._QRY({
+      _s_acc_id: accId
+    });
+    let trns_t = TRNC_DB._QRY({
+      _t_acc_id: accId
+    });
+    trns = trns.concat(trns_t);
+    let ttl_in = 0;
+    let ttl_out = 0;
+    for (let i = 0; i < trns.length; i++) {
+      if (trns[i]._t_acc_id === accId) {
+        ttl_in += trns[i]._amt;
+      } else if (trns[i]._s_acc_id === accId) {
+        ttl_out += trns[i]._amt;
+      }
+    }
+    let rpt = {
+      _rpt_id: STRUTL._GUNI(),
+      _gen_ts: DTUTL._TS(),
+      _acc_id: acc._id,
+      _acc_nm: acc._nm,
+      _cur: acc._cur,
+      _start_bal: acc._bal + ttl_out - ttl_in,
+      _end_bal: acc._bal,
+      _ttl_in: ttl_in,
+      _ttl_out: ttl_out,
+      _trns_cnt: trns.length,
+      _cmp_nm: GBLCNFG._CMP_NM
+    };
+    AUDT._LGR(usrId, 'RPT_ACC_SUM', rpt);
+    return rpt;
+  }
+  static _GEN_SYS_AUDT_RPT(usrId) {
+    let s = AUTHX_INST._VLD_SES(usrId);
+    if (s instanceof ERRHNDL) return s;
+    if (!SECG._VLD_ACCESS(s, 'READ_ADMN_RPT')) return new ERRHNDL('RPT003', 'Unauthorized');
+    let logs = AUDT_LOG_DB._GET_ALL();
+    let rpt = {
+      _rpt_id: STRUTL._GUNI(),
+      _gen_ts: DTUTL._TS(),
+      _ttl_logs: logs.length,
+      _logs: logs,
+      _cmp_nm: GBLCNFG._CMP_NM
+    };
+    AUDT._LGR(usrId, 'RPT_SYS_AUDT', rpt);
+    return rpt;
+  }
+}
+export class RISKASS {
+  static _ASSESS_TRN_RISK(usrId, trn) {
+    let s = AUTHX_INST._VLD_SES(usrId);
+    if (s instanceof ERRHNDL) return s;
+    if (!SECG._VLD_ACCESS(s, 'ASSESS_RISK')) return new ERRHNDL('RISK001', 'Unauthorized');
+    let risk_lvl = 'LOW';
+    let risk_scr = 10;
+    if (trn._amt > GBLCNFG._TRN_LMT / 2) {
+      risk_lvl = 'HIGH';
+      risk_scr += 50;
+    } else if (trn._amt > GBLCNFG._TRN_LMT / 10) {
+      risk_lvl = 'MEDIUM';
+      risk_scr += 20;
+    }
+    let sA = ACCT_DB._GETT(trn._s_acc_id);
+    let tA = ACCT_DB._GETT(trn._t_acc_id);
+    if (sA && tA && sA._fnc_entt_id !== tA._fnc_entt_id) {
+      risk_scr += 15;
+      risk_lvl = risk_lvl === 'LOW' ? 'MEDIUM' : risk_lvl;
+    }
+    if (STRUTL._TOLWR(trn._dcr).includes('gambling') || STRUTL._TOLWR(trn._dcr).includes('crypto')) {
+      risk_scr += 30;
+      risk_lvl = 'HIGH';
+    }
+    let r = {
+      _trn_id: trn._id,
+      _lvl: risk_lvl,
+      _scr: risk_scr,
+      _ts: DTUTL._TS(),
+      _dta: {
+        _amt: trn._amt,
+        _src_acc: trn._s_acc_id,
+        _tgt_acc: trn._t_acc_id,
+        _dcr: trn._dcr
+      }
+    };
+    AUDT._LGR(usrId, 'RISK_ASSESS', r);
+    return r;
+  }
+}
+export class LGLCMNC {
+  static _CHK_AML(usrId, dta) {
+    let s = AUTHX_INST._VLD_SES(usrId);
+    if (s instanceof ERRHNDL) return s;
+    if (!SECG._VLD_ACCESS(s, 'CHK_AML')) return new ERRHNDL('LGL001', 'Unauthorized');
+    let f_lst_hit = false;
+    let srch_str = ENCDEC._JSNSTR(dta);
+    if (srch_str.includes('sanctioned') || srch_str.includes('terror')) {
+      f_lst_hit = true;
+    }
+    let r = {
+      _id: STRUTL._GUNI(),
+      _ts: DTUTL._TS(),
+      _sts: f_lst_hit ? 'FLAGGED' : 'CLEARED',
+      _dta: dta,
+      _rsn: f_lst_hit ? 'Potential match on watchlist' : null
+    };
+    AUDT._LGR(usrId, 'AML_CHECK', r);
+    return r;
+  }
+  static _GEN_KYC_RPT(usrId, fnEnttId) {
+    let s = AUTHX_INST._VLD_SES(usrId);
+    if (s instanceof ERRHNDL) return s;
+    if (!SECG._VLD_ACCESS(s, 'GEN_KYC')) return new ERRHNDL('LGL002', 'Unauthorized');
+    let fe = FIN_ENTT_DB._GETT(fnEnttId);
+    if (!fe) return new ERRHNDL('LGL003', 'Financial entity not found');
+    let kyc_sts = 'INCOMPLETE';
+    let rsns = [];
+    if (fe._nm && fe._eml && fe._adr.city && fe._adr.zip && fe._tx_inf.tax_id) {
+      kyc_sts = 'COMPLETE';
+    } else {
+      if (!fe._nm) rsns.push('Name missing');
+      if (!fe._eml) rsns.push('Email missing');
+      if (!fe._adr.city) rsns.push('Address city missing');
+      if (!fe._adr.zip) rsns.push('Address zip missing');
+      if (!fe._tx_inf.tax_id) rsns.push('Tax ID missing');
+    }
+    let rpt = {
+      _rpt_id: STRUTL._GUNI(),
+      _gen_ts: DTUTL._TS(),
+      _fnc_entt_id: fnEnttId,
+      _sts: kyc_sts,
+      _rsns: rsns,
+      _dta: fe
+    };
+    AUDT._LGR(usrId, 'KYC_RPT', rpt);
+    return rpt;
+  }
+}
+export const AUTHX_INST = new AUTHX();
+export const FNCMNGR_INST = new FNCMNGR();
+export const PMTORC_INST = new PMENTORC();
+export class COREAPP {
+  constructor() {
+    this._auth = AUTHX_INST;
+    this._fnc_mgr = FNCMNGR_INST;
+    this._pmt_orc = PMTORC_INST;
+    this._ext_int_mgr = GBL_EXT_INT_MGR;
+    this._init_sys_dta();
+  }
+  _init_sys_dta() {
+    console.log(`_APP_INIT: ${GBLCNFG._CMP_NM} v${GBLCNFG._VRSN} - ${GBLCNFG._BSE_URL}`);
+    let c = FNCY._CRT({
+      _nm: GBLCNFG._CMP_NM,
+      _typ: 'CORP',
+      _eml: 'admin@citibankdemobusiness.dev',
+      _adr: {
+        _str: '1 Main St',
+        _cty: 'New York',
+        _st: 'NY',
+        _zp: '10001',
+        _cnt: 'USA'
+      },
+      _tx_inf: {
+        _tax_id: '12-3456789'
+      }
+    });
+    if (c instanceof ERRHNDL) {
+      console.error('Core company entity creation failed:', c._GETM());
+    } else {
+      console.log('Core company entity created:', c._id);
+    }
+    let admUsr = USRS._CRT({
+      _unm: 'admin',
+      _pw: 'securepassword',
+      _eml: 'admin@citibankdemobusiness.dev',
+      _fnc_entt_id: c._id,
+      _rls: ['ADMN', 'USR', 'FIN_ADVR', 'FN_OPR', 'TRN_PRC', 'INIT_EXT_PYMT', 'READ_FN_ENTT', 'WRT_FN_ENTT', 'READ_TRN', 'READ_ADMN_RPT', 'ASSESS_RISK', 'CHK_AML', 'GEN_KYC']
+    });
+    if (admUsr instanceof ERRHNDL) {
+      console.error('Admin user creation failed:', admUsr._GETM());
+    } else {
+      console.log('Admin user created:', admUsr._id);
+    }
+    let custFE = FNCY._CRT({
+      _nm: 'Test Customer',
+      _typ: 'INDV',
+      _eml: 'customer@example.com',
+      _phn: '555-123-4567',
+      _adr: {
+        _str: '200 Oak Ave',
+        _cty: 'Los Angeles',
+        _st: 'CA',
+        _zp: '90210',
+        _cnt: 'USA'
+      },
+      _tx_inf: {
+        _tax_id: '987-65-4321'
+      }
+    });
+    if (custFE instanceof ERRHNDL) {
+      console.error('Customer entity creation failed:', custFE._GETM());
+    } else {
+      console.log('Customer entity created:', custFE._id);
+    }
+    let custUsr = USRS._CRT({
+      _unm: 'customer',
+      _pw: 'customerpass',
+      _eml: 'customer@example.com',
+      _fnc_entt_id: custFE._id,
+      _rls: ['USR', 'READ_ACCT', 'READ_TRN']
+    });
+    if (custUsr instanceof ERRHNDL) {
+      console.error('Customer user creation failed:', custUsr._GETM());
+    } else {
+      console.log('Customer user created:', custUsr._id);
+    }
+    let chkAcc = ACCT._CRT({
+      _fnc_entt_id: custFE._id,
+      _nm: 'Checking Account',
+      _typ: 'CHCKG',
+      _bal: 10000.50,
+      _cur: 'USD'
+    });
+    if (chkAcc instanceof ERRHNDL) {
+      console.error('Checking account creation failed:', chkAcc._GETM());
+    } else {
+      console.log('Checking account created:', chkAcc._id);
+    }
+    let savAcc = ACCT._CRT({
+      _fnc_entt_id: custFE._id,
+      _nm: 'Savings Account',
+      _typ: 'SVGS',
+      _bal: 50000.00,
+      _cur: 'USD'
+    });
+    if (savAcc instanceof ERRHNDL) {
+      console.error('Savings account creation failed:', savAcc._GETM());
+    } else {
+      console.log('Savings account created:', savAcc._id);
+    }
+  }
+  _LGN_SYS(un, pw) {
+    return this._auth._LGN(un, pw);
+  }
+  _LGOUT_SYS(sesId) {
+    return this._auth._LGOUT(sesId);
+  }
+  _EXEC_FN_OP(sesId, opTyp, dta) {
+    let ses = this._auth._VLD_SES(sesId);
+    if (ses instanceof ERRHNDL) return ses;
+    let usrId = ses._usr_id;
+    if (opTyp === 'CRT_FN_ENTT') return this._fnc_mgr._CRT_FN_ENTT(usrId, dta);
+    if (opTyp === 'CRT_ACC') return this._fnc_mgr._CRT_ACC(usrId, dta);
+    if (opTyp === 'PRCS_TRN') return this._fnc_mgr._PRCS_TRN(usrId, dta);
+    if (opTyp === 'LST_FN_ENTTS') return this._fnc_mgr._LST_FN_ENTTS(usrId);
+    if (opTyp === 'GET_FN_ENTT_ACCTS') return this._fnc_mgr._GET_FN_ENTT_ACCTS(usrId, dta._fnc_entt_id);
+    if (opTyp === 'GET_ACC_TRNS') return this._fnc_mgr._GET_ACC_TRNS(usrId, dta._acc_id);
+    if (opTyp === 'INIT_EXT_PYMT') return this._pmt_orc._INIT_EXT_PYMT(usrId, dta.extSys, dta.payload);
+    if (opTyp === 'GEN_ACC_SUM_RPT') return RPTGEN._GEN_ACC_SUM_RPT(usrId, dta._acc_id);
+    if (opTyp === 'GEN_SYS_AUDT_RPT') return RPTGEN._GEN_SYS_AUDT_RPT(usrId);
+    if (opTyp === 'ASSESS_TRN_RISK') {
+      let trn = TRNC_DB._GETT(dta._trn_id);
+      if (!trn) return new ERRHNDL('APP001', 'Transaction not found for risk assessment');
+      return RISKASS._ASSESS_TRN_RISK(usrId, trn);
+    }
+    if (opTyp === 'CHK_AML') return LGLCMNC._CHK_AML(usrId, dta);
+    if (opTyp === 'GEN_KYC_RPT') return LGLCMNC._GEN_KYC_RPT(usrId, dta._fnc_entt_id);
+    if (opTyp === 'GET_EXT_ADPT_INFO') {
+      let adpt = this._ext_int_mgr._GET_ADPT(dta.extSys);
+      if (adpt instanceof ERRHNDL) return adpt;
+      return adpt._GET_INFO();
+    }
+    if (opTyp === 'GET_GEMINI_BAL') {
+      let adpt = this._ext_int_mgr._GET_ADPT('GEMINI');
+      if (adpt instanceof ERRHNDL) return adpt;
+      return adpt._GET_BAL(usrId);
+    }
+    if (opTyp === 'SEND_TWILIO_SMS') {
+      let adpt = this._ext_int_mgr._GET_ADPT('TWILIO');
+      if (adpt instanceof ERRHNDL) return adpt;
+      return adpt._SND_SMS(usrId, dta.fro, dta.to, dta.bdy);
+    }
+    return new ERRHNDL('APP000', 'Unknown operation type');
+  }
+}
+export const APPINST = new COREAPP();

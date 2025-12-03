@@ -1,0 +1,469 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. CIDEL.
+       AUTHOR. AI-ASSISTED-SYSTEM.
+       DATE-WRITTEN. 1988-10-21.
+       DATE-COMPILED. CURRENT-DATE.
+      ******************************************************************
+      * CUSTOMER DELETION MODULE
+      *
+      * MARKS A CUSTOMER RECORD FOR DELETION.
+      * REQUIRES LEVEL 100 AUTHORIZATION.
+      * PERFORMS MULTI-POINT CHECK FOR DEPENDENT ACCOUNTS AND ASSETS.
+      * INCLUDES AI-ASSISTED RISK ASSESSMENT AND RECOMMENDATION.
+      ******************************************************************
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT CUSTOMER-MASTER-FILE ASSIGN TO CUSTMAST
+               ORGANIZATION IS INDEXED
+               ACCESS MODE IS DYNAMIC
+               RECORD KEY IS CM-CUSTOMER-ID
+               FILE STATUS IS WS-CUSTMAST-STATUS.
+           SELECT DEPOSIT-ACCOUNT-FILE ASSIGN TO DEPMAST
+               ORGANIZATION IS INDEXED
+               ACCESS MODE IS DYNAMIC
+               RECORD KEY IS DA-CUSTOMER-ID
+               FILE STATUS IS WS-DEPMAST-STATUS.
+           SELECT LOAN-MASTER-FILE ASSIGN TO LOANMAST
+               ORGANIZATION IS INDEXED
+               ACCESS MODE IS DYNAMIC
+               RECORD KEY IS LM-CUSTOMER-ID
+               FILE STATUS IS WS-LOANMAST-STATUS.
+           SELECT CARD-MASTER-FILE ASSIGN TO CARDMAST
+               ORGANIZATION IS INDEXED
+               ACCESS MODE IS DYNAMIC
+               RECORD KEY IS CD-CUSTOMER-ID
+               FILE STATUS IS WS-CARDMAST-STATUS.
+           SELECT AUDIT-LOG-FILE ASSIGN TO AUDLOG
+               ORGANIZATION IS LINE SEQUENTIAL
+               ACCESS MODE IS SEQUENTIAL
+               FILE STATUS IS WS-AUDLOG-STATUS.
+
+       DATA DIVISION.
+       FILE SECTION.
+       FD CUSTOMER-MASTER-FILE.
+       01 CUSTOMER-FILE-RECORD    PIC X(434).
+       FD DEPOSIT-ACCOUNT-FILE.
+       01 DEPOSIT-FILE-RECORD    PIC X(201).
+       FD LOAN-MASTER-FILE.
+       01 LOAN-FILE-RECORD    PIC X(131).
+       FD CARD-MASTER-FILE.
+       01 CARD-FILE-RECORD    PIC X(150).
+       FD AUDIT-LOG-FILE.
+       01 AUDIT-LOG-RECORD        PIC X(250).
+
+
+       WORKING-STORAGE SECTION.
+       01 WS-PROGRAM-SWITCHES.
+          05 WS-CUSTMAST-STATUS     PIC X(02).
+             88 CUSTMAST-OK            VALUE '00'.
+             88 CUSTMAST-NOT-FOUND     VALUE '23'.
+          05 WS-DEPMAST-STATUS      PIC X(02).
+             88 DEPMAST-OK             VALUE '00'.
+             88 DEPMAST-NOT-FOUND      VALUE '23'.
+          05 WS-LOANMAST-STATUS     PIC X(02).
+             88 LOANMAST-OK            VALUE '00'.
+             88 LOANMAST-NOT-FOUND     VALUE '23'.
+          05 WS-CARDMAST-STATUS     PIC X(02).
+             88 CARDMAST-OK            VALUE '00'.
+             88 CARDMAST-NOT-FOUND     VALUE '23'.
+          05 WS-AUDLOG-STATUS       PIC X(02).
+             88 AUDLOG-OK              VALUE '00'.
+          05 WS-DELETE-CONFIRMED-1  PIC X(01).
+          05 WS-DELETE-CONFIRMED-2  PIC X(01).
+          05 WS-HAS-DEPENDENCIES    PIC X(01) VALUE 'N'.
+             88 HAS-DEPENDENCIES       VALUE 'Y'.
+          05 WS-AUTHORIZATION-GRANTED PIC X(01) VALUE 'N'.
+             88 AUTH-GRANTED           VALUE 'Y'.
+          05 WS-AI-OVERRIDE-FLAG    PIC X(01) VALUE 'N'.
+             88 AI-OVERRIDDEN          VALUE 'Y'.
+
+       01 WS-IO-FIELDS.
+          05 WS-TARGET-ID           PIC 9(10).
+          05 WS-CURRENT-DATE-TIME.
+             10 WS-CURRENT-DATE      PIC 9(08).
+             10 WS-CURRENT-TIME      PIC 9(06).
+          05 WS-USER-ID-IN          PIC X(08).
+          05 WS-USER-PASSWORD-IN    PIC X(10).
+          05 WS-USER-AUTH-LEVEL     PIC 9(03).
+
+       01 WS-AI-ASSESSMENT-DATA.
+          05 WS-AI-RISK-SCORE       PIC 9(03) VALUE ZEROS.
+             88 AI-RISK-LOW            VALUE 000 THRU 030.
+             88 AI-RISK-MEDIUM         VALUE 031 THRU 070.
+             88 AI-RISK-HIGH           VALUE 071 THRU 100.
+          05 WS-AI-SENTIMENT-INDEX  PIC S9(04)V99 COMP-3 VALUE ZEROS.
+          05 WS-AI-RECOMMENDATION   PIC X(01).
+             88 AI-RECOMMEND-APPROVE   VALUE 'A'.
+             88 AI-RECOMMEND-REVIEW    VALUE 'R'.
+             88 AI-RECOMMEND-REJECT    VALUE 'X'.
+          05 WS-AI-COMMENT          PIC X(100).
+
+       01 WS-AUDIT-RECORD-DETAIL.
+          05 AUD-TIMESTAMP          PIC X(14).
+          05 AUD-USER-ID            PIC X(08).
+          05 AUD-CUSTOMER-ID        PIC 9(10).
+          05 AUD-ACTION             PIC X(30).
+          05 AUD-AI-RECOMMENDATION  PIC X(01).
+          05 AUD-STATUS             PIC X(20).
+          05 AUD-MESSAGE            PIC X(150).
+
+       COPY CPCI01 REPLACING ==CUSTOMER-MASTER-RECORD== BY
+                               ==WS-CUSTOMER-MASTER==.
+       COPY CPDA01.
+       COPY CPLA01.
+       COPY CPCD01.
+
+       PROCEDURE DIVISION.
+       0000-MAIN-LOGIC.
+           PERFORM 1000-INITIALIZATION.
+           PERFORM 0500-GET-USER-CREDENTIALS.
+           PERFORM 0510-AUTHORIZE-USER.
+
+           IF AUTH-GRANTED
+              PERFORM 2000-GET-RECORD-TO-DELETE
+              IF CUSTMAST-OK
+                 PERFORM 2500-AI-PRE-DELETION-ANALYSIS
+                 PERFORM 3000-CHECK-FOR-DEPENDENCIES
+                 IF NOT HAS-DEPENDENCIES
+                    PERFORM 4000-CONFIRM-DELETION
+                    IF WS-DELETE-CONFIRMED-1 = 'Y' AND
+                       WS-DELETE-CONFIRMED-2 = 'Y'
+                       PERFORM 5000-EXECUTE-DELETION
+                       PERFORM 5500-AI-POST-DELETION-REVIEW
+                    ELSE
+                       DISPLAY "DELETION CANCELLED BY USER."
+                       PERFORM 5100-LOG-DELETION-ATTEMPT
+                          USING 'USER CANCELLED'
+                                'Deletion process halted by user.'
+                    END-IF
+                 ELSE
+                    DISPLAY "CANNOT DELETE: CUSTOMER HAS ACTIVE ACCOUNTS OR ASSETS."
+                    PERFORM 5100-LOG-DELETION-ATTEMPT
+                       USING 'DEPENDENCIES EXIST'
+                             'Customer has active accounts/assets. Deletion rejected.'
+                 END-IF
+              ELSE
+                 DISPLAY "CUSTOMER ID NOT FOUND."
+                 PERFORM 5100-LOG-DELETION-ATTEMPT
+                    USING 'CUSTOMER NOT FOUND'
+                          'Attempted deletion of non-existent customer.'
+              END-IF
+           ELSE
+              DISPLAY "AUTHORIZATION FAILED. ACCESS DENIED."
+              PERFORM 5100-LOG-DELETION-ATTEMPT
+                 USING 'AUTH FAILURE'
+                       'Unauthorized access attempt for deletion.'
+           END-IF.
+           PERFORM 9999-TERMINATION.
+           STOP RUN.
+
+       0500-GET-USER-CREDENTIALS.
+           DISPLAY " ".
+           DISPLAY "ENTER USER ID: ".
+           ACCEPT WS-USER-ID-IN.
+           DISPLAY "ENTER PASSWORD: ".
+           ACCEPT WS-USER-PASSWORD-IN NO ECHO.
+           DISPLAY "ENTER AUTHORIZATION LEVEL: ".
+           ACCEPT WS-USER-AUTH-LEVEL.
+
+       0510-AUTHORIZE-USER.
+      *    In a real system, this would call a security module
+      *    to validate user ID, password, and return actual auth level.
+      *    For this simulation, we check the entered level against a threshold.
+           IF WS-USER-AUTH-LEVEL >= 100
+              SET AUTH-GRANTED TO TRUE
+              DISPLAY "AUTHORIZATION GRANTED FOR USER " WS-USER-ID-IN "."
+           ELSE
+              SET AUTH-GRANTED TO FALSE
+              DISPLAY "AUTHORIZATION DENIED for user " WS-USER-ID-IN ". Required level 100."
+           END-IF.
+
+       1000-INITIALIZATION.
+           DISPLAY " ".
+           DISPLAY "INITIALIZING CIDEL - CUSTOMER DELETION MODULE.".
+           ACCEPT WS-CURRENT-DATE-TIME FROM DATE YYYYMMDD TIME.
+           OPEN I-O CUSTOMER-MASTER-FILE.
+           IF NOT CUSTMAST-OK
+              DISPLAY "ERROR OPENING CUSTOMER MASTER FILE: " WS-CUSTMAST-STATUS
+              STOP RUN
+           END-IF.
+           OPEN INPUT DEPOSIT-ACCOUNT-FILE, LOAN-MASTER-FILE, CARD-MASTER-FILE.
+           IF NOT DEPMAST-OK
+              DISPLAY "ERROR OPENING DEPOSIT ACCOUNT FILE: " WS-DEPMAST-STATUS
+              STOP RUN
+           END-IF.
+           IF NOT LOANMAST-OK
+              DISPLAY "ERROR OPENING LOAN MASTER FILE: " WS-LOANMAST-STATUS
+              STOP RUN
+           END-IF.
+           IF NOT CARDMAST-OK
+              DISPLAY "ERROR OPENING CARD MASTER FILE: " WS-CARDMAST-STATUS
+              STOP RUN
+           END-IF.
+           OPEN EXTEND AUDIT-LOG-FILE.
+           IF NOT AUDLOG-OK
+              DISPLAY "CRITICAL ERROR: FAILED TO OPEN AUDIT LOG FILE: " WS-AUDLOG-STATUS
+              *> We can continue without audit log, but alert the user.
+              DISPLAY "WARNING: AUDIT LOGGING IS UNAVAILABLE."
+           END-IF.
+
+       2000-GET-RECORD-TO-DELETE.
+           DISPLAY "ENTER CUSTOMER ID TO DELETE: ".
+           ACCEPT WS-TARGET-ID.
+           MOVE WS-TARGET-ID TO CM-CUSTOMER-ID OF WS-CUSTOMER-MASTER.
+           READ CUSTOMER-MASTER-FILE INTO WS-CUSTOMER-MASTER
+               INVALID KEY
+                   MOVE '23' TO WS-CUSTMAST-STATUS.
+           IF CUSTMAST-NOT-FOUND
+              DISPLAY "ERROR: CUSTOMER ID " WS-TARGET-ID " NOT FOUND."
+           ELSE
+              DISPLAY "RECORD FOUND: " CM-FIRST-NAME OF WS-CUSTOMER-MASTER
+                      " " CM-LAST-NAME OF WS-CUSTOMER-MASTER
+                      " (ID: " CM-CUSTOMER-ID OF WS-CUSTOMER-MASTER ")".
+
+       2500-AI-PRE-DELETION-ANALYSIS.
+      *    Simulated AI interaction. In a real system, this would be an
+      *    API call or message queue interaction with an AI microservice.
+      *    The AI would analyze customer behavior, transaction history,
+      *    potential fraud indicators, relationship value, etc.
+           DISPLAY "PERFORMING AI-ASSISTED PRE-DELETION ANALYSIS...".
+           MOVE ZEROS TO WS-AI-RISK-SCORE.
+           MOVE ZEROS TO WS-AI-SENTIMENT-INDEX.
+           MOVE 'R' TO WS-AI-RECOMMENDATION.
+           MOVE SPACES TO WS-AI-COMMENT.
+
+      *    Simulate AI decision based on customer ID pattern or some internal logic
+           IF CM-CUSTOMER-ID OF WS-CUSTOMER-MASTER IS LESS THAN 5000000000
+               ADD 20 TO WS-AI-RISK-SCORE
+               MOVE -0.50 TO WS-AI-SENTIMENT-INDEX
+               MOVE 'R' TO WS-AI-RECOMMENDATION
+               STRING "Customer history shows some potential for high activity. "
+                      "Requires careful review."
+                      DELIMITED BY SIZE INTO WS-AI-COMMENT
+           ELSE
+               ADD 10 TO WS-AI-RISK-SCORE
+               MOVE 0.75 TO WS-AI-SENTIMENT-INDEX
+               MOVE 'A' TO WS-AI-RECOMMENDATION
+               STRING "Customer shows low activity / good standing. "
+                      "Deletion likely safe."
+                      DELIMITED BY SIZE INTO WS-AI-COMMENT
+           END-IF.
+           
+      *    Further refine AI decision based on existing dependencies (hypothetical)
+      *    Note: This is a simplified simulation. Real AI would fetch and analyze actual data.
+           IF HAS-DEPENDENCIES  *> This flag is set in 3000, but AI might pre-check or infer
+               ADD 50 TO WS-AI-RISK-SCORE
+               MOVE -0.90 TO WS-AI-SENTIMENT-INDEX
+               MOVE 'X' TO WS-AI-RECOMMENDATION
+               STRING WS-AI-COMMENT " Active dependencies detected, strong rejection."
+                      DELIMITED BY SIZE INTO WS-AI-COMMENT
+           END-IF.
+
+           DISPLAY "AI ANALYSIS COMPLETE:".
+           DISPLAY "  Risk Score: " WS-AI-RISK-SCORE.
+           DISPLAY "  Sentiment Index: " WS-AI-SENTIMENT-INDEX.
+           DISPLAY "  AI Recommendation: " WS-AI-RECOMMENDATION " (" WS-AI-COMMENT ")".
+
+       3000-CHECK-FOR-DEPENDENCIES.
+           DISPLAY "CHECKING FOR DEPENDENT ACCOUNTS AND ASSETS...".
+           MOVE 'N' TO WS-HAS-DEPENDENCIES.
+
+           PERFORM 3010-CHECK-DEPOSIT-ACCOUNTS.
+           IF NOT HAS-DEPENDENCIES
+              PERFORM 3020-CHECK-LOAN-ACCOUNTS
+           END-IF.
+           IF NOT HAS-DEPENDENCIES
+              PERFORM 3100-CHECK-CARD-ACCOUNTS
+           END-IF.
+      *    (ADDITIONAL CHECKS FOR OTHER ASSETS, INVESTMENTS, ETC. WOULD GO HERE)
+
+       3010-CHECK-DEPOSIT-ACCOUNTS.
+           MOVE WS-TARGET-ID TO DA-CUSTOMER-ID.
+           READ DEPOSIT-ACCOUNT-FILE
+               INVALID KEY
+                   MOVE '23' TO WS-DEPMAST-STATUS
+               NOT INVALID KEY
+                   IF DA-IS-ACTIVE
+                       SET HAS-DEPENDENCIES TO TRUE
+                       DISPLAY "ERROR: ACTIVE DEPOSIT ACCOUNT FOUND (ID: " DA-ACCOUNT-ID ")".
+                   END-IF
+           END-READ.
+
+       3020-CHECK-LOAN-ACCOUNTS.
+           MOVE WS-TARGET-ID TO LM-CUSTOMER-ID.
+           READ LOAN-MASTER-FILE
+               INVALID KEY
+                   MOVE '23' TO WS-LOANMAST-STATUS
+               NOT INVALID KEY
+                   IF LOAN-ACTIVE
+                       SET HAS-DEPENDENCIES TO TRUE
+                       DISPLAY "ERROR: ACTIVE LOAN ACCOUNT FOUND (ID: " LM-LOAN-ID ")".
+                   END-IF
+           END-READ.
+
+       3100-CHECK-CARD-ACCOUNTS.
+           MOVE WS-TARGET-ID TO CD-CUSTOMER-ID.
+           READ CARD-MASTER-FILE
+               INVALID KEY
+                   MOVE '23' TO WS-CARDMAST-STATUS
+               NOT INVALID KEY
+                   IF CD-IS-ACTIVE
+                       SET HAS-DEPENDENCIES TO TRUE
+                       DISPLAY "ERROR: ACTIVE CARD ACCOUNT FOUND (ID: " CD-CARD-NUMBER ")".
+                   END-IF
+           END-READ.
+
+       4000-CONFIRM-DELETION.
+           DISPLAY " ".
+           DISPLAY "WARNING: THIS ACTION IS IRREVERSIBLE AND PERMANENT.".
+           DISPLAY "AI RECOMMENDATION FOR THIS DELETION: " WS-AI-RECOMMENDATION
+                   " (" WS-AI-COMMENT ")".
+           IF AI-RECOMMEND-REJECT
+               DISPLAY "AI STRONGLY RECOMMENDS REJECTING THIS DELETION."
+               DISPLAY "OVERRIDING AI REQUIRES EXTRA CAUTION."
+           END-IF.
+
+           DISPLAY "TYPE 'Y' TO CONFIRM DELETION: ".
+           ACCEPT WS-DELETE-CONFIRMED-1.
+           DISPLAY "TYPE 'Y' AGAIN TO FINALIZE DELETION: ".
+           ACCEPT WS-DELETE-CONFIRMED-2.
+           
+           IF (WS-DELETE-CONFIRMED-1 = 'Y' AND WS-DELETE-CONFIRMED-2 = 'Y') AND
+              AI-RECOMMEND-REJECT
+              SET AI-OVERRIDDEN TO TRUE
+              DISPLAY "AI REJECTION OVERRIDDEN BY USER."
+           ELSE
+              MOVE 'N' TO WS-AI-OVERRIDE-FLAG
+           END-IF.
+
+
+       5000-EXECUTE-DELETION.
+      *    (BEST PRACTICE IS TO MARK FOR DELETION, NOT PHYSICALLY DELETE)
+           SET IS-CLOSED OF WS-CUSTOMER-MASTER TO TRUE.
+           MOVE FUNCTION CURRENT-DATE (1:8) TO CM-LAST-UPDATE-DATE OF WS-CUSTOMER-MASTER.
+           MOVE WS-USER-ID-IN TO CM-LAST-UPDATE-USER OF WS-CUSTOMER-MASTER.
+
+           REWRITE CUSTOMER-FILE-RECORD FROM WS-CUSTOMER-MASTER
+               INVALID KEY
+                   DISPLAY "CRITICAL ERROR: FAILED TO UPDATE RECORD FOR CUSTOMER ID "
+                           CM-CUSTOMER-ID OF WS-CUSTOMER-MASTER
+                   PERFORM 5300-LOG-DELETION-FAILURE
+                       USING 'REWRITE FAILED'
+                             'Customer master record rewrite failed unexpectedly.'
+               NOT INVALID KEY
+                   DISPLAY "CUSTOMER RECORD MARKED FOR DELETION."
+                   DISPLAY "RECORD WILL BE PURGED IN END-OF-MONTH BATCH PROCESS."
+                   PERFORM 5200-LOG-DELETION-SUCCESS
+                       USING 'DELETION MARKED'
+                             'Customer record successfully marked for deletion.'
+           END-REWRITE.
+
+       5100-LOG-DELETION-ATTEMPT USING P-ACTION P-MESSAGE.
+           01 P-ACTION         PIC X(30).
+           01 P-MESSAGE        PIC X(150).
+           IF AUDLOG-OK
+              PERFORM 5110-CREATE-AUDIT-RECORD
+                 USING WS-USER-ID-IN
+                       WS-TARGET-ID
+                       P-ACTION
+                       WS-AI-RECOMMENDATION
+                       'ATTEMPTED'
+                       P-MESSAGE.
+              WRITE AUDIT-LOG-RECORD FROM WS-AUDIT-RECORD-DETAIL.
+              IF NOT AUDLOG-OK
+                 DISPLAY "CRITICAL ERROR: FAILED TO WRITE TO AUDIT LOG FILE: " WS-AUDLOG-STATUS
+              END-IF.
+           END-IF.
+
+       5200-LOG-DELETION-SUCCESS USING P-ACTION P-MESSAGE.
+           01 P-ACTION         PIC X(30).
+           01 P-MESSAGE        PIC X(150).
+           IF AUDLOG-OK
+              PERFORM 5110-CREATE-AUDIT-RECORD
+                 USING WS-USER-ID-IN
+                       WS-TARGET-ID
+                       P-ACTION
+                       WS-AI-RECOMMENDATION
+                       'SUCCESS'
+                       P-MESSAGE.
+              WRITE AUDIT-LOG-RECORD FROM WS-AUDIT-RECORD-DETAIL.
+              IF NOT AUDLOG-OK
+                 DISPLAY "CRITICAL ERROR: FAILED TO WRITE TO AUDIT LOG FILE: " WS-AUDLOG-STATUS
+              END-IF.
+           END-IF.
+           
+       5300-LOG-DELETION-FAILURE USING P-ACTION P-MESSAGE.
+           01 P-ACTION         PIC X(30).
+           01 P-MESSAGE        PIC X(150).
+           IF AUDLOG-OK
+              PERFORM 5110-CREATE-AUDIT-RECORD
+                 USING WS-USER-ID-IN
+                       WS-TARGET-ID
+                       P-ACTION
+                       WS-AI-RECOMMENDATION
+                       'FAILED'
+                       P-MESSAGE.
+              WRITE AUDIT-LOG-RECORD FROM WS-AUDIT-RECORD-DETAIL.
+              IF NOT AUDLOG-OK
+                 DISPLAY "CRITICAL ERROR: FAILED TO WRITE TO AUDIT LOG FILE: " WS-AUDLOG-STATUS
+              END-IF.
+           END-IF.
+
+       5110-CREATE-AUDIT-RECORD USING P-AUD-USER-ID P-AUD-CUSTOMER-ID
+                                     P-AUD-ACTION P-AUD-AI-REC P-AUD-STATUS P-AUD-MSG.
+           01 P-AUD-USER-ID        PIC X(08).
+           01 P-AUD-CUSTOMER-ID    PIC 9(10).
+           01 P-AUD-ACTION         PIC X(30).
+           01 P-AUD-AI-REC         PIC X(01).
+           01 P-AUD-STATUS         PIC X(20).
+           01 P-AUD-MSG            PIC X(150).
+           MOVE FUNCTION CURRENT-DATE (1:14) TO AUD-TIMESTAMP.
+           MOVE P-AUD-USER-ID TO AUD-USER-ID.
+           MOVE P-AUD-CUSTOMER-ID TO AUD-CUSTOMER-ID.
+           MOVE P-AUD-ACTION TO AUD-ACTION.
+           MOVE P-AUD-AI-REC TO AUD-AI-RECOMMENDATION.
+           MOVE P-AUD-STATUS TO AUD-STATUS.
+           MOVE P-AUD-MSG TO AUD-MESSAGE.
+
+       5500-AI-POST-DELETION-REVIEW.
+      *    Simulated AI-driven post-deletion actions, like scheduling for purge
+      *    or triggering further review/notifications.
+           DISPLAY "PERFORMING AI-ASSISTED POST-DELETION REVIEW...".
+           IF AI-OVERRIDDEN
+              DISPLAY "  AI recommendation was overridden. Notifying supervisor."
+              PERFORM 6000-SEND-NOTIFICATION
+                 USING 'AI-OVERRIDE'
+                       'Supervisor notification sent for AI override on deletion.'
+           ELSE IF AI-RECOMMEND-APPROVE
+              DISPLAY "  AI approved deletion. Scheduling for expedited purge."
+              PERFORM 6000-SEND-NOTIFICATION
+                 USING 'EXPEDITED-PURGE'
+                       'AI approved deletion. Customer scheduled for expedited data purge.'
+           ELSE
+              DISPLAY "  AI had reservations. Scheduling for standard purge review."
+              PERFORM 6000-SEND-NOTIFICATION
+                 USING 'STANDARD-PURGE'
+                       'AI noted issues. Customer scheduled for standard data purge review.'
+           END-IF.
+           DISPLAY "AI POST-DELETION REVIEW COMPLETE.".
+
+       6000-SEND-NOTIFICATION USING P-NOTIF-TYPE P-NOTIF-MESSAGE.
+           01 P-NOTIF-TYPE         PIC X(20).
+           01 P-NOTIF-MESSAGE      PIC X(100).
+      *    In a real system, this would interface with a messaging system
+      *    (e.g., MQ, email gateway) to send alerts or notifications.
+           DISPLAY "--- Notification System ---".
+           DISPLAY "  TYPE: " P-NOTIF-TYPE.
+           DISPLAY "  TO: SYSTEM-ADMIN@VIRTUAL-FINANCE.COM (simulated)".
+           DISPLAY "  SUBJECT: Customer Deletion Alert - CIDEL Module".
+           DISPLAY "  MESSAGE: " P-NOTIF-MESSAGE.
+           DISPLAY "  CUSTOMER ID: " WS-TARGET-ID.
+           DISPLAY "  BY USER: " WS-USER-ID-IN.
+           DISPLAY "---------------------------".
+
+       9999-TERMINATION.
+           CLOSE CUSTOMER-MASTER-FILE, DEPOSIT-ACCOUNT-FILE,
+                 LOAN-MASTER-FILE, CARD-MASTER-FILE, AUDIT-LOG-FILE.
+           DISPLAY "CIDEL MODULE TERMINATED.".
+           DISPLAY " ".

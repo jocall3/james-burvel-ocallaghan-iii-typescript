@@ -1,0 +1,1291 @@
+// Copyright James Burvel Oâ€™Callaghan III
+// President Citibank Demo Business Inc.
+
+// This JSON file has been enhanced to include Gemini API tool definitions for each GraphQL operation.
+// Each GraphQL 'query' or 'mutation' is now augmented with a 'gemini_tool_definition' field.
+// This field describes how the corresponding GraphQL operation can be exposed as a tool
+// to a Gemini-powered AI agent, enabling function calling capabilities.
+//
+// The 'function_declaration' within 'gemini_tool_definition' provides the necessary schema
+// for the AI model to understand the tool's purpose and its required parameters (derived from GraphQL variables).
+//
+// The 'execution_details' field provides the raw GraphQL type ('query' or 'mutation') and the full
+// GraphQL body, allowing an external client to execute the actual GraphQL operation when the AI
+// requests a tool call. This setup facilitates a robust, commercial-grade integration of
+// existing GraphQL services with Gemini AI.
+
+[
+  {
+    "id": "REDACTED",
+    "name": "BalanceListView",
+    "type": "query",
+    "body": "query BalanceListView($id: ID, $asOfDate: ISO8601Date, $first: Int, $after: String, $last: Int, $before: String) {\\n  balances(\\n    id: $id\\n    asOfDate: $asOfDate\\n    first: $first\\n    after: $after\\n    last: $last\\n    before: $before\\n  ) {\\n    ...BalanceList\\n    __typename\\n  }\\n}\\n\\nfragment BalanceList on BalanceConnection {\\n  edges {\\n    node {\\n      typename: __typename\\n      id\\n      amount\\n      asOfDate\\n      asOfTime\\n      currency\\n      balanceType\\n      valueDate\\n      vendorCode\\n      vendorCodeType\\n    }\\n    __typename\\n  }\\n  pageInfo {\\n    startCursor\\n    endCursor\\n    hasNextPage\\n    hasPreviousPage\\n    __typename\\n  }\\n  __typename\\n}\\n",
+    "gemini_tool_definition": {
+      "name": "BalanceListView",
+      "description": "Fetches financial balance data, reports, or detailed views for 'Balance'. It supports filtering and pagination.",
+      "function_declaration": {
+        "name": "BalanceListView",
+        "description": "Fetches financial balance data, reports, or detailed views for 'Balance'. It supports filtering and pagination.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Unique identifier for the resource."
+            },
+            "asOfDate": {
+              "type": "string",
+              "format": "date",
+              "description": "An ISO8601 date string (e.g., 'YYYY-MM-DD')."
+            },
+            "first": {
+              "type": "integer",
+              "description": "An integer value."
+            },
+            "after": {
+              "type": "string",
+              "description": "A text string."
+            },
+            "last": {
+              "type": "integer",
+              "description": "An integer value."
+            },
+            "before": {
+              "type": "string",
+              "description": "A text string."
+            }
+          },
+          "required": []
+        }
+      },
+      "execution_details": {
+        "graphql_type": "query",
+        "graphql_query_body": "query BalanceListView($id: ID, $asOfDate: ISO8601Date, $first: Int, $after: String, $last: Int, $before: String) {\\n  balances(\\n    id: $id\\n    asOfDate: $asOfDate\\n    first: $first\\n    after: $after\\n    last: $last\\n    before: $before\\n  ) {\\n    ...BalanceList\\n    __typename\\n  }\\n}\\n\\nfragment BalanceList on BalanceConnection {\\n  edges {\\n    node {\\n      typename: __typename\\n      id\\n      amount\\n      asOfDate\\n      asOfTime\\n      currency\\n      balanceType\\n      valueDate\\n      vendorCode\\n      vendorCodeType\\n    }\\n    __typename\\n  }\\n  pageInfo {\\n    startCursor\\n    endCursor\\n    hasNextPage\\n    hasPreviousPage\\n    __typename\\n  }\\n  __typename\\n}\\n"
+      }
+    }
+  },
+  {
+    "id": "REDACTED",
+    "name": "BalanceReportDetailsTable",
+    "type": "query",
+    "body": "query BalanceReportDetailsTable($id: ID!) {\\n  balanceReport(id: $id) {\\n    id\\n    asOf\\n    accountShort\\n    currency\\n    prettyAvailableAmount\\n    prettyLedgerAmount\\n    balanceReportType\\n    __typename\\n  }\\n  displayColumns(resource: balance_report, viewType: \\details_table\\) {\\n    ...displayColumn\\n    __typename\\n  }\\n}\\n\\nfragment displayColumn on DisplayColumn {\\n  viewOptions {\\n    detailsTable {\\n      hideIfNull\\n      copyable\\n      default\\n      primaryColumn\\n      __typename\\n    }\\n    listView {\\n      default\\n      label\\n      __typename\\n    }\\n    __typename\\n  }\\n  label\\n  id\\n  type\\n  resource\\n  sortColumn\\n  displayTypeOptions {\\n    ... on AssociationOption {\\n      typename: __typename\\n      associatedEntityLabelField\\n      associatedEntityLabelFieldType\\n      drawerEnabled\\n      linkEnabled\\n    }\\n    ... on AssociationListOption {\\n      typename: __typename\\n      associatedEntityLabelField\\n      associatedEntityLabelFieldType\\n      drawerEnabled\\n      linkEnabled\\n    }\\n    ... on PolymorphicAssociationOption {\\n      associationPrefix\\n      drawerEnabled\\n      stackedDrawerEnabled\\n      __typename\\n    }\\n    ... on AuditableJSONOption {\\n      auditableFieldName\\n      __typename\\n    }\\n    ... on CountdownOption {\\n      countdownType\\n      __typename\\n    }\\n    ... on LabelWithCountOption {\\n      countField\\n      prettyCountField\\n      truncateMiddle\\n      __typename\\n    }\\n    ... on AmountDifferenceOption {\\n      highlightAmountDifferenceField\\n      __typename\\n    }\\n    ... on StatusIndicatorOption {\\n      statusIndicatorCurrentStatusField\\n      statusIndicatorDescriptorField\\n      statusIndicatorVerboseField\\n      __typename\\n    }\\n    ... on TagOption {\\n      tagColorField\\n      tagIconField\\n      __typename\\n    }\\n    ... on TagButtonListOption {\\n      tagButtonColorsField\\n      tagButtonIconsField\\n      tagButtonHrefsField\\n      tagButtonTooltipsField\\n      __typename\\n    }\\n    ... on AuditableTextOption {\\n      fieldAsDefaultText\\n      fullField\\n      copyable\\n      __typename\\n    }\\n    ... on LinkOption {\\n      displayNameField\\n      openNewTab\\n      __typename\\n    }\\n    ... on TagListOption {\\n      tagColorsField\\n      tagIconsField\\n      __typename\\n    }\\n    ... on JSONOption {\\n      collapsed\\n      __typename\\n    }\\n    __typename\\n  }\\n  __typename\\n}\\n",
+    "gemini_tool_definition": {
+      "name": "BalanceReportDetailsTable",
+      "description": "Fetches financial balance data, reports, or detailed views for 'BalanceReportDetails'. This operation is read-only.",
+      "function_declaration": {
+        "name": "BalanceReportDetailsTable",
+        "description": "Fetches financial balance data, reports, or detailed views for 'BalanceReportDetails'. This operation is read-only.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Unique identifier for the resource."
+            }
+          },
+          "required": [
+            "id"
+          ]
+        }
+      },
+      "execution_details": {
+        "graphql_type": "query",
+        "graphql_query_body": "query BalanceReportDetailsTable($id: ID!) {\\n  balanceReport(id: $id) {\\n    id\\n    asOf\\n    accountShort\\n    currency\\n    prettyAvailableAmount\\n    prettyLedgerAmount\\n    balanceReportType\\n    __typename\\n  }\\n  displayColumns(resource: balance_report, viewType: \\details_table\\) {\\n    ...displayColumn\\n    __typename\\n  }\\n}\\n\\nfragment displayColumn on DisplayColumn {\\n  viewOptions {\\n    detailsTable {\\n      hideIfNull\\n      copyable\\n      default\\n      primaryColumn\\n      __typename\\n    }\\n    listView {\\n      default\\n      label\\n      __typename\\n    }\\n    __typename\\n  }\\n  label\\n  id\\n  type\\n  resource\\n  sortColumn\\n  displayTypeOptions {\\n    ... on AssociationOption {\\n      typename: __typename\\n      associatedEntityLabelField\\n      associatedEntityLabelFieldType\\n      drawerEnabled\\n      linkEnabled\\n    }\\n    ... on AssociationListOption {\\n      typename: __typename\\n      associatedEntityLabelField\\n      associatedEntityLabelFieldType\\n      drawerEnabled\\n      linkEnabled\\n    }\\n    ... on PolymorphicAssociationOption {\\n      associationPrefix\\n      drawerEnabled\\n      stackedDrawerEnabled\\n      __typename\\n    }\\n    ... on AuditableJSONOption {\\n      auditableFieldName\\n      __typename\\n    }\\n    ... on CountdownOption {\\n      countdownType\\n      __typename\\n    }\\n    ... on LabelWithCountOption {\\n      countField\\n      prettyCountField\\n      truncateMiddle\\n      __typename\\n    }\\n    ... on AmountDifferenceOption {\\n      highlightAmountDifferenceField\\n      __typename\\n    }\\n    ... on StatusIndicatorOption {\\n      statusIndicatorCurrentStatusField\\n      statusIndicatorDescriptorField\\n      statusIndicatorVerboseField\\n      __typename\\n    }\\n    ... on TagOption {\\n      tagColorField\\n      tagIconField\\n      __typename\\n    }\\n    ... on TagButtonListOption {\\n      tagButtonColorsField\\n      tagButtonIconsField\\n      tagButtonHrefsField\\n      tagButtonTooltipsField\\n      __typename\\n    }\\n    ... on AuditableTextOption {\\n      fieldAsDefaultText\\n      fullField\\n      copyable\\n      __typename\\n    }\\n    ... on LinkOption {\\n      displayNameField\\n      openNewTab\\n      __typename\\n    }\\n    ... on TagListOption {\\n      tagColorsField\\n      tagIconsField\\n      __typename\\n    }\\n    ... on JSONOption {\\n      collapsed\\n      __typename\\n    }\\n    __typename\\n  }\\n  __typename\\n}\\n"
+      }
+    }
+  },
+  {
+    "id": "REDACTED",
+    "name": "BalanceReportListView",
+    "type": "query",
+    "body": "query BalanceReportListView($internalAccountIds: [String!]!, $asOfDate: DateFilterInput, $balanceReportType: BalanceReportTypeEnum, $first: Int, $after: String, $last: Int, $before: String) {\\n  balanceReports(\\n    internalAccountIds: $internalAccountIds\\n    asOfDate: $asOfDate\\n    balanceReportType: $balanceReportType\\n    first: $first\\n    after: $after\\n    last: $last\\n    before: $before\\n  ) {\\n    ...BalanceReportList\\n    __typename\\n  }\\n}\\n\\nfragment BalanceReportList on BalanceReportConnection {\\n  edges {\\n    node {\\n      typename: __typename\\n      id\\n      asOf\\n      accountShort\\n      currency\\n      prettyAvailableAmount\\n      prettyLedgerAmount\\n      balanceReportType\\n    }\\n    __typename\\n  }\\n  pageInfo {\\n    startCursor\\n    endCursor\\n    hasNextPage\\n    hasPreviousPage\\n    __typename\\n  }\\n  __typename\\n}\\n",
+    "gemini_tool_definition": {
+      "name": "BalanceReportListView",
+      "description": "Fetches financial balance data, reports, or detailed views for 'BalanceReport'. It supports filtering and pagination.",
+      "function_declaration": {
+        "name": "BalanceReportListView",
+        "description": "Fetches financial balance data, reports, or detailed views for 'BalanceReport'. It supports filtering and pagination.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "internalAccountIds": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "description": "A text string."
+              },
+              "description": "A list of 'String' values for parameter 'internalAccountIds'."
+            },
+            "asOfDate": {
+              "type": "object",
+              "description": "An input object for filtering by date and time. It expects fields like 'eq', 'gt', 'gte', 'lt', 'lte'. Example: { \"gt\": \"2023-01-01T00:00:00Z\" }"
+            },
+            "balanceReportType": {
+              "type": "string",
+              "description": "An enumerated value for BalanceReportTypeEnum. Consult API documentation for valid options."
+            },
+            "first": {
+              "type": "integer",
+              "description": "An integer value."
+            },
+            "after": {
+              "type": "string",
+              "description": "A text string."
+            },
+            "last": {
+              "type": "integer",
+              "description": "An integer value."
+            },
+            "before": {
+              "type": "string",
+              "description": "A text string."
+            }
+          },
+          "required": [
+            "internalAccountIds"
+          ]
+        }
+      },
+      "execution_details": {
+        "graphql_type": "query",
+        "graphql_query_body": "query BalanceReportListView($internalAccountIds: [String!]!, $asOfDate: DateFilterInput, $balanceReportType: BalanceReportTypeEnum, $first: Int, $after: String, $last: Int, $before: String) {\\n  balanceReports(\\n    internalAccountIds: $internalAccountIds\\n    asOfDate: $asOfDate\\n    balanceReportType: $balanceReportType\\n    first: $first\\n    after: $after\\n    last: $last\\n    before: $before\\n  ) {\\n    ...BalanceReportList\\n    __typename\\n  }\\n}\\n\\nfragment BalanceReportList on BalanceReportConnection {\\n  edges {\\n    node {\\n      typename: __typename\\n      id\\n      asOf\\n      accountShort\\n      currency\\n      prettyAvailableAmount\\n      prettyLedgerAmount\\n      balanceReportType\\n    }\\n    __typename\\n  }\\n  pageInfo {\\n    startCursor\\n    endCursor\\n    hasNextPage\\n    hasPreviousPage\\n    __typename\\n  }\\n  __typename\\n}\\n"
+      }
+    }
+  },
+  {
+    "id": "REDACTED",
+    "name": "BalanceReportsReportsView",
+    "type": "query",
+    "body": "query BalanceReportsReportsView($first: Int, $after: String, $last: Int, $before: String, $asOfDate: DateFilterInput, $internalAccountIds: [String!] = [], $balanceReportType: BalanceReportTypeEnum) {\\n  balanceReports(\\n    first: $first\\n    after: $after\\n    last: $last\\n    before: $before\\n    asOfDate: $asOfDate\\n    internalAccountIds: $internalAccountIds\\n    balanceReportType: $balanceReportType\\n  ) {\\n    pageInfo {\\n      startCursor\\n      endCursor\\n      hasNextPage\\n      hasPreviousPage\\n      __typename\\n    }\\n    edges {\\n      node {\\n        ...balanceReport\\n        __typename\\n      }\\n      cursor\\n      __typename\\n    }\\n    __typename\\n  }\\n}\\n\\nfragment balanceReport on BalanceReport {\\n  id\\n  internalAccountId\\n  accountShort\\n  availableAmount\\n  currency\\n  prettyAvailableAmount\\n  prettyLedgerAmount\\n  balanceReportType\\n  asOf\\n  asOfDate\\n  __typename\\n}\\n",
+    "gemini_tool_definition": {
+      "name": "BalanceReportsReportsView",
+      "description": "Fetches financial balance data, reports, or detailed views for 'BalanceReportsReports'. It supports filtering and pagination.",
+      "function_declaration": {
+        "name": "BalanceReportsReportsView",
+        "description": "Fetches financial balance data, reports, or detailed views for 'BalanceReportsReports'. It supports filtering and pagination.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "first": {
+              "type": "integer",
+              "description": "An integer value."
+            },
+            "after": {
+              "type": "string",
+              "description": "A text string."
+            },
+            "last": {
+              "type": "integer",
+              "description": "An integer value."
+            },
+            "before": {
+              "type": "string",
+              "description": "A text string."
+            },
+            "asOfDate": {
+              "type": "object",
+              "description": "An input object for filtering by date and time. It expects fields like 'eq', 'gt', 'gte', 'lt', 'lte'. Example: { \"gt\": \"2023-01-01T00:00:00Z\" }"
+            },
+            "internalAccountIds": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "description": "A text string."
+              },
+              "description": "A list of 'String' values for parameter 'internalAccountIds'."
+            },
+            "balanceReportType": {
+              "type": "string",
+              "description": "An enumerated value for BalanceReportTypeEnum. Consult API documentation for valid options."
+            }
+          },
+          "required": []
+        }
+      },
+      "execution_details": {
+        "graphql_type": "query",
+        "graphql_query_body": "query BalanceReportsReportsView($first: Int, $after: String, $last: Int, $before: String, $asOfDate: DateFilterInput, $internalAccountIds: [String!] = [], $balanceReportType: BalanceReportTypeEnum) {\\n  balanceReports(\\n    first: $first\\n    after: $after\\n    last: $last\\n    before: $before\\n    asOfDate: $asOfDate\\n    internalAccountIds: $internalAccountIds\\n    balanceReportType: $balanceReportType\\n  ) {\\n    pageInfo {\\n      startCursor\\n      endCursor\\n      hasNextPage\\n      hasPreviousPage\\n      __typename\\n    }\\n    edges {\\n      node {\\n        ...balanceReport\\n        __typename\\n      }\\n      cursor\\n      __typename\\n    }\\n    __typename\\n  }\\n}\\n\\nfragment balanceReport on BalanceReport {\\n  id\\n  internalAccountId\\n  accountShort\\n  availableAmount\\n  currency\\n  prettyAvailableAmount\\n  prettyLedgerAmount\\n  balanceReportType\\n  asOf\\n  asOfDate\\n  __typename\\n}\\n"
+      }
+    }
+  },
+  {
+    "id": "REDACTED",
+    "name": "BankingHolidays",
+    "type": "query",
+    "body": "query BankingHolidays {\\n  bankingHolidays {\\n    vendorName\\n    vendorTime\\n    __typename\\n  }\\n}\\n",
+    "gemini_tool_definition": {
+      "name": "BankingHolidays",
+      "description": "Retrieves a list of banking holidays. This operation is read-only.",
+      "function_declaration": {
+        "name": "BankingHolidays",
+        "description": "Retrieves a list of banking holidays. This operation is read-only.",
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
+      },
+      "execution_details": {
+        "graphql_type": "query",
+        "graphql_query_body": "query BankingHolidays {\\n  bankingHolidays {\\n    vendorName\\n    vendorTime\\n    __typename\\n  }\\n}\\n"
+      }
+    }
+  },
+  {
+    "id": "REDACTED",
+    "name": "BillingDataView",
+    "type": "query",
+    "body": "query BillingDataView {\\n  billingData {\\n    ordwaySubscriptionSettings {\\n      planId\\n      isActiveSubscription\\n      nextChargeDate\\n      billingContacts {\\n        name\\n        email\\n        path\\n        __typename\\n      }\\n      invoices {\\n        id\\n        date\\n        amount\\n        pdfUrl\\n        __typename\\n      }\\n      selfServePlanId\\n      __typename\\n    }\\n    billingSettings {\\n      last4\\n      network\\n      expiry\\n      __typename\\n    }\\n    canViewBillingUsage\\n    __typename\\n  }\\n  currentOrganization {\\n    creationSource\\n    __typename\\n  }\\n  usersUnpaginated {\\n    name\\n    email\\n    __typename\\n  }\\n}\\n",
+    "gemini_tool_definition": {
+      "name": "BillingDataView",
+      "description": "Accesses billing information and subscription settings for 'BillingData'. This operation is read-only.",
+      "function_declaration": {
+        "name": "BillingDataView",
+        "description": "Accesses billing information and subscription settings for 'BillingData'. This operation is read-only.",
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
+      },
+      "execution_details": {
+        "graphql_type": "query",
+        "graphql_query_body": "query BillingDataView {\\n  billingData {\\n    ordwaySubscriptionSettings {\\n      planId\\n      isActiveSubscription\\n      nextChargeDate\\n      billingContacts {\\n        name\\n        email\\n        path\\n        __typename\\n      }\\n      invoices {\\n        id\\n        date\\n        amount\\n        pdfUrl\\n        __typename\\n      }\\n      selfServePlanId\\n      __typename\\n    }\\n    billingSettings {\\n      last4\\n      network\\n      expiry\\n      __typename\\n    }\\n    canViewBillingUsage\\n    __typename\\n  }\\n  currentOrganization {\\n    creationSource\\n    __typename\\n  }\\n  usersUnpaginated {\\n    name\\n    email\\n    __typename\\n  }\\n}\\n"
+      }
+    }
+  },
+  {
+    "id": "REDACTED",
+    "name": "BulkCreateAccountAchSettings",
+    "type": "mutation",
+    "body": "mutation BulkCreateAccountAchSettings($input: BulkCreateAccountACHSettingsInput!) {\\n  bulkCreateAccountAchSettings(input: $input) {\\n    connectionBulkImport {\\n      id\\n      __typename\\n    }\\n    errors\\n    __typename\\n  }\\n}\\n",
+    "gemini_tool_definition": {
+      "name": "BulkCreateAccountAchSettings",
+      "description": "Initiates a bulk creation of 'account ach settings' records. Use for large-scale data ingestion. This operation modifies data or triggers a process.",
+      "function_declaration": {
+        "name": "BulkCreateAccountAchSettings",
+        "description": "Initiates a bulk creation of 'account ach settings' records. Use for large-scale data ingestion. This operation modifies data or triggers a process.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "description": "A complex input object of type BulkCreateAccountACHSettingsInput. It contains structured fields for batch operations. Consult API documentation for its exact schema."
+            }
+          },
+          "required": [
+            "input"
+          ]
+        }
+      },
+      "execution_details": {
+        "graphql_type": "mutation",
+        "graphql_query_body": "mutation BulkCreateAccountAchSettings($input: BulkCreateAccountACHSettingsInput!) {\\n  bulkCreateAccountAchSettings(input: $input) {\\n    connectionBulkImport {\\n      id\\n      __typename\\n    }\\n    errors\\n    __typename\\n  }\\n}\\n"
+      }
+    }
+  },
+  {
+    "id": "REDACTED",
+    "name": "BulkCreateAccountCapabilities",
+    "type": "mutation",
+    "body": "mutation BulkCreateAccountCapabilities($input: BulkCreateAccountCapabilitiesInput!) {\\n  bulkCreateAccountCapabilities(input: $input) {\\n    connectionBulkImport {\\n      id\\n      __typename\\n    }\\n    errors\\n    __typename\\n  }\\n}\\n",
+    "gemini_tool_definition": {
+      "name": "BulkCreateAccountCapabilities",
+      "description": "Initiates a bulk creation of 'account capabilities' records. Use for large-scale data ingestion. This operation modifies data or triggers a process.",
+      "function_declaration": {
+        "name": "BulkCreateAccountCapabilities",
+        "description": "Initiates a bulk creation of 'account capabilities' records. Use for large-scale data ingestion. This operation modifies data or triggers a process.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "description": "A complex input object of type BulkCreateAccountCapabilitiesInput. It contains structured fields for batch operations. Consult API documentation for its exact schema."
+            }
+          },
+          "required": [
+            "input"
+          ]
+        }
+      },
+      "execution_details": {
+        "graphql_type": "mutation",
+        "graphql_query_body": "mutation BulkCreateAccountCapabilities($input: BulkCreateAccountCapabilitiesInput!) {\\n  bulkCreateAccountCapabilities(input: $input) {\\n    connectionBulkImport {\\n      id\\n      __typename\\n    }\\n    errors\\n    __typename\\n  }\\n}\\n"
+      }
+    }
+  },
+  {
+    "id": "REDACTED",
+    "name": "BulkCreateCounterparties",
+    "type": "mutation",
+    "body": "mutation BulkCreateCounterparties($input: BulkCreateCounterpartiesInput!) {\\n  bulkCreateCounterparties(input: $input) {\\n    bulkImportId\\n    __typename\\n  }\\n}\\n",
+    "gemini_tool_definition": {
+      "name": "BulkCreateCounterparties",
+      "description": "Initiates a bulk creation of 'counterparties' records. Use for large-scale data ingestion. This operation modifies data or triggers a process.",
+      "function_declaration": {
+        "name": "BulkCreateCounterparties",
+        "description": "Initiates a bulk creation of 'counterparties' records. Use for large-scale data ingestion. This operation modifies data or triggers a process.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "description": "A complex input object of type BulkCreateCounterpartiesInput. It contains structured fields for batch operations. Consult API documentation for its exact schema."
+            }
+          },
+          "required": [
+            "input"
+          ]
+        }
+      },
+      "execution_details": {
+        "graphql_type": "mutation",
+        "graphql_query_body": "mutation BulkCreateCounterparties($input: BulkCreateCounterpartiesInput!) {\\n  bulkCreateCounterparties(input: $input) {\\n    bulkImportId\\n    __typename\\n  }\\n}\\n"
+      }
+    }
+  },
+  {
+    "id": "REDACTED",
+    "name": "BulkCreateExpectedPayments",
+    "type": "mutation",
+    "body": "mutation BulkCreateExpectedPayments($input: BulkCreateExpectedPaymentsInput!) {\\n  bulkCreateExpectedPayments(input: $input) {\\n    bulkImportId\\n    __typename\\n  }\\n}\\n",
+    "gemini_tool_definition": {
+      "name": "BulkCreateExpectedPayments",
+      "description": "Initiates a bulk creation of 'expected payments' records. Use for large-scale data ingestion. This operation modifies data or triggers a process.",
+      "function_declaration": {
+        "name": "BulkCreateExpectedPayments",
+        "description": "Initiates a bulk creation of 'expected payments' records. Use for large-scale data ingestion. This operation modifies data or triggers a process.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "description": "A complex input object of type BulkCreateExpectedPaymentsInput. It contains structured fields for batch operations. Consult API documentation for its exact schema."
+            }
+          },
+          "required": [
+            "input"
+          ]
+        }
+      },
+      "execution_details": {
+        "graphql_type": "mutation",
+        "graphql_query_body": "mutation BulkCreateExpectedPayments($input: BulkCreateExpectedPaymentsInput!) {\\n  bulkCreateExpectedPayments(input: $input) {\\n    bulkImportId\\n    __typename\\n  }\\n}\\n"
+      }
+    }
+  },
+  {
+    "id": "REDACTED",
+    "name": "BulkCreateInternalAccounts",
+    "type": "mutation",
+    "body": "mutation BulkCreateInternalAccounts($input: BulkCreateInternalAccountsInput!) {\\n  bulkCreateInternalAccounts(input: $input) {\\n    connectionBulkImport {\\n      id\\n      __typename\\n    }\\n    errors\\n    __typename\\n  }\\n}\\n",
+    "gemini_tool_definition": {
+      "name": "BulkCreateInternalAccounts",
+      "description": "Initiates a bulk creation of 'internal accounts' records. Use for large-scale data ingestion. This operation modifies data or triggers a process.",
+      "function_declaration": {
+        "name": "BulkCreateInternalAccounts",
+        "description": "Initiates a bulk creation of 'internal accounts' records. Use for large-scale data ingestion. This operation modifies data or triggers a process.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "description": "A complex input object of type BulkCreateInternalAccountsInput. It contains structured fields for batch operations. Consult API documentation for its exact schema."
+            }
+          },
+          "required": [
+            "input"
+          ]
+        }
+      },
+      "execution_details": {
+        "graphql_type": "mutation",
+        "graphql_query_body": "mutation BulkCreateInternalAccounts($input: BulkCreateInternalAccountsInput!) {\\n  bulkCreateInternalAccounts(input: $input) {\\n    connectionBulkImport {\\n      id\\n      __typename\\n    }\\n    errors\\n    __typename\\n  }\\n}\\n"
+      }
+    }
+  },
+  {
+    "id": "REDACTED",
+    "name": "BulkCreateInvoices",
+    "type": "mutation",
+    "body": "mutation BulkCreateInvoices($input: BulkCreateInvoicesInput!) {\\n  bulkCreateInvoices(input: $input) {\\n    bulkImportId\\n    __typename\\n  }\\n}\\n",
+    "gemini_tool_definition": {
+      "name": "BulkCreateInvoices",
+      "description": "Initiates a bulk creation of 'invoices' records. Use for large-scale data ingestion. This operation modifies data or triggers a process.",
+      "function_declaration": {
+        "name": "BulkCreateInvoices",
+        "description": "Initiates a bulk creation of 'invoices' records. Use for large-scale data ingestion. This operation modifies data or triggers a process.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "description": "A complex input object of type BulkCreateInvoicesInput. It contains structured fields for batch operations. Consult API documentation for its exact schema."
+            }
+          },
+          "required": [
+            "input"
+          ]
+        }
+      },
+      "execution_details": {
+        "graphql_type": "mutation",
+        "graphql_query_body": "mutation BulkCreateInvoices($input: BulkCreateInvoicesInput!) {\\n  bulkCreateInvoices(input: $input) {\\n    bulkImportId\\n    __typename\\n  }\\n}\\n"
+      }
+    }
+  },
+  {
+    "id": "REDACTED",
+    "name": "BulkCreatePaymentOrders",
+    "type": "mutation",
+    "body": "mutation BulkCreatePaymentOrders($input: BulkCreatePaymentOrdersInput!) {\\n  bulkCreatePaymentOrders(input: $input) {\\n    bulkImportId\\n    __typename\\n  }\\n}\\n",
+    "gemini_tool_definition": {
+      "name": "BulkCreatePaymentOrders",
+      "description": "Initiates a bulk creation of 'payment orders' records. Use for large-scale data ingestion. This operation modifies data or triggers a process.",
+      "function_declaration": {
+        "name": "BulkCreatePaymentOrders",
+        "description": "Initiates a bulk creation of 'payment orders' records. Use for large-scale data ingestion. This operation modifies data or triggers a process.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "description": "A complex input object of type BulkCreatePaymentOrdersInput. It contains structured fields for batch operations. Consult API documentation for its exact schema."
+            }
+          },
+          "required": [
+            "input"
+          ]
+        }
+      },
+      "execution_details": {
+        "graphql_type": "mutation",
+        "graphql_query_body": "mutation BulkCreatePaymentOrders($input: BulkCreatePaymentOrdersInput!) {\\n  bulkCreatePaymentOrders(input: $input) {\\n    bulkImportId\\n    __typename\\n  }\\n}\\n"
+      }
+    }
+  },
+  {
+    "id": "REDACTED",
+    "name": "BulkErrorDetailsTable",
+    "type": "query",
+    "body": "query BulkErrorDetailsTable($id: ID!) {\\n  bulkError(id: $id) {\\n    id\\n    requestErrors\\n    createdAt\\n    __typename\\n  }\\n  displayColumns(resource: bulk_error, viewType: \\details_table\\) {\\n    ...displayColumn\\n    __typename\\n  }\\n}\\n\\nfragment displayColumn on DisplayColumn {\\n  viewOptions {\\n    detailsTable {\\n      hideIfNull\\n      copyable\\n      default\\n      primaryColumn\\n      __typename\\n    }\\n    listView {\\n      default\\n      label\\n      __typename\\n    }\\n    __typename\\n  }\\n  label\\n  id\\n  type\\n  resource\\n  sortColumn\\n  displayTypeOptions {\\n    ... on AssociationOption {\\n      typename: __typename\\n      associatedEntityLabelField\\n      associatedEntityLabelFieldType\\n      drawerEnabled\\n      linkEnabled\\n    }\\n    ... on AssociationListOption {\\n      typename: __typename\\n      associatedEntityLabelField\\n      associatedEntityLabelFieldType\\n      drawerEnabled\\n      linkEnabled\\n    }\\n    ... on PolymorphicAssociationOption {\\n      associationPrefix\\n      drawerEnabled\\n      stackedDrawerEnabled\\n      __typename\\n    }\\n    ... on AuditableJSONOption {\\n      auditableFieldName\\n      __typename\\n    }\\n    ... on CountdownOption {\\n      countdownType\\n      __typename\\n    }\\n    ... on LabelWithCountOption {\\n      countField\\n      prettyCountField\\n      truncateMiddle\\n      __typename\\n    }\\n    ... on AmountDifferenceOption {\\n      highlightAmountDifferenceField\\n      __typename\\n    }\\n    ... on StatusIndicatorOption {\\n      statusIndicatorCurrentStatusField\\n      statusIndicatorDescriptorField\\n      statusIndicatorVerboseField\\n      __typename\\n    }\\n    ... on TagOption {\\n      tagColorField\\n      tagIconField\\n      __typename\\n    }\\n    ... on TagButtonListOption {\\n      tagButtonColorsField\\n      tagButtonIconsField\\n      tagButtonHrefsField\\n      tagButtonTooltipsField\\n      __typename\\n    }\\n    ... on AuditableTextOption {\\n      fieldAsDefaultText\\n      fullField\\n      copyable\\n      __typename\\n    }\\n    ... on LinkOption {\\n      displayNameField\\n      openNewTab\\n      __typename\\n    }\\n    ... on TagListOption {\\n      tagColorsField\\n      tagIconsField\\n      __typename\\n    }\\n    ... on JSONOption {\\n      collapsed\\n      __typename\\n    }\\n    __typename\\n  }\\n  __typename\\n}\\n",
+    "gemini_tool_definition": {
+      "name": "BulkErrorDetailsTable",
+      "description": "Retrieves details, status, or entities related to bulk import and processing operations for 'BulkErrorDetails'. This operation is read-only.",
+      "function_declaration": {
+        "name": "BulkErrorDetailsTable",
+        "description": "Retrieves details, status, or entities related to bulk import and processing operations for 'BulkErrorDetails'. This operation is read-only.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Unique identifier for the resource."
+            }
+          },
+          "required": [
+            "id"
+          ]
+        }
+      },
+      "execution_details": {
+        "graphql_type": "query",
+        "graphql_query_body": "query BulkErrorDetailsTable($id: ID!) {\\n  bulkError(id: $id) {\\n    id\\n    requestErrors\\n    createdAt\\n    __typename\\n  }\\n  displayColumns(resource: bulk_error, viewType: \\details_table\\) {\\n    ...displayColumn\\n    __typename\\n  }\\n}\\n\\nfragment displayColumn on DisplayColumn {\\n  viewOptions {\\n    detailsTable {\\n      hideIfNull\\n      copyable\\n      default\\n      primaryColumn\\n      __typename\\n    }\\n    listView {\\n      default\\n      label\\n      __typename\\n    }\\n    __typename\\n  }\\n  label\\n  id\\n  type\\n  resource\\n  sortColumn\\n  displayTypeOptions {\\n    ... on AssociationOption {\\n      typename: __typename\\n      associatedEntityLabelField\\n      associatedEntityLabelFieldType\\n      drawerEnabled\\n      linkEnabled\\n    }\\n    ... on AssociationListOption {\\n      typename: __typename\\n      associatedEntityLabelField\\n      associatedEntityLabelFieldType\\n      drawerEnabled\\n      linkEnabled\\n    }\\n    ... on PolymorphicAssociationOption {\\n      associationPrefix\\n      drawerEnabled\\n      stackedDrawerEnabled\\n      __typename\\n    }\\n    ... on AuditableJSONOption {\\n      auditableFieldName\\n      __typename\\n    }\\n    ... on CountdownOption {\\n      countdownType\\n      __typename\\n    }\\n    ... on LabelWithCountOption {\\n      countField\\n      prettyCountField\\n      truncateMiddle\\n      __typename\\n    }\\n    ... on AmountDifferenceOption {\\n      highlightAmountDifferenceField\\n      __typename\\n    }\\n    ... on StatusIndicatorOption {\\n      statusIndicatorCurrentStatusField\\n      statusIndicatorDescriptorField\\n      statusIndicatorVerboseField\\n      __typename\\n    }\\n    ... on TagOption {\\n      tagColorField\\n      tagIconField\\n      __typename\\n    }\\n    ... on TagButtonListOption {\\n      tagButtonColorsField\\n      tagButtonIconsField\\n      tagButtonHrefsField\\n      tagButtonTooltipsField\\n      __typename\\n    }\\n    ... on AuditableTextOption {\\n      fieldAsDefaultText\\n      fullField\\n      copyable\\n      __typename\\n    }\\n    ... on LinkOption {\\n      displayNameField\\n      openNewTab\\n      __typename\\n    }\\n    ... on TagListOption {\\n      tagColorsField\\n      tagIconsField\\n      __typename\\n    }\\n    ... on JSONOption {\\n      collapsed\\n      __typename\\n    }\\n    __typename\\n  }\\n  __typename\\n}\\n"
+      }
+    }
+  },
+  {
+    "id": "REDACTED",
+    "name": "BulkImportDetailsTable",
+    "type": "query",
+    "body": "query BulkImportDetailsTable($id: ID, $entityId: ID, $entityType: String) {\\n  bulkImport(id: $id, entityId: $entityId, entityType: $entityType) {\\n    id\\n    user {\\n      typename: __typename\\n      id\\n      name\\n      path\\n    }\\n    createdAt\\n    prettyResourceType\\n    filename\\n    prettyStatus\\n    __typename\\n  }\\n  displayColumns(resource: bulk_import, viewType: \\details_table\\) {\\n    ...displayColumn\\n    __typename\\n  }\\n}\\n\\nfragment displayColumn on DisplayColumn {\\n  viewOptions {\\n    detailsTable {\\n      hideIfNull\\n      copyable\\n      default\\n      primaryColumn\\n      __typename\\n    }\\n    listView {\\n      default\\n      label\\n      __typename\\n    }\\n    __typename\\n  }\\n  label\\n  id\\n  type\\n  resource\\n  sortColumn\\n  displayTypeOptions {\\n    ... on AssociationOption {\\n      typename: __typename\\n      associatedEntityLabelField\\n      associatedEntityLabelFieldType\\n      drawerEnabled\\n      linkEnabled\\n    }\\n    ... on AssociationListOption {\\n      typename: __typename\\n      associatedEntityLabelField\\n      associatedEntityLabelFieldType\\n      drawerEnabled\\n      linkEnabled\\n    }\\n    ... on PolymorphicAssociationOption {\\n      associationPrefix\\n      drawerEnabled\\n      stackedDrawerEnabled\\n      __typename\\n    }\\n    ... on AuditableJSONOption {\\n      auditableFieldName\\n      __typename\\n    }\\n    ... on CountdownOption {\\n      countdownType\\n      __typename\\n    }\\n    ... on LabelWithCountOption {\\n      countField\\n      prettyCountField\\n      truncateMiddle\\n      __typename\\n    }\\n    ... on AmountDifferenceOption {\\n      highlightAmountDifferenceField\\n      __typename\\n    }\\n    ... on StatusIndicatorOption {\\n      statusIndicatorCurrentStatusField\\n      statusIndicatorDescriptorField\\n      statusIndicatorVerboseField\\n      __typename\\n    }\\n    ... on TagOption {\\n      tagColorField\\n      tagIconField\\n      __typename\\n    }\\n    ... on TagButtonListOption {\\n      tagButtonColorsField\\n      tagButtonIconsField\\n      tagButtonHrefsField\\n      tagButtonTooltipsField\\n      __typename\\n    }\\n    ... on AuditableTextOption {\\n      fieldAsDefaultText\\n      fullField\\n      copyable\\n      __typename\\n    }\\n    ... on LinkOption {\\n      displayNameField\\n      openNewTab\\n      __typename\\n    }\\n    ... on TagListOption {\\n      tagColorsField\\n      tagIconsField\\n      __typename\\n    }\\n    ... on JSONOption {\\n      collapsed\\n      __typename\\n    }\\n    __typename\\n  }\\n  __typename\\n}\\n",
+    "gemini_tool_definition": {
+      "name": "BulkImportDetailsTable",
+      "description": "Retrieves details, status, or entities related to bulk import and processing operations for 'BulkImportDetails'. This operation is read-only.",
+      "function_declaration": {
+        "name": "BulkImportDetailsTable",
+        "description": "Retrieves details, status, or entities related to bulk import and processing operations for 'BulkImportDetails'. This operation is read-only.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Unique identifier for the resource."
+            },
+            "entityId": {
+              "type": "string",
+              "description": "Unique identifier for the resource."
+            },
+            "entityType": {
+              "type": "string",
+              "description": "A text string."
+            }
+          },
+          "required": []
+        }
+      },
+      "execution_details": {
+        "graphql_type": "query",
+        "graphql_query_body": "query BulkImportDetailsTable($id: ID, $entityId: ID, $entityType: String) {\\n  bulkImport(id: $id, entityId: $entityId, entityType: $entityType) {\\n    id\\n    user {\\n      typename: __typename\\n      id\\n      name\\n      path\\n    }\\n    createdAt\\n    prettyResourceType\\n    filename\\n    prettyStatus\\n    __typename\\n  }\\n  displayColumns(resource: bulk_import, viewType: \\details_table\\) {\\n    ...displayColumn\\n    __typename\\n  }\\n}\\n\\nfragment displayColumn on DisplayColumn {\\n  viewOptions {\\n    detailsTable {\\n      hideIfNull\\n      copyable\\n      default\\n      primaryColumn\\n      __typename\\n    }\\n    listView {\\n      default\\n      label\\n      __typename\\n    }\\n    __typename\\n  }\\n  label\\n  id\\n  type\\n  resource\\n  sortColumn\\n  displayTypeOptions {\\n    ... on AssociationOption {\\n      typename: __typename\\n      associatedEntityLabelField\\n      associatedEntityLabelFieldType\\n      drawerEnabled\\n      linkEnabled\\n    }\\n    ... on AssociationListOption {\\n      typename: __typename\\n      associatedEntityLabelField\\n      associatedEntityLabelFieldType\\n      drawerEnabled\\n      linkEnabled\\n    }\\n    ... on PolymorphicAssociationOption {\\n      associationPrefix\\n      drawerEnabled\\n      stackedDrawerEnabled\\n      __typename\\n    }\\n    ... on AuditableJSONOption {\\n      auditableFieldName\\n      __typename\\n    }\\n    ... on CountdownOption {\\n      countdownType\\n      __typename\\n    }\\n    ... on LabelWithCountOption {\\n      countField\\n      prettyCountField\\n      truncateMiddle\\n      __typename\\n    }\\n    ... on AmountDifferenceOption {\\n      highlightAmountDifferenceField\\n      __typename\\n    }\\n    ... on StatusIndicatorOption {\\n      statusIndicatorCurrentStatusField\\n      statusIndicatorDescriptorField\\n      statusIndicatorVerboseField\\n      __typename\\n    }\\n    ... on TagOption {\\n      tagColorField\\n      tagIconField\\n      __typename\\n    }\\n    ... on TagButtonListOption {\\n      tagButtonColorsField\\n      tagButtonIconsField\\n      tagButtonHrefsField\\n      tagButtonTooltipsField\\n      __typename\\n    }\\n    ... on AuditableTextOption {\\n      fieldAsDefaultText\\n      fullField\\n      copyable\\n      __typename\\n    }\\n    ... on LinkOption {\\n      displayNameField\\n      openNewTab\\n      __typename\\n    }\\n    ... on TagListOption {\\n      tagColorsField\\n      tagIconsField\\n      __typename\\n    }\\n    ... on JSONOption {\\n      collapsed\\n      __typename\\n    }\\n    __typename\\n  }\\n  __typename\\n}\\n"
+      }
+    }
+  },
+  {
+    "id": "REDACTED",
+    "name": "BulkImportEntitiesView",
+    "type": "query",
+    "body": "query BulkImportEntitiesView($bulkImportId: ID!, $first: Int, $after: String, $last: Int, $before: String) {\\n  bulkImportEntities(\\n    bulkImportId: $bulkImportId\\n    first: $first\\n    after: $after\\n    last: $last\\n    before: $before\\n  ) {\\n    pageInfo {\\n      startCursor\\n      endCursor\\n      hasNextPage\\n      hasPreviousPage\\n      __typename\\n    }\\n    edges {\\n      node {\\n        typename: __typename\\n        ... on PaymentOrder {\\n          id\\n          prettyAmount\\n          beneficiaryName\\n          prettyStatus\\n          prettyType\\n          path\\n          description\\n          __typename\\n        }\\n        ... on Invoice {\\n          id\\n          number\\n          prettyTotalAmount\\n          prettyStatus\\n          dueDate\\n          counterpartyName\\n          path\\n          externalBulkImportIdentifier\\n          __typename\\n        }\\n        ... on Counterparty {\\n          id\\n          name\\n          path\\n          __typename\\n        }\\n        ... on ExpectedPayment {\\n          id\\n          path\\n          accountShort\\n          description\\n          direction\\n          prettyAmountRange\\n          prettyStatus\\n          __typename\\n        }\\n      }\\n      __typename\\n    }\\n    __typename\\n  }\\n}\\n",
+    "gemini_tool_definition": {
+      "name": "BulkImportEntitiesView",
+      "description": "Retrieves details, status, or entities related to bulk import and processing operations for 'BulkImportEntities'. It supports filtering and pagination.",
+      "function_declaration": {
+        "name": "BulkImportEntitiesView",
+        "description": "Retrieves details, status, or entities related to bulk import and processing operations for 'BulkImportEntities'. It supports filtering and pagination.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "bulkImportId": {
+              "type": "string",
+              "description": "Unique identifier for the resource."
+            },
+            "first": {
+              "type": "integer",
+              "description": "An integer value."
+            },
+            "after": {
+              "type": "string",
+              "description": "A text string."
+            },
+            "last": {
+              "type": "integer",
+              "description": "An integer value."
+            },
+            "before": {
+              "type": "string",
+              "description": "A text string."
+            }
+          },
+          "required": [
+            "bulkImportId"
+          ]
+        }
+      },
+      "execution_details": {
+        "graphql_type": "query",
+        "graphql_query_body": "query BulkImportEntitiesView($bulkImportId: ID!, $first: Int, $after: String, $last: Int, $before: String) {\\n  bulkImportEntities(\\n    bulkImportId: $bulkImportId\\n    first: $first\\n    after: $after\\n    last: $last\\n    before: $before\\n  ) {\\n    pageInfo {\\n      startCursor\\n      endCursor\\n      hasNextPage\\n      hasPreviousPage\\n      __typename\\n    }\\n    edges {\\n      node {\\n        typename: __typename\\n        ... on PaymentOrder {\\n          id\\n          prettyAmount\\n          beneficiaryName\\n          prettyStatus\\n          prettyType\\n          path\\n          description\\n          __typename\\n        }\\n        ... on Invoice {\\n          id\\n          number\\n          prettyTotalAmount\\n          prettyStatus\\n          dueDate\\n          counterpartyName\\n          path\\n          externalBulkImportIdentifier\\n          __typename\\n        }\\n        ... on Counterparty {\\n          id\\n          name\\n          path\\n          __typename\\n        }\\n        ... on ExpectedPayment {\\n          id\\n          path\\n          accountShort\\n          description\\n          direction\\n          prettyAmountRange\\n          prettyStatus\\n          __typename\\n        }\\n      }\\n      __typename\\n    }\\n    __typename\\n  }\\n}\\n"
+      }
+    }
+  },
+  {
+    "id": "REDACTED",
+    "name": "BulkImportListView",
+    "type": "query",
+    "body": "query BulkImportListView($bulkImportId: ID, $resourceType: String, $createdAt: DateTimeFilterInput, $userId: ID, $filename: String, $first: Int, $after: String, $last: Int, $before: String) {\\n  bulkImports(\\n    bulkImportId: $bulkImportId\\n    resourceType: $resourceType\\n    createdAt: $createdAt\\n    userId: $userId\\n    filename: $filename\\n    first: $first\\n    after: $after\\n    last: $last\\n    before: $before\\n  ) {\\n    ...BulkImportList\\n    __typename\\n  }\\n}\\n\\nfragment BulkImportList on BulkImportConnection {\\n  edges {\\n    node {\\n      typename: __typename\\n      id\\n      user {\\n        typename: __typename\\n        id\\n        name\\n        path\\n      }\\n      createdAt\\n      prettyResourceType\\n      filename\\n      prettyStatus\\n      path\\n    }\\n    __typename\\n  }\\n  pageInfo {\\n    startCursor\\n    endCursor\\n    hasNextPage\\n    hasPreviousPage\\n    __typename\\n  }\\n  __typename\\n}\\n",
+    "gemini_tool_definition": {
+      "name": "BulkImportListView",
+      "description": "Retrieves details, status, or entities related to bulk import and processing operations for 'BulkImport'. It supports filtering and pagination.",
+      "function_declaration": {
+        "name": "BulkImportListView",
+        "description": "Retrieves details, status, or entities related to bulk import and processing operations for 'BulkImport'. It supports filtering and pagination.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "bulkImportId": {
+              "type": "string",
+              "description": "Unique identifier for the resource."
+            },
+            "resourceType": {
+              "type": "string",
+              "description": "A text string."
+            },
+            "createdAt": {
+              "type": "object",
+              "description": "An input object for filtering by date and time. It expects fields like 'eq', 'gt', 'gte', 'lt', 'lte'. Example: { \"gt\": \"2023-01-01T00:00:00Z\" }"
+            },
+            "userId": {
+              "type": "string",
+              "description": "Unique identifier for the resource."
+            },
+            "filename": {
+              "type": "string",
+              "description": "A text string."
+            },
+            "first": {
+              "type": "integer",
+              "description": "An integer value."
+            },
+            "after": {
+              "type": "string",
+              "description": "A text string."
+            },
+            "last": {
+              "type": "integer",
+              "description": "An integer value."
+            },
+            "before": {
+              "type": "string",
+              "description": "A text string."
+            }
+          },
+          "required": []
+        }
+      },
+      "execution_details": {
+        "graphql_type": "query",
+        "graphql_query_body": "query BulkImportListView($bulkImportId: ID, $resourceType: String, $createdAt: DateTimeFilterInput, $userId: ID, $filename: String, $first: Int, $after: String, $last: Int, $before: String) {\\n  bulkImports(\\n    bulkImportId: $bulkImportId\\n    resourceType: $resourceType\\n    createdAt: $createdAt\\n    userId: $userId\\n    filename: $filename\\n    first: $first\\n    after: $after\\n    last: $last\\n    before: $before\\n  ) {\\n    ...BulkImportList\\n    __typename\\n  }\\n}\\n\\nfragment BulkImportList on BulkImportConnection {\\n  edges {\\n    node {\\n      typename: __typename\\n      id\\n      user {\\n        typename: __typename\\n        id\\n        name\\n        path\\n      }\\n      createdAt\\n      prettyResourceType\\n      filename\\n      prettyStatus\\n      path\\n    }\\n    __typename\\n  }\\n  pageInfo {\\n    startCursor\\n    endCursor\\n    hasNextPage\\n    hasPreviousPage\\n    __typename\\n  }\\n  __typename\\n}\\n"
+      }
+    }
+  },
+  {
+    "id": "REDACTED",
+    "name": "BulkImportView",
+    "type": "query",
+    "body": "query BulkImportView($id: ID!) {\\n  bulkImport(id: $id) {\\n    id\\n    createdAt\\n    resourceType\\n    liveMode\\n    userId\\n    resourceCount\\n    prettyResourceType\\n    visibleResourceCount\\n    user {\\n      id\\n      name\\n      __typename\\n    }\\n    fileUrl\\n    filename\\n    prettyStatus\\n    __typename\\n  }\\n}\\n",
+    "gemini_tool_definition": {
+      "name": "BulkImportView",
+      "description": "Retrieves details, status, or entities related to bulk import and processing operations for 'BulkImport'. This operation is read-only.",
+      "function_declaration": {
+        "name": "BulkImportView",
+        "description": "Retrieves details, status, or entities related to bulk import and processing operations for 'BulkImport'. This operation is read-only.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Unique identifier for the resource."
+            }
+          },
+          "required": [
+            "id"
+          ]
+        }
+      },
+      "execution_details": {
+        "graphql_type": "query",
+        "graphql_query_body": "query BulkImportView($id: ID!) {\\n  bulkImport(id: $id) {\\n    id\\n    createdAt\\n    resourceType\\n    liveMode\\n    userId\\n    resourceCount\\n    prettyResourceType\\n    visibleResourceCount\\n    user {\\n      id\\n      name\\n      __typename\\n    }\\n    fileUrl\\n    filename\\n    prettyStatus\\n    __typename\\n  }\\n}\\n"
+      }
+    }
+  },
+  {
+    "id": "REDACTED",
+    "name": "BulkImportsHome",
+    "type": "query",
+    "body": "query BulkImportsHome($first: Int, $after: String, $last: Int, $before: String, $resourceType: String, $createdAt: DateTimeFilterInput, $bulkImportId: ID, $userId: ID, $filename: String) {\\n  bulkImports(\\n    first: $first\\n    after: $after\\n    last: $last\\n    before: $before\\n    resourceType: $resourceType\\n    createdAt: $createdAt\\n    bulkImportId: $bulkImportId\\n    userId: $userId\\n    filename: $filename\\n  ) {\\n    pageInfo {\\n      startCursor\\n      endCursor\\n      hasNextPage\\n      hasPreviousPage\\n      __typename\\n    }\\n    edges {\\n      node {\\n        id\\n        createdAt\\n        path\\n        resourceType\\n        prettyResourceType\\n        user {\\n          typename: __typename\\n          name\\n          id\\n          path\\n        }\\n        filename\\n        prettyStatus\\n        __typename\\n      }\\n      cursor\\n      __typename\\n    }\\n    __typename\\n  }\\n}\\n",
+    "gemini_tool_definition": {
+      "name": "BulkImportsHome",
+      "description": "Retrieves details, status, or entities related to bulk import and processing operations for 'BulkImports'. It supports filtering and pagination.",
+      "function_declaration": {
+        "name": "BulkImportsHome",
+        "description": "Retrieves details, status, or entities related to bulk import and processing operations for 'BulkImports'. It supports filtering and pagination.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "first": {
+              "type": "integer",
+              "description": "An integer value."
+            },
+            "after": {
+              "type": "string",
+              "description": "A text string."
+            },
+            "last": {
+              "type": "integer",
+              "description": "An integer value."
+            },
+            "before": {
+              "type": "string",
+              "description": "A text string."
+            },
+            "resourceType": {
+              "type": "string",
+              "description": "A text string."
+            },
+            "createdAt": {
+              "type": "object",
+              "description": "An input object for filtering by date and time. It expects fields like 'eq', 'gt', 'gte', 'lt', 'lte'. Example: { \"gt\": \"2023-01-01T00:00:00Z\" }"
+            },
+            "bulkImportId": {
+              "type": "string",
+              "description": "Unique identifier for the resource."
+            },
+            "userId": {
+              "type": "string",
+              "description": "Unique identifier for the resource."
+            },
+            "filename": {
+              "type": "string",
+              "description": "A text string."
+            }
+          },
+          "required": []
+        }
+      },
+      "execution_details": {
+        "graphql_type": "query",
+        "graphql_query_body": "query BulkImportsHome($first: Int, $after: String, $last: Int, $before: String, $resourceType: String, $createdAt: DateTimeFilterInput, $bulkImportId: ID, $userId: ID, $filename: String) {\\n  bulkImports(\\n    first: $first\\n    after: $after\\n    last: $last\\n    before: $before\\n    resourceType: $resourceType\\n    createdAt: $createdAt\\n    bulkImportId: $bulkImportId\\n    userId: $userId\\n    filename: $filename\\n  ) {\\n    pageInfo {\\n      startCursor\\n      endCursor\\n      hasNextPage\\n      hasPreviousPage\\n      __typename\\n    }\\n    edges {\\n      node {\\n        id\\n        createdAt\\n        path\\n        resourceType\\n        prettyResourceType\\n        user {\\n          typename: __typename\\n          name\\n          id\\n          path\\n        }\\n        filename\\n        prettyStatus\\n        __typename\\n      }\\n      cursor\\n      __typename\\n    }\\n    __typename\\n  }\\n}\\n"
+      }
+    }
+  },
+  {
+    "id": "REDACTED",
+    "name": "BulkLinkEntities",
+    "type": "mutation",
+    "body": "mutation BulkLinkEntities($input: BulkLinkEntitiesInput!) {\\n  bulkLinkEntities(input: $input) {\\n    jobId\\n    errors\\n    __typename\\n  }\\n}\\n",
+    "gemini_tool_definition": {
+      "name": "BulkLinkEntities",
+      "description": "Performs bulk linking of entities. This operation modifies data or triggers a process.",
+      "function_declaration": {
+        "name": "BulkLinkEntities",
+        "description": "Performs bulk linking of entities. This operation modifies data or triggers a process.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "description": "A complex input object of type BulkLinkEntitiesInput. It contains structured fields for batch operations. Consult API documentation for its exact schema."
+            }
+          },
+          "required": [
+            "input"
+          ]
+        }
+      },
+      "execution_details": {
+        "graphql_type": "mutation",
+        "graphql_query_body": "mutation BulkLinkEntities($input: BulkLinkEntitiesInput!) {\\n  bulkLinkEntities(input: $input) {\\n    jobId\\n    errors\\n    __typename\\n  }\\n}\\n"
+      }
+    }
+  },
+  {
+    "id": "REDACTED",
+    "name": "BulkRefreshCustomEmailDomainVerificationStatus",
+    "type": "mutation",
+    "body": "mutation BulkRefreshCustomEmailDomainVerificationStatus($input: BulkRefreshCustomEmailDomainVerificationStatusInput!) {\\n  bulkRefreshCustomEmailDomainVerificationStatus(input: $input) {\\n    customEmailDomains {\\n      id\\n      domain\\n      customerDnsRecords {\\n        name\\n        value\\n        type\\n        __typename\\n      }\\n      verificationStatus\\n      __typename\\n    }\\n    __typename\\n  }\\n}\\n",
+    "gemini_tool_definition": {
+      "name": "BulkRefreshCustomEmailDomainVerificationStatus",
+      "description": "Refreshes status for bulk items like custom email domains. This operation modifies data or triggers a process.",
+      "function_declaration": {
+        "name": "BulkRefreshCustomEmailDomainVerificationStatus",
+        "description": "Refreshes status for bulk items like custom email domains. This operation modifies data or triggers a process.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "description": "A complex input object of type BulkRefreshCustomEmailDomainVerificationStatusInput. It contains structured fields for batch operations. Consult API documentation for its exact schema."
+            }
+          },
+          "required": [
+            "input"
+          ]
+        }
+      },
+      "execution_details": {
+        "graphql_type": "mutation",
+        "graphql_query_body": "mutation BulkRefreshCustomEmailDomainVerificationStatus($input: BulkRefreshCustomEmailDomainVerificationStatusInput!) {\\n  bulkRefreshCustomEmailDomainVerificationStatus(input: $input) {\\n    customEmailDomains {\\n      id\\n      domain\\n      customerDnsRecords {\\n        name\\n        value\\n        type\\n        __typename\\n      }\\n      verificationStatus\\n      __typename\\n    }\\n    __typename\\n  }\\n}\\n"
+      }
+    }
+  },
+  {
+    "id": "REDACTED",
+    "name": "BulkRequestDetailsTable",
+    "type": "query",
+    "body": "query BulkRequestDetailsTable($id: ID!) {\\n  bulkRequest(id: $id) {\\n    id\\n    path\\n    prettyStatus\\n    statusIndicator\\n    statusDescriptor\\n    statusVerbose\\n    prettyActionType\\n    prettyResourceType\\n    totalResourceCount\\n    successResultCount\\n    failedResultCount\\n    createdAt\\n    updatedAt\\n    __typename\\n  }\\n  displayColumns(resource: bulk_request, viewType: \\details_table\\) {\\n    ...displayColumn\\n    __typename\\n  }\\n}\\n\\nfragment displayColumn on DisplayColumn {\\n  viewOptions {\\n    detailsTable {\\n      hideIfNull\\n      copyable\\n      default\\n      primaryColumn\\n      __typename\\n    }\\n    listView {\\n      default\\n      label\\n      __typename\\n    }\\n    __typename\\n  }\\n  label\\n  id\\n  type\\n  resource\\n  sortColumn\\n  displayTypeOptions {\\n    ... on AssociationOption {\\n      typename: __typename\\n      associatedEntityLabelField\\n      associatedEntityLabelFieldType\\n      drawerEnabled\\n      linkEnabled\\n    }\\n    ... on AssociationListOption {\\n      typename: __typename\\n      associatedEntityLabelField\\n      associatedEntityLabelFieldType\\n      drawerEnabled\\n      linkEnabled\\n    }\\n    ... on PolymorphicAssociationOption {\\n      associationPrefix\\n      drawerEnabled\\n      stackedDrawerEnabled\\n      __typename\\n    }\\n    ... on AuditableJSONOption {\\n      auditableFieldName\\n      __typename\\n    }\\n    ... on CountdownOption {\\n      countdownType\\n      __typename\\n    }\\n    ... on LabelWithCountOption {\\n      countField\\n      prettyCountField\\n      truncateMiddle\\n      __typename\\n    }\\n    ... on AmountDifferenceOption {\\n      highlightAmountDifferenceField\\n      __typename\\n    }\\n    ... on StatusIndicatorOption {\\n      statusIndicatorCurrentStatusField\\n      statusIndicatorDescriptorField\\n      statusIndicatorVerboseField\\n      __typename\\n    }\\n    ... on TagOption {\\n      tagColorField\\n      tagIconField\\n      __typename\\n    }\\n    ... on TagButtonListOption {\\n      tagButtonColorsField\\n      tagButtonIconsField\\n      tagButtonHrefsField\\n      tagButtonTooltipsField\\n      __typename\\n    }\\n    ... on AuditableTextOption {\\n      fieldAsDefaultText\\n      fullField\\n      copyable\\n      __typename\\n    }\\n    ... on LinkOption {\\n      displayNameField\\n      openNewTab\\n      __typename\\n    }\\n    ... on TagListOption {\\n      tagColorsField\\n      tagIconsField\\n      __typename\\n    }\\n    ... on JSONOption {\\n      collapsed\\n      __typename\\n    }\\n    __typename\\n  }\\n  __typename\\n}\\n",
+    "gemini_tool_definition": {
+      "name": "BulkRequestDetailsTable",
+      "description": "Retrieves details, status, or entities related to bulk import and processing operations for 'BulkRequestDetails'. This operation is read-only.",
+      "function_declaration": {
+        "name": "BulkRequestDetailsTable",
+        "description": "Retrieves details, status, or entities related to bulk import and processing operations for 'BulkRequestDetails'. This operation is read-only.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Unique identifier for the resource."
+            }
+          },
+          "required": [
+            "id"
+          ]
+        }
+      },
+      "execution_details": {
+        "graphql_type": "query",
+        "graphql_query_body": "query BulkRequestDetailsTable($id: ID!) {\\n  bulkRequest(id: $id) {\\n    id\\n    path\\n    prettyStatus\\n    statusIndicator\\n    statusDescriptor\\n    statusVerbose\\n    prettyActionType\\n    prettyResourceType\\n    totalResourceCount\\n    successResultCount\\n    failedResultCount\\n    createdAt\\n    updatedAt\\n    __typename\\n  }\\n  displayColumns(resource: bulk_request, viewType: \\details_table\\) {\\n    ...displayColumn\\n    __typename\\n  }\\n}\\n\\nfragment displayColumn on DisplayColumn {\\n  viewOptions {\\n    detailsTable {\\n      hideIfNull\\n      copyable\\n      default\\n      primaryColumn\\n      __typename\\n    }\\n    listView {\\n      default\\n      label\\n      __typename\\n    }\\n    __typename\\n  }\\n  label\\n  id\\n  type\\n  resource\\n  sortColumn\\n  displayTypeOptions {\\n    ... on AssociationOption {\\n      typename: __typename\\n      associatedEntityLabelField\\n      associatedEntityLabelFieldType\\n      drawerEnabled\\n      linkEnabled\\n    }\\n    ... on AssociationListOption {\\n      typename: __typename\\n      associatedEntityLabelField\\n      associatedEntityLabelFieldType\\n      drawerEnabled\\n      linkEnabled\\n    }\\n    ... on PolymorphicAssociationOption {\\n      associationPrefix\\n      drawerEnabled\\n      stackedDrawerEnabled\\n      __typename\\n    }\\n    ... on AuditableJSONOption {\\n      auditableFieldName\\n      __typename\\n    }\\n    ... on CountdownOption {\\n      countdownType\\n      __typename\\n    }\\n    ... on LabelWithCountOption {\\n      countField\\n      prettyCountField\\n      truncateMiddle\\n      __typename\\n    }\\n    ... on AmountDifferenceOption {\\n      highlightAmountDifferenceField\\n      __typename\\n    }\\n    ... on StatusIndicatorOption {\\n      statusIndicatorCurrentStatusField\\n      statusIndicatorDescriptorField\\n      statusIndicatorVerboseField\\n      __typename\\n    }\\n    ... on TagOption {\\n      tagColorField\\n      tagIconField\\n      __typename\\n    }\\n    ... on TagButtonListOption {\\n      tagButtonColorsField\\n      tagButtonIconsField\\n      tagButtonHrefsField\\n      tagButtonTooltipsField\\n      __typename\\n    }\\n    ... on AuditableTextOption {\\n      fieldAsDefaultText\\n      fullField\\n      copyable\\n      __typename\\n    }\\n    ... on LinkOption {\\n      displayNameField\\n      openNewTab\\n      __typename\\n    }\\n    ... on TagListOption {\\n      tagColorsField\\n      tagIconsField\\n      __typename\\n    }\\n    ... on JSONOption {\\n      collapsed\\n      __typename\\n    }\\n    __typename\\n  }\\n  __typename\\n}\\n"
+      }
+    }
+  },
+  {
+    "id": "REDACTED",
+    "name": "BulkRequestListView",
+    "type": "query",
+    "body": "query BulkRequestListView($id: ID, $status: BulkRequestStatusEnum, $resourceType: BulkRequestResourceEnum, $first: Int, $after: String, $last: Int, $before: String) {\\n  bulkRequests(\\n    id: $id\\n    status: $status\\n    resourceType: $resourceType\\n    first: $first\\n    after: $after\\n    last: $last\\n    before: $before\\n  ) {\\n    ...BulkRequestList\\n    __typename\\n  }\\n}\\n\\nfragment BulkRequestList on BulkRequestConnection {\\n  edges {\\n    node {\\n      typename: __typename\\n      id\\n      prettyStatus\\n      statusIndicator\\n      statusDescriptor\\n      statusVerbose\\n      prettyActionType\\n      prettyResourceType\\n      totalResourceCount\\n      successResultCount\\n      failedResultCount\\n      createdAt\\n      updatedAt\\n      path\\n    }\\n    __typename\\n  }\\n  pageInfo {\\n    startCursor\\n    endCursor\\n    hasNextPage\\n    hasPreviousPage\\n    __typename\\n  }\\n  __typename\\n}\\n",
+    "gemini_tool_definition": {
+      "name": "BulkRequestListView",
+      "description": "Retrieves details, status, or entities related to bulk import and processing operations for 'BulkRequest'. It supports filtering and pagination.",
+      "function_declaration": {
+        "name": "BulkRequestListView",
+        "description": "Retrieves details, status, or entities related to bulk import and processing operations for 'BulkRequest'. It supports filtering and pagination.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Unique identifier for the resource."
+            },
+            "status": {
+              "type": "string",
+              "description": "An enumerated value for BulkRequestStatusEnum. Consult API documentation for valid options."
+            },
+            "resourceType": {
+              "type": "string",
+              "description": "An enumerated value for BulkRequestResourceEnum. Consult API documentation for valid options."
+            },
+            "first": {
+              "type": "integer",
+              "description": "An integer value."
+            },
+            "after": {
+              "type": "string",
+              "description": "A text string."
+            },
+            "last": {
+              "type": "integer",
+              "description": "An integer value."
+            },
+            "before": {
+              "type": "string",
+              "description": "A text string."
+            }
+          },
+          "required": []
+        }
+      },
+      "execution_details": {
+        "graphql_type": "query",
+        "graphql_query_body": "query BulkRequestListView($id: ID, $status: BulkRequestStatusEnum, $resourceType: BulkRequestResourceEnum, $first: Int, $after: String, $last: Int, $before: String) {\\n  bulkRequests(\\n    id: $id\\n    status: $status\\n    resourceType: $resourceType\\n    first: $first\\n    after: $after\\n    last: $last\\n    before: $before\\n  ) {\\n    ...BulkRequestList\\n    __typename\\n  }\\n}\\n\\nfragment BulkRequestList on BulkRequestConnection {\\n  edges {\\n    node {\\n      typename: __typename\\n      id\\n      prettyStatus\\n      statusIndicator\\n      statusDescriptor\\n      statusVerbose\\n      prettyActionType\\n      prettyResourceType\\n      totalResourceCount\\n      successResultCount\\n      failedResultCount\\n      createdAt\\n      updatedAt\\n      path\\n    }\\n    __typename\\n  }\\n  pageInfo {\\n    startCursor\\n    endCursor\\n    hasNextPage\\n    hasPreviousPage\\n    __typename\\n  }\\n  __typename\\n}\\n"
+      }
+    }
+  },
+  {
+    "id": "REDACTED",
+    "name": "BulkResultDetailsTable",
+    "type": "query",
+    "body": "query BulkResultDetailsTable($id: ID!, $showPii: Boolean) {\\n  bulkResult(id: $id, showPii: $showPii) {\\n    id\\n    path\\n    prettyStatus\\n    statusIndicator\\n    statusDescriptor\\n    statusVerbose\\n    bulkResultableType\\n    bulkResultableId\\n    bulkResultablePath\\n    errors\\n    createdAt\\n    updatedAt\\n    __typename\\n  }\\n  displayColumns(resource: bulk_result, viewType: \\details_table\\) {\\n    ...displayColumn\\n    __typename\\n  }\\n}\\n\\nfragment displayColumn on DisplayColumn {\\n  viewOptions {\\n    detailsTable {\\n      hideIfNull\\n      copyable\\n      default\\n      primaryColumn\\n      __typename\\n    }\\n    listView {\\n      default\\n      label\\n      __typename\\n    }\\n    __typename\\n  }\\n  label\\n  id\\n  type\\n  resource\\n  sortColumn\\n  displayTypeOptions {\\n    ... on AssociationOption {\\n      typename: __typename\\n      associatedEntityLabelField\\n      associatedEntityLabelFieldType\\n      drawerEnabled\\n      linkEnabled\\n    }\\n    ... on AssociationListOption {\\n      typename: __typename\\n      associatedEntityLabelField\\n      associatedEntityLabelFieldType\\n      drawerEnabled\\n      linkEnabled\\n    }\\n    ... on PolymorphicAssociationOption {\\n      associationPrefix\\n      drawerEnabled\\n      stackedDrawerEnabled\\n      __typename\\n    }\\n    ... on AuditableJSONOption {\\n      auditableFieldName\\n      __typename\\n    }\\n    ... on CountdownOption {\\n      countdownType\\n      __typename\\n    }\\n    ... on LabelWithCountOption {\\n      countField\\n      prettyCountField\\n      truncateMiddle\\n      __typename\\n    }\\n    ... on AmountDifferenceOption {\\n      highlightAmountDifferenceField\\n      __typename\\n    }\\n    ... on StatusIndicatorOption {\\n      statusIndicatorCurrentStatusField\\n      statusIndicatorDescriptorField\\n      statusIndicatorVerboseField\\n      __typename\\n    }\\n    ... on TagOption {\\n      tagColorField\\n      tagIconField\\n      __typename\\n    }\\n    ... on TagButtonListOption {\\n      tagButtonColorsField\\n      tagButtonIconsField\\n      tagButtonHrefsField\\n      tagButtonTooltipsField\\n      __typename\\n    }\\n    ... on AuditableTextOption {\\n      fieldAsDefaultText\\n      fullField\\n      copyable\\n      __typename\\n    }\\n    ... on LinkOption {\\n      displayNameField\\n      openNewTab\\n      __typename\\n    }\\n    ... on TagListOption {\\n      tagColorsField\\n      tagIconsField\\n      __typename\\n    }\\n    ... on JSONOption {\\n      collapsed\\n      __typename\\n    }\\n    __typename\\n  }\\n  __typename\\n}\\n",
+    "gemini_tool_definition": {
+      "name": "BulkResultDetailsTable",
+      "description": "Retrieves details, status, or entities related to bulk import and processing operations for 'BulkResultDetails'. This operation is read-only.",
+      "function_declaration": {
+        "name": "BulkResultDetailsTable",
+        "description": "Retrieves details, status, or entities related to bulk import and processing operations for 'BulkResultDetails'. This operation is read-only.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Unique identifier for the resource."
+            },
+            "showPii": {
+              "type": "boolean",
+              "description": "A boolean value (true/false)."
+            }
+          },
+          "required": [
+            "id"
+          ]
+        }
+      },
+      "execution_details": {
+        "graphql_type": "query",
+        "graphql_query_body": "query BulkResultDetailsTable($id: ID!, $showPii: Boolean) {\\n  bulkResult(id: $id, showPii: $showPii) {\\n    id\\n    path\\n    prettyStatus\\n    statusIndicator\\n    statusDescriptor\\n    statusVerbose\\n    bulkResultableType\\n    bulkResultableId\\n    bulkResultablePath\\n    errors\\n    createdAt\\n    updatedAt\\n    __typename\\n  }\\n  displayColumns(resource: bulk_result, viewType: \\details_table\\) {\\n    ...displayColumn\\n    __typename\\n  }\\n}\\n\\nfragment displayColumn on DisplayColumn {\\n  viewOptions {\\n    detailsTable {\\n      hideIfNull\\n      copyable\\n      default\\n      primaryColumn\\n      __typename\\n    }\\n    listView {\\n      default\\n      label\\n      __typename\\n    }\\n    __typename\\n  }\\n  label\\n  id\\n  type\\n  resource\\n  sortColumn\\n  displayTypeOptions {\\n    ... on AssociationOption {\\n      typename: __typename\\n      associatedEntityLabelField\\n      associatedEntityLabelFieldType\\n      drawerEnabled\\n      linkEnabled\\n    }\\n    ... on AssociationListOption {\\n      typename: __typename\\n      associatedEntityLabelField\\n      associatedEntityLabelFieldType\\n      drawerEnabled\\n      linkEnabled\\n    }\\n    ... on PolymorphicAssociationOption {\\n      associationPrefix\\n      drawerEnabled\\n      stackedDrawerEnabled\\n      __typename\\n    }\\n    ... on AuditableJSONOption {\\n      auditableFieldName\\n      __typename\\n    }\\n    ... on CountdownOption {\\n      countdownType\\n      __typename\\n    }\\n    ... on LabelWithCountOption {\\n      countField\\n      prettyCountField\\n      truncateMiddle\\n      __typename\\n    }\\n    ... on AmountDifferenceOption {\\n      highlightAmountDifferenceField\\n      __typename\\n    }\\n    ... on StatusIndicatorOption {\\n      statusIndicatorCurrentStatusField\\n      statusIndicatorDescriptorField\\n      statusIndicatorVerboseField\\n      __typename\\n    }\\n    ... on TagOption {\\n      tagColorField\\n      tagIconField\\n      __typename\\n    }\\n    ... on TagButtonListOption {\\n      tagButtonColorsField\\n      tagButtonIconsField\\n      tagButtonHrefsField\\n      tagButtonTooltipsField\\n      __typename\\n    }\\n    ... on AuditableTextOption {\\n      fieldAsDefaultText\\n      fullField\\n      copyable\\n      __typename\\n    }\\n    ... on LinkOption {\\n      displayNameField\\n      openNewTab\\n      __typename\\n    }\\n    ... on TagListOption {\\n      tagColorsField\\n      tagIconsField\\n      __typename\\n    }\\n    ... on JSONOption {\\n      collapsed\\n      __typename\\n    }\\n    __typename\\n  }\\n  __typename\\n}\\n"
+      }
+    }
+  },
+  {
+    "id": "REDACTED",
+    "name": "BulkResultListView",
+    "type": "query",
+    "body": "query BulkResultListView($status: BulkResultStatusEnum, $bulkResultableType: BulkResultableEnum, $bulkResultableId: ID, $first: Int, $after: String, $last: Int, $before: String) {\\n  bulkResults(\\n    status: $status\\n    bulkResultableType: $bulkResultableType\\n    bulkResultableId: $bulkResultableId\\n    first: $first\\n    after: $after\\n    last: $last\\n    before: $before\\n  ) {\\n    ...BulkResultList\\n    __typename\\n  }\\n}\\n\\nfragment BulkResultList on BulkResultConnection {\\n  edges {\\n    node {\\n      typename: __typename\\n      id\\n      prettyStatus\\n      statusIndicator\\n      statusDescriptor\\n      statusVerbose\\n      bulkResultableType\\n      bulkResultableId\\n      errors\\n      createdAt\\n      updatedAt\\n      path\\n    }\\n    __typename\\n  }\\n  pageInfo {\\n    startCursor\\n    endCursor\\n    hasNextPage\\n    hasPreviousPage\\n    __typename\\n  }\\n  __typename\\n}\\n",
+    "gemini_tool_definition": {
+      "name": "BulkResultListView",
+      "description": "Retrieves details, status, or entities related to bulk import and processing operations for 'BulkResult'. It supports filtering and pagination.",
+      "function_declaration": {
+        "name": "BulkResultListView",
+        "description": "Retrieves details, status, or entities related to bulk import and processing operations for 'BulkResult'. It supports filtering and pagination.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "description": "An enumerated value for BulkResultStatusEnum. Consult API documentation for valid options."
+            },
+            "bulkResultableType": {
+              "type": "string",
+              "description": "An enumerated value for BulkResultableEnum. Consult API documentation for valid options."
+            },
+            "bulkResultableId": {
+              "type": "string",
+              "description": "Unique identifier for the resource."
+            },
+            "first": {
+              "type": "integer",
+              "description": "An integer value."
+            },
+            "after": {
+              "type": "string",
+              "description": "A text string."
+            },
+            "last": {
+              "type": "integer",
+              "description": "An integer value."
+            },
+            "before": {
+              "type": "string",
+              "description": "A text string."
+            }
+          },
+          "required": []
+        }
+      },
+      "execution_details": {
+        "graphql_type": "query",
+        "graphql_query_body": "query BulkResultListView($status: BulkResultStatusEnum, $bulkResultableType: BulkResultableEnum, $bulkResultableId: ID, $first: Int, $after: String, $last: Int, $before: String) {\\n  bulkResults(\\n    status: $status\\n    bulkResultableType: $bulkResultableType\\n    bulkResultableId: $bulkResultableId\\n    first: $first\\n    after: $after\\n    last: $last\\n    before: $before\\n  ) {\\n    ...BulkResultList\\n    __typename\\n  }\\n}\\n\\nfragment BulkResultList on BulkResultConnection {\\n  edges {\\n    node {\\n      typename: __typename\\n      id\\n      prettyStatus\\n      statusIndicator\\n      statusDescriptor\\n      statusVerbose\\n      bulkResultableType\\n      bulkResultableId\\n      errors\\n      createdAt\\n      updatedAt\\n      path\\n    }\\n    __typename\\n  }\\n  pageInfo {\\n    startCursor\\n    endCursor\\n    hasNextPage\\n    hasPreviousPage\\n    __typename\\n  }\\n  __typename\\n}\\n"
+      }
+    }
+  },
+  {
+    "id": "REDACTED",
+    "name": "BulkResultView",
+    "type": "query",
+    "body": "query BulkResultView($id: ID!, $showPii: Boolean) {\\n  bulkResult(id: $id, showPii: $showPii) {\\n    requestParams\\n    __typename\\n  }\\n}\\n",
+    "gemini_tool_definition": {
+      "name": "BulkResultView",
+      "description": "Retrieves details, status, or entities related to bulk import and processing operations for 'BulkResult'. This operation is read-only.",
+      "function_declaration": {
+        "name": "BulkResultView",
+        "description": "Retrieves details, status, or entities related to bulk import and processing operations for 'BulkResult'. This operation is read-only.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Unique identifier for the resource."
+            },
+            "showPii": {
+              "type": "boolean",
+              "description": "A boolean value (true/false)."
+            }
+          },
+          "required": [
+            "id"
+          ]
+        }
+      },
+      "execution_details": {
+        "graphql_type": "query",
+        "graphql_query_body": "query BulkResultView($id: ID!, $showPii: Boolean) {\\n  bulkResult(id: $id, showPii: $showPii) {\\n    requestParams\\n    __typename\\n  }\\n}\\n"
+      }
+    }
+  },
+  {
+    "id": "REDACTED",
+    "name": "BulkReviewPaymentOrders",
+    "type": "mutation",
+    "body": "mutation BulkReviewPaymentOrders($input: BulkReviewPaymentOrdersInput!) {\\n  bulkReviewPaymentOrders(input: $input) {\\n    errors\\n    __typename\\n  }\\n}\\n",
+    "gemini_tool_definition": {
+      "name": "BulkReviewPaymentOrders",
+      "description": "Reviews and potentially approves a bulk operation for 'payment orders' items. This operation modifies data or triggers a process.",
+      "function_declaration": {
+        "name": "BulkReviewPaymentOrders",
+        "description": "Reviews and potentially approves a bulk operation for 'payment orders' items. This operation modifies data or triggers a process.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "description": "A complex input object of type BulkReviewPaymentOrdersInput. It contains structured fields for batch operations. Consult API documentation for its exact schema."
+            }
+          },
+          "required": [
+            "input"
+          ]
+        }
+      },
+      "execution_details": {
+        "graphql_type": "mutation",
+        "graphql_query_body": "mutation BulkReviewPaymentOrders($input: BulkReviewPaymentOrdersInput!) {\\n  bulkReviewPaymentOrders(input: $input) {\\n    errors\\n    __typename\\n  }\\n}\\n"
+      }
+    }
+  },
+  {
+    "id": "REDACTED",
+    "name": "BulkReviewReviewables",
+    "type": "mutation",
+    "body": "mutation BulkReviewReviewables($input: BulkReviewReviewablesInput!) {\\n  bulkReviewReviewables(input: $input) {\\n    errors\\n    __typename\\n  }\\n}\\n",
+    "gemini_tool_definition": {
+      "name": "BulkReviewReviewables",
+      "description": "Reviews and potentially approves a bulk operation for 'reviewables' items. This operation modifies data or triggers a process.",
+      "function_declaration": {
+        "name": "BulkReviewReviewables",
+        "description": "Reviews and potentially approves a bulk operation for 'reviewables' items. This operation modifies data or triggers a process.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "description": "A complex input object of type BulkReviewReviewablesInput. It contains structured fields for batch operations. Consult API documentation for its exact schema."
+            }
+          },
+          "required": [
+            "input"
+          ]
+        }
+      },
+      "execution_details": {
+        "graphql_type": "mutation",
+        "graphql_query_body": "mutation BulkReviewReviewables($input: BulkReviewReviewablesInput!) {\\n  bulkReviewReviewables(input: $input) {\\n    errors\\n    __typename\\n  }\\n}\\n"
+      }
+    }
+  },
+  {
+    "id": "REDACTED",
+    "name": "BulkValidateAccountAchSettings",
+    "type": "mutation",
+    "body": "mutation BulkValidateAccountAchSettings($input: BulkValidateAccountACHSettingsInput!) {\\n  bulkValidateAccountAchSettings(input: $input) {\\n    recordErrors {\\n      recordIndex\\n      errors {\\n        fieldName\\n        messages\\n        __typename\\n      }\\n      __typename\\n    }\\n    __typename\\n  }\\n}\\n",
+    "gemini_tool_definition": {
+      "name": "BulkValidateAccountAchSettings",
+      "description": "Validates a bulk import or operation for 'account ach settings' data before processing. This operation modifies data or triggers a process.",
+      "function_declaration": {
+        "name": "BulkValidateAccountAchSettings",
+        "description": "Validates a bulk import or operation for 'account ach settings' data before processing. This operation modifies data or triggers a process.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "description": "A complex input object of type BulkValidateAccountACHSettingsInput. It contains structured fields for batch operations. Consult API documentation for its exact schema."
+            }
+          },
+          "required": [
+            "input"
+          ]
+        }
+      },
+      "execution_details": {
+        "graphql_type": "mutation",
+        "graphql_query_body": "mutation BulkValidateAccountAchSettings($input: BulkValidateAccountACHSettingsInput!) {\\n  bulkValidateAccountAchSettings(input: $input) {\\n    recordErrors {\\n      recordIndex\\n      errors {\\n        fieldName\\n        messages\\n        __typename\\n      }\\n      __typename\\n    }\\n    __typename\\n  }\\n}\\n"
+      }
+    }
+  },
+  {
+    "id": "REDACTED",
+    "name": "BulkValidateAccountCapabilities",
+    "type": "mutation",
+    "body": "mutation BulkValidateAccountCapabilities($input: BulkValidateAccountCapabilitiesInput!) {\\n  bulkValidateAccountCapabilities(input: $input) {\\n    recordErrors {\\n      recordIndex\\n      errors {\\n        fieldName\\n        messages\\n        __typename\\n      }\\n      __typename\\n    }\\n    __typename\\n  }\\n}\\n",
+    "gemini_tool_definition": {
+      "name": "BulkValidateAccountCapabilities",
+      "description": "Validates a bulk import or operation for 'account capabilities' data before processing. This operation modifies data or triggers a process.",
+      "function_declaration": {
+        "name": "BulkValidateAccountCapabilities",
+        "description": "Validates a bulk import or operation for 'account capabilities' data before processing. This operation modifies data or triggers a process.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "description": "A complex input object of type BulkValidateAccountCapabilitiesInput. It contains structured fields for batch operations. Consult API documentation for its exact schema."
+            }
+          },
+          "required": [
+            "input"
+          ]
+        }
+      },
+      "execution_details": {
+        "graphql_type": "mutation",
+        "graphql_query_body": "mutation BulkValidateAccountCapabilities($input: BulkValidateAccountCapabilitiesInput!) {\\n  bulkValidateAccountCapabilities(input: $input) {\\n    recordErrors {\\n      recordIndex\\n      errors {\\n        fieldName\\n        messages\\n        __typename\\n      }\\n      __typename\\n    }\\n    __typename\\n  }\\n}\\n"
+      }
+    }
+  },
+  {
+    "id": "REDACTED",
+    "name": "BulkValidateInternalAccounts",
+    "type": "mutation",
+    "body": "mutation BulkValidateInternalAccounts($input: BulkValidateInternalAccountsInput!) {\\n  bulkValidateInternalAccounts(input: $input) {\\n    recordErrors {\\n      recordIndex\\n      errors {\\n        fieldName\\n        messages\\n        __typename\\n      }\\n      __typename\\n    }\\n    __typename\\n  }\\n}\\n",
+    "gemini_tool_definition": {
+      "name": "BulkValidateInternalAccounts",
+      "description": "Validates a bulk import or operation for 'internal accounts' data before processing. This operation modifies data or triggers a process.",
+      "function_declaration": {
+        "name": "BulkValidateInternalAccounts",
+        "description": "Validates a bulk import or operation for 'internal accounts' data before processing. This operation modifies data or triggers a process.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "description": "A complex input object of type BulkValidateInternalAccountsInput. It contains structured fields for batch operations. Consult API documentation for its exact schema."
+            }
+          },
+          "required": [
+            "input"
+          ]
+        }
+      },
+      "execution_details": {
+        "graphql_type": "mutation",
+        "graphql_query_body": "mutation BulkValidateInternalAccounts($input: BulkValidateInternalAccountsInput!) {\\n  bulkValidateInternalAccounts(input: $input) {\\n    recordErrors {\\n      recordIndex\\n      errors {\\n        fieldName\\n        messages\\n        __typename\\n      }\\n      __typename\\n    }\\n    __typename\\n  }\\n}\\n"
+      }
+    }
+  },
+  {
+    "id": "REDACTED",
+    "name": "BulkValidateInvoiceImport",
+    "type": "mutation",
+    "body": "mutation BulkValidateInvoiceImport($input: BulkValidateInvoiceImportInput!) {\\n  bulkValidateInvoiceImport(input: $input) {\\n    recordErrors {\\n      recordIndex\\n      errors {\\n        fieldName\\n        messages\\n        __typename\\n      }\\n      __typename\\n    }\\n    __typename\\n  }\\n}\\n",
+    "gemini_tool_definition": {
+      "name": "BulkValidateInvoiceImport",
+      "description": "Validates a bulk import or operation for 'invoice import' data before processing. This operation modifies data or triggers a process.",
+      "function_declaration": {
+        "name": "BulkValidateInvoiceImport",
+        "description": "Validates a bulk import or operation for 'invoice import' data before processing. This operation modifies data or triggers a process.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "description": "A complex input object of type BulkValidateInvoiceImportInput. It contains structured fields for batch operations. Consult API documentation for its exact schema."
+            }
+          },
+          "required": [
+            "input"
+          ]
+        }
+      },
+      "execution_details": {
+        "graphql_type": "mutation",
+        "graphql_query_body": "mutation BulkValidateInvoiceImport($input: BulkValidateInvoiceImportInput!) {\\n  bulkValidateInvoiceImport(input: $input) {\\n    recordErrors {\\n      recordIndex\\n      errors {\\n        fieldName\\n        messages\\n        __typename\\n      }\\n      __typename\\n    }\\n    __typename\\n  }\\n}\\n"
+      }
+    }
+  },
+  {
+    "id": "REDACTED",
+    "name": "BulkValidatePaymentOrders",
+    "type": "mutation",
+    "body": "mutation BulkValidatePaymentOrders($input: BulkValidatePaymentOrdersInput!) {\\n  bulkValidatePaymentOrders(input: $input) {\\n    recordErrors {\\n      recordIndex\\n      errors {\\n        fieldName\\n        messages\\n        __typename\\n      }\\n      missingDetails {\\n        resourceId\\n        resourceName\\n        fieldNames\\n        __typename\\n      }\\n      __typename\\n    }\\n    __typename\\n  }\\n}\\n",
+    "gemini_tool_definition": {
+      "name": "BulkValidatePaymentOrders",
+      "description": "Validates a bulk import or operation for 'payment orders' data before processing. This operation modifies data or triggers a process.",
+      "function_declaration": {
+        "name": "BulkValidatePaymentOrders",
+        "description": "Validates a bulk import or operation for 'payment orders' data before processing. This operation modifies data or triggers a process.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "description": "A complex input object of type BulkValidatePaymentOrdersInput. It contains structured fields for batch operations. Consult API documentation for its exact schema."
+            }
+          },
+          "required": [
+            "input"
+          ]
+        }
+      },
+      "execution_details": {
+        "graphql_type": "mutation",
+        "graphql_query_body": "mutation BulkValidatePaymentOrders($input: BulkValidatePaymentOrdersInput!) {\\n  bulkValidatePaymentOrders(input: $input) {\\n    recordErrors {\\n      recordIndex\\n      errors {\\n        fieldName\\n        messages\\n        __typename\\n      }\\n      missingDetails {\\n        resourceId\\n        resourceName\\n        fieldNames\\n        __typename\\n      }\\n      __typename\\n    }\\n    __typename\\n  }\\n}\\n"
+      }
+    }
+  },
+  {
+    "id": "REDACTED",
+    "name": "bulkRequestPayloadUrl",
+    "type": "query",
+    "body": "query bulkRequestPayloadUrl($id: ID!) {\\n  bulkRequestPayloadUrl(id: $id) {\\n    requestPayloadUrl\\n    __typename\\n  }\\n}\\n",
+    "gemini_tool_definition": {
+      "name": "bulkRequestPayloadUrl",
+      "description": "Retrieves data for 'bulkRequestPayload'. This operation is read-only.",
+      "function_declaration": {
+        "name": "bulkRequestPayloadUrl",
+        "description": "Retrieves data for 'bulkRequestPayload'. This operation is read-only.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Unique identifier for the resource."
+            }
+          },
+          "required": [
+            "id"
+          ]
+        }
+      },
+      "execution_details": {
+        "graphql_type": "query",
+        "graphql_query_body": "query bulkRequestPayloadUrl($id: ID!) {\\n  bulkRequestPayloadUrl(id: $id) {\\n    requestPayloadUrl\\n    __typename\\n  }\\n}\\n"
+      }
+    }
+  },
+  {
+    "id": "REDACTED",
+    "name": "bulkValidateCounterparties",
+    "type": "mutation",
+    "body": "mutation bulkValidateCounterparties($input: BulkValidateCounterpartiesInput!) {\\n  bulkValidateCounterparties(input: $input) {\\n    recordErrors {\\n      recordIndex\\n      errors {\\n        fieldName\\n        messages\\n        __typename\\n      }\\n      __typename\\n    }\\n    __typename\\n  }\\n}\\n",
+    "gemini_tool_definition": {
+      "name": "bulkValidateCounterparties",
+      "description": "Validates a bulk import or operation for 'counterparties' data before processing. This operation modifies data or triggers a process.",
+      "function_declaration": {
+        "name": "bulkValidateCounterparties",
+        "description": "Validates a bulk import or operation for 'counterparties' data before processing. This operation modifies data or triggers a process.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "description": "A complex input object of type BulkValidateCounterpartiesInput. It contains structured fields for batch operations. Consult API documentation for its exact schema."
+            }
+          },
+          "required": [
+            "input"
+          ]
+        }
+      },
+      "execution_details": {
+        "graphql_type": "mutation",
+        "graphql_query_body": "mutation bulkValidateCounterparties($input: BulkValidateCounterpartiesInput!) {\\n  bulkValidateCounterparties(input: $input) {\\n    recordErrors {\\n      recordIndex\\n      errors {\\n        fieldName\\n        messages\\n        __typename\\n      }\\n      __typename\\n    }\\n    __typename\\n  }\\n}\\n"
+      }
+    }
+  },
+  {
+    "id": "REDACTED",
+    "name": "bulkValidateExpectedPayments",
+    "type": "mutation",
+    "body": "mutation bulkValidateExpectedPayments($input: BulkValidateExpectedPaymentsInput!) {\\n  bulkValidateExpectedPayments(input: $input) {\\n    recordErrors {\\n      recordIndex\\n      errors {\\n        fieldName\\n        messages\\n        __typename\\n      }\\n      __typename\\n    }\\n    __typename\\n  }\\n}\\n",
+    "gemini_tool_definition": {
+      "name": "bulkValidateExpectedPayments",
+      "description": "Validates a bulk import or operation for 'expected payments' data before processing. This operation modifies data or triggers a process.",
+      "function_declaration": {
+        "name": "bulkValidateExpectedPayments",
+        "description": "Validates a bulk import or operation for 'expected payments' data before processing. This operation modifies data or triggers a process.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "description": "A complex input object of type BulkValidateExpectedPaymentsInput. It contains structured fields for batch operations. Consult API documentation for its exact schema."
+            }
+          },
+          "required": [
+            "input"
+          ]
+        }
+      },
+      "execution_details": {
+        "graphql_type": "mutation",
+        "graphql_query_body": "mutation bulkValidateExpectedPayments($input: BulkValidateExpectedPaymentsInput!) {\\n  bulkValidateExpectedPayments(input: $input) {\\n    recordErrors {\\n      recordIndex\\n      errors {\\n        fieldName\\n        messages\\n        __typename\\n      }\\n      __typename\\n    }\\n    __typename\\n  }\\n}\\n"
+      }
+    }
+  }
+]

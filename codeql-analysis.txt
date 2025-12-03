@@ -1,0 +1,120 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+    # A weekly scan on Sunday at 01:30 UTC.
+    # Adjust the cron schedule to fit your team's needs and reduce load during peak hours.
+    # For more information on cron syntax, refer to:
+    # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#schedule
+    - cron: '30 1 * * 0'
+
+jobs:
+  analyze:
+    # Specify the runner environment for the job. 'ubuntu-latest' is a common choice.
+    runs-on: ubuntu-latest
+
+    # Define the permissions required for the workflow.
+    # 'security-events: write' is essential for uploading CodeQL analysis results
+    # to the GitHub Security tab as SARIF files.
+    # 'actions: read' allows the workflow to read information about actions and workflows.
+    permissions:
+      security-events: write
+      actions: read
+
+    strategy:
+      # 'fail-fast: false' ensures that all language analyses complete,
+      # even if one of the matrix jobs encounters an error. This provides
+      # a comprehensive view of all potential security issues.
+      fail-fast: false
+      matrix:
+        # Define the programming languages that CodeQL should analyze.
+        # CodeQL supports a variety of languages including C/C++, C#, Go, Java,
+        # JavaScript/TypeScript, Python, Ruby, and Swift.
+        # Given the seed file implies a Node.js project, 'javascript' is selected.
+        # If your project includes TypeScript, 'javascript-typescript' is also an option.
+        language: [ 'javascript' ]
+        # You can add more languages if your repository contains multi-language code:
+        # language: [ 'javascript', 'python', 'go' ]
+
+    steps:
+    - name: Checkout repository code
+      # Use the 'actions/checkout@v4' action to fetch the repository's code.
+      # This is a prerequisite for any workflow that needs to operate on the codebase.
+      uses: actions/checkout@v4
+
+    # Initialize the CodeQL Action. This step downloads the CodeQL CLI
+    # and prepares the environment for analysis based on the specified languages.
+    # It creates a CodeQL database which will be used in subsequent steps.
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        # Specify the language(s) for analysis. CodeQL will then select
+        # the appropriate extractor(s) to build the database.
+        languages: ${{ matrix.language }}
+        # Optionally, you can specify a CodeQL configuration file for advanced setup.
+        # This file can be used to exclude specific directories, include extra queries, etc.
+        # config-file: ./.github/codeql/codeql-config.yml
+        # Uncomment the following line to enable debug logging for the CodeQL setup process.
+        # debug: true
+        # Specify a different query suite to run. Default is 'security-extended'.
+        # Common options include 'security-and-quality', 'security-extended', 'code-scanning-recommended'.
+        # query-suite: security-and-quality
+
+    # For Node.js projects, it is often essential to install dependencies
+    # before CodeQL can perform a comprehensive analysis, especially if
+    # the project relies on external modules for its functionality.
+    # This step mirrors the 'Install Dependencies' step from the seed file.
+    - name: Install Node.js dependencies
+      run: |
+        echo "Installing project dependencies using npm..."
+        npm install
+        # For clean and reproducible builds in CI environments, `npm ci` is often recommended.
+        # It removes `node_modules` and installs from `package-lock.json`.
+        # You might choose one over the other based on your project's needs.
+        # npm ci
+        # If your project uses Yarn or pnpm, adjust this step accordingly:
+        # yarn install --frozen-lockfile
+        # pnpm install --frozen-lockfile
+
+    # The Autobuild step attempts to automatically build your code.
+    # This is crucial for compiled languages to generate the necessary artifacts for analysis.
+    # For interpreted languages like JavaScript, it might execute scripts or gather additional data.
+    # If CodeQL's autobuild fails for your specific project, or if you have a complex
+    # custom build process, you may need to provide custom build commands here.
+    # Example for a custom build step (uncomment and replace with your commands if needed):
+    # - name: Custom Build Step
+    #   run: |
+    #     echo "Starting custom build process..."
+    #     npm run build
+    #     # Or any other build commands your project requires.
+    #   env:
+    #     # Define any environment variables needed for your build process.
+    #     NODE_ENV: production
+    - name: Autobuild CodeQL Database
+      uses: github/codeql-action/autobuild@v3
+
+    # Perform the CodeQL analysis. This step runs the CodeQL queries
+    # against the database created by the `init` and `autobuild` steps.
+    # The identified security vulnerabilities and quality issues are then
+    # uploaded as a SARIF file to the GitHub Security tab, typically under
+    # the "Code scanning alerts" section.
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        # Optionally, specify a category for the analysis results. This is useful
+        # if you run multiple CodeQL workflows on the same repository (e.g.,
+        # different languages or different sets of queries) and want to distinguish
+        # their results in the GitHub Security tab.
+        # category: "/language:${{ matrix.language }}-default"
+        # Set the verbosity level for the analysis logs. Options include:
+        # 'error', 'warning', 'notice', 'info', 'debug'. 'info' is default.
+        # verbosity: debug
+        # Specify the path where the SARIF results should be saved locally.
+        # This is useful if you need to process the SARIF file further with
+        # external tools or for archival purposes.
+        # output: ./codeql-results/
+```

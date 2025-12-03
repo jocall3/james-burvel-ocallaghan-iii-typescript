@@ -1,0 +1,1294 @@
+openapi: 3.0.0
+info:
+  title: Generative UI Backend API
+  description: |
+    This API provides the interface for interacting with the backend services of the Generative UI system,
+    enabling the ontological transmutation of subjective aesthetic intent into dynamic, persistently rendered
+    user interface backgrounds. It exposes endpoints for prompt submission, image generation retrieval,
+    user preference management, asset monetization, and feedback mechanisms, all secured and optimized for scalability.
+  version: 1.0.0
+servers:
+  - url: https://api.generativeui.com/v1
+    description: Production API server
+  - url: https://dev.generativeui.com/v1
+    description: Development API server
+
+security:
+  - BearerAuth: []
+
+paths:
+  /generate:
+    post:
+      summary: Submit a natural language prompt for GUI background generation
+      operationId: submitPrompt
+      tags:
+        - Generation
+      description: |
+        Initiates the process of generating a novel GUI background. The endpoint receives a comprehensive
+        natural language prompt, augmented by various parameters and optional multi-modal inputs,
+        which are then processed by the Semantic Prompt Interpretation Engine (SPIE) and dispatched
+        to the Generative Model API Connector (GMAC). A job identifier is returned for asynchronous status tracking.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PromptRequest'
+      responses:
+        '202':
+          description: Prompt received and generation job initiated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerationJobResponse'
+        '400':
+          description: Invalid request payload or malformed prompt.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized access due to missing or invalid authentication token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '402':
+          description: Payment required or insufficient credits for generation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error during prompt processing or job creation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /jobs/{jobId}:
+    get:
+      summary: Retrieve the status of a specific background generation job
+      operationId: getGenerationJobStatus
+      tags:
+        - Generation
+      description: |
+        Polls the Prompt Orchestration Service (POS) for the current status of a previously submitted
+        generation request. Upon completion, it returns the generated image's identifier and direct access URL.
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          description: Unique identifier for the generation job.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Current status of the generation job.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerationJobResponse'
+        '401':
+          description: Unauthorized access.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Job ID not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error while retrieving job status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /images/{imageId}:
+    get:
+      summary: Retrieve a generated GUI background image
+      operationId: getGeneratedImage
+      tags:
+        - Assets
+      description: |
+        Retrieves the optimized image data and comprehensive metadata for a specific generated background.
+        The image is served from the Dynamic Asset Management System (DAMS) via a CDN for low-latency delivery.
+      parameters:
+        - name: imageId
+          in: path
+          required: true
+          description: Unique identifier for the generated image.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The generated image data and its associated metadata.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageResponse'
+            image/*:
+              schema:
+                type: string
+                format: binary
+              description: Direct image binary data (e.g., image/webp, image/jpeg).
+        '401':
+          description: Unauthorized access.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Image ID not found or not accessible.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error during image retrieval.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/{userId}/history:
+    get:
+      summary: Retrieve a user's generative history
+      operationId: getUserHistory
+      tags:
+        - Users
+      description: |
+        Provides a chronological record of prompts submitted and images generated by a specific user,
+        stored within the User Preference & History Database (UPHD) and DAMS. This enables users
+        to revisit, reapply, or iterate upon past creations.
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: Unique identifier for the user.
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          description: Maximum number of history entries to return.
+          schema:
+            type: integer
+            default: 10
+        - name: offset
+          in: query
+          description: Number of history entries to skip for pagination.
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: A list of the user's past generation history.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ImageMetadata'
+        '401':
+          description: Unauthorized access.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - User ID does not match authenticated user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/{userId}/preferences:
+    get:
+      summary: Retrieve a user's aesthetic preferences
+      operationId: getUserPreferences
+      tags:
+        - Users
+      description: |
+        Fetches the inferred aesthetic profile and explicit preferences of a user from the UPHD.
+        This data is utilized by the SPIE's User Persona Inference (UPI) module to tailor prompt interpretations.
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: Unique identifier for the user.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User's aesthetic preferences.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreferences'
+        '401':
+          description: Unauthorized access.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - User ID does not match authenticated user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User preferences not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      summary: Update a user's aesthetic preferences
+      operationId: updateUserPreferences
+      tags:
+        - Users
+      description: |
+        Allows users to explicitly update their aesthetic preferences, influencing future generations.
+        These preferences are stored in the UPHD and inform the SPIE's UPI.
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: Unique identifier for the user.
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserPreferences'
+      responses:
+        '200':
+          description: User preferences successfully updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreferences'
+        '400':
+          description: Invalid preference data.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized access.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - User ID does not match authenticated user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /marketplace/assets:
+    get:
+      summary: Browse the asset marketplace
+      operationId: browseMarketplace
+      tags:
+        - Marketplace
+      description: |
+        Retrieves a list of user-generated backgrounds available for licensing, sale, or sharing
+        within the Prompt Sharing and Discovery Network (PSDN) and DAMS. Supports filtering and sorting.
+      parameters:
+        - name: category
+          in: query
+          description: Filter by aesthetic category (e.g., "fantasy", "abstract").
+          schema:
+            type: string
+        - name: sortBy
+          in: query
+          description: Sort order (e.g., "popularity", "newest", "price").
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: A list of marketplace assets.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Asset'
+        '401':
+          description: Unauthorized access.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      summary: Publish a generated image to the marketplace
+      operationId: publishAsset
+      tags:
+        - Marketplace
+      description: |
+        Allows a user to publish their generated background, along with its associated prompt and metadata,
+        to the community marketplace, activating optional monetization features managed by the DRM system.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublishAssetRequest'
+      responses:
+        '201':
+          description: Asset successfully published to the marketplace.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asset'
+        '400':
+          description: Invalid asset data or missing required fields.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized access.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - User not authorized to publish this asset.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error during asset publication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /marketplace/assets/{assetId}/purchase:
+    post:
+      summary: Purchase an asset from the marketplace
+      operationId: purchaseAsset
+      tags:
+        - Marketplace
+      description: |
+        Facilitates the acquisition of a licensed background from the marketplace.
+        This transaction is processed by the Billing and Usage Tracking Service (BUTS).
+      parameters:
+        - name: assetId
+          in: path
+          required: true
+          description: Unique identifier for the asset to be purchased.
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurchaseRequest'
+      responses:
+        '200':
+          description: Asset successfully purchased.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transactionId:
+                    type: string
+                    format: uuid
+                    description: Unique ID for the purchase transaction.
+                  status:
+                    type: string
+                    enum: [completed, pending, failed]
+                  purchasedAsset:
+                    $ref: '#/components/schemas/Asset'
+        '400':
+          description: Invalid purchase request or insufficient funds.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized access.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Asset not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error during purchase processing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /images/{imageId}/feedback:
+    post:
+      summary: Submit aesthetic feedback for a generated image
+      operationId: submitImageFeedback
+      tags:
+        - Feedback
+      description: |
+        Allows users to provide explicit feedback (e.g., ratings, comments) on a generated image.
+        This feedback is crucial for the Reinforcement Learning from Human Feedback (RLHF) integration
+        within the Computational Aesthetic Metrics Module (CAMM) and informs the AI Feedback Loop Retraining Manager (AFLRM).
+      parameters:
+        - name: imageId
+          in: path
+          required: true
+          description: Unique identifier of the image being reviewed.
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedbackRequest'
+      responses:
+        '204':
+          description: Feedback successfully recorded.
+        '400':
+          description: Invalid feedback data.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized access.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Image not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error during feedback submission.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /report:
+    post:
+      summary: Report inappropriate content (prompt or image)
+      operationId: reportContent
+      tags:
+        - Moderation
+      description: |
+        Provides a mechanism for users to report content that violates ethical guidelines or terms of service.
+        Reports are routed to the Content Moderation & Policy Enforcement Service (CMPES) for review,
+        potentially involving human-in-the-loop moderation.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportRequest'
+      responses:
+        '202':
+          description: Report successfully received and forwarded for review.
+        '400':
+          description: Invalid report data.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized access.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error during report submission.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/{userId}/usage:
+    get:
+      summary: Retrieve a user's generative resource usage and billing information
+      operationId: getUserUsage
+      tags:
+        - Billing
+      description: |
+        Accesses the Billing and Usage Tracking Service (BUTS) to provide a detailed breakdown
+        of resource consumption, including generation credits, storage, and bandwidth,
+        relevant for freemium or usage-based billing models.
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: Unique identifier for the user.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User's current usage statistics and billing information.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsageResponse'
+        '401':
+          description: Unauthorized access.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - User ID does not match authenticated user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error during usage retrieval.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    PromptRequest:
+      type: object
+      required:
+        - prompt
+      properties:
+        prompt:
+          type: string
+          description: |
+            The natural language textual prompt articulating the desired visual aesthetic,
+            scene, mood, or abstract concept for the GUI background.
+          example: "A hyperrealistic ethereal forest at dawn, with luminous bioluminescent flora and a subtle mist, rendered in an Impressionistic style."
+        generationParameters:
+          type: object
+          description: |
+            Optional parameters to guide the generative AI model, influencing aspects
+            like resolution, aspect ratio, specific stylistic guidance, and negative constraints.
+          properties:
+            resolution:
+              type: string
+              description: Desired output resolution (e.g., "1920x1080", "4K").
+              example: "1920x1080"
+            aspectRatio:
+              type: string
+              description: Desired aspect ratio (e.g., "16:9", "4:3", "1:1").
+              example: "16:9"
+            stylisticGuidance:
+              type: string
+              description: Explicit artistic style or genre (e.g., "digital painting", "cyberpunk", "watercolor").
+              example: "retro-futuristic synthwave"
+            negativePrompt:
+              type: string
+              description: |
+                Elements to actively exclude from the generated image, guiding the model away
+                from undesirable characteristics (e.g., "blurry, low resolution, ugly, watermark").
+              example: "blurry, low quality, text, disfigured, watermark"
+            context:
+              type: object
+              description: |
+                External contextual data influencing prompt enrichment, such as time of day,
+                user activity, system theme, or geographic location, integrated by the SPIE.
+              properties:
+                timeOfDay:
+                  type: string
+                  enum: [dawn, morning, noon, afternoon, dusk, night]
+                userActivity:
+                  type: string
+                  example: "coding"
+                systemTheme:
+                  type: string
+                  enum: [light, dark, high_contrast]
+                location:
+                  type: object
+                  properties:
+                    latitude:
+                      type: number
+                      format: float
+                    longitude:
+                      type: number
+                      format: float
+            modelSelectionHint:
+              type: string
+              description: |
+                Hint for the Dynamic Model Selection Engine (DMSE) to prioritize a specific
+                model type (e.g., "fast", "premium", "photorealistic_model_id").
+              example: "premium_fidelity"
+            customModelId:
+              type: string
+              format: uuid
+              description: |
+                Identifier for a user's custom-deployed generative model, utilized by the
+                Custom Model Deployment Module (CMDM) for domain-specific generation.
+            promptWeighting:
+              type: object
+              description: Adjustments to the influence of positive or negative prompt elements.
+              properties:
+                positiveScale:
+                  type: number
+                  format: float
+                  minimum: 0
+                  default: 7.0
+                  description: Classifier-free guidance scale for positive prompt influence.
+                negativeScale:
+                  type: number
+                  format: float
+                  minimum: 0
+                  default: 1.0
+                  description: Scale for negative prompt influence.
+        multiModalInput:
+          type: object
+          description: |
+            Optional multi-modal inputs for richer prompt acquisition, processed by the MMIP.
+          properties:
+            audioBase64:
+              type: string
+              format: byte
+              description: Base64 encoded audio input for speech-to-text conversion.
+            sketchBase64:
+              type: string
+              format: byte
+              description: Base64 encoded rough sketch image for image-to-text description.
+            bioSensorData:
+              type: object
+              description: Physiological data from biosensors for inferring emotional state.
+              properties:
+                emotionalState:
+                  type: string
+                  enum: [calm, energetic, melancholic, focused]
+                arousalLevel:
+                  type: number
+                  format: float
+                  minimum: 0
+                  maximum: 1
+      example:
+        prompt: "A serene cyberpunk city, neon glow reflecting on wet streets, flying vehicles in the mist, 8K, cinematic lighting."
+        generationParameters:
+          resolution: "3840x2160"
+          aspectRatio: "16:9"
+          stylisticGuidance: "cyberpunk, cinematic, hyperdetailed"
+          negativePrompt: "blurry, low resolution, ugly, disfigured, text, watermark"
+          context:
+            timeOfDay: "night"
+            userActivity: "gaming"
+            systemTheme: "dark"
+          modelSelectionHint: "premium_fidelity"
+
+    GenerationJobResponse:
+      type: object
+      required:
+        - jobId
+        - status
+      properties:
+        jobId:
+          type: string
+          format: uuid
+          description: Unique identifier for the asynchronous generation job.
+        status:
+          type: string
+          enum: [queued, processing_prompt, generating_image, post_processing, completed, failed, cancelled]
+          description: Current status of the generation job.
+        progressPercentage:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          description: Granular progress of the job, if available.
+        imageUrl:
+          type: string
+          format: url
+          nullable: true
+          description: |
+            URL of the generated image if the job is 'completed'. This points to a CDN location.
+        errorMessage:
+          type: string
+          nullable: true
+          description: |
+            A detailed error message if the job 'failed', providing insight into the cause.
+      example:
+        jobId: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+        status: "generating_image"
+        progressPercentage: 65.5
+
+    ImageResponse:
+      type: object
+      required:
+        - imageId
+        - url
+        - metadata
+      properties:
+        imageId:
+          type: string
+          format: uuid
+          description: Unique identifier for the generated image.
+        url:
+          type: string
+          format: url
+          description: |
+            CDN URL to access the optimized generated image. This is the primary method for retrieval.
+        base64EncodedData:
+          type: string
+          format: byte
+          nullable: true
+          description: |
+            Optional Base64 encoded image data. Provided for smaller images or scenarios where direct
+            embedding without an external fetch is preferred.
+        metadata:
+          $ref: '#/components/schemas/ImageMetadata'
+        accessDetails:
+          type: object
+          description: Details regarding digital rights management (DRM) and licensing.
+          properties:
+            licenseType:
+              type: string
+              enum: [personal_use, commercial_small, commercial_large, enterprise]
+            attributionRequired:
+              type: boolean
+            watermarkApplied:
+              type: boolean
+            immutableLedgerRecord:
+              type: string
+              description: Hash or ID of the record in the Immutable Ledger for Provenance (ILP).
+      example:
+        imageId: "f7e8d9c0-b1a2-3456-7890-fedcba987654"
+        url: "https://cdn.generativeui.com/images/f7e8d9c0-b1a2-3456-7890-fedcba987654.webp"
+        metadata:
+          rawPrompt: "A serene forest at dawn with bioluminescent flora."
+          prompt: "A hyperrealistic ethereal forest at dawn, with luminous bioluminescent flora and a subtle mist, rendered in an Impressionistic style. Negative prompt: blurry, low resolution, ugly."
+          generationParameters:
+            resolution: "1920x1080"
+            aspectRatio: "16:9"
+            stylisticGuidance: "Impressionistic"
+            negativePrompt: "blurry, low resolution, ugly"
+          timestamp: "2023-10-27T10:00:00Z"
+          userId: "user-123"
+          aestheticScore: 0.92
+          perceptualDistance: 0.08
+          semanticConsistencyScore: 0.95
+          modelVersion: "Diffusion-XL-v2.1"
+          contentModerationFlags: []
+          provenanceChain:
+            - step: "Prompt Submission"
+              timestamp: "2023-10-27T09:59:00Z"
+              details: "User input received."
+            - step: "SPIE Processing"
+              timestamp: "2023-10-27T09:59:15Z"
+              details: "Prompt enriched and negative prompt generated."
+          digitalRightsSignature: "some_cryptographic_signature_hash"
+
+    ImageMetadata:
+      type: object
+      required:
+        - rawPrompt
+        - prompt
+        - generationParameters
+        - timestamp
+        - userId
+        - aestheticScore
+        - perceptualDistance
+        - semanticConsistencyScore
+        - modelVersion
+        - contentModerationFlags
+      properties:
+        rawPrompt:
+          type: string
+          description: The original, unmodified natural language prompt submitted by the user.
+        prompt:
+          type: string
+          description: |
+            The enhanced, validated, and interpreted prompt used by the generative model,
+            resulting from the SPIE's processing (including negative prompts, context, etc.).
+        generationParameters:
+          type: object
+          description: The exact parameters (resolution, aspect ratio, style, etc.) utilized for this generation.
+        timestamp:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of when the image was generated.
+        userId:
+          type: string
+          format: uuid
+          description: The ID of the user who initiated the generation.
+        aestheticScore:
+          type: number
+          format: float
+          description: |
+            An objective aesthetic score (0-1) evaluating the image's quality based on criteria
+            like composition, color harmony, and sharpness, computed by the CAMM.
+        perceptualDistance:
+          type: number
+          format: float
+          description: |
+            A metric indicating the perceptual similarity of the generated image to the semantic
+            intent of the prompt, often using latent space comparisons (e.g., CLIP score based).
+        semanticConsistencyScore:
+          type: number
+          format: float
+          description: |
+            A score (0-1) verifying that key visual elements and the overall theme of the generated
+            image consistently match the semantic intent of the input prompt, as per SPM.
+        modelVersion:
+          type: string
+          description: The specific generative AI model version used for this creation.
+        contentModerationFlags:
+          type: array
+          items:
+            type: string
+          description: |
+            Flags or warnings generated by the CMPES if any policy violations or
+            sensitive content were detected in the prompt or image.
+        provenanceChain:
+          type: array
+          items:
+            type: object
+            properties:
+              step:
+                type: string
+                description: Description of the processing step (e.g., "Prompt Submission", "SPIE Processing").
+              timestamp:
+                type: string
+                format: date-time
+              details:
+                type: string
+          description: |
+            An immutable record detailing the sequence of transformations and decisions
+            from raw prompt to final image, crucial for auditability and transparency.
+        digitalRightsSignature:
+          type: string
+          nullable: true
+          description: |
+            A cryptographic signature ensuring the provenance and integrity of the image's digital rights,
+            managed by the DAMS' DRM component.
+
+    UserPreferences:
+      type: object
+      description: |
+        A collection of user-defined and system-inferred aesthetic preferences,
+        used by the SPIE for personalized prompt interpretation and by the CRAL for rendering.
+      properties:
+        preferredStyles:
+          type: array
+          items:
+            type: string
+          description: List of artistic styles explicitly favored by the user.
+          example: ["Impressionistic", "cyberpunk", "vaporwave"]
+        defaultResolution:
+          type: string
+          description: The user's preferred default resolution for generated backgrounds.
+          example: "1920x1080"
+        dominantColorPalette:
+          type: array
+          items:
+            type: string
+            format: hex-color
+          description: Preferred color scheme, influencing color grading and UI harmonization.
+          example: ["#1A1A2E", "#0F3460", "#E94560"]
+        animationPreference:
+          type: string
+          enum: [none, subtle, moderate, dynamic]
+          default: "subtle"
+          description: User's preference for animated or interactive background elements.
+        readabilityOverlay:
+          type: string
+          enum: [auto, dark, light, none]
+          default: "auto"
+          description: |
+            Controls dynamic overlay adjustments for text readability on the background.
+            'auto' adapts based on background luminosity.
+        multiMonitorStrategy:
+          type: string
+          enum: [extend, individual, mirrored]
+          default: "extend"
+          description: How backgrounds should be displayed across multiple monitors.
+        implicitFeedbackEnabled:
+          type: boolean
+          default: true
+          description: |
+            Whether the system can collect implicit feedback (e.g., duration of use)
+            to refine aesthetic recommendations.
+      example:
+        preferredStyles: ["abstract", "geometric"]
+        defaultResolution: "2560x1440"
+        dominantColorPalette: ["#333333", "#666666", "#AAAAAA"]
+        animationPreference: "subtle"
+        readabilityOverlay: "auto"
+
+    Asset:
+      type: object
+      required:
+        - assetId
+        - imageId
+        - ownerId
+        - title
+        - description
+        - metadata
+        - price
+        - license
+      properties:
+        assetId:
+          type: string
+          format: uuid
+          description: Unique identifier for the marketplace asset.
+        imageId:
+          type: string
+          format: uuid
+          description: Identifier of the underlying generated image in DAMS.
+        ownerId:
+          type: string
+          format: uuid
+          description: Identifier of the user who owns/published this asset.
+        title:
+          type: string
+          description: A user-provided title for the asset.
+          example: "Luminous Forest Dream"
+        description:
+          type: string
+          description: A descriptive text about the asset.
+          example: "An enchanting, high-fidelity background ideal for creative workspaces."
+        metadata:
+          $ref: '#/components/schemas/ImageMetadata'
+        thumbnailUrl:
+          type: string
+          format: url
+          description: URL to a low-resolution thumbnail of the asset.
+        price:
+          type: number
+          format: float
+          minimum: 0
+          description: Price for licensing or purchasing the asset, in platform currency.
+          example: 9.99
+        license:
+          type: string
+          enum: [personal_use, commercial_small, commercial_large, enterprise]
+          description: The type of license offered for this asset.
+        isFeatured:
+          type: boolean
+          default: false
+          description: Whether the asset is highlighted on the marketplace.
+        creationDate:
+          type: string
+          format: date-time
+          description: Timestamp when the asset was published.
+        popularityScore:
+          type: number
+          format: float
+          description: A metric indicating the asset's popularity (e.g., views, likes).
+      example:
+        assetId: "b8c9d0e1-f2a3-4567-8901-23456789abcd"
+        imageId: "f7e8d9c0-b1a2-3456-7890-fedcba987654"
+        ownerId: "user-123"
+        title: "Ethereal Dawn Forest"
+        description: "A visually stunning generative background, perfect for a calming desktop experience."
+        metadata:
+          rawPrompt: "A serene forest at dawn with bioluminescent flora."
+          prompt: "A hyperrealistic ethereal forest at dawn, with luminous bioluminescent flora and a subtle mist, rendered in an Impressionistic style. Negative prompt: blurry, low resolution, ugly."
+          generationParameters: {}
+          timestamp: "2023-10-27T10:00:00Z"
+          userId: "user-123"
+          aestheticScore: 0.92
+          perceptualDistance: 0.08
+          semanticConsistencyScore: 0.95
+          modelVersion: "Diffusion-XL-v2.1"
+          contentModerationFlags: []
+          provenanceChain: []
+        thumbnailUrl: "https://cdn.generativeui.com/thumbnails/b8c9d0e1-f2a3-4567-8901-23456789abcd.webp"
+        price: 15.00
+        license: "personal_use"
+        isFeatured: true
+        creationDate: "2023-10-28T12:30:00Z"
+        popularityScore: 0.85
+
+    PublishAssetRequest:
+      type: object
+      required:
+        - imageId
+        - title
+        - description
+        - price
+        - license
+      properties:
+        imageId:
+          type: string
+          format: uuid
+          description: The ID of the generated image to be published.
+        title:
+          type: string
+          description: A user-provided title for the asset on the marketplace.
+        description:
+          type: string
+          description: A detailed description for the marketplace listing.
+        price:
+          type: number
+          format: float
+          minimum: 0
+          description: The price for licensing the asset.
+        license:
+          type: string
+          enum: [personal_use, commercial_small, commercial_large, enterprise]
+          description: The licensing terms for the asset.
+        tags:
+          type: array
+          items:
+            type: string
+          description: Keywords to help with asset discovery.
+      example:
+        imageId: "f7e8d9c0-b1a2-3456-7890-fedcba987654"
+        title: "Enchanted Bioluminescent Forest"
+        description: "A captivating, high-detail image perfect for calming digital environments, available for personal licensing."
+        price: 12.50
+        license: "personal_use"
+        tags: ["fantasy", "nature", "bioluminescent", "forest", "ethereal"]
+
+    PurchaseRequest:
+      type: object
+      required:
+        - userId
+        - paymentToken
+      properties:
+        userId:
+          type: string
+          format: uuid
+          description: The ID of the user making the purchase.
+        paymentToken:
+          type: string
+          description: |
+            A secure token representing payment credentials, processed by the Billing and Usage
+            Tracking Service (BUTS) and payment gateways.
+      example:
+        userId: "user-123"
+        paymentToken: "tok_visa"
+
+    FeedbackRequest:
+      type: object
+      required:
+        - rating
+      properties:
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: A numerical rating for the generated image (e.g., 1-5 stars).
+          example: 4
+        comments:
+          type: string
+          nullable: true
+          description: Optional qualitative feedback from the user.
+          example: "Loved the colors, but the composition felt a little off-center."
+        flagInappropriate:
+          type: boolean
+          default: false
+          description: |
+            Flag the image if it contains inappropriate content, triggering CMPES review.
+      example:
+        rating: 5
+        comments: "Absolutely perfect! Exceeded my expectations for a desktop background."
+
+    ReportRequest:
+      type: object
+      required:
+        - contentType
+        - contentId
+        - reason
+      properties:
+        contentType:
+          type: string
+          enum: [prompt, image, asset]
+          description: The type of content being reported.
+        contentId:
+          type: string
+          format: uuid
+          description: The unique identifier of the reported content (promptId, imageId, or assetId).
+        reason:
+          type: string
+          description: A detailed explanation for the report (e.g., "offensive imagery", "copyright infringement", "misleading description").
+          example: "The generated image contained unexpected offensive symbols."
+        severity:
+          type: string
+          enum: [low, medium, high, critical]
+          default: "medium"
+          description: Perceived severity of the reported issue.
+        contactEmail:
+          type: string
+          format: email
+          nullable: true
+          description: Optional email for follow-up regarding the report.
+      example:
+        contentType: "image"
+        contentId: "f7e8d9c0-b1a2-3456-7890-fedcba987654"
+        reason: "The image contains copyrighted material I did not authorize for use."
+        severity: "high"
+
+    UsageResponse:
+      type: object
+      required:
+        - userId
+        - currentTier
+        - generationsRemaining
+        - storageUsedGB
+        - bandwidthUsedGB
+      properties:
+        userId:
+          type: string
+          format: uuid
+          description: The ID of the user whose usage is being reported.
+        currentTier:
+          type: string
+          description: The user's current subscription tier (e.g., "free", "premium", "enterprise").
+          example: "premium"
+        generationsRemaining:
+          type: integer
+          minimum: 0
+          description: Number of generative tasks remaining in the current billing period.
+          example: 150
+        generationsTotal:
+          type: integer
+          minimum: 0
+          description: Total number of generative tasks allowed in the current billing period.
+          example: 200
+        storageUsedGB:
+          type: number
+          format: float
+          minimum: 0
+          description: Amount of storage consumed by user's generated assets, in gigabytes.
+          example: 2.15
+        storageLimitGB:
+          type: number
+          format: float
+          minimum: 0
+          description: Maximum allowed storage for user's generated assets, in gigabytes.
+          example: 10.0
+        bandwidthUsedGB:
+          type: number
+          format: float
+          minimum: 0
+          description: Amount of bandwidth consumed by serving user's assets, in gigabytes.
+          example: 5.7
+        bandwidthLimitGB:
+          type: number
+          format: float
+          minimum: 0
+          description: Maximum allowed bandwidth for serving user's assets, in gigabytes.
+          example: 20.0
+        nextBillingDate:
+          type: string
+          format: date
+          description: Date when the next billing cycle begins or credits reset.
+          example: "2023-11-27"
+      example:
+        userId: "user-123"
+        currentTier: "premium"
+        generationsRemaining: 75
+        generationsTotal: 100
+        storageUsedGB: 3.2
+        storageLimitGB: 10.0
+        bandwidthUsedGB: 8.5
+        bandwidthLimitGB: 25.0
+        nextBillingDate: "2024-01-15"
+
+    ErrorResponse:
+      type: object
+      required:
+        - errorCode
+        - message
+      properties:
+        errorCode:
+          type: string
+          description: A unique code identifying the type of error.
+          example: "GEN_001"
+        message:
+          type: string
+          description: A human-readable description of the error.
+          example: "Invalid prompt structure detected by SPIE."
+        details:
+          type: object
+          nullable: true
+          description: Optional additional details or context about the error.
+          example:
+            validationErrors:
+              - field: "prompt"
+                error: "Prompt exceeds maximum length."
+            rateLimitReset: "2023-10-27T10:05:00Z"
+      example:
+        errorCode: "AUTH_001"
+        message: "Authentication token is missing or invalid."
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Bearer Token authentication using a JSON Web Token (JWT).
+        The token is issued by the Authentication & Authorization Service (AAS).

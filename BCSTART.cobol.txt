@@ -1,0 +1,335 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. BCSTART.
+       AUTHOR. MAINFRAME-INTELLIGENCE-INITIATIVE.
+      ******************************************************************
+      * AI-AUGMENTED BATCH JOB INITIATOR - NEURAL DISPATCH
+      * This program facilitates the submission of batch jobs,
+      * integrating a simulated AI assistant for optimized parameter
+      * suggestions and predictive scheduling. It aims to enhance
+      * mainframe operations through intelligent automation, ensuring
+      * efficient resource utilization and reliable job execution.
+      ******************************************************************
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+      *---------------------------------------------------------------*
+      * Job Submission Details                                        *
+      *---------------------------------------------------------------*
+       01 WS-JOB-DETAILS.
+          05 WS-JOB-NAME           PIC X(08) VALUE SPACES.
+          05 WS-JOB-PARMS          PIC X(100) VALUE SPACES.
+          05 WS-JCL-GENERATED      PIC X(500) VALUE SPACES.
+          05 WS-SUBMISSION-STATUS  PIC X(20)  VALUE 'PENDING'.
+          05 WS-JOB-ID             PIC X(10)  VALUE SPACES.
+          05 WS-RETURN-CODE        PIC 9(04)  VALUE ZEROS.
+
+      *---------------------------------------------------------------*
+      * AI Assistant Interaction Data                                 *
+      *---------------------------------------------------------------*
+       01 WS-AI-ASSISTANT-DATA.
+          05 WS-AI-ENABLED-FLAG    PIC X(01) VALUE 'Y'. *> 'Y' for enabled, 'N' for disabled
+          05 WS-AI-SUGGESTED-PARMS PIC X(100) VALUE SPACES.
+          05 WS-AI-OPTIMIZATION-SCORE PIC 9(03) VALUE ZEROS. *> 0-100, higher is better
+          05 WS-AI-PREDICTED-TIME  PIC X(08) VALUE SPACES. *> HHMMSS
+          05 WS-AI-CONFIDENCE-LEVEL PIC 9(02) VALUE ZEROS. *> 0-99
+          05 WS-AI-RESPONSE-CODE   PIC 9(02) VALUE ZEROS.
+             88 AI-SUCCESS                  VALUE 00.
+             88 AI-NO-SUGGESTION            VALUE 01.
+             88 AI-ENGINE-BUSY              VALUE 02.
+             88 AI-INVALID-JOB-NAME         VALUE 03.
+          05 WS-AI-MESSAGE         PIC X(80) VALUE SPACES.
+          05 WS-NEURAL-CORE-VERSION PIC X(10) VALUE 'V1.2.3'.
+          05 WS-AI-ADAPTIVE-WEIGHT PIC 9(01) VALUE 5. *> Weight for AI influence (1-9)
+
+      *---------------------------------------------------------------*
+      * Logging and System Messages                                   *
+      *---------------------------------------------------------------*
+       01 WS-SYSTEM-MESSAGES.
+          05 WS-LOG-ENTRY          PIC X(120).
+          05 WS-CURRENT-TIMESTAMP  PIC X(19). *> YYYY-MM-DD-HH.MM.SS
+          05 WS-ERROR-MESSAGE      PIC X(80).
+
+      *---------------------------------------------------------------*
+      * Constants and Utility Fields                                  *
+      *---------------------------------------------------------------*
+       01 WS-CONSTANTS.
+          05 CONST-PROGRAM-NAME    PIC X(08) VALUE 'BCSTART'.
+          05 CONST-JCL-HEADER-1    PIC X(80) VALUE
+             '//AIJOBGEN JOB (AI,MAIN),MSGCLASS=X,NOTIFY=&SYSUID'.
+          05 CONST-JCL-HEADER-2    PIC X(80) VALUE
+             '//STEP01   EXEC PGM='.
+          05 CONST-JCL-DD-SYSOUT   PIC X(80) VALUE
+             '//SYSOUT   DD SYSOUT=*'.
+          05 CONST-JCL-DD-SYSIN    PIC X(80) VALUE
+             '//SYSIN    DD *'.
+          05 CONST-JCL-DD-END      PIC X(80) VALUE '/*'.
+          05 CONST-MAX-PARMS-LEN   PIC 9(03) VALUE 100.
+
+       PROCEDURE DIVISION.
+       MAIN-LOGIC.
+           PERFORM 1000-INITIALIZE-PROGRAM.
+           PERFORM 2000-GET-JOB-DETAILS.
+           IF WS-RETURN-CODE = ZEROS
+               PERFORM 3000-CONSULT-AI-ASSISTANT
+               PERFORM 4000-GENERATE-AND-SUBMIT-JCL
+               PERFORM 5000-MONITOR-JOB-STATUS
+           ELSE
+               PERFORM 8000-HANDLE-ERROR
+           END-IF.
+           PERFORM 9000-TERMINATE-PROGRAM.
+
+      *================================================================*
+      * 1000-INITIALIZE-PROGRAM: Set up initial values and logging.    *
+      *================================================================*
+       1000-INITIALIZE-PROGRAM.
+           ACCEPT WS-CURRENT-TIMESTAMP FROM DATE YYYYMMDD FROM TIME.
+           STRING CONST-PROGRAM-NAME ' - Program Start. Version '
+                  WS-NEURAL-CORE-VERSION DELIMITED BY SIZE
+                  INTO WS-LOG-ENTRY.
+           DISPLAY WS-CURRENT-TIMESTAMP ' ' WS-LOG-ENTRY.
+           MOVE ZEROS TO WS-RETURN-CODE.
+           MOVE 'PENDING' TO WS-SUBMISSION-STATUS.
+           MOVE SPACES TO WS-JCL-GENERATED.
+           MOVE ZEROS TO WS-AI-OPTIMIZATION-SCORE
+                         WS-AI-CONFIDENCE-LEVEL
+                         WS-AI-RESPONSE-CODE.
+           MOVE SPACES TO WS-AI-SUGGESTED-PARMS
+                         WS-AI-PREDICTED-TIME
+                         WS-AI-MESSAGE.
+           .
+
+      *================================================================*
+      * 2000-GET-JOB-DETAILS: Prompt user for job name and parameters. *
+      * Includes basic input validation.                               *
+      *================================================================*
+       2000-GET-JOB-DETAILS.
+           PERFORM UNTIL WS-JOB-NAME NOT = SPACES
+               DISPLAY " "
+               DISPLAY "BCSTART - AI-Augmented Job Submission"
+               DISPLAY "-----------------------------------"
+               DISPLAY "ENTER 8-CHARACTER JOB NAME (e.g., ANALYTICS, REPORTGEN): "
+               ACCEPT WS-JOB-NAME
+               IF WS-JOB-NAME = SPACES
+                   DISPLAY "ERROR: Job name cannot be empty. Please try again."
+                   MOVE 1001 TO WS-RETURN-CODE
+                   MOVE "Empty Job Name" TO WS-ERROR-MESSAGE
+                   EXIT PERFORM
+               END-IF
+           END-PERFORM.
+
+           IF WS-RETURN-CODE = ZEROS
+               DISPLAY "ENTER JOB PARAMETERS (e.g., INPUTFILE=DATA01,REPORT=DAILY - up to 100 chars): "
+               ACCEPT WS-JOB-PARMS
+               IF WS-JOB-PARMS = SPACES
+                   DISPLAY "NOTE: No job parameters entered. AI may suggest some."
+               ELSE IF LENGTH OF WS-JOB-PARMS > CONST-MAX-PARMS-LEN
+                   DISPLAY "WARNING: Job parameters truncated to 100 characters."
+                   MOVE WS-JOB-PARMS(1:CONST-MAX-PARMS-LEN) TO WS-JOB-PARMS
+               END-IF
+           END-IF.
+
+           IF WS-RETURN-CODE = ZEROS
+               ACCEPT WS-CURRENT-TIMESTAMP FROM DATE YYYYMMDD FROM TIME.
+               STRING CONST-PROGRAM-NAME ' - Input received: Job='
+                      WS-JOB-NAME ', Params=' WS-JOB-PARMS(1:20) '...'
+                      DELIMITED BY SIZE
+                      INTO WS-LOG-ENTRY.
+               DISPLAY WS-CURRENT-TIMESTAMP ' ' WS-LOG-ENTRY.
+           END-IF.
+           .
+
+      *================================================================*
+      * 3000-CONSULT-AI-ASSISTANT: Simulate interaction with an AI.    *
+      * The AI provides suggestions or optimization feedback.          *
+      *================================================================*
+       3000-CONSULT-AI-ASSISTANT.
+           IF WS-AI-ENABLED-FLAG = 'Y'
+               ACCEPT WS-CURRENT-TIMESTAMP FROM DATE YYYYMMDD FROM TIME.
+               DISPLAY WS-CURRENT-TIMESTAMP ' ' CONST-PROGRAM-NAME
+                       ' - Consulting AI Neural Dispatcher (Core '
+                       WS-NEURAL-CORE-VERSION ')...'
+
+               *> Simulate AI processing based on job name
+               EVALUATE WS-JOB-NAME
+                   WHEN 'ANALYTICS'
+                       MOVE 'COMPLEXITY=HIGH,OPTIMIZE=TRUE,DATAPROC=BATCH' TO WS-AI-SUGGESTED-PARMS
+                       MOVE 95 TO WS-AI-OPTIMIZATION-SCORE
+                       MOVE 90 TO WS-AI-CONFIDENCE-LEVEL
+                       MOVE '143000' TO WS-AI-PREDICTED-TIME *> 2:30 PM
+                       MOVE AI-SUCCESS TO WS-AI-RESPONSE-CODE
+                       MOVE 'AI suggests high optimization for analytics.'
+                           TO WS-AI-MESSAGE
+                   WHEN 'REPORTGEN'
+                       MOVE 'FREQ=DAILY,FORMAT=PDF,DIST=EMAIL' TO WS-AI-SUGGESTED-PARMS
+                       MOVE 80 TO WS-AI-OPTIMIZATION-SCORE
+                       MOVE 85 TO WS-AI-CONFIDENCE-LEVEL
+                       MOVE '080000' TO WS-AI-PREDICTED-TIME *> 8:00 AM
+                       MOVE AI-SUCCESS TO WS-AI-RESPONSE-CODE
+                       MOVE 'AI recommends daily PDF reports with email distribution.'
+                           TO WS-AI-MESSAGE
+                   WHEN 'BACKUP'
+                       MOVE 'TYPE=FULL,COMPRESS=YES,DEST=TAPE,ENCRYPT=YES' TO WS-AI-SUGGESTED-PARMS
+                       MOVE 98 TO WS-AI-OPTIMIZATION-SCORE
+                       MOVE 99 TO WS-AI-CONFIDENCE-LEVEL
+                       MOVE '020000' TO WS-AI-PREDICTED-TIME *> 2:00 AM
+                       MOVE AI-SUCCESS TO WS-AI-RESPONSE-CODE
+                       MOVE 'AI prioritizes full, compressed, encrypted backup to tape.'
+                           TO WS-AI-MESSAGE
+                   WHEN 'DATALOAD'
+                       MOVE 'MODE=APPEND,VALIDATE=SCHEMA,LOGLEVEL=FULL' TO WS-AI-SUGGESTED-PARMS
+                       MOVE 75 TO WS-AI-OPTIMIZATION-SCORE
+                       MOVE 70 TO WS-AI-CONFIDENCE-LEVEL
+                       MOVE '180000' TO WS-AI-PREDICTED-TIME *> 6:00 PM
+                       MOVE AI-SUCCESS TO WS-AI-RESPONSE-CODE
+                       MOVE 'AI suggests schema validation for data loading.'
+                           TO WS-AI-MESSAGE
+                   WHEN OTHER
+                       MOVE SPACES TO WS-AI-SUGGESTED-PARMS
+                       MOVE 50 TO WS-AI-OPTIMIZATION-SCORE
+                       MOVE 60 TO WS-AI-CONFIDENCE-LEVEL
+                       MOVE 'NO-PREDICTION' TO WS-AI-PREDICTED-TIME
+                       MOVE AI-NO-SUGGESTION TO WS-AI-RESPONSE-CODE
+                       MOVE 'AI has no specific suggestions for this job type.'
+                           TO WS-AI-MESSAGE
+               END-EVALUATE.
+
+               ACCEPT WS-CURRENT-TIMESTAMP FROM DATE YYYYMMDD FROM TIME.
+               STRING CONST-PROGRAM-NAME ' - AI Response (Code:'
+                      WS-AI-RESPONSE-CODE '): ' WS-AI-MESSAGE
+                      DELIMITED BY SIZE INTO WS-LOG-ENTRY.
+               DISPLAY WS-CURRENT-TIMESTAMP ' ' WS-LOG-ENTRY.
+
+               DISPLAY "AI Suggestion for " WS-JOB-NAME ":"
+               DISPLAY "  Parameters: " WS-AI-SUGGESTED-PARMS
+               DISPLAY "  Optimization Score: " WS-AI-OPTIMIZATION-SCORE
+               DISPLAY "  Confidence Level: " WS-AI-CONFIDENCE-LEVEL
+               DISPLAY "  Predicted Optimal Time: " WS-AI-PREDICTED-TIME
+
+               *> Integrate AI suggestions if user didn't provide params or AI score is high
+               IF WS-AI-RESPONSE-CODE = AI-SUCCESS
+                   AND (WS-JOB-PARMS = SPACES OR WS-AI-OPTIMIZATION-SCORE > 70)
+                   IF WS-JOB-PARMS NOT = SPACES
+                       DISPLAY "AI suggested parameters will augment existing parameters."
+                       STRING WS-JOB-PARMS ',' WS-AI-SUGGESTED-PARMS
+                              DELIMITED BY SIZE INTO WS-JOB-PARMS
+                       END-STRING
+                       IF LENGTH OF WS-JOB-PARMS > CONST-MAX-PARMS-LEN
+                           DISPLAY "WARNING: Combined parameters truncated by AI to 100 characters."
+                           MOVE WS-JOB-PARMS(1:CONST-MAX-PARMS-LEN) TO WS-JOB-PARMS
+                       END-IF
+                   ELSE
+                       DISPLAY "Adopting AI suggested parameters."
+                       MOVE WS-AI-SUGGESTED-PARMS TO WS-JOB-PARMS
+                   END-IF
+               ELSE IF WS-AI-RESPONSE-CODE = AI-NO-SUGGESTION
+                   DISPLAY "AI did not provide specific suggestions, using user-provided parameters."
+               END-IF.
+               DISPLAY "Final Parameters for Submission: " WS-JOB-PARMS.
+           ELSE
+               ACCEPT WS-CURRENT-TIMESTAMP FROM DATE YYYYMMDD FROM TIME.
+               DISPLAY WS-CURRENT-TIMESTAMP ' ' CONST-PROGRAM-NAME
+                       ' - AI Assistant is disabled. Proceeding without AI consultation.'
+           END-IF.
+           .
+
+      *================================================================*
+      * 4000-GENERATE-AND-SUBMIT-JCL: Create JCL and simulate submission.*
+      * This section generates a basic JCL structure.                  *
+      *================================================================*
+       4000-GENERATE-AND-SUBMIT-JCL.
+           ACCEPT WS-CURRENT-TIMESTAMP FROM DATE YYYYMMDD FROM TIME.
+           DISPLAY WS-CURRENT-TIMESTAMP ' ' CONST-PROGRAM-NAME
+                   ' - Generating JCL for ' WS-JOB-NAME '...'
+
+           *> Build JCL string
+           STRING CONST-JCL-HEADER-1 X'0A' *> Newline character
+                  CONST-JCL-HEADER-2 WS-JOB-NAME X'0A'
+                  CONST-JCL-DD-SYSOUT X'0A'
+                  CONST-JCL-DD-SYSIN X'0A'
+                  ' ' WS-JOB-PARMS X'0A'
+                  CONST-JCL-DD-END
+                  DELIMITED BY SIZE INTO WS-JCL-GENERATED.
+
+           DISPLAY "--- GENERATED JCL ---"
+           DISPLAY WS-JCL-GENERATED
+           DISPLAY "---------------------"
+
+           DISPLAY "SUBMITTING JOB " WS-JOB-NAME " TO NEURAL SCHEDULER SUBSYSTEM..."
+
+           *> Simulate interaction with Job Entry Subsystem (JES2 in a real system)
+           *> For this simulation, we'll assign a dummy Job ID and status
+           IF WS-RETURN-CODE = ZEROS
+               MOVE 'JAI' TO WS-JOB-ID(1:3)
+               COMPUTE WS-JOB-ID(4:7) = FUNCTION RANDOM(FUNCTION CURRENT-DATE (9:8)) * 10000000
+               MOVE 'SUBMITTED' TO WS-SUBMISSION-STATUS
+               MOVE ZEROS TO WS-RETURN-CODE
+           ELSE
+               MOVE 'FAILED' TO WS-SUBMISSION-STATUS
+               MOVE 4001 TO WS-RETURN-CODE
+               MOVE "JCL Generation Failed" TO WS-ERROR-MESSAGE
+           END-IF.
+
+
+           ACCEPT WS-CURRENT-TIMESTAMP FROM DATE YYYYMMDD FROM TIME.
+           STRING CONST-PROGRAM-NAME ' - Job ' WS-JOB-ID
+                  ' submitted successfully. Status: ' WS-SUBMISSION-STATUS
+                  DELIMITED BY SIZE
+                  INTO WS-LOG-ENTRY.
+           DISPLAY WS-CURRENT-TIMESTAMP ' ' WS-LOG-ENTRY.
+           .
+
+      *================================================================*
+      * 5000-MONITOR-JOB-STATUS: Simulate a quick check of job status. *
+      * In a real system, this would query the JES.                    *
+      *================================================================*
+       5000-MONITOR-JOB-STATUS.
+           IF WS-SUBMISSION-STATUS = 'SUBMITTED'
+               ACCEPT WS-CURRENT-TIMESTAMP FROM DATE YYYYMMDD FROM TIME.
+               DISPLAY WS-CURRENT-TIMESTAMP ' ' CONST-PROGRAM-NAME
+                       ' - Initiating quick status check for Job ' WS-JOB-ID '.'
+
+               *> Simulate a brief delay or processing
+               *> In a real system, this would involve polling JES or a monitoring API
+               MOVE 'RUNNING' TO WS-SUBMISSION-STATUS. *> Simulate immediate running
+               MOVE 0000 TO WS-RETURN-CODE.
+
+               ACCEPT WS-CURRENT-TIMESTAMP FROM DATE YYYYMMDD FROM TIME.
+               STRING CONST-PROGRAM-NAME ' - Job ' WS-JOB-ID
+                      ' status: ' WS-SUBMISSION-STATUS
+                      ' (Return Code: ' WS-RETURN-CODE ')'
+                      DELIMITED BY SIZE
+                      INTO WS-LOG-ENTRY.
+               DISPLAY WS-CURRENT-TIMESTAMP ' ' WS-LOG-ENTRY.
+           ELSE
+               ACCEPT WS-CURRENT-TIMESTAMP FROM DATE YYYYMMDD FROM TIME.
+               STRING CONST-PROGRAM-NAME ' - Job was not submitted successfully. '
+                      'No status to monitor due to previous errors.'
+                      DELIMITED BY SIZE
+                      INTO WS-LOG-ENTRY.
+               DISPLAY WS-CURRENT-TIMESTAMP ' ' WS-LOG-ENTRY.
+           END-IF.
+           .
+
+      *================================================================*
+      * 8000-HANDLE-ERROR: Log and display error messages.             *
+      *================================================================*
+       8000-HANDLE-ERROR.
+           ACCEPT WS-CURRENT-TIMESTAMP FROM DATE YYYYMMDD FROM TIME.
+           STRING CONST-PROGRAM-NAME ' - ERROR (RC: ' WS-RETURN-CODE
+                  '): ' WS-ERROR-MESSAGE DELIMITED BY SIZE
+                  INTO WS-LOG-ENTRY.
+           DISPLAY WS-CURRENT-TIMESTAMP ' ' WS-LOG-ENTRY.
+           DISPLAY " "
+           DISPLAY "FATAL ERROR OCCURRED. JOB NOT SUBMITTED."
+           DISPLAY "Please review logs for details."
+           .
+
+      *================================================================*
+      * 9000-TERMINATE-PROGRAM: Clean up and exit.                     *
+      *================================================================*
+       9000-TERMINATE-PROGRAM.
+           ACCEPT WS-CURRENT-TIMESTAMP FROM DATE YYYYMMDD FROM TIME.
+           STRING CONST-PROGRAM-NAME ' - Program Terminated with RC: '
+                  WS-RETURN-CODE DELIMITED BY SIZE
+                  INTO WS-LOG-ENTRY.
+           DISPLAY WS-CURRENT-TIMESTAMP ' ' WS-LOG-ENTRY.
+           STOP RUN.

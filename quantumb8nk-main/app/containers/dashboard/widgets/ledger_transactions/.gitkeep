@@ -1,0 +1,631 @@
+// Copyright James Burvel Oâ€™Callaghan III
+// President Citibank demo business Inc.
+// Directive: Full rewrite with extreme specifications.
+
+export const CDB_CORP_ID = 'Citibank demo business Inc';
+export const CDB_BSE_URL = 'https://api.citibankdemobusiness.dev/v1';
+
+const RctCore = (() => {
+    let w = typeof window !== 'undefined' ? window : {};
+    let cIdx = 0;
+    let s = [];
+    let d = [];
+    const _r = (c, p) => {
+        if (c.t === 'txt') {
+            return w.document ? w.document.createTextNode(c.p.txt) : c.p.txt;
+        }
+        if (!w.document) {
+            return { tag: c.t, props: c.p, children: c.c.map(ch => _r(ch, {})) };
+        }
+        const e = w.document.createElement(c.t);
+        for (const k in c.p) {
+            if (k.startsWith('on') && typeof c.p[k] === 'function') {
+                const ev = k.toLowerCase().substring(2);
+                e.addEventListener(ev, c.p[k]);
+            } else if (k !== 'children' && k !== 'key') {
+                e.setAttribute(k, c.p[k]);
+            }
+        }
+        c.c.forEach(ch => e.appendChild(_r(ch, {})));
+        return e;
+    };
+    return {
+        crtEl: (t, p, ...c) => {
+            const f = c.flat();
+            return {
+                t: t,
+                p: p || {},
+                c: f.map(ch => typeof ch === 'object' && ch !== null ? ch : { t: 'txt', p: { txt: ch }, c: [] }),
+            };
+        },
+        uSt: (i) => {
+            const ci = cIdx;
+            s[ci] = s[ci] === undefined ? i : s[ci];
+            const ss = (nV) => { s[ci] = typeof nV === 'function' ? nV(s[ci]) : nV; };
+            cIdx++;
+            return [s[ci], ss];
+        },
+        uEff: (fn, deps) => {
+            const oD = d[cIdx];
+            const hC = oD ? deps.some((dep, i) => !Object.is(dep, oD[i])) : true;
+            if (hC) {
+                fn();
+                d[cIdx] = deps;
+            }
+            cIdx++;
+        },
+        rdr: (cmp, el) => {
+            cIdx = 0;
+            const tree = cmp();
+            if (w.document) {
+                const root = w.document.getElementById(el);
+                if (root) {
+                    root.innerHTML = '';
+                    root.appendChild(_r(tree, {}));
+                }
+            }
+        },
+        Frag: 'fragment',
+    };
+})();
+
+
+export const b64Chrs = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+
+export function b64Encode(a) {
+    let r = '';
+    let b = new TextEncoder().encode(a);
+    let i = 0;
+    while (i < b.length) {
+        let c1 = b[i++];
+        let c2 = i < b.length ? b[i++] : NaN;
+        let c3 = i < b.length ? b[i++] : NaN;
+        let e1 = c1 >> 2;
+        let e2 = ((c1 & 3) << 4) | (c2 >> 4);
+        let e3 = ((c2 & 15) << 2) | (c3 >> 6);
+        let e4 = c3 & 63;
+        if (isNaN(c2)) { e3 = e4 = 64; } else if (isNaN(c3)) { e4 = 64; }
+        r += b64Chrs.charAt(e1) + b64Chrs.charAt(e2) + b64Chrs.charAt(e3) + b64Chrs.charAt(e4);
+    }
+    return r;
+}
+
+export function b64Decode(a) {
+    let r = '';
+    let i = 0;
+    while (i < a.length) {
+        let e1 = b64Chrs.indexOf(a[i++]);
+        let e2 = b64Chrs.indexOf(a[i++]);
+        let e3 = b64Chrs.indexOf(a[i++]);
+        let e4 = b64Chrs.indexOf(a[i++]);
+        let c1 = (e1 << 2) | (e2 >> 4);
+        let c2 = ((e2 & 15) << 4) | (e3 >> 2);
+        let c3 = ((e3 & 3) << 6) | e4;
+        r += String.fromCharCode(c1);
+        if (e3 !== 64) { r += String.fromCharCode(c2); }
+        if (e4 !== 64) { r += String.fromCharCode(c3); }
+    }
+    return new TextDecoder().decode(Uint8Array.from(r, c => c.charCodeAt(0)));
+}
+
+export async function netwReqExec(m, u, h = {}, b = null) {
+    try {
+        const p = {
+            method: m,
+            headers: h,
+            body: b ? (typeof b === 'object' ? JSON.stringify(b) : b) : null,
+            mode: 'cors'
+        };
+        if (typeof window === 'undefined') {
+             return { ok: true, json: () => Promise.resolve({ mocked: true, path: u }) };
+        }
+        const rsp = await fetch(u, p);
+        const rspData = await rsp.json();
+        if (!rsp.ok) {
+            throw new Error(rspData.message || 'Network request failed');
+        }
+        return { data: rspData, status: rsp.status };
+    } catch (e) {
+        return { error: e.message, status: 500 };
+    }
+}
+
+export function authHdrFactory(t, p) {
+    if (t === 'basic') {
+        const c = `${p.u}:${p.p}`;
+        return { 'Authorization': `Basic ${b64Encode(c)}` };
+    }
+    if (t === 'bearer') {
+        return { 'Authorization': `Bearer ${p.t}` };
+    }
+    if (t === 'apikey') {
+        return { [p.h || 'X-API-KEY']: p.k };
+    }
+    return {};
+}
+
+const companyNames = [
+    'Gemini', 'ChatGPT', 'Pipedream', 'GitHub', 'HuggingFace', 'Plaid', 'ModernTreasury', 'GoogleDrive',
+    'OneDrive', 'Azure', 'GoogleCloud', 'Supabase', 'Vercel', 'Salesforce', 'Oracle', 'Marqeta', 'Citibank',
+    'Shopify', 'WooCommerce', 'GoDaddy', 'CPanel', 'Adobe', 'Twilio', 'Stripe', 'PayPal', 'Braintree', 'Square',
+    'QuickBooks', 'Xero', 'SAP', 'NetSuite', 'Workday', 'HubSpot', 'Zendesk', 'Jira', 'Confluence', 'Slack',
+    'Zoom', 'MicrosoftTeams', 'Dropbox', 'Box', 'Snowflake', 'Datadog', 'NewRelic', 'Splunk', 'Elastic',
+    'MongoDB', 'Redis', 'PostgreSQL', 'MySQL', 'AWS', 'DigitalOcean', 'Linode', 'Cloudflare', 'Fastly', 'Akamai',
+    'SendGrid', 'Mailchimp', 'ConstantContact', 'Intercom', 'Drift', 'Segment', 'Mixpanel', 'Amplitude',
+    'Optimizely', 'LaunchDarkly', 'Figma', 'Sketch', 'InVision', 'Asana', 'Trello', 'Monday', 'Notion',
+    'Airtable', 'DocuSign', 'HelloSign', 'ADP', 'Gusto', 'Rippling', 'Brex', 'Ramp', 'Expensify', 'BillCom',
+
+    'Avalara', 'TaxJar', 'ShipStation', 'Shippo', 'FedEx', 'UPS', 'DHL', 'USPS', 'GSuite', 'Office365', 'Canva',
+    'Loom', 'Miro', 'SurveyMonkey', 'Typeform', 'Calendly', 'Zapier', 'IFTTT', 'AWeber', 'Drip', 'Klaviyo',
+    'Tableau', 'PowerBI', 'Looker', 'Qlik', 'Alteryx', 'Databricks', 'Cloudera', 'Hortonworks', 'MapR',
+    'Teradata', 'IBM', 'Cisco', 'Juniper', 'PaloAltoNetworks', 'Fortinet', 'CheckPoint', 'CrowdStrike',
+    'Okta', 'Auth0', 'PingIdentity', 'OneLogin', 'JumpCloud', 'VMware', 'Citrix', 'RedHat', 'Canonical', 'SUSE',
+    'Docker', 'Kubernetes', 'Terraform', 'Ansible', 'Puppet', 'Chef', 'Jenkins', 'GitLab', 'Bitbucket', 'CircleCI',
+    'TravisCI', 'TeamCity', 'OctopusDeploy', 'JFrog', 'SonarQube', 'Sentry', 'Bugsnag', 'Rollbar', 'PagerDuty',
+    'VictorOps', 'Opsgenie', 'Statuspage', 'Pingdom', 'UptimeRobot', 'Loggly', 'SumoLogic', 'Graylog',
+    'Prometheus', 'Grafana', 'InfluxDB', 'TimescaleDB', 'CockroachDB', 'FaunaDB', 'PlanetScale', 'Heroku',
+    'Netlify', 'Render', 'Flyio', 'DigitalOceanApps', 'SalesLoft', 'Outreach', 'Gong', 'Chorus', 'Clari',
+    'Highspot', 'Seismic', 'Pendo', 'WalkMe', 'Appcues', 'Gainsight', 'Catalyst', 'ChurnZero', 'Webflow',
+    'Squarespace', 'Wix', 'BigCommerce', 'Magento', 'PrestaShop', 'Volusion', '3dcart', 'Ecwid', 'CoreCommerce',
+    'AuthorizeNet', 'CyberSource', 'Adyen', 'Worldpay', 'CheckoutCom', 'Recurly', 'Chargebee', 'Zuora',
+    'SaaSOptics', 'Chargify', 'ProfitWell', 'Baremetrics', 'ChartMogul', 'Plaid', 'Finicity', 'Yodlee',
+    'MX', 'Marqeta', 'Galileo', 'StripeIssuing', 'AdyenIssuing', 'Wise', 'Payoneer', 'Revolut', 'N26',
+    'Monzo', 'Chime', 'SoFi', 'Robinhood', 'Wealthfront', 'Betterment', 'Coinbase', 'Binance', 'Kraken',
+    'FTX', 'BlockFi', 'Celsius', 'Nexo', 'Ledger', 'Trezor', 'MetaMask', 'Phantom', 'OpenSea', 'Rarible',
+    'SuperRare', 'Foundation', 'Zora', 'Uniswap', 'Sushiswap', 'Aave', 'Compound', 'MakerDAO', 'Curve',
+    'YearnFinance', 'Synthetix', 'Chainlink', 'TheGraph', 'Polygon', 'Solana', 'Avalanche', 'Cardano',
+    'Polkadot', 'Cosmos', 'Tezos', 'Algorand', 'Ethereum', 'Bitcoin', 'Ripple', 'Litecoin', 'Dogecoin',
+    'ShibaInu', 'Fidelity', 'CharlesSchwab', 'ETrade', 'TDAmeritrade', 'Vanguard', 'BlackRock',
+    'StateStreet', 'GoldmanSachs', 'MorganStanley', 'JPMorganChase', 'BankOfAmerica', 'WellsFargo',
+    'CapitalOne', 'AmericanExpress', 'Visa', 'Mastercard', 'Discover', 'UnionPay', 'Tencent', 'Alibaba',
+    'Baidu', 'ByteDance', 'Meituan', 'JDcom', 'Pinduoduo', 'DiDi', 'Xiaomi', 'Huawei', 'Samsung', 'LG',
+    'Sony', 'Panasonic', 'Toyota', 'Honda', 'Nissan', 'Ford', 'GM', 'Volkswagen', 'BMW', 'MercedesBenz',
+    'Tesla', 'SpaceX', 'BlueOrigin', 'VirginGalactic', 'Boeing', 'Airbus', 'LockheedMartin', 'Raytheon',
+    'NorthropGrumman', 'GeneralDynamics', 'BAESystems', 'Pfizer', 'Moderna', 'JohnsonAndJohnson',
+    'AstraZeneca', 'Roche', 'Novartis', 'Merck', 'GSK', 'Sanofi', 'BristolMyersSquibb', 'AbbVie', 'Amgen',
+    'Gilead', 'Biogen', 'EliLilly', 'Regeneron', 'Vertex', 'CocaCola', 'PepsiCo', 'Nestle', 'ProcterGamble',
+    'Unilever', 'Loreal', 'EsteeLauder', 'Nike', 'Adidas', 'Puma', 'UnderArmour', 'Lululemon', 'Gap', 'Inditex',
+    'HM', 'FastRetailing', 'Kering', 'LVMH', 'Richemont', 'Hermes', 'Chanel', 'Prada', 'Burberry',
+    'Walmart', 'Amazon', 'Costco', 'Target', 'HomeDepot', 'Lowes', 'BestBuy', 'Walgreens', 'CVS',
+    'Kroger', 'Albertsons', 'McDonalds', 'Starbucks', 'YumBrands', 'RestaurantBrandsInternational',
+    'Dominos', 'Chipotle', 'Darden', 'Marriott', 'Hilton', 'Hyatt', 'Accor', 'IHG', 'Wyndham', 'ChoiceHotels',
+    'Airbnb', 'BookingHoldings', 'ExpediaGroup', 'TripAdvisor', 'Trivago', 'Uber', 'Lyft', 'DoorDash',
+    'Grubhub', 'Instacart', 'Postmates', 'Netflix', 'Disney', 'WarnerBrosDiscovery', 'Comcast', 'Paramount',
+    'Fox', 'SonyPictures', 'Lionsgate', 'AMC', 'Cinemark', 'Regal', 'Spotify', 'AppleMusic', 'AmazonMusic',
+    'YouTubeMusic', 'Tidal', 'Deezer', 'Pandora', 'SoundCloud', 'SiriusXM', 'iHeartMedia', 'Audacy',
+    'Comscore', 'Nielsen', 'Gartner', 'Forrester', 'IDC', 'Statista', 'Bloomberg', 'Reuters',
+    'AssociatedPress', 'DowJones', 'NewYorkTimes', 'WashingtonPost', 'WallStreetJournal', 'FinancialTimes',
+    'TheEconomist', 'Forbes', 'Fortune', 'BusinessInsider', 'Axios', 'Politico', 'TheVerge', 'TechCrunch',
+    'Wired', 'Recode', 'ArsTechnica', 'Engadget', 'Gizmodo', 'Mashable', 'BuzzFeed', 'Vox', 'Vice',
+    'Ogilvy', 'WPP', 'Publicis', 'Omnicom', 'Interpublic', 'Dentsu', 'Havas', 'AccentureInteractive',
+    'DeloitteDigital', 'PwCExperienceCenter', 'Epsilon', 'Acxiom', 'Merkle', 'Cheil', 'Hakuhodo',
+    'BlueYonder', 'ManhattanAssociates', 'Infor', 'Epicor', 'IFS', 'QAD', 'Plex', 'Acumatica', 'Sage',
+    'Freshworks', 'ServiceNow', 'Atlassian', 'mondaycom', 'smartsheet', 'wrike', 'basecamp', 'clickup',
+    'zapier', 'integromat', 'workato', 'mulesoft', 'boomi', 'snaplogic', 'tibco', 'apigee', 'kong', 'postman',
+    'swagger', 'openapi', 'graphql', 'rest', 'soap', 'grpc', 'avro', 'protobuf', 'json', 'xml', 'yaml', 'csv',
+    'parquet', 'arrow', 'duckdb', 'sqlite', 'dbt', 'fivetran', 'stitch', 'airbyte', 'talend', 'informatica',
+    'alteryx', 'pentaho', 'datastage', 'ssis', 'powercenter', 'matillion', 'singer', 'meltano', 'cdata',
+    'hevo', 'rivery', 'etleap', 'alooma', 'funnel', 'supermetrics', 'adverity', 'domo', 'sisense', 'thoughtspot',
+    'yellowfin', 'microstrategy', 'cognos', 'businessobjects', 'sas', 'spss', 'stata', 'rstudio', 'anaconda',
+    'jupyter', 'spyder', 'vscode', 'pycharm', 'intellij', 'eclipse', 'netbeans', 'visualstudio', 'xcode',
+ 'rider', 'clion', 'goland', 'datagrip', 'webstorm', 'rubymine', 'appcode', 'androidstudio', 'sublimetext',
+    'atom', 'vim', 'neovim', 'emacs', 'notepadplusplus', 'ultraedit', 'bbedit', 'textmate', 'kate', 'gedit',
+    'figma', 'sketch', 'adobexd', 'invision', 'framer', 'marvel', 'zeplin', 'axure', 'balsamiq', 'miro', 'mural',
+    'lucidchart', 'visio', 'omnigraffle', 'drawio', 'coggle', 'mindmeister', 'xmind', 'prezi', 'canva', 'crello',
+    'piktochart', 'venngage', 'infogram', 'genially', 'powtoon', 'vyond', 'animaker', 'biteable', 'wistia', 'vimeo',
+    'youtube', 'dailymotion', 'twitch', 'facebook', 'instagram', 'twitter', 'linkedin', 'pinterest', 'snapchat',
+    'tiktok', 'reddit', 'discord', 'telegram', 'whatsapp', 'signal', 'messenger', 'wechat', 'qq', 'line', 'kakaotalk',
+    'viber', 'skype', 'googlemeet', 'ciscowebex', 'gotomeeting', 'bluejeans', 'ringcentral', '8x8', 'vonage',
+    'dialpad', 'nextiva', 'grasshopper', 'phonecom', 'verizon', 'att', 'tmobile', 'sprint', 'comcastxfinity',
+    'charterspectrum', 'cox', 'centurylink', 'frontier', 'windstream', 'googlefiber', 'starlink', 'viasat',
+    'hughesnet', 'rackspace', 'equinix', 'digitalrealty', 'cyxtera', 'coresite', 'qts', 'switch', 'phoenixnap',
+    'cloudflare', 'akamai', 'fastly', 'limelight', 'imperva', 'incapsula', 'sucuri', 'wordfence', 'malwarebytes',
+    'symantec', 'mcafee', 'norton', 'avast', 'avg', 'kaspersky', 'bitdefender', 'eset', 'trendmicro', 'sophos',
+    'carbonblack', 'sentinelone', 'cybereason', 'tanium', 'fireeye', 'mandiant', 'mcafeeenterprise', 'broadcom',
+    'qualys', 'tenable', 'rapid7', 'nessus', 'metasploit', 'burpsuite', 'owasp', 'sans', 'isc2', 'comptia',
+    'ec-council', 'isaca', 'cis', 'nist', 'mitre', 'veracode', 'checkmarx', 'sonatype', 'blackduck', 'snyk',
+    'whitesource', 'gitlabsecurity', 'githubsecurity', 'dependabot', 'coverity', 'fortify', 'appscan',
+    'netsparker', 'acunetix', 'zscaler', 'netskope', 'iboss', 'menlosecurity', 'proofpoint', 'mimecast',
+    'barracuda', 'ciscoemailsecurity', 'darktrace', 'vectra', 'extrahop', 'splunk', 'logrhythm', 'qradar',
+    'arcssight', 'exabeam', 'securonix', 'sumologic', 'alienvault', 'ossec', 'wazuh', 'snort', 'suricata',
+    'zeek', 'bro', 'wireshark', 'tcpdump', 'nmap', 'masscan', 'zmap', 'shodan', 'censys', 'binaryedge',
+    'recordedfuture', 'flashpoint', 'digitalshadows', 'risk_iq', 'zerofox', 'phishlabs', 'agari',
+    'anomali', 'threatconnect', 'threatquotient', 'eclectic_iq', 'misp', 'thehive', 'cortex', 'cybersponge',
+    'pfsense', 'opnsense', 'untangle', 'sophosutm', 'fortigate', 'ciscofirepower', 'paloaltonetworksfw',
+    'checkpointfw', 'juniper_srx', 'f5', 'a10networks', 'citrixadc', 'haproxy', 'nginx', 'apache', 'caddy',
+    'lighttpd', 'envoy', 'traefik', 'istio', 'linkerd', 'consul', 'zookeeper', 'etcd', 'curator',
+    'vault', 'keycloak', 'dex', 'gluu', 'wso2', 'fusionauth', 'ory', 'supertokens', 'firebaseauth', 'cognito',
+    'b2c', 'okta', 'auth0', 'ping_identity', 'onelogin', 'jumpcloud', 'duo', 'yubico', 'rsa', 'thales',
+    'entrust', 'digicert', 'globalsign', 'sectigo', 'letsencrypt', 'venafi', 'keyfactor', 'appviewx',
+    'hashicorp', 'pulumi', 'crossplane', 'cdk', 'bicep', 'armtemplates', 'cloudformation', 'terraform',
+    'ansible', 'puppet', 'chef', 'saltstack', 'cfengine', 'powershelldsc', 'packer', 'vagrant', 'docker',
+    'podman', 'containerd', 'crio', 'buildah', 'skopeo', 'kaniko', 'jib', 'buildpacks', 'kubernetes',
+    'openshift', 'rancher', 'tanzu', 'eks', 'gke', 'aks', 'doks', 'lke', 'oke', 'k3s', 'k0s', 'microk8s',
+    'kind', 'minikube', 'helm', 'kustomize', 'kpt', 'skaffold', 'argo', 'flux', 'jenkinsx', 'tekton',
+    'spinnaker', 'brigade', 'keptn', 'werf', 'dagger', 'earthly', 'prometheus', 'thanos', 'cortex',
+    'victoriametrics', 'm3db', 'graphite', 'opentsdb', 'kairosdb', 'opentelemetry', 'jaeger', 'zipkin',
+    'skywalking', 'newrelic', 'datadog', 'dynatrace', 'appdynamics', 'instana', 'honeycomb', 'lightstep',
+    'signalfx', 'wavefront', 'logzio', 'sematext', 'coralogix', 'mezmo', 'logdna', 'papertrail', 'scalyr',
+    'fluentd', 'fluentbit', 'logstash', 'vector', 'rsyslog', 'syslogng', 'filebeat', 'metricbeat', 'packetbeat',
+    'auditbeat', 'heartbeat', 'journalbeat', 'winlogbeat', 'kibana', 'grafana', 'redash', 'metabase',
+    'superset', 'preset', 'holistics', 'mode', 'periscope', 'chartio', 'geckoboard', 'klipfolio', 'cyfe',
+    'dash', 'streamlit', 'voila', 'panel', 'bokeh', 'plotly', 'highcharts', 'amcharts', 'd3', 'vega',
+    'echarts', 'recharts', 'nivo', 'visx', 'victory', 'chartjs', 'apexcharts', 'billboardjs', 'c3js',
+    'britecharts', 'taucharts', 'carboncharts', 'g2', 'antdesign', 'materialui', 'bootstrap', 'tailwind',
+    'bulma', 'foundation', 'semanticui', 'chakraui', 'radix', 'headlessui', 'vuetify', 'quasar', 'elementui',
+    'antdesignvue', 'iview', 'storybook', 'styleguidist', 'docz', 'bit', 'nx', 'lerna', 'turborepo', 'rush',
+    'yarn', 'npm', 'pnpm', 'webpack', 'rollup', 'parcel', 'esbuild', 'vite', 'snowpack', 'swc', 'babel',
+    'typescript', 'javascript', 'python', 'java', 'csharp', 'golang', 'rust', 'ruby', 'php', 'swift', 'kotlin',
+    'dart', 'scala', 'haskell', 'clojure', 'elixir', 'erlang', 'fsharp', 'ocaml', 'lisp', 'scheme', 'racket',
+    'julia', 'lua', 'perl', 'r', 'matlab', 'sas', 'spss', 'stata', 'octave', 'scilab', 'gnuplot', 'origin',
+    'tableauprep', 'alteryxdesigner', 'knime', 'rapidminer', 'datarobot', 'h2oai', 'sagemaker', 'azureml',
+    'vertexai', 'watsonstudio', 'databricks', 'domino', 'cml', 'kubeflow', 'mlflow', 'wandb', 'comet',
+    'neptune', 'weightsandbiases', 'dvc', 'pachyderm', 'lakefs', 'delta_lake', 'iceberg', 'hudi', 'airflow',
+    'prefect', 'dagster', 'luigi', 'kedro', 'flyte', 'argo_workflows', 'oozie', 'azkaban', 'rundeck',
+    'controlm', 'autosys', 'uc4', 'kafka', 'pulsar', 'rabbitmq', 'activemq', 'zeromq', 'nats', 'solace',
+    'tibco_ems', 'ibmmq', 'redpanda', 'kinesis', 'pubsub', 'eventhub', 'sqs', 'servicebus', 'ironmq',
+    'beanstalkd', 'gearman', 'celery', 'dramatiq', 'rq', 'sidekiq', 'resque', 'delayedjob', 'bullmq', 'oboe',
+    'express', 'fastify', 'koa', 'nest', 'hapi', 'sails', 'adonis', 'loopback', 'feathers', 'django', 'flask',
+    'fastapi', 'pyramid', 'tornado', 'sanic', 'rails', 'sinatra', 'hanami', 'laravel', 'symfony', 'codeigniter',
+    'yii', 'cakephp', 'zend', 'slim', 'lumen', 'phoenix', 'gin', 'echo', 'fiber', 'chi', 'gorillamux', 'httprouter',
+    'actix', 'rocket', 'warp', 'axum', 'tokio', 'asyncstd', 'spring', 'springboot', 'quarkus', 'micronaut',
+    'helidon', 'vertx', 'play', 'akka', 'lagom', 'aspnet', 'aspnetcore', 'servicestack', 'nancy', 'entityframework',
+    'dapper', 'nhibernate', 'hibernate', 'mybatis', 'jooq', 'slick', 'exposed', 'diesel', 'sqlx', 'sqlalchemy',
+    'peewee', 'ponyorm', 'tortoiseorm', 'prisma', 'typeorm', 'sequelize', 'objection', 'knex', 'waterline',
+    'mongoose', 'monk', 'gorm', 'beego', 'revel', 'kit', 'gokit', 'micro', 'trpc', 'blitz', 'redwood', 'remix',
+    'nextjs', 'gatsby', 'nuxt', 'sapper', 'sveltekit', 'angular', 'react', 'vue', 'svelte', 'solid', 'preact',
+    'lit', 'stencil', 'ember', 'backbone', 'aurelia', 'mithril', 'riot', 'alpine', 'jquery', 'mootools', 'prototype',
+    'dojo', 'extjs', 'sencha', 'kendoui', 'devextreme', 'webix', 'dhtmlx', 'bryntum', 'ag-grid', 'handsontable',
+    'tabulator', 'datatables', 'wijmo', 'flexgrid', 'zingchart', 'fusioncharts', 'anychart', 'jfreechart', 'crystalreports',
+    'jasperreports', 'birt', 'pentahoreporting', 'ssrs', 'powerbireportbuilder', 'lookerstudio', 'datastudiogoogle',
+    'quickchart', 'imagemagick', 'graphicsmagick', 'ffmpeg', 'gstreamer', 'opencv', 'dlib', 'tesseract', 'poppler',
+    'ghostscript', 'puppeteer', 'playwright', 'selenium', 'cypress', 'webdriverio', 'testcafe', 'detox', 'appium',
+    'maestro', 'katalon', 'soasta', 'saucelabs', 'browserstack', 'lambdatest', 'percy', 'applitools', 'happo',
+    'chromatic', 'jest', 'mocha', 'jasmine', 'ava', 'tape', 'vitest', 'testinglibrary', 'enzyme', 'sinon', 'chai',
+    'shouldjs', 'expect', 'supertest', 'nock', 'msw', 'pact', 'storybooktestrunner', 'junit', 'testng', 'nunit',
+    'xunit', 'mstest', 'phpunit', 'codeception', 'behat', 'phpspec', 'pest', 'rspec', 'minitest', 'cucumber',
+    'specflow', 'lettuce', 'pytest', 'unittest', 'nose', 'robotframework', 'spock', 'geb', 'scalatest', 'specs2',
+    'gotest', 'ginkgo', 'gomega', 'testify', 'httpexpect', 'frisby', 'chakram', 'rest-assured', 'karate',
+    'postman', 'insomnia', 'paw', 'hoppscotch', 'soapui', 'jmeter', 'gatling', 'k6', 'locust', 'blazemeter',
+    'loadrunner', 'neoload', 'artillery', 'tsung', 'wrk', 'ab', 'siege', 'ghz', 'vegeta', 'fortio'
+];
+
+export const generateSvcConfigs = () => {
+    const cfgs = {};
+    const authTypes = ['apikey', 'oauth2', 'basic'];
+    const actions = ['list', 'get', 'create', 'update', 'delete', 'sync', 'query', 'upload', 'download'];
+    companyNames.slice(0, 1000).forEach((n, i) => {
+        const id = n.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const auth = authTypes[i % authTypes.length];
+        const endpoints = {};
+        actions.forEach(a => {
+            let path = `/${a}`;
+            if (['get', 'update', 'delete'].includes(a)) {
+                path += `/{id}`;
+            }
+            endpoints[a] = path;
+        });
+        cfgs[id] = {
+            id: id,
+            displayName: n,
+            apiBaseUrl: `https://api.${id}.com/v1`,
+            authType: auth,
+            scopes: auth === 'oauth2' ? ['read:data', 'write:data', 'admin'] : [],
+            endpoints: endpoints,
+            docUrl: `https://docs.${id}.com`
+        };
+    });
+    return cfgs;
+};
+
+export const INTG_SVC_CFGS = generateSvcConfigs();
+
+export const createApiConnectors = (configs) => {
+    const connectors = {};
+    for (const key in configs) {
+        const cfg = configs[key];
+        connectors[key] = {};
+        for (const action in cfg.endpoints) {
+            connectors[key][action] = async (p = {}) => {
+                const { id, token, credentials, apiKey, body, queryParams } = p;
+                let url = `${cfg.apiBaseUrl}${cfg.endpoints[action]}`;
+                if (id) {
+                    url = url.replace('{id}', id);
+                }
+                if (queryParams) {
+                    url += '?' + new URLSearchParams(queryParams).toString();
+                }
+                
+                let authHeader = {};
+                if (cfg.authType === 'basic' && credentials) {
+                    authHeader = authHdrFactory('basic', { u: credentials.user, p: credentials.pass });
+                } else if (cfg.authType === 'oauth2' && token) {
+                    authHeader = authHdrFactory('bearer', { t: token });
+                } else if (cfg.authType === 'apikey' && apiKey) {
+                    authHeader = authHdrFactory('apikey', { k: apiKey });
+                }
+
+                const headers = {
+                    'Content-Type': 'application/json',
+                    'User-Agent': `${CDB_CORP_ID}/1.0`,
+                    ...authHeader
+                };
+                
+                let method = 'GET';
+                if (action === 'create') method = 'POST';
+                if (action === 'update') method = 'PUT';
+                if (action === 'delete') method = 'DELETE';
+
+                return await netwReqExec(method, url, headers, ['create', 'update'].includes(action) ? body : null);
+            };
+        }
+    }
+    return connectors;
+};
+
+export const apiConnectors = createApiConnectors(INTG_SVC_CFGS);
+
+export const dataStoreKernel = (reducerMap) => {
+    let state = {};
+    const listeners = new Set();
+    const initializeState = () => {
+        for (const key in reducerMap) {
+            state[key] = reducerMap[key](undefined, {});
+        }
+    };
+    initializeState();
+    return {
+        getState: () => state,
+        dispatch: (action) => {
+            let hasChanged = false;
+            const nextState = {};
+            for (const key in reducerMap) {
+                const previousStateForKey = state[key];
+                const nextStateForKey = reducerMap[key](previousStateForKey, action);
+                nextState[key] = nextStateForKey;
+                hasChanged = hasChanged || nextStateForKey !== previousStateForKey;
+            }
+            if (hasChanged) {
+                state = nextState;
+                listeners.forEach(l => l());
+            }
+        },
+        subscribe: (listener) => {
+            listeners.add(listener);
+            return () => listeners.delete(listener);
+        },
+    };
+};
+
+export const ledgerActionTypes = {
+    FETCH_TXN_START: 'FETCH_TXN_START',
+    FETCH_TXN_SUCCESS: 'FETCH_TXN_SUCCESS',
+    FETCH_TXN_FAILURE: 'FETCH_TXN_FAILURE',
+    SET_FILTER: 'SET_FILTER',
+    SET_PAGE: 'SET_PAGE',
+    SET_DATASOURCE: 'SET_DATASOURCE',
+};
+
+export const ledgerActionCreators = {
+    fetchTxnStart: (s) => ({ type: ledgerActionTypes.FETCH_TXN_START, payload: { source: s } }),
+    fetchTxnSuccess: (d, s) => ({ type: ledgerActionTypes.FETCH_TXN_SUCCESS, payload: { data: d, source: s } }),
+    fetchTxnFailure: (e, s) => ({ type: ledgerActionTypes.FETCH_TXN_FAILURE, payload: { error: e, source: s } }),
+    setFilter: (f) => ({ type: ledgerActionTypes.SET_FILTER, payload: f }),
+    setPage: (p) => ({ type: ledgerActionTypes.SET_PAGE, payload: p }),
+    setDataSource: (s) => ({ type: ledgerActionTypes.SET_DATASOURCE, payload: s }),
+};
+
+export const initialLedgerState = {
+    transactions: [],
+    isLoading: false,
+    error: null,
+    currentSource: 'plaid',
+    filters: {
+        dateFrom: null,
+        dateTo: null,
+        amountMin: null,
+        amountMax: null,
+        query: ''
+    },
+    pagination: {
+        currentPage: 1,
+        pageSize: 50,
+        total: 0
+    }
+};
+
+export function ledgerReducer(s = initialLedgerState, a) {
+    switch (a.type) {
+        case ledgerActionTypes.FETCH_TXN_START:
+            return { ...s, isLoading: true, error: null };
+        case ledgerActionTypes.FETCH_TXN_SUCCESS:
+            return { ...s, isLoading: false, transactions: a.payload.data.transactions, pagination: { ...s.pagination, total: a.payload.data.total } };
+        case ledgerActionTypes.FETCH_TXN_FAILURE:
+            return { ...s, isLoading: false, error: a.payload.error };
+        case ledgerActionTypes.SET_FILTER:
+            return { ...s, filters: { ...s.filters, ...a.payload } };
+        case ledgerActionTypes.SET_DATASOURCE:
+            return { ...s, currentSource: a.payload };
+        case ledgerActionTypes.SET_PAGE:
+            return { ...s, pagination: { ...s.pagination, currentPage: a.payload } };
+        default:
+            return s;
+    }
+}
+
+export const rootDataStore = dataStoreKernel({
+    ledger: ledgerReducer
+});
+
+export const DataGridView = ({ d, c }) => {
+    if (!d || d.length === 0) {
+        return RctCore.crtEl('div', { class: 'empty-grid' }, 'No data available.');
+    }
+    const h = c.map(col => RctCore.crtEl('th', { key: col.k }, col.h));
+    const r = d.map((row, i) =>
+        RctCore.crtEl('tr', { key: `row-${i}` },
+            c.map(col =>
+                RctCore.crtEl('td', { key: `${col.k}-${i}` }, row[col.k] !== undefined ? String(row[col.k]) : '')
+            )
+        )
+    );
+    return RctCore.crtEl('table', { class: 'data-grid-view' },
+        RctCore.crtEl('thead', {}, RctCore.crtEl('tr', {}, ...h)),
+        RctCore.crtEl('tbody', {}, ...r)
+    );
+};
+
+export const PaginatorControl = ({ c, t, p, onPgChg }) => {
+    const totalPages = Math.ceil(t / p);
+    if (totalPages <= 1) return null;
+    const btns = [];
+    for (let i = 1; i <= totalPages; i++) {
+        btns.push(
+            RctCore.crtEl('button', {
+                key: `pg-${i}`,
+                class: `page-btn ${i === c ? 'active' : ''}`,
+                onClick: () => onPgChg(i),
+            }, i)
+        );
+    }
+    return RctCore.crtEl('div', { class: 'paginator-control' }, ...btns);
+};
+
+export const FilterPanel = ({ f, onFltChg, s, onSrcChg, ds }) => {
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        onFltChg({ [name]: value });
+    };
+    
+    const sources = Object.keys(ds).map(k =>
+      RctCore.crtEl('option', { key: k, value: k }, ds[k].displayName)
+    );
+    
+    return RctCore.crtEl('div', { class: 'filter-panel' },
+        RctCore.crtEl('h3', {}, 'Filters & Data Sources'),
+        RctCore.crtEl('div', { class: 'form-group' },
+            RctCore.crtEl('label', { for: 'dataSource' }, 'Data Source'),
+            RctCore.crtEl('select', { id: 'dataSource', value: s, onChange: (e) => onSrcChg(e.target.value) }, ...sources)
+        ),
+        RctCore.crtEl('div', { class: 'form-group' },
+            RctCore.crtEl('label', { for: 'query' }, 'Search'),
+            RctCore.crtEl('input', { type: 'text', id: 'query', name: 'query', value: f.query, onChange: handleInputChange })
+        ),
+        RctCore.crtEl('div', { class: 'form-group' },
+            RctCore.crtEl('label', { for: 'dateFrom' }, 'From'),
+            RctCore.crtEl('input', { type: 'date', id: 'dateFrom', name: 'dateFrom', value: f.dateFrom, onChange: handleInputChange })
+        ),
+        RctCore.crtEl('div', { class: 'form-group' },
+            RctCore.crtEl('label', { for: 'dateTo' }, 'To'),
+            RctCore.crtEl('input', { type: 'date', id: 'dateTo', name: 'dateTo', value: f.dateTo, onChange: handleInputChange })
+        ),
+        RctCore.crtEl('div', { class: 'form-group' },
+            RctCore.crtEl('label', { for: 'amountMin' }, 'Min Amount'),
+            RctCore.crtEl('input', { type: 'number', id: 'amountMin', name: 'amountMin', value: f.amountMin, onChange: handleInputChange })
+        ),
+        RctCore.crtEl('div', { class: 'form-group' },
+            RctCore.crtEl('label', { for: 'amountMax' }, 'Max Amount'),
+            RctCore.crtEl('input', { type: 'number', id: 'amountMax', name: 'amountMax', value: f.amountMax, onChange: handleInputChange })
+        )
+    );
+};
+
+export function LedgerTransactionAggregatorWidget() {
+    const [state, setState] = RctCore.uSt(rootDataStore.getState().ledger);
+    const dispatch = rootDataStore.dispatch;
+
+    RctCore.uEff(() => {
+        const unsubscribe = rootDataStore.subscribe(() => {
+            setState(rootDataStore.getState().ledger);
+        });
+        return () => unsubscribe();
+    }, []);
+
+    RctCore.uEff(() => {
+        const fetchData = async () => {
+            dispatch(ledgerActionCreators.fetchTxnStart(state.currentSource));
+            const connector = apiConnectors[state.currentSource];
+            if (connector && connector.list) {
+                const queryParams = {
+                    page: state.pagination.currentPage,
+                    limit: state.pagination.pageSize,
+                    ...state.filters
+                };
+                const result = await connector.list({ queryParams });
+                if (result.error) {
+                    dispatch(ledgerActionCreators.fetchTxnFailure(result.error, state.currentSource));
+                } else {
+                    const mockData = {
+                        transactions: Array.from({ length: 50 }, (_, i) => ({
+                            id: `txn_${state.currentSource}_${i}`,
+                            date: new Date().toISOString().split('T')[0],
+                            description: `${INTG_SVC_CFGS[state.currentSource].displayName} Transaction ${i}`,
+                            amount: (Math.random() * 2000 - 1000).toFixed(2),
+                            currency: 'USD',
+                            status: ['posted', 'pending', 'failed'][i % 3],
+                        })),
+                        total: 500,
+                    };
+                    dispatch(ledgerActionCreators.fetchTxnSuccess(mockData, state.currentSource));
+                }
+            } else {
+                dispatch(ledgerActionCreators.fetchTxnFailure(`Connector or list action not found for ${state.currentSource}`, state.currentSource));
+            }
+        };
+
+        fetchData();
+    }, [state.currentSource, state.filters, state.pagination.currentPage]);
+
+    const handleFilterChange = (f) => {
+        dispatch(ledgerActionCreators.setFilter(f));
+    };
+
+    const handleSourceChange = (s) => {
+        dispatch(ledgerActionCreators.setDataSource(s));
+    };
+
+    const handlePageChange = (p) => {
+        dispatch(ledgerActionCreators.setPage(p));
+    };
+
+    const gridColumns = [
+        { k: 'id', h: 'Transaction ID' },
+        { k: 'date', h: 'Date' },
+        { k: 'description', h: 'Description' },
+        { k: 'amount', h: 'Amount' },
+        { k: 'currency', h: 'Currency' },
+        { k: 'status', h: 'Status' }
+    ];
+
+    return RctCore.crtEl('div', { class: 'ledger-txn-widget-container' },
+        RctCore.crtEl('header', { class: 'widget-header' },
+            RctCore.crtEl('h1', {}, 'Ledger Transaction Viewer'),
+            RctCore.crtEl('p', {}, `Powered by ${CDB_CORP_ID}`)
+        ),
+        RctCore.crtEl('main', { class: 'widget-body' },
+            RctCore.crtEl(FilterPanel, {
+                f: state.filters,
+                onFltChg: handleFilterChange,
+                s: state.currentSource,
+                onSrcChg: handleSourceChange,
+                ds: INTG_SVC_CFGS
+            }),
+            RctCore.crtEl('div', { class: 'data-display-area' },
+                state.isLoading ? RctCore.crtEl('div', { class: 'loader' }, 'Loading data...') : null,
+                state.error ? RctCore.crtEl('div', { class: 'error-msg' }, `Error: ${state.error}`) : null,
+                !state.isLoading && !state.error ? RctCore.crtEl(RctCore.Frag, {},
+                    RctCore.crtEl(DataGridView, { d: state.transactions, c: gridColumns }),
+                    RctCore.crtEl(PaginatorControl, {
+                        c: state.pagination.currentPage,
+                        t: state.pagination.total,
+                        p: state.pagination.pageSize,
+                        onPgChg: handlePageChange
+                    })
+                ) : null
+            )
+        )
+    );
+}
+
+// In a real browser environment, you would call:
+// RctCore.rdr(LedgerTransactionAggregatorWidget, 'root-app-element-id');

@@ -1,0 +1,403 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. FXSELL.
+       AUTHOR. MAINFRAME-DEVELOPERS.
+      ******************************************************************
+      * EXECUTE FX SELL OPERATION
+      * This program facilitates the sale of a foreign currency,
+      * integrating dynamic rate fetching, account balance checks,
+      * trade recording, and a story-like AI advisory system.
+      * It ensures robust validation, comprehensive logging, and
+      * interactive feedback for the user.
+      ******************************************************************
+       ENVIRONMENT DIVISION.
+       FILE-CONTROL.
+           SELECT FX-TRADE-FILE ASSIGN TO FXMAST.
+           SELECT ACCOUNT-MASTER ASSIGN TO ACCTMAST
+               ORGANIZATION IS INDEXED
+               ACCESS MODE IS DYNAMIC
+               RECORD KEY IS AM-ACCOUNT-ID
+               FILE STATUS IS WS-FILE-STATUS.
+       DATA DIVISION.
+       FILE SECTION.
+       FD FX-TRADE-FILE
+           RECORD CONTAINS 131 CHARACTERS.
+       01 FX-TRADE-RECORD.
+          05 FTR-TRADE-ID         PIC X(10).
+          05 FTR-DATE             PIC 9(08).
+          05 FTR-TIME             PIC 9(06).
+          05 FTR-SOURCE-ACCT      PIC X(12).
+          05 FTR-DEST-ACCT        PIC X(12).
+          05 FTR-CURRENCY-SELL    PIC X(03).
+          05 FTR-CURRENCY-BUY     PIC X(03).
+          05 FTR-AMOUNT-SELL      PIC S9(13)V99.
+          05 FTR-AMOUNT-BUY       PIC S9(13)V99.
+          05 FTR-RATE             PIC S9(07)V9(05).
+          05 FTR-STATUS           PIC X(10).
+          05 FTR-AI-ASSESSMENT    PIC X(10).
+          05 FTR-FILLER           PIC X(15).
+
+       FD ACCOUNT-MASTER
+          RECORD CONTAINS 100 CHARACTERS.
+       01 ACCOUNT-MASTER-REC.
+          05 AM-ACCOUNT-ID        PIC X(12).
+          05 AM-CURRENCY          PIC X(03).
+          05 AM-BALANCE           PIC S9(15)V99.
+          05 AM-STATUS            PIC X(01).
+             88 AM-ACTIVE         VALUE 'A'.
+             88 AM-INACTIVE       VALUE 'I'.
+          05 AM-FILLER            PIC X(67).
+
+       WORKING-STORAGE SECTION.
+       01 WS-TRADE-DETAILS.
+          05 WS-CURRENCY-PAIR     PIC X(07).
+             88 WS-VALID-PAIR     VALUES "EUR/USD", "USD/JPY", "GBP/USD",
+                                        "AUD/USD", "USD/CAD", "CHF/USD",
+                                        "NZD/USD", "EUR/GBP", "USD/MXN".
+          05 WS-CURRENCY-SELL     PIC X(03).
+          05 WS-CURRENCY-BUY      PIC X(03).
+          05 WS-AMOUNT-TO-SELL    PIC S9(13)V99.
+          05 WS-AMOUNT-TO-BUY     PIC S9(13)V99.
+          05 WS-SOURCE-ACCOUNT-ID PIC X(12).
+          05 WS-DEST-ACCOUNT-ID   PIC X(12).
+
+       01 WS-CURRENT-RATE         PIC S9(07)V9(05).
+       01 WS-TRANSACTION-FEES     PIC S9(09)V99 VALUE 0.00.
+       01 WS-TRADE-ID             PIC X(10).
+
+       01 WS-ACCOUNT-DATA.
+          05 WS-SOURCE-BALANCE    PIC S9(15)V99.
+          05 WS-DEST-BALANCE      PIC S9(15)V99.
+          05 WS-SOURCE-ACCT-CURR  PIC X(03).
+          05 WS-DEST-ACCT-CURR    PIC X(03).
+
+       01 WS-AI-ASSESSMENT.
+          05 WS-AI-STATUS         PIC X(10).
+             88 AI-OPTIMAL         VALUE "OPTIMAL".
+             88 AI-CAUTION         VALUE "CAUTION".
+             88 AI-HIGH-RISK       VALUE "HIGH-RISK".
+          05 WS-AI-MESSAGE        PIC X(80).
+
+       01 WS-FLAGS.
+          05 WS-FILE-STATUS       PIC X(02) VALUE SPACES.
+          05 WS-ACCT-FOUND-FLAG   PIC X(01) VALUE 'N'.
+             88 ACCT-FOUND        VALUE 'Y'.
+          05 WS-BALANCE-OK-FLAG   PIC X(01) VALUE 'N'.
+             88 BALANCE-OK        VALUE 'Y'.
+          05 WS-INPUT-VALID-FLAG  PIC X(01) VALUE 'N'.
+             88 INPUT-VALID       VALUE 'Y'.
+          05 WS-RATE-SUCCESS-FLAG PIC X(01) VALUE 'N'.
+             88 RATE-SUCCESS      VALUE 'Y'.
+          05 WS-TRADE-OVERRIDE    PIC X(01) VALUE 'N'.
+             88 OVERRIDE-CONFIRMED VALUE 'Y'.
+
+       01 WS-DATE-TIME.
+          05 WS-CURRENT-DATE      PIC 9(08).
+          05 WS-CURRENT-TIME      PIC 9(06).
+
+       COPY CPFX01.
+
+       PROCEDURE DIVISION.
+       MAIN-LOGIC.
+           PERFORM INITIALIZE-PROGRAM.
+           PERFORM GET-TRADE-DETAILS.
+           IF NOT INPUT-VALID
+               PERFORM TERMINATE-PROGRAM
+           END-IF.
+
+           PERFORM VALIDATE-ACCOUNT-BALANCES.
+           IF NOT ACCT-FOUND OR NOT BALANCE-OK
+               PERFORM DISPLAY-ERROR-AND-TERMINATE
+           END-IF.
+
+           PERFORM GET-CURRENT-FX-RATE.
+           IF NOT RATE-SUCCESS
+               PERFORM DISPLAY-ERROR-AND-TERMINATE
+           END-IF.
+
+           PERFORM INVOKE-AI-ASSISTANT.
+           PERFORM HANDLE-AI-ASSESSMENT.
+
+           PERFORM CALCULATE-TRADE-AMOUNTS.
+           PERFORM UPDATE-ACCOUNT-BALANCES.
+           PERFORM RECORD-FX-TRADE.
+           PERFORM FINAL-CONFIRMATION.
+           PERFORM TERMINATE-PROGRAM.
+
+       INITIALIZE-PROGRAM.
+           DISPLAY "**************************************************".
+           DISPLAY "*          FOREIGN EXCHANGE SELL OPERATION       *".
+           DISPLAY "*          Version 1.2 - AI Integrated           *".
+           DISPLAY "**************************************************".
+           INITIALIZE WS-TRADE-DETAILS WS-AI-ASSESSMENT WS-FLAGS.
+           MOVE FUNCTION CURRENT-DATE(1:8) TO WS-CURRENT-DATE.
+           MOVE FUNCTION CURRENT-DATE(9:6) TO WS-CURRENT-TIME.
+           OPEN I-O FX-TRADE-FILE.
+           IF WS-FILE-STATUS NOT = "00"
+               DISPLAY "ERROR OPENING FX-TRADE-FILE: " WS-FILE-STATUS
+               MOVE "Y" TO WS-ACCT-FOUND-FLAG *> Trigger termination
+           END-IF.
+           OPEN I-O ACCOUNT-MASTER.
+           IF WS-FILE-STATUS NOT = "00"
+               DISPLAY "ERROR OPENING ACCOUNT-MASTER: " WS-FILE-STATUS
+               MOVE "Y" TO WS-ACCT-FOUND-FLAG *> Trigger termination
+           END-IF.
+           DISPLAY "Program initialized. Current Date: " WS-CURRENT-DATE
+                   " Time: " WS-CURRENT-TIME.
+
+       GET-TRADE-DETAILS.
+           SET WS-INPUT-VALID-FLAG TO FALSE.
+           DISPLAY "ENTER SOURCE ACCOUNT ID (12 chars): ".
+           ACCEPT WS-SOURCE-ACCOUNT-ID.
+           IF WS-SOURCE-ACCOUNT-ID = SPACES
+               DISPLAY "Source Account ID cannot be blank."
+               EXIT PARAGRAPH
+           END-IF.
+
+           DISPLAY "ENTER DESTINATION ACCOUNT ID (12 chars): ".
+           ACCEPT WS-DEST-ACCOUNT-ID.
+           IF WS-DEST-ACCOUNT-ID = SPACES
+               DISPLAY "Destination Account ID cannot be blank."
+               EXIT PARAGRAPH
+           END-IF.
+
+           DISPLAY "ENTER CURRENCY PAIR TO SELL (e.g. EUR/USD): ".
+           ACCEPT WS-CURRENCY-PAIR.
+           IF NOT WS-VALID-PAIR
+               DISPLAY "INVALID CURRENCY PAIR ENTERED. Please use XXX/YYY format from allowed list."
+               EXIT PARAGRAPH
+           END-IF.
+           MOVE WS-CURRENCY-PAIR(1:3) TO WS-CURRENCY-SELL.
+           MOVE WS-CURRENCY-PAIR(5:3) TO WS-CURRENCY-BUY.
+
+           DISPLAY "ENTER AMOUNT OF " WS-CURRENCY-SELL " TO SELL: ".
+           ACCEPT WS-AMOUNT-TO-SELL.
+           IF WS-AMOUNT-TO-SELL <= 0
+               DISPLAY "AMOUNT TO SELL MUST BE POSITIVE."
+               EXIT PARAGRAPH
+           END-IF.
+           SET WS-INPUT-VALID-FLAG TO TRUE.
+
+       VALIDATE-ACCOUNT-BALANCES.
+           SET WS-ACCT-FOUND-FLAG TO FALSE.
+           SET WS-BALANCE-OK-FLAG TO FALSE.
+           DISPLAY "Validating account balances for " WS-SOURCE-ACCOUNT-ID
+                   " and " WS-DEST-ACCOUNT-ID "...".
+
+           *> Read source account
+           MOVE WS-SOURCE-ACCOUNT-ID TO AM-ACCOUNT-ID.
+           READ ACCOUNT-MASTER INTO ACCOUNT-MASTER-REC
+               KEY IS AM-ACCOUNT-ID
+               INVALID KEY
+                   DISPLAY "ERROR: SOURCE ACCOUNT " WS-SOURCE-ACCOUNT-ID " NOT FOUND."
+                   EXIT PARAGRAPH
+               NOT INVALID KEY
+                   IF NOT AM-ACTIVE
+                       DISPLAY "ERROR: SOURCE ACCOUNT " WS-SOURCE-ACCOUNT-ID " IS INACTIVE."
+                       EXIT PARAGRAPH
+                   END-IF
+                   IF AM-CURRENCY NOT = WS-CURRENCY-SELL
+                       DISPLAY "ERROR: SOURCE ACCOUNT CURRENCY " AM-CURRENCY
+                               " DOES NOT MATCH SELL CURRENCY " WS-CURRENCY-SELL "."
+                       EXIT PARAGRAPH
+                   END-IF
+                   IF AM-BALANCE < WS-AMOUNT-TO-SELL
+                       DISPLAY "ERROR: INSUFFICIENT BALANCE IN SOURCE ACCOUNT "
+                               WS-SOURCE-ACCOUNT-ID " (" AM-CURRENCY " " AM-BALANCE ")."
+                       EXIT PARAGRAPH
+                   END-IF
+                   MOVE AM-BALANCE TO WS-SOURCE-BALANCE
+                   MOVE AM-CURRENCY TO WS-SOURCE-ACCT-CURR
+                   SET WS-ACCT-FOUND-FLAG TO TRUE
+                   SET WS-BALANCE-OK-FLAG TO TRUE
+           END-READ.
+           IF NOT WS-ACCT-FOUND-FLAG OR NOT WS-BALANCE-OK-FLAG
+               EXIT PARAGRAPH
+           END-IF.
+
+           *> Read destination account
+           MOVE WS-DEST-ACCOUNT-ID TO AM-ACCOUNT-ID.
+           READ ACCOUNT-MASTER INTO ACCOUNT-MASTER-REC
+               KEY IS AM-ACCOUNT-ID
+               INVALID KEY
+                   DISPLAY "ERROR: DESTINATION ACCOUNT " WS-DEST-ACCOUNT-ID " NOT FOUND."
+                   SET WS-ACCT-FOUND-FLAG TO FALSE
+                   EXIT PARAGRAPH
+               NOT INVALID KEY
+                   IF NOT AM-ACTIVE
+                       DISPLAY "ERROR: DESTINATION ACCOUNT " WS-DEST-ACCOUNT-ID " IS INACTIVE."
+                       SET WS-ACCT-FOUND-FLAG TO FALSE
+                       EXIT PARAGRAPH
+                   END-IF
+                   IF AM-CURRENCY NOT = WS-CURRENCY-BUY
+                       DISPLAY "ERROR: DESTINATION ACCOUNT CURRENCY " AM-CURRENCY
+                               " DOES NOT MATCH BUY CURRENCY " WS-CURRENCY-BUY "."
+                       SET WS-ACCT-FOUND-FLAG TO FALSE
+                       EXIT PARAGRAPH
+                   END-IF
+                   MOVE AM-BALANCE TO WS-DEST-BALANCE
+                   MOVE AM-CURRENCY TO WS-DEST-ACCT-CURR
+                   SET WS-ACCT-FOUND-FLAG TO TRUE
+           END-READ.
+
+       GET-CURRENT-FX-RATE.
+           SET WS-RATE-SUCCESS-FLAG TO FALSE.
+           DISPLAY "Fetching live exchange rate for " WS-CURRENCY-PAIR "...".
+           *> CALL "FXRATE" is assumed to be an external program that takes
+           *> WS-CURRENCY-PAIR and returns WS-CURRENT-RATE.
+           CALL "FXRATE" USING WS-CURRENCY-PAIR GIVING WS-CURRENT-RATE.
+           IF WS-CURRENT-RATE <= 0
+               DISPLAY "ERROR: UNABLE TO RETRIEVE FX RATE FOR " WS-CURRENCY-PAIR "."
+               MOVE ZERO TO WS-CURRENT-RATE
+               EXIT PARAGRAPH
+           END-IF.
+           DISPLAY "Current market rate: 1 " WS-CURRENCY-SELL " = "
+                   WS-CURRENT-RATE " " WS-CURRENCY-BUY.
+           SET WS-RATE-SUCCESS-FLAG TO TRUE.
+
+       INVOKE-AI-ASSISTANT.
+           DISPLAY "Engaging AI Cognitive Assistant for trade insight...".
+           *> AI-COGNITIVE-ASSIST takes trade details and provides an assessment
+           CALL "AI-COGNITIVE-ASSIST" USING
+               WS-CURRENCY-PAIR,
+               WS-AMOUNT-TO-SELL,
+               WS-CURRENT-RATE,
+               WS-SOURCE-ACCOUNT-ID,
+               WS-DEST-ACCOUNT-ID,
+               WS-AI-STATUS,
+               WS-AI-MESSAGE.
+
+           DISPLAY "AI Assessment: " WS-AI-STATUS.
+           DISPLAY "AI Insight: " WS-AI-MESSAGE.
+
+       HANDLE-AI-ASSESSMENT.
+           IF AI-HIGH-RISK
+               DISPLAY "CRITICAL ALERT: AI flags this trade as HIGH-RISK. "
+               DISPLAY "Due to: " WS-AI-MESSAGE
+               DISPLAY "Do you wish to proceed despite AI warning? (Y/N): "
+               ACCEPT WS-TRADE-OVERRIDE
+               IF WS-TRADE-OVERRIDE = 'Y' OR WS-TRADE-OVERRIDE = 'y'
+                   SET OVERRIDE-CONFIRMED TO TRUE
+                   DISPLAY "Proceeding with trade by user override."
+               ELSE
+                   DISPLAY "Trade aborted due to high-risk AI assessment."
+                   PERFORM DISPLAY-ERROR-AND-TERMINATE
+               END-IF
+           ELSE IF AI-CAUTION
+               DISPLAY "NOTE: AI suggests CAUTION for this trade. "
+               DISPLAY "Reason: " WS-AI-MESSAGE
+               DISPLAY "Proceeding with caution, further monitoring advised."
+           ELSE IF AI-OPTIMAL
+               DISPLAY "AI confirms conditions for this trade are OPTIMAL. "
+               DISPLAY "Insight: " WS-AI-MESSAGE
+           END-IF.
+
+       CALCULATE-TRADE-AMOUNTS.
+           COMPUTE WS-TRANSACTION-FEES = WS-AMOUNT-TO-SELL * 0.0005. *> 0.05% fee
+           COMPUTE WS-AMOUNT-TO-BUY ROUNDED = WS-AMOUNT-TO-SELL * WS-CURRENT-RATE.
+           COMPUTE WS-AMOUNT-TO-SELL = WS-AMOUNT-TO-SELL + WS-TRANSACTION-FEES.
+
+           DISPLAY "Amount of " WS-CURRENCY-SELL " to debit (incl. fee): " WS-AMOUNT-TO-SELL.
+           DISPLAY "Amount of " WS-CURRENCY-BUY " to credit: " WS-AMOUNT-TO-BUY.
+           DISPLAY "Transaction Fees: " WS-TRANSACTION-FEES " " WS-CURRENCY-SELL.
+
+       UPDATE-ACCOUNT-BALANCES.
+           DISPLAY "Updating account balances...".
+           *> Debit source account
+           MOVE WS-SOURCE-ACCOUNT-ID TO AM-ACCOUNT-ID.
+           READ ACCOUNT-MASTER INTO ACCOUNT-MASTER-REC
+               KEY IS AM-ACCOUNT-ID
+               INVALID KEY
+                   DISPLAY "FATAL ERROR: SOURCE ACCOUNT DISAPPEARED DURING TRADE PROCESSING!"
+                   MOVE "N" TO WS-ACCT-FOUND-FLAG
+                   EXIT PARAGRAPH
+           END-READ.
+           COMPUTE AM-BALANCE = AM-BALANCE - WS-AMOUNT-TO-SELL.
+           REWRITE ACCOUNT-MASTER-REC
+               INVALID KEY
+                   DISPLAY "ERROR REWRITING SOURCE ACCOUNT."
+                   MOVE "N" TO WS-ACCT-FOUND-FLAG
+                   EXIT PARAGRAPH
+           END-REWRITE.
+
+           *> Credit destination account
+           MOVE WS-DEST-ACCOUNT-ID TO AM-ACCOUNT-ID.
+           READ ACCOUNT-MASTER INTO ACCOUNT-MASTER-REC
+               KEY IS AM-ACCOUNT-ID
+               INVALID KEY
+                   DISPLAY "FATAL ERROR: DESTINATION ACCOUNT DISAPPEARED DURING TRADE PROCESSING!"
+                   MOVE "N" TO WS-ACCT-FOUND-FLAG
+                   EXIT PARAGRAPH
+           END-READ.
+           COMPUTE AM-BALANCE = AM-BALANCE + WS-AMOUNT-TO-BUY.
+           REWRITE ACCOUNT-MASTER-REC
+               INVALID KEY
+                   DISPLAY "ERROR REWRITING DESTINATION ACCOUNT."
+                   MOVE "N" TO WS-ACCT-FOUND-FLAG
+                   EXIT PARAGRAPH
+           END-REWRITE.
+           DISPLAY "Account balances updated successfully.".
+
+       RECORD-FX-TRADE.
+           DISPLAY "Booking FX Trade record...".
+           MOVE WS-CURRENT-DATE      TO FTR-DATE.
+           MOVE WS-CURRENT-TIME      TO FTR-TIME.
+           PERFORM GENERATE-TRADE-ID.
+           MOVE WS-TRADE-ID          TO FTR-TRADE-ID.
+           MOVE WS-SOURCE-ACCOUNT-ID TO FTR-SOURCE-ACCT.
+           MOVE WS-DEST-ACCOUNT-ID   TO FTR-DEST-ACCT.
+           MOVE WS-CURRENCY-SELL     TO FTR-CURRENCY-SELL.
+           MOVE WS-CURRENCY-BUY      TO FTR-CURRENCY-BUY.
+           MOVE WS-AMOUNT-TO-SELL    TO FTR-AMOUNT-SELL.
+           MOVE WS-AMOUNT-TO-BUY     TO FTR-AMOUNT-BUY.
+           MOVE WS-CURRENT-RATE      TO FTR-RATE.
+           MOVE "BOOKED"             TO FTR-STATUS.
+           MOVE WS-AI-STATUS         TO FTR-AI-ASSESSMENT.
+           MOVE SPACES               TO FTR-FILLER.
+
+           WRITE FX-TRADE-RECORD.
+           IF WS-FILE-STATUS NOT = "00"
+               DISPLAY "ERROR WRITING FX TRADE RECORD: " WS-FILE-STATUS
+           ELSE
+               DISPLAY "Trade ID " WS-TRADE-ID " booked successfully."
+           END-IF.
+
+       GENERATE-TRADE-ID.
+           *> Simple placeholder for generating a unique trade ID
+           *> In a real system, this would involve a sequence generator or database ID.
+           MOVE FUNCTION CURRENT-DATE(3:6) TO WS-TRADE-ID(1:6).
+           MOVE FUNCTION CURRENT-TIME(1:4) TO WS-TRADE-ID(7:4).
+           DISPLAY "Generated Trade ID: " WS-TRADE-ID.
+
+       FINAL-CONFIRMATION.
+           DISPLAY "**************************************************".
+           DISPLAY "*          FX SELL TRADE SUMMARY                 *".
+           DISPLAY "**************************************************".
+           DISPLAY "Trade ID:        " WS-TRADE-ID.
+           DISPLAY "Source Account:  " WS-SOURCE-ACCOUNT-ID " (" WS-CURRENCY-SELL ")".
+           DISPLAY "Destination Acct:" WS-DEST-ACCOUNT-ID " (" WS-CURRENCY-BUY ")".
+           DISPLAY "Sell Amount:     " WS-AMOUNT-TO-SELL " " WS-CURRENCY-SELL.
+           DISPLAY "Buy Amount:      " WS-AMOUNT-TO-BUY " " WS-CURRENCY-BUY.
+           DISPLAY "Exchange Rate:   " WS-CURRENT-RATE.
+           DISPLAY "AI Assessment:   " WS-AI-STATUS " - " WS-AI-MESSAGE.
+           DISPLAY "Trade Status:    BOOKED. PENDING SETTLEMENT.".
+           DISPLAY "**************************************************".
+
+       DISPLAY-ERROR-AND-TERMINATE.
+           IF NOT WS-INPUT-VALID-FLAG
+               DISPLAY "Input validation failed. Program terminating."
+           ELSE IF NOT WS-ACCT-FOUND-FLAG OR NOT WS-BALANCE-OK-FLAG
+               DISPLAY "Account or balance validation failed. Program terminating."
+           ELSE IF NOT WS-RATE-SUCCESS-FLAG
+               DISPLAY "Exchange rate retrieval failed. Program terminating."
+           END-IF.
+           PERFORM TERMINATE-PROGRAM.
+
+       TERMINATE-PROGRAM.
+           IF FX-TRADE-FILE IS OPEN
+               CLOSE FX-TRADE-FILE
+           END-IF.
+           IF ACCOUNT-MASTER IS OPEN
+               CLOSE ACCOUNT-MASTER
+           END-IF.
+           DISPLAY "FXSELL program terminated.".
+           STOP RUN.

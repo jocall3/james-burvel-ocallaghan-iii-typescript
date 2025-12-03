@@ -1,0 +1,329 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. IVBUY.
+       AUTHOR. AI-Financial-Systems.
+      ******************************************************************
+      * AI-ENHANCED INVESTMENT PURCHASE SYSTEM
+      * This program facilitates the purchase of an investment,
+      * integrating advanced features such as input validation,
+      * AI-driven market sentiment analysis, fund balance verification,
+      * and robust updating of the investment master file.
+      * The goal is to provide a comprehensive, secure, and insightful
+      * platform for managing investment transactions within a mainframe
+      * environment.
+      ******************************************************************
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT INVESTMENT-FILE ASSIGN TO INVMAST
+               ORGANIZATION IS INDEXED
+               ACCESS MODE IS DYNAMIC
+               RECORD KEY IS INV-TICKER
+               FILE STATUS IS WS-FILE-STATUS-INV.
+
+      *    Future Expansion: Could integrate with a separate Funds Master File
+      *    SELECT FUNDS-MASTER-FILE ASSIGN TO FUNDMAST
+      *        ORGANIZATION IS INDEXED
+      *        ACCESS MODE IS DYNAMIC
+      *        RECORD KEY IS FM-PORTFOLIO-ID
+      *        FILE STATUS IS WS-FILE-STATUS-FUNDS.
+
+       DATA DIVISION.
+       FILE SECTION.
+       FD INVESTMENT-FILE.
+       01 INV-FILE-RECORD.
+          05 INV-TICKER              PIC X(08).
+          05 INV-ISIN                PIC X(12).
+          05 INV-COMPANY-NAME        PIC X(40).
+          05 INV-CURRENT-HOLDING-QTY PIC 9(11)V9(6).
+          05 INV-AVG-COST-PRICE      PIC 9(09)V99.
+          05 INV-LAST-PRICE          PIC 9(09)V99.
+          05 INV-LAST-UPDATE-DATE    PIC 9(08).
+          05 INV-LAST-UPDATE-TIME    PIC 9(06).
+          05 INV-PORTFOLIO-ID        PIC X(10).
+          05 INV-AI-SENTIMENT-SCORE  PIC X(15).  *> e.g., 'Positive', 'Neutral', 'Volatile'
+          05 INV-AI-CONFIDENCE       PIC 9(03).   *> 0-100, confidence score from AI
+          05 FILLER                  PIC X(05).   *> Pad to a round number if needed (145 bytes total for now)
+
+       WORKING-STORAGE SECTION.
+       01 WS-PROGRAM-STATUS.
+          05 WS-FILE-STATUS-INV      PIC X(02).
+      *    05 WS-FILE-STATUS-FUNDS    PIC X(02).
+          05 WS-INPUT-ERROR-FLAG     PIC X(01) VALUE 'N'.
+             88 INPUT-HAS-ERROR                VALUE 'Y'.
+          05 WS-INVESTMENT-FOUND-FLAG PIC X(01) VALUE 'N'.
+             88 INVESTMENT-EXISTS              VALUE 'Y'.
+             88 INVESTMENT-IS-NEW              VALUE 'N'.
+
+       01 WS-TRADE-TICKET.
+          05 WS-TICKER               PIC X(08).
+          05 WS-QUANTITY             PIC 9(09)V9(6).
+          05 WS-PRICE                PIC 9(07)V99.
+          05 WS-TOTAL-TRADE-VALUE    PIC 9(16)V99.
+
+       01 WS-TRANSACTION-DATA.
+          05 WS-TRN-DATE             PIC 9(08).
+          05 WS-TRN-TIME             PIC 9(06).
+          05 WS-USER-ID              PIC X(10) VALUE 'AIUSER001'.
+          05 WS-TRN-TYPE             PIC X(03) VALUE 'BUY'.
+
+       01 WS-AI-DATA.
+          05 WS-AI-SENTIMENT         PIC X(15).  *> 'Strong Positive', 'Neutral', 'Volatile'
+          05 WS-AI-CONFIDENCE        PIC 9(03).  *> 0-100
+          05 WS-AI-RECOMMENDATION    PIC X(20).  *> 'Strong Buy', 'Hold', 'Monitor', 'Sell'
+          05 WS-AI-PREDICTED-PRICE   PIC 9(09)V99.
+
+       01 WS-PROGRAM-MESSAGES.
+          05 WS-MSG-GENERIC          PIC X(80).
+          05 WS-MSG-ERROR-TEXT       PIC X(80).
+          05 WS-MSG-AI-INSIGHT       PIC X(120).
+          05 WS-MSG-CONFIRMATION     PIC X(100).
+
+       01 WS-FUND-CHECK.
+          05 WS-CURRENT-FUND-BALANCE PIC 9(16)V99 VALUE +1000000.00. *> Simulated initial balance
+          05 WS-REQUIRED-FUNDS       PIC 9(16)V99.
+
+       COPY CPVI01. *> This is assumed to contain other common data structures or linkages.
+
+       PROCEDURE DIVISION.
+       MAIN-LOGIC SECTION.
+           PERFORM 1000-INITIALIZATION-RTN.
+           IF NOT INPUT-HAS-ERROR
+               PERFORM 2000-GET-TRADE-DETAILS-RTN
+           END-IF.
+           IF NOT INPUT-HAS-ERROR
+               PERFORM 3000-AI-CONSULTATION-RTN
+           END-IF.
+           IF NOT INPUT-HAS-ERROR
+               PERFORM 4000-VALIDATE-FUNDS-RTN
+           END-IF.
+           IF NOT INPUT-HAS-ERROR
+               PERFORM 5000-PROCESS-INVESTMENT-RTN
+           END-IF.
+           PERFORM 9000-FINALIZATION-RTN.
+           STOP RUN.
+
+       1000-INITIALIZATION-RTN SECTION.
+           DISPLAY "AI-Enhanced Investment Purchase System (BUY)".
+           ACCEPT WS-TRN-DATE FROM DATE YYYYMMDD.
+           ACCEPT WS-TRN-TIME FROM TIME.
+           OPEN I-O INVESTMENT-FILE.
+           IF WS-FILE-STATUS-INV NOT = '00'
+               STRING "ERROR: Cannot open Investment Master File. Status: "
+                      WS-FILE-STATUS-INV DELIMITED BY SIZE
+                      INTO WS-MSG-ERROR-TEXT
+               DISPLAY WS-MSG-ERROR-TEXT
+               MOVE 'Y' TO WS-INPUT-ERROR-FLAG
+               GOBACK
+           END-IF.
+
+       2000-GET-TRADE-DETAILS-RTN SECTION.
+           DISPLAY "--------------------------------------------------".
+           DISPLAY "ENTER INVESTMENT DETAILS:".
+           DISPLAY "ENTER TICKER SYMBOL (max 8 chars, e.g., AAPL): ".
+           ACCEPT WS-TICKER.
+           PERFORM 2100-VALIDATE-TICKER.
+           IF INPUT-HAS-ERROR THEN GOBACK END-IF.
+
+           DISPLAY "ENTER QUANTITY (e.g., 10.50 shares): ".
+           ACCEPT WS-QUANTITY.
+           PERFORM 2200-VALIDATE-QUANTITY.
+           IF INPUT-HAS-ERROR THEN GOBACK END-IF.
+
+           DISPLAY "ENTER PRICE PER SHARE (e.g., 180.25): ".
+           ACCEPT WS-PRICE.
+           PERFORM 2300-VALIDATE-PRICE.
+           IF INPUT-HAS-ERROR THEN GOBACK END-IF.
+
+           COMPUTE WS-TOTAL-TRADE-VALUE = WS-QUANTITY * WS-PRICE.
+           DISPLAY "Calculated Total Trade Value: " WS-TOTAL-TRADE-VALUE.
+           DISPLAY "--------------------------------------------------".
+
+       2100-VALIDATE-TICKER.
+           IF WS-TICKER = SPACES OR WS-TICKER IS NOT ALPHANUMERIC
+               MOVE "Invalid Ticker Symbol. Must be alphanumeric and not blank."
+                   TO WS-MSG-ERROR-TEXT
+               DISPLAY WS-MSG-ERROR-TEXT
+               MOVE 'Y' TO WS-INPUT-ERROR-FLAG
+           END-IF.
+
+       2200-VALIDATE-QUANTITY.
+           IF WS-QUANTITY IS NOT NUMERIC OR WS-QUANTITY <= ZERO
+               MOVE "Invalid Quantity. Must be a positive numeric value."
+                   TO WS-MSG-ERROR-TEXT
+               DISPLAY WS-MSG-ERROR-TEXT
+               MOVE 'Y' TO WS-INPUT-ERROR-FLAG
+           END-IF.
+
+       2300-VALIDATE-PRICE.
+           IF WS-PRICE IS NOT NUMERIC OR WS-PRICE <= ZERO
+               MOVE "Invalid Price. Must be a positive numeric value."
+                   TO WS-MSG-ERROR-TEXT
+               DISPLAY WS-MSG-ERROR-TEXT
+               MOVE 'Y' TO WS-INPUT-ERROR-FLAG
+           END-IF.
+
+       3000-AI-CONSULTATION-RTN SECTION.
+           DISPLAY "Consulting AI Market Oracle for " WS-TICKER " analysis...".
+      *    This CALL statement simulates interaction with a dedicated
+      *    AI subprogram (AIORACLE.cbl) which would ideally
+      *    perform real-time analysis or retrieve pre-computed insights.
+      *    The subprogram 'AIORACLE' would accept the ticker symbol
+      *    and return sentiment, confidence, recommendation, and a predicted price.
+           CALL 'AIORACLE' USING WS-TICKER, WS-AI-SENTIMENT, WS-AI-CONFIDENCE,
+                                 WS-AI-RECOMMENDATION, WS-AI-PREDICTED-PRICE.
+
+      *    For demonstration purposes, if 'AIORACLE' is not separately compiled,
+      *    the following block can simulate responses based on ticker symbols.
+      *    Remove this simulation if 'AIORACLE' is a real COBOL subprogram.
+           IF WS-TICKER = 'AAPL'
+               MOVE 'Strong Positive' TO WS-AI-SENTIMENT
+               MOVE 95 TO WS-AI-CONFIDENCE
+               MOVE 'Strong Buy' TO WS-AI-RECOMMENDATION
+               MOVE 195.50 TO WS-AI-PREDICTED-PRICE
+           ELSE IF WS-TICKER = 'GME'
+               MOVE 'Volatile' TO WS-AI-SENTIMENT
+               MOVE 40 TO WS-AI-CONFIDENCE
+               MOVE 'Monitor' TO WS-AI-RECOMMENDATION
+               MOVE 25.00 TO WS-AI-PREDICTED-PRICE
+           ELSE IF WS-TICKER = 'MSFT'
+               MOVE 'Positive' TO WS-AI-SENTIMENT
+               MOVE 85 TO WS-AI-CONFIDENCE
+               MOVE 'Buy' TO WS-AI-RECOMMENDATION
+               MOVE 450.00 TO WS-AI-PREDICTED-PRICE
+           ELSE
+               MOVE 'Neutral' TO WS-AI-SENTIMENT
+               MOVE 70 TO WS-AI-CONFIDENCE
+               MOVE 'Hold' TO WS-AI-RECOMMENDATION
+               MOVE WS-PRICE TO WS-AI-PREDICTED-PRICE
+           END-IF.
+           STRING "AI Insight: " WS-AI-SENTIMENT " (" WS-AI-CONFIDENCE "% Conf.)"
+                  " - Recommendation: " WS-AI-RECOMMENDATION " - Predicted Price: "
+                  WS-AI-PREDICTED-PRICE DELIMITED BY SIZE
+                  INTO WS-MSG-AI-INSIGHT.
+           DISPLAY WS-MSG-AI-INSIGHT.
+           DISPLAY "AI consultation complete.".
+           DISPLAY "--------------------------------------------------".
+
+       4000-VALIDATE-FUNDS-RTN SECTION.
+           MOVE WS-TOTAL-TRADE-VALUE TO WS-REQUIRED-FUNDS.
+           DISPLAY "Initiating settlement fund validation for "
+                   WS-REQUIRED-FUNDS "..."
+
+      *    In a production system, this would involve reading the portfolio's
+      *    fund balance from a dedicated financial master file (e.g., FUNDS-MASTER-FILE).
+      *    For this example, a hardcoded 'WS-CURRENT-FUND-BALANCE' is used.
+      *    Future: Read funds from a file using `INV-PORTFOLIO-ID` to get `FM-CURRENT-BALANCE`.
+
+           IF WS-CURRENT-FUND-BALANCE >= WS-REQUIRED-FUNDS
+               DISPLAY "Funds available. Current Portfolio Balance: " WS-CURRENT-FUND-BALANCE.
+               SUBTRACT WS-REQUIRED-FUNDS FROM WS-CURRENT-FUND-BALANCE.
+               DISPLAY "Provisional Portfolio Balance after trade: " WS-CURRENT-FUND-BALANCE.
+      *        If using a file, a REWRITE would occur here:
+      *        MOVE WS-CURRENT-FUND-BALANCE TO FM-CURRENT-BALANCE
+      *        REWRITE FM-FUNDS-RECORD ...
+           ELSE
+               STRING "INSUFFICIENT FUNDS! Required: " WS-REQUIRED-FUNDS
+                      ", Available: " WS-CURRENT-FUND-BALANCE DELIMITED BY SIZE
+                      INTO WS-MSG-ERROR-TEXT
+               DISPLAY WS-MSG-ERROR-TEXT
+               MOVE 'Y' TO WS-INPUT-ERROR-FLAG
+           END-IF.
+           DISPLAY "Fund validation complete.".
+           DISPLAY "--------------------------------------------------".
+
+       5000-PROCESS-INVESTMENT-RTN SECTION.
+           DISPLAY "Attempting to locate " WS-TICKER " in Investment Master File...".
+           MOVE WS-TICKER TO INV-TICKER.
+           READ INVESTMENT-FILE
+               INVALID KEY
+                   SET INVESTMENT-IS-NEW TO TRUE
+                   PERFORM 5100-CREATE-NEW-INVESTMENT-RTN
+               NOT INVALID KEY
+                   SET INVESTMENT-EXISTS TO TRUE
+                   PERFORM 5200-UPDATE-EXISTING-INVESTMENT-RTN
+           END-READ.
+           DISPLAY "Investment file processing complete.".
+           DISPLAY "--------------------------------------------------".
+
+       5100-CREATE-NEW-INVESTMENT-RTN SECTION.
+           DISPLAY "Investment record not found. Creating new entry for " WS-TICKER "..."
+           MOVE WS-TICKER TO INV-TICKER.
+           MOVE 'Unknown Company Name - AI Lookup Needed' TO INV-COMPANY-NAME.
+           MOVE 'N/A' TO INV-ISIN.
+           MOVE WS-PRICE TO INV-LAST-PRICE.
+           MOVE WS-QUANTITY TO INV-CURRENT-HOLDING-QTY.
+           MOVE WS-PRICE TO INV-AVG-COST-PRICE.
+           MOVE WS-TRN-DATE TO INV-LAST-UPDATE-DATE.
+           MOVE WS-TRN-TIME TO INV-LAST-UPDATE-TIME.
+           MOVE WS-AI-SENTIMENT TO INV-AI-SENTIMENT-SCORE.
+           MOVE WS-AI-CONFIDENCE TO INV-AI-CONFIDENCE.
+           MOVE 'PORTF001' TO INV-PORTFOLIO-ID. *> Default portfolio ID for simulation
+
+           WRITE INV-FILE-RECORD
+               INVALID KEY
+                   STRING "ERROR: Cannot write new investment record. Status: "
+                          WS-FILE-STATUS-INV DELIMITED BY SIZE INTO WS-MSG-ERROR-TEXT
+                   DISPLAY WS-MSG-ERROR-TEXT
+                   MOVE 'Y' TO WS-INPUT-ERROR-FLAG
+               NOT INVALID KEY
+                   DISPLAY "New investment record for " INV-TICKER
+                           " created successfully."
+           END-WRITE.
+
+       5200-UPDATE-EXISTING-INVESTMENT-RTN SECTION.
+           DISPLAY "Investment " INV-TICKER " found. Updating existing holding..."
+
+      *    Calculate new average cost price for the expanded holding
+           COMPUTE INV-AVG-COST-PRICE ROUNDED =
+               ((INV-CURRENT-HOLDING-QTY * INV-AVG-COST-PRICE) +
+                (WS-QUANTITY * WS-PRICE)) /
+               (INV-CURRENT-HOLDING-QTY + WS-QUANTITY).
+
+           ADD WS-QUANTITY TO INV-CURRENT-HOLDING-QTY.
+           MOVE WS-PRICE TO INV-LAST-PRICE.
+           MOVE WS-TRN-DATE TO INV-LAST-UPDATE-DATE.
+           MOVE WS-TRN-TIME TO INV-LAST-UPDATE-TIME.
+           MOVE WS-AI-SENTIMENT TO INV-AI-SENTIMENT-SCORE.
+           MOVE WS-AI-CONFIDENCE TO INV-AI-CONFIDENCE.
+
+           REWRITE INV-FILE-RECORD
+               INVALID KEY
+                   STRING "ERROR: Cannot rewrite investment record. Status: "
+                          WS-FILE-STATUS-INV DELIMITED BY SIZE INTO WS-MSG-ERROR-TEXT
+                   DISPLAY WS-MSG-ERROR-TEXT
+                   MOVE 'Y' TO WS-INPUT-ERROR-FLAG
+               NOT INVALID KEY
+                   DISPLAY "Investment record for " INV-TICKER " updated successfully."
+           END-REWRITE.
+
+       9000-FINALIZATION-RTN SECTION.
+           IF NOT INPUT-HAS-ERROR
+               STRING "Trade for " WS-QUANTITY " shares of " WS-TICKER
+                      " at " WS-PRICE " executed successfully." DELIMITED BY SIZE
+                      INTO WS-MSG-CONFIRMATION.
+               DISPLAY WS-MSG-CONFIRMATION.
+               DISPLAY "Your current provisional fund balance: " WS-CURRENT-FUND-BALANCE.
+               PERFORM 9100-LOG-TRANSACTION-RTN.
+           ELSE
+               DISPLAY "Trade execution failed due to previous errors."
+           END-IF.
+           CLOSE INVESTMENT-FILE.
+      *    CLOSE FUNDS-MASTER-FILE.
+           DISPLAY "--------------------------------------------------".
+           DISPLAY "AI-Enhanced Investment Purchase Program finished.".
+
+       9100-LOG-TRANSACTION-RTN SECTION.
+      *    This routine would typically write a detailed transaction record
+      *    to a separate transaction log file (e.g., TRNLOG).
+      *    For this exercise, we'll just display a comprehensive confirmation message.
+           DISPLAY "Logging transaction details and AI insights...".
+           STRING "Logged Transaction: " WS-TRN-DATE " " WS-TRN-TIME " - "
+                  "User: " WS-USER-ID " - "
+                  "Action: " WS-TRN-TYPE " " WS-TICKER " (" WS-QUANTITY " @ " WS-PRICE ")"
+                  " - Total Value: " WS-TOTAL-TRADE-VALUE
+                  DELIMITED BY SIZE INTO WS-MSG-GENERIC.
+           DISPLAY WS-MSG-GENERIC.
+           DISPLAY WS-MSG-AI-INSIGHT.
+           DISPLAY "Transaction successfully logged.".
+      *    CALL 'LOGTRNSC' USING WS-TRANSACTION-DATA, WS-TRADE-TICKET, WS-AI-DATA.
+           EXIT.

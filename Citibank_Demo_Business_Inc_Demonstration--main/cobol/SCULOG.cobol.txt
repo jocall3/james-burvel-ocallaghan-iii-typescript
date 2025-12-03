@@ -1,0 +1,343 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. SCULOG.
+       AUTHOR. MAINFRAME-DEVELOPER.
+       DATE-WRITTEN. 1995-02-01.
+      ******************************************************************
+      * SYSTEM ACCESS LOG VIEWER AND ANALYZER
+      *
+      * DISPLAYS SYSTEM ACCESS LOGS WITH ADVANCED FILTERING AND
+      * AI-POWERED INSIGHTS FOR PROACTIVE MONITORING AND BEHAVIORAL
+      * PATTERN RECOGNITION.
+      ******************************************************************
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT AUDIT-LOG-FILE ASSIGN TO AUDITLOG.
+
+       DATA DIVISION.
+       FILE SECTION.
+       FD AUDIT-LOG-FILE.
+       01 AUDIT-LOG-RECORD.
+          05 LOG-TIMESTAMP          PIC X(27).  *> YYYY-MM-DD-HH.MM.SS.ffffff
+          05 LOG-USER-ID            PIC X(08).
+          05 LOG-EVENT-TYPE         PIC X(10).
+          05 LOG-STATUS             PIC X(01).  *> S=Success, F=Failure, A=Alert
+          05 LOG-DETAILS            PIC X(34).
+          05 LOG-SOURCE-IP          PIC X(15).  *> e.g., 192.168.1.1
+          05 LOG-LOCATION-CODE      PIC X(03).  *> e.g., NYC, LAX, AMS
+
+       WORKING-STORAGE SECTION.
+       01 WS-PROGRAM-SWITCHES.
+          05 WS-EOF-FLAG            PIC X(01) VALUE 'N'.
+             88 END-OF-FILE           VALUE 'Y'.
+          05 WS-RECORD-MATCHES-FLAG PIC X(01) VALUE 'N'.
+             88 LOG-RECORD-MATCHES    VALUE 'Y'.
+          05 WS-DISPLAY-COUNT       PIC 9(05) VALUE ZEROS.
+          05 WS-TOTAL-RECORDS-READ  PIC 9(07) VALUE ZEROS.
+          05 WS-RECORDS-MATCHED     PIC 9(07) VALUE ZEROS.
+          05 WS-CONTINUE-PROMPT     PIC X(01) VALUE 'Y'.
+
+       01 WS-FILTER-CRITERIA.
+          05 WS-FILTER-USER-ID      PIC X(08) VALUE SPACES.
+          05 WS-FILTER-EVENT-TYPE   PIC X(10) VALUE SPACES.
+          05 WS-FILTER-STATUS       PIC X(01) VALUE SPACES.
+          05 WS-FILTER-START-DATE   PIC X(10) VALUE SPACES.  *> YYYY-MM-DD
+          05 WS-FILTER-END-DATE     PIC X(10) VALUE SPACES.  *> YYYY-MM-DD
+          05 WS-FILTER-IP-ADDRESS   PIC X(15) VALUE SPACES.
+          05 WS-FILTER-LOCATION     PIC X(03) VALUE SPACES.
+          05 WS-FILTERS-ACTIVE      PIC X(01) VALUE 'N'.
+             88 FILTERS-ARE-ACTIVE    VALUE 'Y'.
+
+       01 WS-DATE-TIME-PARSE-FIELDS.
+          05 WS-CURRENT-DATE-TIME.
+             10 WS-CURRENT-DATE.
+                15 WS-CURRENT-YEAR    PIC 9(04).
+                15 WS-CURRENT-MONTH   PIC 9(02).
+                15 WS-CURRENT-DAY     PIC 9(02).
+             10 WS-CURRENT-TIME.
+                15 WS-CURRENT-HOUR    PIC 9(02).
+                15 WS-CURRENT-MINUTE  PIC 9(02).
+                15 WS-CURRENT-SECOND  PIC 9(02).
+                15 WS-CURRENT-MS      PIC 9(02).
+          05 WS-LOG-DATE-EXTRACT.
+             10 WS-LOG-YEAR          PIC 9(04).
+             10 WS-LOG-MONTH         PIC 9(02).
+             10 WS-LOG-DAY           PIC 9(02).
+          05 WS-LOG-TIME-EXTRACT.
+             10 WS-LOG-HOUR          PIC 9(02).
+             10 WS-LOG-MINUTE        PIC 9(02).
+             10 WS-LOG-SECOND        PIC 9(02).
+
+       01 WS-AI-PARAMETERS.
+          05 WS-AI-ENABLED          PIC X(01) VALUE 'Y'.
+             88 AI-IS-ACTIVE          VALUE 'Y'.
+          05 WS-AI-ANOMALY-THRESHOLD PIC 9(02) VALUE 3. *> E.g., 3 failed logins from same IP/user within a short period
+          05 WS-AI-UNUSUAL-HOUR-START PIC 9(02) VALUE 02. *> 2 AM
+          05 WS-AI-UNUSUAL-HOUR-END   PIC 9(02) VALUE 05. *> 5 AM
+          05 WS-AI-LEARNING-STATUS  PIC X(20) VALUE 'ADAPTING MODEL'.
+          05 WS-AI-LAST-UPDATE      PIC X(19) VALUE '2023-10-26-10.00.00'.
+
+       01 WS-AI-ANOMALY-DATA.
+          05 WS-AI-ANOMALY-COUNT    PIC 9(05) VALUE ZEROS.
+          05 WS-AI-FAILED-ATTEMPTS.
+             10 WS-AI-FA-USER       PIC X(08) VALUE SPACES.
+             10 WS-AI-FA-IP         PIC X(15) VALUE SPACES.
+             10 WS-AI-FA-COUNT      PIC 9(02) VALUE ZEROS.
+             10 WS-AI-FA-LAST-TS    PIC X(27) VALUE SPACES. *> For time-based threshold (simulated)
+          05 WS-AI-REPORT-BUFFER         PIC X(250) VALUE SPACES.
+          05 WS-AI-PREDICTIVE-MESSAGE    PIC X(120) VALUE SPACES.
+
+       01 WS-DISPLAY-HEADERS.
+          05 HDG-MAIN              PIC X(79) VALUE
+             "SYSTEM ACCESS LOG VIEWER WITH AI-POWERED INSIGHTS".
+          05 HDG-COLUMNS           PIC X(79) VALUE
+             "TIMESTAMP                   USERID    EVENT       STATUS IP               LOC DETAILS".
+          05 HDG-SEPARATOR         PIC X(79) VALUE ALL '-'.
+          05 HDG-PAGINATION        PIC X(79) VALUE
+             "--------------------------- --------  ----------  ------ --------------- --- ----------------".
+
+
+       PROCEDURE DIVISION.
+       0000-MAIN-LOGIC.
+           PERFORM 1000-INITIALIZATION.
+           PERFORM 2000-GET-FILTER-CRITERIA.
+           PERFORM 2100-PROCESS-LOG-RECORDS
+               UNTIL END-OF-FILE OR WS-CONTINUE-PROMPT = 'N'.
+           PERFORM 3000-AI-INSIGHTS-SUMMARY.
+           PERFORM 4000-TERMINATION.
+           STOP RUN.
+
+       1000-INITIALIZATION.
+           DISPLAY HDG-MAIN.
+           OPEN INPUT AUDIT-LOG-FILE.
+           IF FILE STATUS NOT = '00'
+               DISPLAY "ERROR: Could not open AUDIT-LOG-FILE."
+               MOVE 'Y' TO WS-EOF-FLAG  *> Prevent further processing
+               PERFORM 4000-TERMINATION
+           END-IF.
+           MOVE FUNCTION CURRENT-DATE (1:8) TO WS-CURRENT-DATE.
+           MOVE FUNCTION CURRENT-TIME (1:6) TO WS-CURRENT-TIME.
+           DISPLAY "AI System Status: " WS-AI-LEARNING-STATUS
+                   " (Last Model Update: " WS-AI-LAST-UPDATE ")".
+           DISPLAY " ".
+
+       2000-GET-FILTER-CRITERIA.
+           DISPLAY " ".
+           DISPLAY "--- ENTER FILTER CRITERIA (LEAVE BLANK FOR ALL) ---".
+           DISPLAY "ENTER USER ID            (e.g., USER001 ): ".
+           ACCEPT WS-FILTER-USER-ID.
+           DISPLAY "ENTER EVENT TYPE         (e.g., LOGIN   ): ".
+           ACCEPT WS-FILTER-EVENT-TYPE.
+           DISPLAY "ENTER STATUS (S/F/A)     (S=Success, F=Fail, A=Alert): ".
+           ACCEPT WS-FILTER-STATUS.
+           DISPLAY "ENTER START DATE (YYYY-MM-DD): ".
+           ACCEPT WS-FILTER-START-DATE.
+           DISPLAY "ENTER END DATE   (YYYY-MM-DD): ".
+           ACCEPT WS-FILTER-END-DATE.
+           DISPLAY "ENTER SOURCE IP          (e.g., 192.168.1.1): ".
+           ACCEPT WS-FILTER-IP-ADDRESS.
+           DISPLAY "ENTER LOCATION CODE      (e.g., NYC, LAX): ".
+           ACCEPT WS-FILTER-LOCATION.
+
+           IF WS-FILTER-USER-ID NOT = SPACES OR
+              WS-FILTER-EVENT-TYPE NOT = SPACES OR
+              WS-FILTER-STATUS NOT = SPACES OR
+              WS-FILTER-START-DATE NOT = SPACES OR
+              WS-FILTER-END-DATE NOT = SPACES OR
+              WS-FILTER-IP-ADDRESS NOT = SPACES OR
+              WS-FILTER-LOCATION NOT = SPACES
+              SET FILTERS-ARE-ACTIVE TO TRUE
+           END-IF.
+           DISPLAY " ".
+           DISPLAY HDG-COLUMNS.
+           DISPLAY HDG-SEPARATOR.
+
+       2100-PROCESS-LOG-RECORDS.
+           READ AUDIT-LOG-FILE
+               AT END SET END-OF-FILE TO TRUE
+           END-READ.
+
+           IF NOT END-OF-FILE
+               ADD 1 TO WS-TOTAL-RECORDS-READ
+               PERFORM 2200-APPLY-FILTERS
+               IF LOG-RECORD-MATCHES
+                   ADD 1 TO WS-RECORDS-MATCHED
+                   PERFORM 2300-DISPLAY-RECORD
+                   PERFORM 2400-ANALYZE-LOG-WITH-AI
+                   ADD 1 TO WS-DISPLAY-COUNT
+                   IF WS-DISPLAY-COUNT = 20  *> Pagination after 20 records
+                       DISPLAY HDG-PAGINATION.
+                       DISPLAY "Press ENTER to continue, or 'N' to stop: "
+                               WITH NO ADVANCING.
+                       ACCEPT WS-CONTINUE-PROMPT.
+                       IF WS-CONTINUE-PROMPT = 'N' OR WS-CONTINUE-PROMPT = 'n'
+                           MOVE 'N' TO WS-CONTINUE-PROMPT
+                       ELSE
+                           MOVE 'Y' TO WS-CONTINUE-PROMPT
+                           MOVE ZEROS TO WS-DISPLAY-COUNT
+                           DISPLAY HDG-COLUMNS
+                           DISPLAY HDG-SEPARATOR
+                       END-IF
+                   END-IF
+               END-IF
+           END-IF.
+
+       2200-APPLY-FILTERS.
+           MOVE 'Y' TO WS-RECORD-MATCHES-FLAG.  *> Assume match, then invalidate if filter fails
+
+           IF FILTERS-ARE-ACTIVE
+               IF WS-FILTER-USER-ID NOT = SPACES
+                   IF LOG-USER-ID NOT = FUNCTION TRIM(WS-FILTER-USER-ID)
+                       MOVE 'N' TO WS-RECORD-MATCHES-FLAG
+                   END-IF
+               END-IF
+               IF WS-FILTER-EVENT-TYPE NOT = SPACES AND LOG-RECORD-MATCHES
+                   IF LOG-EVENT-TYPE NOT = FUNCTION TRIM(WS-FILTER-EVENT-TYPE)
+                       MOVE 'N' TO WS-RECORD-MATCHES-FLAG
+                   END-IF
+               END-IF
+               IF WS-FILTER-STATUS NOT = SPACES AND LOG-RECORD-MATCHES
+                   IF LOG-STATUS NOT = FUNCTION UPPER-CASE(WS-FILTER-STATUS)
+                       MOVE 'N' TO WS-RECORD-MATCHES-FLAG
+                   END-IF
+               END-IF
+               *> Date Filtering (YYYY-MM-DD)
+               IF LOG-RECORD-MATCHES
+                   MOVE LOG-TIMESTAMP(1:4) TO WS-LOG-YEAR
+                   MOVE LOG-TIMESTAMP(6:2) TO WS-LOG-MONTH
+                   MOVE LOG-TIMESTAMP(9:2) TO WS-LOG-DAY
+
+                   IF WS-FILTER-START-DATE NOT = SPACES
+                       IF WS-LOG-YEAR < WS-FILTER-START-DATE(1:4) OR
+                          (WS-LOG-YEAR = WS-FILTER-START-DATE(1:4) AND
+                           WS-LOG-MONTH < WS-FILTER-START-DATE(6:2)) OR
+                          (WS-LOG-YEAR = WS-FILTER-START-DATE(1:4) AND
+                           WS-LOG-MONTH = WS-FILTER-START-DATE(6:2) AND
+                           WS-LOG-DAY < WS-FILTER-START-DATE(9:2))
+                           MOVE 'N' TO WS-RECORD-MATCHES-FLAG
+                       END-IF
+                   END-IF
+
+                   IF WS-FILTER-END-DATE NOT = SPACES AND LOG-RECORD-MATCHES
+                       IF WS-LOG-YEAR > WS-FILTER-END-DATE(1:4) OR
+                          (WS-LOG-YEAR = WS-FILTER-END-DATE(1:4) AND
+                           WS-LOG-MONTH > WS-FILTER-END-DATE(6:2)) OR
+                          (WS-LOG-YEAR = WS-FILTER-END-DATE(1:4) AND
+                           WS-LOG-MONTH = WS-FILTER-END-DATE(6:2) AND
+                           WS-LOG-DAY > WS-FILTER-END-DATE(9:2))
+                           MOVE 'N' TO WS-RECORD-MATCHES-FLAG
+                       END-IF
+                   END-IF
+               END-IF
+
+               IF WS-FILTER-IP-ADDRESS NOT = SPACES AND LOG-RECORD-MATCHES
+                   IF LOG-SOURCE-IP NOT = FUNCTION TRIM(WS-FILTER-IP-ADDRESS)
+                       MOVE 'N' TO WS-RECORD-MATCHES-FLAG
+                   END-IF
+               END-IF
+               IF WS-FILTER-LOCATION NOT = SPACES AND LOG-RECORD-MATCHES
+                   IF LOG-LOCATION-CODE NOT = FUNCTION UPPER-CASE(WS-FILTER-LOCATION)
+                       MOVE 'N' TO WS-RECORD-MATCHES-FLAG
+                   END-IF
+               END-IF
+           END-IF.
+
+       2300-DISPLAY-RECORD.
+           DISPLAY LOG-TIMESTAMP " "
+                   FUNCTION TRIM(LOG-USER-ID) " "
+                   FUNCTION TRIM(LOG-EVENT-TYPE) " "
+                   LOG-STATUS " "
+                   FUNCTION TRIM(LOG-SOURCE-IP) " "
+                   FUNCTION TRIM(LOG-LOCATION-CODE) " "
+                   FUNCTION TRIM(LOG-DETAILS).
+
+       2400-ANALYZE-LOG-WITH-AI.
+           IF AI-IS-ACTIVE
+               PERFORM 2410-CHECK-FOR-UNUSUAL-TIME.
+               PERFORM 2420-CHECK-FOR-FAILED-ATTEMPTS.
+               PERFORM 2430-SIMULATE-PREDICTIVE-INSIGHTS.
+           END-IF.
+
+       2410-CHECK-FOR-UNUSUAL-TIME.
+           MOVE LOG-TIMESTAMP(12:2) TO WS-LOG-HOUR. *> Extract hour (HH)
+           IF WS-LOG-HOUR AS NUMERIC >= WS-AI-UNUSUAL-HOUR-START AS NUMERIC AND
+              WS-LOG-HOUR AS NUMERIC <= WS-AI-UNUSUAL-HOUR-END AS NUMERIC
+              IF LOG-EVENT-TYPE = 'LOGIN' AND LOG-STATUS = 'S'
+                  ADD 1 TO WS-AI-ANOMALY-COUNT
+                  STRING "AI Alert: Unusual successful login for user "
+                         FUNCTION TRIM(LOG-USER-ID) " at " LOG-TIMESTAMP(12:8)
+                         " (early morning hours)." DELIMITED BY SIZE
+                         INTO WS-AI-REPORT-BUFFER
+                  DISPLAY WS-AI-REPORT-BUFFER
+                  MOVE SPACES TO WS-AI-REPORT-BUFFER
+              END-IF
+           END-IF.
+
+       2420-CHECK-FOR-FAILED-ATTEMPTS.
+           IF LOG-EVENT-TYPE = 'LOGIN' AND LOG-STATUS = 'F'
+               IF LOG-USER-ID = WS-AI-FA-USER AND
+                  LOG-SOURCE-IP = WS-AI-FA-IP
+                   ADD 1 TO WS-AI-FA-COUNT
+               ELSE
+                   MOVE 1 TO WS-AI-FA-COUNT
+                   MOVE LOG-USER-ID TO WS-AI-FA-USER
+                   MOVE LOG-SOURCE-IP TO WS-AI-FA-IP
+                   MOVE LOG-TIMESTAMP TO WS-AI-FA-LAST-TS
+               END-IF
+
+               IF WS-AI-FA-COUNT >= WS-AI-ANOMALY-THRESHOLD AS NUMERIC
+                   ADD 1 TO WS-AI-ANOMALY-COUNT
+                   STRING "AI Alert: Multiple failed login attempts for user "
+                          FUNCTION TRIM(LOG-USER-ID) " from IP " FUNCTION TRIM(LOG-SOURCE-IP)
+                          " (count: " WS-AI-FA-COUNT ")." DELIMITED BY SIZE
+                          INTO WS-AI-REPORT-BUFFER
+                   DISPLAY WS-AI-REPORT-BUFFER
+                   MOVE SPACES TO WS-AI-REPORT-BUFFER
+                   MOVE ZEROS TO WS-AI-FA-COUNT *> Reset after reporting
+                   MOVE SPACES TO WS-AI-FA-USER
+                   MOVE SPACES TO WS-AI-FA-IP
+                   MOVE SPACES TO WS-AI-FA-LAST-TS
+               END-IF
+           ELSE
+               *> Reset failed attempt count if successful login for same user/IP occurs
+               IF LOG-USER-ID = WS-AI-FA-USER AND LOG-SOURCE-IP = WS-AI-FA-IP
+                   IF WS-AI-FA-COUNT > 0
+                       DISPLAY "AI Info: Failed attempts for " FUNCTION TRIM(LOG-USER-ID)
+                               " cleared by successful login."
+                   END-IF
+                   MOVE ZEROS TO WS-AI-FA-COUNT
+                   MOVE SPACES TO WS-AI-FA-USER
+                   MOVE SPACES TO WS-AI-FA-IP
+                   MOVE SPACES TO WS-AI-FA-LAST-TS
+               END-IF
+           END-IF.
+
+       2430-SIMULATE-PREDICTIVE-INSIGHTS.
+           *> This AI component offers high-level insights based on accumulated anomalies.
+           *> It simulates a learning model recognizing overall system behavior trends.
+           IF WS-AI-ANOMALY-COUNT > 10 AND WS-TOTAL-RECORDS-READ > 100
+               MOVE "AI Suggestion: Elevated anomaly count indicates potential activity spikes. Recommend deeper review of patterns."
+               TO WS-AI-PREDICTIVE-MESSAGE
+           ELSE IF WS-AI-ANOMALY-COUNT > 3 AND WS-TOTAL-RECORDS-READ > 50
+               MOVE "AI Suggestion: Minor anomalies detected. System is actively monitoring for evolving trends."
+               TO WS-AI-PREDICTIVE-MESSAGE
+           ELSE
+               MOVE "AI Suggestion: System activity appears within normal operating parameters. Continuous AI monitoring in effect."
+               TO WS-AI-PREDICTIVE-MESSAGE
+           END-IF.
+
+       3000-AI-INSIGHTS-SUMMARY.
+           DISPLAY " ".
+           DISPLAY "--- AI INSIGHTS SUMMARY AND SYSTEM HEALTH REPORT ---".
+           DISPLAY "AI Engine Status: " WS-AI-LEARNING-STATUS.
+           DISPLAY "Total records processed by AI: " WS-TOTAL-RECORDS-READ.
+           DISPLAY "Total significant anomalies detected by AI: " WS-AI-ANOMALY-COUNT.
+           DISPLAY "Proactive Insight: " WS-AI-PREDICTIVE-MESSAGE.
+           DISPLAY " ".
+
+       4000-TERMINATION.
+           CLOSE AUDIT-LOG-FILE.
+           DISPLAY "Total Log Records Read: " WS-TOTAL-RECORDS-READ.
+           DISPLAY "Records Matching All Filters: " WS-RECORDS-MATCHED.
+           DISPLAY "END OF LOG PROCESSING. SCULOG MODULE TERMINATED.".
+           DISPLAY " ".

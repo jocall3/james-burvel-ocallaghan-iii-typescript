@@ -1,0 +1,80 @@
+# === Main Branch CD Pipeline ===
+# This workflow triggers on pushes to the 'main' branch, typically after
+# a pull request has been approved and merged. It orchestrates building,
+# security scanning (by calling the reusable workflow), and deploying to staging.
+
+name: 'CD: Deploy to Staging'
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'services/payments-api/**'
+      - 'apps/web/**'
+      - 'github/workflows/04-main-branch-cd.yml'
+
+jobs:
+  # Job to build the frontend app
+  build-web:
+    name: 'Build Web App'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+        working-directory: ./apps/web
+      - run: npm run build
+        working-directory: ./apps/web
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: apps/web/dist
+
+  # Job to build the backend service
+  build-api:
+    name: 'Build Payments API'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with: { registry: 'ghcr.io', username: '${{ github.actor }}', password: '${{ secrets.GITHUB_TOKEN }}' }
+      - uses: docker/build-push-action@v5
+        with:
+          context: ./services/payments-api
+          push: true
+          tags: ghcr.io/${{ github.repository }}/payments-api:staging-${{ github.sha }}
+
+  # Call the reusable security workflow for the backend
+  scan-api:
+    name: 'Scan Payments API'
+    needs: build-api
+    uses: ./github/workflows/03-reusable-security-scan.yml
+    with:
+      service-path: './services/payments-api'
+      docker-image-name: 'ghcr.io/${{ github.repository }}/payments-api:staging-${{ github.sha }}'
+
+  # Deploy both services to the staging environment
+  deploy-staging:
+    name: 'Deploy to Staging'
+    runs-on: ubuntu-latest
+    needs: [build-web, scan-api] # Deploy only after build and scan are successful
+    environment:
+      name: staging
+      url: https://staging.demobank.com
+    steps:
+      - name: 'Download Web App Artifact'
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+
+      - name: 'Deploy to AWS S3 (Web App)'
+        # In a real workflow, this would use aws-actions/configure-aws-credentials
+        # and the aws s3 sync command.
+        run: echo "Deploying web app to S3..."
+
+      - name: 'Deploy to AWS ECS (Payments API)'
+        # This would use actions to update an ECS service definition with the new image tag.
+        run: echo "Deploying payments-api container to ECS..."

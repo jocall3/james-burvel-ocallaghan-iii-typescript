@@ -1,0 +1,2342 @@
+// This file simulates a comprehensive commercial banking application's main component,
+// built around the concept of account group selection, expanding the initial JSON
+// schema into a full-fledged TypeScript React application. It demonstrates advanced
+// features, state management, UI components, and business logic relevant to a bank.
+
+import React, {
+  useState,
+  useEffect,
+  useContext,
+  createContext,
+  useCallback,
+  useReducer,
+  useRef,
+} from 'react';
+
+// =============================================================================
+// I. Core Application Contexts & Hooks
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+// I.A. Global Types and Interfaces
+// -----------------------------------------------------------------------------
+
+/**
+ * Represents a simple select option as derived from the original JSON schema.
+ */
+export interface SelectSimpleOption {
+  value: string;
+  label: string;
+  __typename: 'SelectSimpleOption';
+}
+
+/**
+ * Extends SelectSimpleOption with additional banking-specific metadata for an account group.
+ */
+export interface AccountGroupOption extends SelectSimpleOption {
+  groupType: 'CHECKING' | 'SAVINGS' | 'INVESTMENT' | 'LOAN' | 'CREDIT_CARD' | 'MORTGAGE' | 'BUSINESS' | 'GENERAL';
+  accountIds: string[];
+  primaryCurrency: string;
+  totalBalance: number;
+  lastUpdated: string; // ISO Date string
+  memberCount: number; // Number of accounts in this group
+  hasJointAccounts: boolean;
+  status: 'ACTIVE' | 'INACTIVE' | 'PENDING';
+}
+
+/**
+ * Represents a single financial account within an account group.
+ */
+export interface BankAccount {
+  id: string;
+  accountNumber: string;
+  name: string;
+  balance: number;
+  currency: string;
+  type: 'CHECKING' | 'SAVINGS' | 'INVESTMENT' | 'LOAN' | 'CREDIT_CARD';
+  status: 'OPEN' | 'CLOSED' | 'FROZEN';
+  openingDate: string; // ISO Date string
+  lastTransactionDate: string; // ISO Date string
+  interestRate?: number;
+  creditLimit?: number;
+  availableCredit?: number;
+  beneficiaries?: string[];
+  isJoint: boolean;
+  linkedAccountId?: string; // e.g., for credit card linked to checking for payments
+}
+
+/**
+ * Represents a financial transaction.
+ */
+export interface Transaction {
+  id: string;
+  accountId: string;
+  date: string; // ISO Date string
+  description: string;
+  amount: number;
+  currency: string;
+  type: 'DEBIT' | 'CREDIT';
+  category: string; // e.g., 'Groceries', 'Salary', 'Rent', 'Transfer'
+  status: 'COMPLETED' | 'PENDING' | 'FAILED' | 'REVERSED';
+  referenceNumber: string;
+  merchantName?: string;
+  tags?: string[];
+}
+
+/**
+ * Represents a user profile in the banking application.
+ */
+export interface UserProfile {
+  id: string;
+  username: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  roles: ('CUSTOMER' | 'ADMIN' | 'RELATIONSHIP_MANAGER' | 'SUPPORT')[];
+  preferences: {
+    locale: string;
+    theme: 'light' | 'dark';
+    notificationSettings: {
+      email: boolean;
+      sms: boolean;
+      push: boolean;
+    };
+    defaultAccountGroupId?: string;
+  };
+  lastLogin: string; // ISO Date string
+}
+
+/**
+ * Represents a notification for the user.
+ */
+export interface AppNotification {
+  id: string;
+  type: 'INFO' | 'WARNING' | 'ERROR' | 'SUCCESS';
+  message: string;
+  timestamp: string; // ISO Date string
+  read: boolean;
+  link?: string;
+}
+
+/**
+ * Represents an audit log entry for security and compliance.
+ */
+export interface AuditLogEntry {
+  id: string;
+  timestamp: string; // ISO Date string
+  userId: string;
+  action: string;
+  details: Record<string, any>;
+  ipAddress: string;
+  status: 'SUCCESS' | 'FAILURE';
+}
+
+/**
+ * Common properties for API response wrappers.
+ */
+export interface ApiResponse<T> {
+  data: T | null;
+  loading: boolean;
+  error: Error | null;
+  refetch?: () => void;
+}
+
+// -----------------------------------------------------------------------------
+// I.B. API Simulation Layer (GraphQL Client Mock)
+// -----------------------------------------------------------------------------
+
+/**
+ * Mocks a GraphQL client for demonstration purposes.
+ * In a real application, this would be Apollo Client, Relay, or similar.
+ */
+export class MockGraphQLClient {
+  private delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
+
+  private generateAccountGroups(currencies: string[] | undefined): AccountGroupOption[] {
+    const allGroups: AccountGroupOption[] = [
+      {
+        value: 'group-101',
+        label: 'My Personal Accounts',
+        __typename: 'SelectSimpleOption',
+        groupType: 'CHECKING',
+        accountIds: ['acc-001', 'acc-002', 'acc-003'],
+        primaryCurrency: 'USD',
+        totalBalance: 12500.50,
+        lastUpdated: new Date().toISOString(),
+        memberCount: 3,
+        hasJointAccounts: false,
+        status: 'ACTIVE',
+      },
+      {
+        value: 'group-102',
+        label: 'Family Savings',
+        __typename: 'SelectSimpleOption',
+        groupType: 'SAVINGS',
+        accountIds: ['acc-004'],
+        primaryCurrency: 'EUR',
+        totalBalance: 50000.00,
+        lastUpdated: new Date(Date.now() - 3600000).toISOString(),
+        memberCount: 1,
+        hasJointAccounts: true,
+        status: 'ACTIVE',
+      },
+      {
+        value: 'group-103',
+        label: 'Investment Portfolio A',
+        __typename: 'SelectSimpleOption',
+        groupType: 'INVESTMENT',
+        accountIds: ['acc-005', 'acc-006'],
+        primaryCurrency: 'USD',
+        totalBalance: 150000.75,
+        lastUpdated: new Date(Date.now() - 7200000).toISOString(),
+        memberCount: 2,
+        hasJointAccounts: false,
+        status: 'ACTIVE',
+      },
+      {
+        value: 'group-104',
+        label: 'Business Operations',
+        __typename: 'SelectSimpleOption',
+        groupType: 'BUSINESS',
+        accountIds: ['acc-007', 'acc-008'],
+        primaryCurrency: 'GBP',
+        totalBalance: 85000.20,
+        lastUpdated: new Date(Date.now() - 10800000).toISOString(),
+        memberCount: 2,
+        hasJointAccounts: false,
+        status: 'PENDING',
+      },
+      {
+        value: 'group-105',
+        label: 'Mortgage & Loans',
+        __typename: 'SelectSimpleOption',
+        groupType: 'LOAN',
+        accountIds: ['acc-009'],
+        primaryCurrency: 'USD',
+        totalBalance: -300000.00, // Negative for loans
+        lastUpdated: new Date(Date.now() - 14400000).toISOString(),
+        memberCount: 1,
+        hasJointAccounts: true,
+        status: 'ACTIVE',
+      },
+    ];
+
+    if (!currencies || currencies.length === 0) {
+      return allGroups;
+    }
+    return allGroups.filter((group) => currencies.includes(group.primaryCurrency));
+  }
+
+  private generateAccounts(groupIds: string[]): BankAccount[] {
+    const allAccounts: BankAccount[] = [
+      {
+        id: 'acc-001',
+        accountNumber: '****1234',
+        name: 'Primary Checking',
+        balance: 7500.50,
+        currency: 'USD',
+        type: 'CHECKING',
+        status: 'OPEN',
+        openingDate: '2018-01-15T09:00:00Z',
+        lastTransactionDate: new Date().toISOString(),
+        isJoint: false,
+      },
+      {
+        id: 'acc-002',
+        accountNumber: '****5678',
+        name: 'Secondary Savings',
+        balance: 5000.00,
+        currency: 'USD',
+        type: 'SAVINGS',
+        status: 'OPEN',
+        openingDate: '2019-03-20T10:30:00Z',
+        interestRate: 0.01,
+        lastTransactionDate: new Date().toISOString(),
+        isJoint: false,
+      },
+      {
+        id: 'acc-003',
+        accountNumber: '****9012',
+        name: 'Credit Card Platinum',
+        balance: -2000.00,
+        currency: 'USD',
+        type: 'CREDIT_CARD',
+        status: 'OPEN',
+        openingDate: '2020-07-01T11:00:00Z',
+        creditLimit: 10000.00,
+        availableCredit: 8000.00,
+        lastTransactionDate: new Date().toISOString(),
+        isJoint: false,
+        linkedAccountId: 'acc-001',
+      },
+      {
+        id: 'acc-004',
+        accountNumber: '****3456',
+        name: 'Joint Family Savings',
+        balance: 50000.00,
+        currency: 'EUR',
+        type: 'SAVINGS',
+        status: 'OPEN',
+        openingDate: '2017-05-10T14:00:00Z',
+        interestRate: 0.015,
+        lastTransactionDate: new Date().toISOString(),
+        isJoint: true,
+      },
+      {
+        id: 'acc-005',
+        accountNumber: '****7890',
+        name: 'Stocks Portfolio',
+        balance: 100000.75,
+        currency: 'USD',
+        type: 'INVESTMENT',
+        status: 'OPEN',
+        openingDate: '2016-11-22T08:00:00Z',
+        lastTransactionDate: new Date().toISOString(),
+        isJoint: false,
+      },
+      {
+        id: 'acc-006',
+        accountNumber: '****2345',
+        name: 'Bonds Portfolio',
+        balance: 50000.00,
+        currency: 'USD',
+        type: 'INVESTMENT',
+        status: 'OPEN',
+        openingDate: '2017-09-01T10:00:00Z',
+        lastTransactionDate: new Date().toISOString(),
+        isJoint: false,
+      },
+      {
+        id: 'acc-007',
+        accountNumber: '****6789',
+        name: 'Business Checking',
+        balance: 60000.20,
+        currency: 'GBP',
+        type: 'CHECKING',
+        status: 'OPEN',
+        openingDate: '2021-01-01T09:00:00Z',
+        lastTransactionDate: new Date().toISOString(),
+        isJoint: false,
+      },
+      {
+        id: 'acc-008',
+        accountNumber: '****1011',
+        name: 'Business Savings',
+        balance: 25000.00,
+        currency: 'GBP',
+        type: 'SAVINGS',
+        status: 'OPEN',
+        openingDate: '2021-02-15T10:00:00Z',
+        lastTransactionDate: new Date().toISOString(),
+        isJoint: false,
+      },
+      {
+        id: 'acc-009',
+        accountNumber: '****1213',
+        name: 'Home Mortgage',
+        balance: -300000.00,
+        currency: 'USD',
+        type: 'LOAN',
+        status: 'OPEN',
+        openingDate: '2015-06-01T13:00:00Z',
+        interestRate: 0.03,
+        lastTransactionDate: new Date().toISOString(),
+        isJoint: true,
+      },
+    ];
+
+    const allAccountIds = groupIds.flatMap((groupId) => {
+      const group = this.generateAccountGroups([])
+        .find((g) => g.value === groupId);
+      return group ? group.accountIds : [];
+    });
+
+    return allAccounts.filter((acc) => allAccountIds.includes(acc.id));
+  }
+
+  private generateTransactions(accountIds: string[]): Transaction[] {
+    const transactions: Transaction[] = [];
+    accountIds.forEach((accountId) => {
+      for (let i = 0; i < 20; i++) {
+        const date = new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString();
+        const amount = parseFloat((Math.random() * 500).toFixed(2));
+        const type = Math.random() > 0.5 ? 'DEBIT' : 'CREDIT';
+        const categories = ['Groceries', 'Salary', 'Rent', 'Utilities', 'Shopping', 'Travel', 'Transfer', 'Investment'];
+        const category = categories[Math.floor(Math.random() * categories.length)];
+        const currency = this.generateAccounts([])
+          .find((acc) => acc.id === accountId)?.currency || 'USD';
+        const description = `${type === 'DEBIT' ? 'Payment to' : 'Deposit from'} ${category} for ${amount} ${currency}`;
+
+        transactions.push({
+          id: `txn-${accountId}-${i}-${Math.random().toString(36).substring(2, 9)}`,
+          accountId,
+          date,
+          description,
+          amount,
+          currency,
+          type,
+          category,
+          status: 'COMPLETED',
+          referenceNumber: `REF-${Math.random().toString(36).substring(2, 11).toUpperCase()}`,
+          merchantName: Math.random() > 0.3 ? `Merchant ${String.fromCharCode(65 + Math.floor(Math.random() * 26))}` : undefined,
+          tags: Math.random() > 0.7 ? ['personal', category.toLowerCase()] : [],
+        });
+      }
+    });
+    return transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }
+
+  /**
+   * Simulates the `AccountGroupSelectOptions` GraphQL query.
+   * @param currencies Optional array of currency codes to filter by.
+   * @returns A promise resolving to an array of AccountGroupOption.
+   */
+  public async queryAccountGroupSelectOptions(currencies?: string[]): Promise<AccountGroupOption[]> {
+    await this.delay(500 + Math.random() * 1000); // Simulate network latency
+    if (Math.random() < 0.05) {
+      throw new Error('Failed to fetch account groups due to network error.');
+    }
+    return this.generateAccountGroups(currencies);
+  }
+
+  /**
+   * Simulates fetching detailed accounts for given group IDs.
+   */
+  public async queryAccountsByGroup(groupIds: string[]): Promise<BankAccount[]> {
+    await this.delay(300 + Math.random() * 800);
+    if (Math.random() < 0.03) {
+      throw new Error('Failed to fetch accounts for groups.');
+    }
+    return this.generateAccounts(groupIds);
+  }
+
+  /**
+   * Simulates fetching transactions for given account IDs.
+   */
+  public async queryTransactionsByAccounts(accountIds: string[]): Promise<Transaction[]> {
+    await this.delay(400 + Math.random() * 900);
+    if (Math.random() < 0.04) {
+      throw new Error('Failed to fetch transactions.');
+    }
+    return this.generateTransactions(accountIds);
+  }
+
+  /**
+   * Simulates user authentication.
+   */
+  public async authenticate(username: string, passwordHash: string): Promise<UserProfile> {
+    await this.delay(700);
+    if (username === 'admin' && passwordHash === 'adminpass') {
+      return {
+        id: 'user-001',
+        username: 'admin',
+        firstName: 'System',
+        lastName: 'Admin',
+        email: 'admin@bank.com',
+        roles: ['ADMIN', 'CUSTOMER', 'RELATIONSHIP_MANAGER'],
+        preferences: {
+          locale: 'en-US',
+          theme: 'dark',
+          notificationSettings: { email: true, sms: true, push: true },
+        },
+        lastLogin: new Date().toISOString(),
+      };
+    }
+    if (username === 'jdoe' && passwordHash === 'securepass') {
+      return {
+        id: 'user-002',
+        username: 'jdoe',
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'john.doe@example.com',
+        roles: ['CUSTOMER'],
+        preferences: {
+          locale: 'en-US',
+          theme: 'light',
+          notificationSettings: { email: true, sms: false, push: true },
+          defaultAccountGroupId: 'group-101',
+        },
+        lastLogin: new Date().toISOString(),
+      };
+    }
+    throw new Error('Invalid credentials');
+  }
+
+  /**
+   * Simulates fetching notifications for a user.
+   */
+  public async fetchNotifications(userId: string): Promise<AppNotification[]> {
+    await this.delay(200 + Math.random() * 500);
+    if (Math.random() < 0.02) {
+      throw new Error('Failed to fetch notifications.');
+    }
+    return [
+      {
+        id: 'notif-001',
+        type: 'INFO',
+        message: 'Your statement for last month is ready.',
+        timestamp: new Date(Date.now() - 86400000).toISOString(),
+        read: false,
+        link: '/statements',
+      },
+      {
+        id: 'notif-002',
+        type: 'WARNING',
+        message: 'Large transaction detected on account ****1234.',
+        timestamp: new Date(Date.now() - 172800000).toISOString(),
+        read: true,
+        link: '/transactions',
+      },
+      {
+        id: 'notif-003',
+        type: 'SUCCESS',
+        message: 'Your transfer to Jane Smith completed successfully.',
+        timestamp: new Date(Date.now() - 345600000).toISOString(),
+        read: false,
+      },
+    ].filter(() => Math.random() > 0.2); // Randomly show some notifications
+  }
+
+  /**
+   * Simulates recording an audit log entry.
+   */
+  public async recordAuditLog(logEntry: Omit<AuditLogEntry, 'id' | 'timestamp' | 'status'>): Promise<AuditLogEntry> {
+    await this.delay(100);
+    const newEntry: AuditLogEntry = {
+      ...logEntry,
+      id: `audit-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      timestamp: new Date().toISOString(),
+      status: Math.random() > 0.1 ? 'SUCCESS' : 'FAILURE', // Simulate occasional failure
+    };
+    console.log('Audit Log Recorded:', newEntry); // In a real app, this would be sent to a logging service
+    return newEntry;
+  }
+}
+
+export const graphQLClient = new MockGraphQLClient(); // Singleton instance
+
+/**
+ * Custom hook to simulate GraphQL queries.
+ */
+export function useGraphQLQuery<T, V>(
+  queryFn: (variables: V) => Promise<T>,
+  variables: V,
+  skip: boolean = false
+): ApiResponse<T> {
+  const [data, setData] = useState<T | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const queryFnRef = useRef(queryFn); // Persist queryFn to prevent re-renders triggering effect
+
+  const fetchData = useCallback(async () => {
+    if (skip) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await queryFnRef.current(variables);
+      setData(result);
+    } catch (err: any) {
+      setError(err);
+      console.error('GraphQL query error:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [variables, skip]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  return { data, loading, error, refetch: fetchData };
+}
+
+/**
+ * Custom hook to fetch `AccountGroupSelectOptions`.
+ */
+export function useAccountGroupSelectOptions(currencies?: string[]): ApiResponse<AccountGroupOption[]> {
+  return useGraphQLQuery(graphQLClient.queryAccountGroupSelectOptions.bind(graphQLClient), { currencies });
+}
+
+/**
+ * Custom hook to fetch detailed accounts for specific group IDs.
+ */
+export function useAccountsByGroup(groupIds: string[]): ApiResponse<BankAccount[]> {
+  return useGraphQLQuery(graphQLClient.queryAccountsByGroup.bind(graphQLClient), { groupIds }, groupIds.length === 0);
+}
+
+/**
+ * Custom hook to fetch transactions for specific account IDs.
+ */
+export function useTransactionsByAccounts(accountIds: string[]): ApiResponse<Transaction[]> {
+  return useGraphQLQuery(graphQLClient.queryTransactionsByAccounts.bind(graphQLClient), { accountIds }, accountIds.length === 0);
+}
+
+/**
+ * Custom hook to fetch notifications for a user.
+ */
+export function useUserNotifications(userId: string | null): ApiResponse<AppNotification[]> {
+  return useGraphQLQuery(graphQLClient.fetchNotifications.bind(graphQLClient), { userId: userId! }, !userId);
+}
+
+// -----------------------------------------------------------------------------
+// I.C. Authentication Context
+// -----------------------------------------------------------------------------
+
+interface AuthContextType {
+  user: UserProfile | null;
+  isAuthenticated: boolean;
+  login: (username: string, passwordHash: string) => Promise<void>;
+  logout: () => void;
+  updateUserPreferences: (prefs: Partial<UserProfile['preferences']>) => void;
+  isLoadingAuth: boolean;
+  authError: Error | null;
+}
+
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const AuthProvider: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [authError, setAuthError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    // Simulate checking for a session or token in localStorage
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+    }
+    setIsLoadingAuth(false);
+  }, []);
+
+  const login = useCallback(async (username, passwordHash) => {
+    setIsLoadingAuth(true);
+    setAuthError(null);
+    try {
+      const authenticatedUser = await graphQLClient.authenticate(username, passwordHash);
+      setUser(authenticatedUser);
+      localStorage.setItem('currentUser', JSON.stringify(authenticatedUser));
+      await graphQLClient.recordAuditLog({
+        userId: authenticatedUser.id,
+        action: 'USER_LOGIN',
+        details: { username },
+        ipAddress: '127.0.0.1',
+      });
+    } catch (err: any) {
+      setAuthError(err);
+      console.error('Login failed:', err);
+      await graphQLClient.recordAuditLog({
+        userId: 'UNKNOWN', // Or try to extract from err
+        action: 'LOGIN_ATTEMPT_FAILED',
+        details: { username, error: err.message },
+        ipAddress: '127.0.0.1',
+      });
+      throw err; // Re-throw to allow UI to handle
+    } finally {
+      setIsLoadingAuth(false);
+    }
+  }, []);
+
+  const logout = useCallback(() => {
+    if (user) {
+      graphQLClient.recordAuditLog({
+        userId: user.id,
+        action: 'USER_LOGOUT',
+        details: {},
+        ipAddress: '127.0.0.1',
+      });
+    }
+    setUser(null);
+    localStorage.removeItem('currentUser');
+    setAuthError(null);
+  }, [user]);
+
+  const updateUserPreferences = useCallback((prefs: Partial<UserProfile['preferences']>) => {
+    setUser((prevUser) => {
+      if (!prevUser) return null;
+      const updatedUser = {
+        ...prevUser,
+        preferences: {
+          ...prevUser.preferences,
+          ...prefs,
+        },
+      };
+      localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+      graphQLClient.recordAuditLog({
+        userId: prevUser.id,
+        action: 'UPDATE_USER_PREFERENCES',
+        details: { newPreferences: prefs },
+        ipAddress: '127.0.0.1',
+      });
+      return updatedUser;
+    });
+  }, []);
+
+  const value = {
+    user,
+    isAuthenticated: !!user,
+    login,
+    logout,
+    updateUserPreferences,
+    isLoadingAuth,
+    authError,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+// -----------------------------------------------------------------------------
+// I.D. Theme Context (for light/dark mode)
+// -----------------------------------------------------------------------------
+
+type Theme = 'light' | 'dark';
+
+interface ThemeContextType {
+  theme: Theme;
+  toggleTheme: () => void;
+  setTheme: (theme: Theme) => void;
+}
+
+export const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+
+export const ThemeProvider: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
+  const { user, updateUserPreferences, isAuthenticated } = useAuth();
+  const [localTheme, setLocalTheme] = useState<Theme>('light');
+
+  useEffect(() => {
+    if (isAuthenticated && user?.preferences.theme) {
+      setLocalTheme(user.preferences.theme);
+    } else {
+      const savedTheme = localStorage.getItem('appTheme') as Theme;
+      if (savedTheme) {
+        setLocalTheme(savedTheme);
+      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        setLocalTheme('dark');
+      }
+    }
+  }, [isAuthenticated, user?.preferences.theme]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', localTheme);
+    localStorage.setItem('appTheme', localTheme);
+  }, [localTheme]);
+
+  const toggleTheme = useCallback(() => {
+    const newTheme = localTheme === 'light' ? 'dark' : 'light';
+    setLocalTheme(newTheme);
+    if (isAuthenticated) {
+      updateUserPreferences({ theme: newTheme });
+    }
+  }, [localTheme, isAuthenticated, updateUserPreferences]);
+
+  const setTheme = useCallback((theme: Theme) => {
+    setLocalTheme(theme);
+    if (isAuthenticated) {
+      updateUserPreferences({ theme: theme });
+    }
+  }, [isAuthenticated, updateUserPreferences]);
+
+  const value = { theme: localTheme, toggleTheme, setTheme };
+
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+};
+
+export const useTheme = () => {
+  const context = useContext(ThemeContext);
+  if (context === undefined) {
+    throw new Error('useTheme must be used within a ThemeProvider');
+  }
+  return context;
+};
+
+// -----------------------------------------------------------------------------
+// I.E. Internationalization (i18n) Context
+// -----------------------------------------------------------------------------
+
+interface Translations {
+  [key: string]: string | Translations;
+}
+
+interface I18nContextType {
+  locale: string;
+  setLocale: (locale: string) => void;
+  t: (key: string, variables?: Record<string, string | number>) => string;
+}
+
+export const I18nContext = createContext<I18nContextType | undefined>(undefined);
+
+// Mock translations
+const enUS: Translations = {
+  appName: "Citibank Demo Business Inc.",
+  dashboard: "Dashboard",
+  accounts: "Accounts",
+  transactions: "Transactions",
+  investments: "Investments",
+  loans: "Loans",
+  creditCards: "Credit Cards",
+  settings: "Settings",
+  logout: "Logout",
+  login: "Login",
+  username: "Username",
+  password: "Password",
+  welcome: "Welcome, {name}!",
+  selectAccountGroup: "Select Account Group",
+  loading: "Loading...",
+  errorFetchingData: "Error fetching data: {message}",
+  accountGroupOverview: "Account Group Overview: {groupName}",
+  totalBalance: "Total Balance",
+  primaryCurrency: "Primary Currency",
+  lastUpdated: "Last Updated",
+  accountCount: "Number of Accounts",
+  noAccountsSelected: "No account group selected. Please select one to view details.",
+  transactionsForGroup: "Transactions for {groupName}",
+  noTransactions: "No transactions found for this group.",
+  accountNumber: "Account Number",
+  accountName: "Account Name",
+  balance: "Balance",
+  currency: "Currency",
+  accountType: "Type",
+  viewDetails: "View Details",
+  allCurrencies: "All Currencies",
+  filterByCurrency: "Filter by Currency",
+  date: "Date",
+  description: "Description",
+  amount: "Amount",
+  category: "Category",
+  status: "Status",
+  type: "Type",
+  search: "Search...",
+  applyFilters: "Apply Filters",
+  resetFilters: "Reset Filters",
+  clearSelection: "Clear Selection",
+  notifications: "Notifications",
+  unreadNotifications: "You have {count} unread notifications.",
+  markAsRead: "Mark as Read",
+  viewAll: "View All",
+  preferences: "Preferences",
+  language: "Language",
+  theme: "Theme",
+  light: "Light",
+  dark: "Dark",
+  emailNotifications: "Email Notifications",
+  smsNotifications: "SMS Notifications",
+  pushNotifications: "Push Notifications",
+  savePreferences: "Save Preferences",
+  preferenceUpdateSuccess: "Preferences updated successfully!",
+  preferenceUpdateError: "Failed to update preferences.",
+  adminPanel: "Admin Panel",
+  userManagement: "User Management",
+  auditLogs: "Audit Logs",
+  securityAlert: "Security Alert",
+  activityMonitor: "Activity Monitor",
+  currencyConverter: "Currency Converter",
+  convert: "Convert",
+  from: "From",
+  to: "To",
+  rate: "Rate",
+  convertAmount: "Amount to convert",
+  convertedAmount: "Converted Amount",
+};
+
+const esES: Translations = {
+  appName: "Citibank Demo Business Inc.",
+  dashboard: "Panel de Control",
+  accounts: "Cuentas",
+  transactions: "Transacciones",
+  investments: "Inversiones",
+  loans: "Préstamos",
+  creditCards: "Tarjetas de Crédito",
+  settings: "Configuración",
+  logout: "Cerrar Sesión",
+  login: "Iniciar Sesión",
+  username: "Usuario",
+  password: "Contraseña",
+  welcome: "¡Bienvenido, {name}!",
+  selectAccountGroup: "Seleccionar Grupo de Cuentas",
+  loading: "Cargando...",
+  errorFetchingData: "Error al obtener datos: {message}",
+  accountGroupOverview: "Resumen del Grupo de Cuentas: {groupName}",
+  totalBalance: "Saldo Total",
+  primaryCurrency: "Moneda Principal",
+  lastUpdated: "Última Actualización",
+  accountCount: "Número de Cuentas",
+  noAccountsSelected: "No se ha seleccionado ningún grupo de cuentas. Por favor, seleccione uno para ver los detalles.",
+  transactionsForGroup: "Transacciones para {groupName}",
+  noTransactions: "No se encontraron transacciones para este grupo.",
+  accountNumber: "Número de Cuenta",
+  accountName: "Nombre de la Cuenta",
+  balance: "Saldo",
+  currency: "Moneda",
+  accountType: "Tipo",
+  viewDetails: "Ver Detalles",
+  allCurrencies: "Todas las Monedas",
+  filterByCurrency: "Filtrar por Moneda",
+  date: "Fecha",
+  description: "Descripción",
+  amount: "Cantidad",
+  category: "Categoría",
+  status: "Estado",
+  type: "Tipo",
+  search: "Buscar...",
+  applyFilters: "Aplicar Filtros",
+  resetFilters: "Restablecer Filtros",
+  clearSelection: "Borrar Selección",
+  notifications: "Notificaciones",
+  unreadNotifications: "Tienes {count} notificaciones no leídas.",
+  markAsRead: "Marcar como Leído",
+  viewAll: "Ver Todas",
+  preferences: "Preferencias",
+  language: "Idioma",
+  theme: "Tema",
+  light: "Claro",
+  dark: "Oscuro",
+  emailNotifications: "Notificaciones por Correo",
+  smsNotifications: "Notificaciones por SMS",
+  pushNotifications: "Notificaciones Push",
+  savePreferences: "Guardar Preferencias",
+  preferenceUpdateSuccess: "Preferencias actualizadas correctamente!",
+  preferenceUpdateError: "Error al actualizar las preferencias.",
+  adminPanel: "Panel de Administrador",
+  userManagement: "Gestión de Usuarios",
+  auditLogs: "Registros de Auditoría",
+  securityAlert: "Alerta de Seguridad",
+  activityMonitor: "Monitor de Actividad",
+  currencyConverter: "Convertidor de Moneda",
+  convert: "Convertir",
+  from: "Desde",
+  to: "A",
+  rate: "Tasa",
+  convertAmount: "Cantidad a convertir",
+  convertedAmount: "Cantidad convertida",
+};
+
+const translations: { [key: string]: Translations } = {
+  'en-US': enUS,
+  'es-ES': esES,
+  // Add more languages here
+};
+
+const getNestedTranslation = (obj: Translations, path: string[]): string | undefined => {
+  if (path.length === 0) return undefined;
+  let current: string | Translations = obj;
+  for (let i = 0; i < path.length; i++) {
+    const key = path[i];
+    if (typeof current === 'string' || !(key in current)) {
+      return undefined;
+    }
+    current = (current as Translations)[key];
+  }
+  return typeof current === 'string' ? current : undefined;
+};
+
+export const I18nProvider: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
+  const { user, updateUserPreferences, isAuthenticated } = useAuth();
+  const [locale, setLocaleState] = useState<string>('en-US');
+
+  useEffect(() => {
+    if (isAuthenticated && user?.preferences.locale) {
+      setLocaleState(user.preferences.locale);
+    } else {
+      const savedLocale = localStorage.getItem('appLocale');
+      if (savedLocale) {
+        setLocaleState(savedLocale);
+      } else if (navigator.language) {
+        setLocaleState(navigator.language);
+      }
+    }
+  }, [isAuthenticated, user?.preferences.locale]);
+
+  const setLocale = useCallback((newLocale: string) => {
+    setLocaleState(newLocale);
+    localStorage.setItem('appLocale', newLocale);
+    if (isAuthenticated) {
+      updateUserPreferences({ locale: newLocale });
+    }
+  }, [isAuthenticated, updateUserPreferences]);
+
+  const t = useCallback((key: string, variables?: Record<string, string | number>) => {
+    const currentTranslations = translations[locale] || translations['en-US'];
+    const path = key.split('.');
+    let translatedText = getNestedTranslation(currentTranslations, path) || getNestedTranslation(translations['en-US'], path) || key;
+
+    if (variables) {
+      for (const varKey in variables) {
+        translatedText = translatedText.replace(`{${varKey}}`, String(variables[varKey]));
+      }
+    }
+    return translatedText;
+  }, [locale]);
+
+  const value = { locale, setLocale, t };
+
+  return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
+};
+
+export const useI18n = () => {
+  const context = useContext(I18nContext);
+  if (context === undefined) {
+    throw new Error('useI18n must be used within an I18nProvider');
+  }
+  return context;
+};
+
+// -----------------------------------------------------------------------------
+// I.F. Global Error Boundary
+// -----------------------------------------------------------------------------
+
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+export class AppErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    // Update state so the next render will show the fallback UI.
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    // You can also log the error to an error reporting service
+    console.error('Error caught by Error Boundary:', error, errorInfo);
+    // Simulate sending to a monitoring service
+    graphQLClient.recordAuditLog({
+      userId: 'SYSTEM', // In a real app, user from context
+      action: 'FRONTEND_ERROR',
+      details: {
+        errorMessage: error.message,
+        componentStack: errorInfo.componentStack,
+        errorName: error.name,
+      },
+      ipAddress: '127.0.0.1',
+    });
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback || (
+        <div style={{ padding: '20px', textAlign: 'center', color: 'red', border: '1px solid red', borderRadius: '8px', margin: '20px' }}>
+          <h2>Oops! Something went wrong.</h2>
+          <p>We're sorry for the inconvenience. Please try refreshing the page or contact support.</p>
+          {this.state.error && <details style={{ whiteSpace: 'pre-wrap', textAlign: 'left', marginTop: '10px' }}>
+            <summary>Error Details</summary>
+            {this.state.error.message}<br/>
+            {this.state.error.stack}
+          </details>}
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+// =============================================================================
+// II. Reusable UI Components
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+// II.A. Basic UI Elements
+// -----------------------------------------------------------------------------
+
+export const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement>> = ({ children, className = '', ...props }) => (
+  <button
+    className={`px-4 py-2 rounded-md font-medium transition duration-200 ease-in-out
+                bg-blue-600 hover:bg-blue-700 text-white
+                dark:bg-indigo-700 dark:hover:bg-indigo-800
+                disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
+    {...props}
+  >
+    {children}
+  </button>
+);
+
+export const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = ({ className = '', ...props }) => (
+  <input
+    className={`w-full p-2 border border-gray-300 rounded-md
+                focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                dark:bg-gray-700 dark:border-gray-600 dark:text-white
+                ${className}`}
+    {...props}
+  />
+);
+
+export const Select: React.FC<React.SelectHTMLAttributes<HTMLSelectElement>> = ({ children, className = '', ...props }) => (
+  <select
+    className={`w-full p-2 border border-gray-300 rounded-md bg-white
+                focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                dark:bg-gray-700 dark:border-gray-600 dark:text-white
+                ${className}`}
+    {...props}
+  >
+    {children}
+  </select>
+);
+
+export const LoadingSpinner: React.FC<{ size?: number; color?: string }> = ({ size = 24, color = 'blue-500' }) => (
+  <div className={`flex justify-center items-center`}>
+    <div
+      className={`animate-spin rounded-full h-${size/4} w-${size/4} border-b-2 border-${color}`}
+      style={{ width: size, height: size, borderWidth: size / 8 }}
+    ></div>
+  </div>
+);
+
+export const Modal: React.FC<React.PropsWithChildren<{ isOpen: boolean; onClose: () => void; title: string }>> = ({ isOpen, onClose, title, children }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-lg mx-4">
+        <div className="flex justify-between items-center border-b pb-3 mb-4 dark:border-gray-700">
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{title}</h3>
+          <Button onClick={onClose} className="bg-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-0 text-2xl" aria-label="Close">
+            &times;
+          </Button>
+        </div>
+        <div className="text-gray-700 dark:text-gray-300">
+          {children}
+        </div>
+        <div className="flex justify-end mt-4">
+          <Button onClick={onClose} className="bg-gray-300 hover:bg-gray-400 text-gray-800 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white">
+            Close
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const Card: React.FC<React.PropsWithChildren<{ title?: string; className?: string; footer?: React.ReactNode }>> = ({ title, children, className = '', footer }) => (
+  <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 ${className}`}>
+    {title && <h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">{title}</h3>}
+    {children}
+    {footer && <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400">{footer}</div>}
+  </div>
+);
+
+export const Table: React.FC<React.PropsWithChildren<{ headers: string[]; className?: string }>> = ({ headers, children, className = '' }) => (
+  <div className="overflow-x-auto">
+    <table className={`min-w-full divide-y divide-gray-200 dark:divide-gray-700 ${className}`}>
+      <thead className="bg-gray-50 dark:bg-gray-700">
+        <tr>
+          {headers.map((header, index) => (
+            <th key={index} scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">
+              {header}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+        {children}
+      </tbody>
+    </table>
+  </div>
+);
+
+export const Alert: React.FC<{ type: 'info' | 'warning' | 'error' | 'success'; message: string; className?: string }> = ({ type, message, className = '' }) => {
+  const baseClasses = 'p-3 rounded-md mb-4 text-sm';
+  let typeClasses = '';
+  switch (type) {
+    case 'info':
+      typeClasses = 'bg-blue-100 border border-blue-400 text-blue-700 dark:bg-blue-900 dark:border-blue-700 dark:text-blue-200';
+      break;
+    case 'warning':
+      typeClasses = 'bg-yellow-100 border border-yellow-400 text-yellow-700 dark:bg-yellow-900 dark:border-yellow-700 dark:text-yellow-200';
+      break;
+    case 'error':
+      typeClasses = 'bg-red-100 border border-red-400 text-red-700 dark:bg-red-900 dark:border-red-700 dark:text-red-200';
+      break;
+    case 'success':
+      typeClasses = 'bg-green-100 border border-green-400 text-green-700 dark:bg-green-900 dark:border-green-700 dark:text-green-200';
+      break;
+  }
+  return <div className={`${baseClasses} ${typeClasses} ${className}`}>{message}</div>;
+};
+
+// -----------------------------------------------------------------------------
+// II.B. Layout Components
+// -----------------------------------------------------------------------------
+
+export const Header: React.FC<{ onToggleSidebar: () => void; isSidebarOpen: boolean }> = ({ onToggleSidebar, isSidebarOpen }) => {
+  const { user, logout } = useAuth();
+  const { toggleTheme, theme } = useTheme();
+  const { t } = useI18n();
+  const [showNotifications, setShowNotifications] = useState(false);
+  const { data: notifications, loading: loadingNotifications, error: notificationsError, refetch: refetchNotifications } = useUserNotifications(user?.id || null);
+
+  const unreadCount = notifications?.filter(n => !n.read).length || 0;
+
+  return (
+    <header className="bg-white dark:bg-gray-800 shadow-sm p-4 flex justify-between items-center sticky top-0 z-40">
+      <div className="flex items-center">
+        <Button onClick={onToggleSidebar} className="mr-4 p-2 bg-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+          {isSidebarOpen ? '❮' : '❯'} {/* Simple arrow for toggle */}
+        </Button>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('appName')}</h1>
+      </div>
+      <div className="flex items-center space-x-4">
+        <Button onClick={toggleTheme} className="p-2 bg-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+          {theme === 'light' ? '☀️' : '🌙'}
+        </Button>
+        <div className="relative">
+          <Button onClick={() => setShowNotifications(!showNotifications)} className="p-2 bg-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+            🔔
+            {unreadCount > 0 && (
+              <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full">
+                {unreadCount}
+              </span>
+            )}
+          </Button>
+          {showNotifications && (
+            <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-700 rounded-md shadow-lg py-2 z-50">
+              <h4 className="px-4 py-2 text-md font-semibold text-gray-900 dark:text-white">{t('notifications')}</h4>
+              {loadingNotifications && <div className="px-4 py-2"><LoadingSpinner size={16} /></div>}
+              {notificationsError && <Alert type="error" message={t('errorFetchingData', { message: notificationsError.message })} className="mx-2" />}
+              {notifications?.length === 0 && !loadingNotifications && <p className="px-4 py-2 text-gray-600 dark:text-gray-400">No new notifications.</p>}
+              {notifications?.map(notif => (
+                <div key={notif.id} className={`px-4 py-2 border-b last:border-b-0 dark:border-gray-600 ${!notif.read ? 'bg-blue-50 dark:bg-blue-900' : ''}`}>
+                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{notif.message}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{new Date(notif.timestamp).toLocaleString()}</p>
+                </div>
+              ))}
+              <div className="flex justify-end px-4 py-2">
+                <Button onClick={() => { /* Implement mark all as read */ refetchNotifications?.(); setShowNotifications(false); }} className="text-xs bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-white mr-2">{t('markAsRead')}</Button>
+                <Button onClick={() => { /* Implement navigate to all notifications */ setShowNotifications(false); }} className="text-xs">{t('viewAll')}</Button>
+              </div>
+            </div>
+          )}
+        </div>
+        {user ? (
+          <div className="flex items-center space-x-2">
+            <span className="text-gray-700 dark:text-gray-200 text-sm">{t('welcome', { name: user.firstName })}</span>
+            <Button onClick={logout} className="bg-red-500 hover:bg-red-600 dark:bg-red-700 dark:hover:bg-red-800 text-white">
+              {t('logout')}
+            </Button>
+          </div>
+        ) : (
+          <Button onClick={() => {/* Navigate to login page */ }}>{t('login')}</Button>
+        )}
+      </div>
+    </header>
+  );
+};
+
+export const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
+  const { t } = useI18n();
+  const { user } = useAuth();
+
+  const navItems = [
+    { name: t('dashboard'), icon: '🏠', path: '/dashboard', roles: ['CUSTOMER', 'ADMIN'] },
+    { name: t('accounts'), icon: '💳', path: '/accounts', roles: ['CUSTOMER', 'ADMIN'] },
+    { name: t('transactions'), icon: '📊', path: '/transactions', roles: ['CUSTOMER', 'ADMIN'] },
+    { name: t('investments'), icon: '📈', path: '/investments', roles: ['CUSTOMER'] },
+    { name: t('loans'), icon: '💸', path: '/loans', roles: ['CUSTOMER'] },
+    { name: t('creditCards'), icon: '🧾', path: '/credit-cards', roles: ['CUSTOMER'] },
+    { name: t('currencyConverter'), icon: '💱', path: '/currency-converter', roles: ['CUSTOMER'] },
+    { name: t('settings'), icon: '⚙️', path: '/settings', roles: ['CUSTOMER', 'ADMIN'] },
+  ];
+
+  const adminItems = [
+    { name: t('userManagement'), icon: '🧑‍🤝‍🧑', path: '/admin/users', roles: ['ADMIN'] },
+    { name: t('auditLogs'), icon: '📜', path: '/admin/audit', roles: ['ADMIN'] },
+    { name: t('activityMonitor'), icon: '👁️', path: '/admin/monitor', roles: ['ADMIN', 'RELATIONSHIP_MANAGER'] },
+    { name: t('securityAlert'), icon: '🚨', path: '/admin/security', roles: ['ADMIN', 'RELATIONSHIP_MANAGER'] },
+  ];
+
+  const hasRole = (requiredRoles: string[]) => user?.roles.some(role => requiredRoles.includes(role)) || false;
+
+  return (
+    <aside
+      className={`fixed inset-y-0 left-0 bg-gray-100 dark:bg-gray-900 w-64 p-4 transform
+                  ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+                  transition-transform duration-300 ease-in-out z-30 shadow-lg`}
+    >
+      <nav>
+        <ul className="space-y-2">
+          {navItems.filter(item => hasRole(item.roles)).map((item) => (
+            <li key={item.name}>
+              <a
+                href={item.path} // In a real app, use Link from react-router-dom
+                className="flex items-center p-3 text-gray-700 dark:text-gray-300 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-md"
+                onClick={onClose}
+              >
+                <span className="mr-3 text-xl">{item.icon}</span>
+                <span>{item.name}</span>
+              </a>
+            </li>
+          ))}
+          {hasRole(['ADMIN']) && (
+            <>
+              <li className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                <span className="block px-3 py-2 text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">{t('adminPanel')}</span>
+              </li>
+              {adminItems.filter(item => hasRole(item.roles)).map((item) => (
+                <li key={item.name}>
+                  <a
+                    href={item.path}
+                    className="flex items-center p-3 text-gray-700 dark:text-gray-300 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-md"
+                    onClick={onClose}
+                  >
+                    <span className="mr-3 text-xl">{item.icon}</span>
+                    <span>{item.name}</span>
+                  </a>
+                </li>
+              ))}
+            </>
+          )}
+        </ul>
+      </nav>
+    </aside>
+  );
+};
+
+export const Footer: React.FC = () => {
+  const { t } = useI18n();
+  return (
+    <footer className="bg-gray-100 dark:bg-gray-900 p-4 text-center text-sm text-gray-600 dark:text-gray-400 mt-8">
+      <p>&copy; {new Date().getFullYear()} {t('appName')}. All rights reserved.</p>
+      <p>This is a demo application for educational purposes.</p>
+    </footer>
+  );
+};
+
+// =============================================================================
+// III. Feature-Specific Components
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+// III.A. Account Group Selection Component
+// -----------------------------------------------------------------------------
+
+export const AccountGroupSelector: React.FC<{
+  selectedGroup: AccountGroupOption | null;
+  onSelectGroup: (group: AccountGroupOption | null) => void;
+}> = ({ selectedGroup, onSelectGroup }) => {
+  const { t } = useI18n();
+  const [currencyFilter, setCurrencyFilter] = useState<string>('');
+  const { data: options, loading, error, refetch } = useAccountGroupSelectOptions(currencyFilter ? [currencyFilter] : undefined);
+
+  const availableCurrencies = Array.from(new Set(options?.map(o => o.primaryCurrency) || []));
+
+  useEffect(() => {
+    // If a group was selected, but it's not in the current options (e.g., due to filter change), clear selection
+    if (selectedGroup && options && !options.some(opt => opt.value === selectedGroup.value)) {
+      onSelectGroup(null);
+    }
+    // If no group is selected, and there's a default in user preferences, set it
+    // This logic could be more complex, e.g., only set on first load
+  }, [options, selectedGroup, onSelectGroup]);
+
+  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    if (value === '') {
+      onSelectGroup(null);
+    } else {
+      const group = options?.find(o => o.value === value);
+      if (group) {
+        onSelectGroup(group);
+      }
+    }
+  };
+
+  return (
+    <Card title={t('selectAccountGroup')} className="mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="currency-filter" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            {t('filterByCurrency')}
+          </label>
+          <Select
+            id="currency-filter"
+            value={currencyFilter}
+            onChange={(e) => setCurrencyFilter(e.target.value)}
+          >
+            <option value="">{t('allCurrencies')}</option>
+            {availableCurrencies.map((currency) => (
+              <option key={currency} value={currency}>{currency}</option>
+            ))}
+          </Select>
+        </div>
+        <div>
+          <label htmlFor="account-group-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            {t('selectAccountGroup')}
+          </label>
+          <Select
+            id="account-group-select"
+            value={selectedGroup?.value || ''}
+            onChange={handleSelectChange}
+            disabled={loading}
+          >
+            <option value="">{t('selectAccountGroup')}...</option>
+            {options?.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label} ({option.primaryCurrency})
+              </option>
+            ))}
+          </Select>
+        </div>
+      </div>
+
+      {loading && <div className="mt-4"><LoadingSpinner /></div>}
+      {error && <Alert type="error" message={t('errorFetchingData', { message: error.message })} className="mt-4" />}
+
+      <div className="mt-4 flex justify-end space-x-2">
+        <Button onClick={() => setCurrencyFilter('')} disabled={!currencyFilter} className="bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-600 dark:text-white dark:hover:bg-gray-500">
+          {t('resetFilters')}
+        </Button>
+        <Button onClick={() => onSelectGroup(null)} disabled={!selectedGroup} className="bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-600 dark:text-white dark:hover:bg-gray-500">
+          {t('clearSelection')}
+        </Button>
+        <Button onClick={refetch} className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800">
+          Refresh
+        </Button>
+      </div>
+    </Card>
+  );
+};
+
+// -----------------------------------------------------------------------------
+// III.B. Account Group Details & Account List
+// -----------------------------------------------------------------------------
+
+export const AccountGroupDetails: React.FC<{ group: AccountGroupOption }> = ({ group }) => {
+  const { t } = useI18n();
+  const { data: accounts, loading, error } = useAccountsByGroup(group ? [group.value] : []);
+
+  if (!group) {
+    return <Alert type="info" message={t('noAccountsSelected')} />;
+  }
+
+  return (
+    <Card title={t('accountGroupOverview', { groupName: group.label })} className="mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <div>
+          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('totalBalance')}</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">
+            {group.primaryCurrency} {group.totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </p>
+        </div>
+        <div>
+          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('primaryCurrency')}</p>
+          <p className="text-xl text-gray-800 dark:text-gray-200">{group.primaryCurrency}</p>
+        </div>
+        <div>
+          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('accountCount')}</p>
+          <p className="text-xl text-gray-800 dark:text-gray-200">{group.memberCount}</p>
+        </div>
+        <div>
+          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('lastUpdated')}</p>
+          <p className="text-xl text-gray-800 dark:text-gray-200">{new Date(group.lastUpdated).toLocaleString()}</p>
+        </div>
+        <div>
+          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Group Type</p>
+          <p className="text-xl text-gray-800 dark:text-gray-200">{group.groupType}</p>
+        </div>
+        <div>
+          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Status</p>
+          <p className="text-xl text-gray-800 dark:text-gray-200">{group.status}</p>
+        </div>
+      </div>
+
+      <h4 className="text-lg font-semibold mb-3 text-gray-900 dark:text-white">Accounts in Group</h4>
+      {loading && <LoadingSpinner />}
+      {error && <Alert type="error" message={t('errorFetchingData', { message: error.message })} />}
+      {!loading && accounts?.length === 0 && <Alert type="info" message="No accounts found in this group." />}
+      {!loading && accounts && accounts.length > 0 && (
+        <Table headers={[t('accountName'), t('accountNumber'), t('accountType'), t('balance'), t('currency'), t('status'), t('viewDetails')]}>
+          {accounts.map((account) => (
+            <tr key={account.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-200">{account.name}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{account.accountNumber}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{account.type.replace('_', ' ')}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200 font-semibold">
+                {account.currency} {account.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{account.currency}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                  account.status === 'OPEN' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                  'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                }`}>
+                  {account.status}
+                </span>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <Button className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-200 bg-transparent hover:bg-transparent p-0">
+                  {t('viewDetails')}
+                </Button>
+              </td>
+            </tr>
+          ))}
+        </Table>
+      )}
+    </Card>
+  );
+};
+
+// -----------------------------------------------------------------------------
+// III.C. Transactions List with Filtering/Sorting
+// -----------------------------------------------------------------------------
+
+type TransactionFilterState = {
+  startDate: string;
+  endDate: string;
+  minAmount: number | '';
+  maxAmount: number | '';
+  category: string;
+  type: '' | 'DEBIT' | 'CREDIT';
+  status: '' | 'COMPLETED' | 'PENDING' | 'FAILED' | 'REVERSED';
+  search: string;
+};
+
+type TransactionFilterAction =
+  | { type: 'SET_START_DATE'; payload: string }
+  | { type: 'SET_END_DATE'; payload: string }
+  | { type: 'SET_MIN_AMOUNT'; payload: number | '' }
+  | { type: 'SET_MAX_AMOUNT'; payload: number | '' }
+  | { type: 'SET_CATEGORY'; payload: string }
+  | { type: 'SET_TYPE'; payload: '' | 'DEBIT' | 'CREDIT' }
+  | { type: 'SET_STATUS'; payload: '' | 'COMPLETED' | 'PENDING' | 'FAILED' | 'REVERSED' }
+  | { type: 'SET_SEARCH'; payload: string }
+  | { type: 'RESET_FILTERS' };
+
+const transactionFilterReducer = (state: TransactionFilterState, action: TransactionFilterAction): TransactionFilterState => {
+  switch (action.type) {
+    case 'SET_START_DATE': return { ...state, startDate: action.payload };
+    case 'SET_END_DATE': return { ...state, endDate: action.payload };
+    case 'SET_MIN_AMOUNT': return { ...state, minAmount: action.payload };
+    case 'SET_MAX_AMOUNT': return { ...state, maxAmount: action.payload };
+    case 'SET_CATEGORY': return { ...state, category: action.payload };
+    case 'SET_TYPE': return { ...state, type: action.payload };
+    case 'SET_STATUS': return { ...state, status: action.payload };
+    case 'SET_SEARCH': return { ...state, search: action.payload };
+    case 'RESET_FILTERS':
+      return {
+        startDate: '',
+        endDate: '',
+        minAmount: '',
+        maxAmount: '',
+        category: '',
+        type: '',
+        status: '',
+        search: '',
+      };
+    default: return state;
+  }
+};
+
+const initialFilterState: TransactionFilterState = {
+  startDate: '',
+  endDate: '',
+  minAmount: '',
+  maxAmount: '',
+  category: '',
+  type: '',
+  status: '',
+  search: '',
+};
+
+export const TransactionsList: React.FC<{ group: AccountGroupOption | null }> = ({ group }) => {
+  const { t } = useI18n();
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterState, dispatch] = useReducer(transactionFilterReducer, initialFilterState);
+  const [sortConfig, setSortConfig] = useState<{ key: keyof Transaction; direction: 'ascending' | 'descending' } | null>(null);
+
+  const accountIds = group?.accountIds || [];
+  const { data: transactions, loading, error, refetch } = useTransactionsByAccounts(accountIds);
+
+  const allCategories = Array.from(new Set(transactions?.map(t => t.category) || []));
+
+  const applyFilters = useCallback((transactionsToFilter: Transaction[]): Transaction[] => {
+    return transactionsToFilter.filter(txn => {
+      const txnDate = new Date(txn.date).getTime();
+      const startDate = filterState.startDate ? new Date(filterState.startDate).getTime() : 0;
+      const endDate = filterState.endDate ? new Date(filterState.endDate).getTime() : Infinity;
+
+      if (filterState.startDate && txnDate < startDate) return false;
+      if (filterState.endDate && txnDate > endDate) return false;
+      if (filterState.minAmount !== '' && txn.amount < filterState.minAmount) return false;
+      if (filterState.maxAmount !== '' && txn.amount > filterState.maxAmount) return false;
+      if (filterState.category && txn.category !== filterState.category) return false;
+      if (filterState.type && txn.type !== filterState.type) return false;
+      if (filterState.status && txn.status !== filterState.status) return false;
+      if (filterState.search && !txn.description.toLowerCase().includes(filterState.search.toLowerCase()) && !txn.referenceNumber.toLowerCase().includes(filterState.search.toLowerCase())) return false;
+      return true;
+    });
+  }, [filterState]);
+
+  const sortedTransactions = useCallback((transactionsToSort: Transaction[]): Transaction[] => {
+    if (!sortConfig) return transactionsToSort;
+    return [...transactionsToSort].sort((a, b) => {
+      const aValue = a[sortConfig.key];
+      const bValue = b[sortConfig.key];
+
+      if (aValue === undefined || bValue === undefined) return 0;
+
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortConfig.direction === 'ascending'
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortConfig.direction === 'ascending'
+          ? aValue - bValue
+          : bValue - aValue;
+      }
+      // Fallback for dates
+      if (sortConfig.key === 'date') {
+        const dateA = new Date(aValue as string).getTime();
+        const dateB = new Date(bValue as string).getTime();
+        return sortConfig.direction === 'ascending' ? dateA - dateB : dateB - dateA;
+      }
+      return 0;
+    });
+  }, [sortConfig]);
+
+  const filteredAndSortedTransactions = sortedTransactions(applyFilters(transactions || []));
+
+  const requestSort = (key: keyof Transaction) => {
+    let direction: 'ascending' | 'descending' = 'ascending';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIndicator = (key: keyof Transaction) => {
+    if (!sortConfig || sortConfig.key !== key) {
+      return '';
+    }
+    return sortConfig.direction === 'ascending' ? ' ⬆️' : ' ⬇️';
+  };
+
+  if (!group) {
+    return <Alert type="info" message={t('noAccountsSelected')} className="mb-6" />;
+  }
+
+  return (
+    <Card title={t('transactionsForGroup', { groupName: group.label })}>
+      <div className="flex justify-between items-center mb-4">
+        <Button onClick={() => setShowFilters(!showFilters)} className="bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-600 dark:text-white dark:hover:bg-gray-500">
+          {showFilters ? 'Hide Filters' : 'Show Filters'}
+        </Button>
+        <Button onClick={refetch} className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800">
+          Refresh Transactions
+        </Button>
+      </div>
+
+      {showFilters && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 border border-gray-200 dark:border-gray-700 rounded-md mb-6 bg-gray-50 dark:bg-gray-700">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('search')}</label>
+            <Input
+              type="text"
+              value={filterState.search}
+              onChange={(e) => dispatch({ type: 'SET_SEARCH', payload: e.target.value })}
+              placeholder="Search description or ref. #"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('date')} ({t('from')})</label>
+            <Input
+              type="date"
+              value={filterState.startDate}
+              onChange={(e) => dispatch({ type: 'SET_START_DATE', payload: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('date')} ({t('to')})</label>
+            <Input
+              type="date"
+              value={filterState.endDate}
+              onChange={(e) => dispatch({ type: 'SET_END_DATE', payload: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Min {t('amount')}</label>
+            <Input
+              type="number"
+              value={filterState.minAmount}
+              onChange={(e) => dispatch({ type: 'SET_MIN_AMOUNT', payload: e.target.value === '' ? '' : parseFloat(e.target.value) })}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Max {t('amount')}</label>
+            <Input
+              type="number"
+              value={filterState.maxAmount}
+              onChange={(e) => dispatch({ type: 'SET_MAX_AMOUNT', payload: e.target.value === '' ? '' : parseFloat(e.target.value) })}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('category')}</label>
+            <Select
+              value={filterState.category}
+              onChange={(e) => dispatch({ type: 'SET_CATEGORY', payload: e.target.value })}
+            >
+              <option value="">All Categories</option>
+              {allCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+            </Select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('type')}</label>
+            <Select
+              value={filterState.type}
+              onChange={(e) => dispatch({ type: 'SET_TYPE', payload: e.target.value as '' | 'DEBIT' | 'CREDIT' })}
+            >
+              <option value="">All Types</option>
+              <option value="DEBIT">Debit</option>
+              <option value="CREDIT">Credit</option>
+            </Select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('status')}</label>
+            <Select
+              value={filterState.status}
+              onChange={(e) => dispatch({ type: 'SET_STATUS', payload: e.target.value as '' | 'COMPLETED' | 'PENDING' | 'FAILED' | 'REVERSED' })}
+            >
+              <option value="">All Statuses</option>
+              <option value="COMPLETED">Completed</option>
+              <option value="PENDING">Pending</option>
+              <option value="FAILED">Failed</option>
+              <option value="REVERSED">Reversed</option>
+            </Select>
+          </div>
+          <div className="col-span-full flex justify-end space-x-2">
+            <Button onClick={() => dispatch({ type: 'RESET_FILTERS' })} className="bg-red-500 hover:bg-red-600 dark:bg-red-700 dark:hover:bg-red-800 text-white">
+              {t('resetFilters')}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {loading && <LoadingSpinner />}
+      {error && <Alert type="error" message={t('errorFetchingData', { message: error.message })} />}
+      {!loading && filteredAndSortedTransactions.length === 0 && <Alert type="info" message={t('noTransactions')} />}
+      {!loading && filteredAndSortedTransactions && filteredAndSortedTransactions.length > 0 && (
+        <Table headers={[
+          <span key="date-header" onClick={() => requestSort('date')} className="cursor-pointer hover:text-blue-600 dark:hover:text-blue-400">{t('date')}{getSortIndicator('date')}</span>,
+          <span key="desc-header" onClick={() => requestSort('description')} className="cursor-pointer hover:text-blue-600 dark:hover:text-blue-400">{t('description')}{getSortIndicator('description')}</span>,
+          <span key="amount-header" onClick={() => requestSort('amount')} className="cursor-pointer hover:text-blue-600 dark:hover:text-blue-400">{t('amount')}{getSortIndicator('amount')}</span>,
+          <span key="currency-header" onClick={() => requestSort('currency')} className="cursor-pointer hover:text-blue-600 dark:hover:text-blue-400">{t('currency')}{getSortIndicator('currency')}</span>,
+          <span key="type-header" onClick={() => requestSort('type')} className="cursor-pointer hover:text-blue-600 dark:hover:text-blue-400">{t('type')}{getSortIndicator('type')}</span>,
+          <span key="category-header" onClick={() => requestSort('category')} className="cursor-pointer hover:text-blue-600 dark:hover:text-blue-400">{t('category')}{getSortIndicator('category')}</span>,
+          <span key="status-header" onClick={() => requestSort('status')} className="cursor-pointer hover:text-blue-600 dark:hover:text-blue-400">{t('status')}{getSortIndicator('status')}</span>,
+        ]}>
+          {filteredAndSortedTransactions.map((txn) => (
+            <tr key={txn.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{new Date(txn.date).toLocaleDateString()}</td>
+              <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-200">{txn.description}</td>
+              <td className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${txn.type === 'DEBIT' ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                {txn.type === 'DEBIT' ? '-' : '+'} {txn.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{txn.currency}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{txn.type}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{txn.category}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm">
+                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                  txn.status === 'COMPLETED' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                  txn.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                  'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                }`}>
+                  {txn.status}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </Table>
+      )}
+    </Card>
+  );
+};
+
+// -----------------------------------------------------------------------------
+// III.D. User Settings/Preferences
+// -----------------------------------------------------------------------------
+
+export const UserSettings: React.FC = () => {
+  const { t, locale, setLocale: setI18nLocale } = useI18n();
+  const { user, updateUserPreferences, isLoadingAuth, authError } = useAuth();
+  const { theme, setTheme: setAppTheme } = useTheme();
+
+  const [formState, setFormState] = useState<UserProfile['preferences'] | null>(null);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+
+  useEffect(() => {
+    if (user) {
+      setFormState(user.preferences);
+    }
+  }, [user]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type, checked } = e.target as HTMLInputElement;
+    setFormState(prev => {
+      if (!prev) return null;
+      if (name.startsWith('notificationSettings.')) {
+        const notificationKey = name.split('.')[1] as keyof UserProfile['preferences']['notificationSettings'];
+        return {
+          ...prev,
+          notificationSettings: {
+            ...prev.notificationSettings,
+            [notificationKey]: checked,
+          },
+        };
+      }
+      return {
+        ...prev,
+        [name]: type === 'checkbox' ? checked : value,
+      };
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formState || !user) return;
+
+    setSaveStatus('saving');
+    try {
+      await updateUserPreferences(formState);
+      setSaveStatus('success');
+      setI18nLocale(formState.locale); // Update global i18n context
+      setAppTheme(formState.theme); // Update global theme context
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    } catch (err) {
+      setSaveStatus('error');
+      console.error('Failed to save preferences:', err);
+      setTimeout(() => setSaveStatus('idle'), 5000);
+    }
+  };
+
+  if (isLoadingAuth) {
+    return <Card><LoadingSpinner /></Card>;
+  }
+
+  if (authError || !user || !formState) {
+    return <Card><Alert type="error" message={t('errorFetchingData', { message: authError?.message || 'User data not available.' })} /></Card>;
+  }
+
+  return (
+    <Card title={t('preferences')} className="max-w-2xl mx-auto">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label htmlFor="locale" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            {t('language')}
+          </label>
+          <Select id="locale" name="locale" value={formState.locale} onChange={handleChange}>
+            <option value="en-US">English (US)</option>
+            <option value="es-ES">Español (ES)</option>
+            {/* Add more language options */}
+          </Select>
+        </div>
+
+        <div>
+          <label htmlFor="theme" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            {t('theme')}
+          </label>
+          <Select id="theme" name="theme" value={formState.theme} onChange={handleChange}>
+            <option value="light">{t('light')}</option>
+            <option value="dark">{t('dark')}</option>
+          </Select>
+        </div>
+
+        <fieldset>
+          <legend className="text-base font-medium text-gray-900 dark:text-white mb-2">Notification Settings</legend>
+          <div className="space-y-2">
+            <div className="flex items-center">
+              <input
+                id="emailNotifications"
+                name="notificationSettings.email"
+                type="checkbox"
+                checked={formState.notificationSettings.email}
+                onChange={handleChange}
+                className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600"
+              />
+              <label htmlFor="emailNotifications" className="ml-2 block text-sm text-gray-900 dark:text-gray-200">
+                {t('emailNotifications')}
+              </label>
+            </div>
+            <div className="flex items-center">
+              <input
+                id="smsNotifications"
+                name="notificationSettings.sms"
+                type="checkbox"
+                checked={formState.notificationSettings.sms}
+                onChange={handleChange}
+                className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600"
+              />
+              <label htmlFor="smsNotifications" className="ml-2 block text-sm text-gray-900 dark:text-gray-200">
+                {t('smsNotifications')}
+              </label>
+            </div>
+            <div className="flex items-center">
+              <input
+                id="pushNotifications"
+                name="notificationSettings.push"
+                type="checkbox"
+                checked={formState.notificationSettings.push}
+                onChange={handleChange}
+                className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600"
+              />
+              <label htmlFor="pushNotifications" className="ml-2 block text-sm text-gray-900 dark:text-gray-200">
+                {t('pushNotifications')}
+              </label>
+            </div>
+          </div>
+        </fieldset>
+
+        <div className="flex justify-end items-center space-x-4">
+          {saveStatus === 'saving' && <LoadingSpinner size={20} />}
+          {saveStatus === 'success' && <Alert type="success" message={t('preferenceUpdateSuccess')} className="inline-block p-2" />}
+          {saveStatus === 'error' && <Alert type="error" message={t('preferenceUpdateError')} className="inline-block p-2" />}
+          <Button type="submit" disabled={saveStatus === 'saving'}>
+            {t('savePreferences')}
+          </Button>
+        </div>
+      </form>
+    </Card>
+  );
+};
+
+// -----------------------------------------------------------------------------
+// III.E. Currency Converter
+// -----------------------------------------------------------------------------
+
+const mockExchangeRates: { [key: string]: { [key: string]: number } } = {
+  USD: { EUR: 0.92, GBP: 0.79, CAD: 1.37, USD: 1 },
+  EUR: { USD: 1.09, GBP: 0.86, CAD: 1.49, EUR: 1 },
+  GBP: { USD: 1.26, EUR: 1.16, CAD: 1.74, GBP: 1 },
+  CAD: { USD: 0.73, EUR: 0.67, GBP: 0.57, CAD: 1 },
+};
+
+export const CurrencyConverter: React.FC = () => {
+  const { t } = useI18n();
+  const [fromCurrency, setFromCurrency] = useState<string>('USD');
+  const [toCurrency, setToCurrency] = useState<string>('EUR');
+  const [amount, setAmount] = useState<number | ''>('');
+  const [convertedAmount, setConvertedAmount] = useState<number | null>(null);
+  const [exchangeRate, setExchangeRate] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const availableCurrencies = Object.keys(mockExchangeRates);
+
+  const getRate = useCallback((from: string, to: string) => {
+    return mockExchangeRates[from]?.[to] || null;
+  }, []);
+
+  useEffect(() => {
+    const rate = getRate(fromCurrency, toCurrency);
+    setExchangeRate(rate);
+    if (!rate) {
+      setError('No exchange rate available for selected currencies.');
+    } else {
+      setError(null);
+    }
+  }, [fromCurrency, toCurrency, getRate]);
+
+  const handleConvert = () => {
+    setError(null);
+    if (amount === '' || isNaN(Number(amount)) || Number(amount) <= 0) {
+      setError('Please enter a valid amount.');
+      setConvertedAmount(null);
+      return;
+    }
+    if (!exchangeRate) {
+      setError('Cannot convert, exchange rate not available.');
+      setConvertedAmount(null);
+      return;
+    }
+
+    const result = Number(amount) * exchangeRate;
+    setConvertedAmount(result);
+  };
+
+  return (
+    <Card title={t('currencyConverter')} className="max-w-xl mx-auto">
+      <div className="space-y-4">
+        <div>
+          <label htmlFor="convertAmount" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('convertAmount')}</label>
+          <Input
+            id="convertAmount"
+            type="number"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value === '' ? '' : parseFloat(e.target.value))}
+            placeholder="100.00"
+            min="0"
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="fromCurrency" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('from')}</label>
+            <Select id="fromCurrency" value={fromCurrency} onChange={(e) => setFromCurrency(e.target.value)}>
+              {availableCurrencies.map(c => <option key={c} value={c}>{c}</option>)}
+            </Select>
+          </div>
+          <div>
+            <label htmlFor="toCurrency" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('to')}</label>
+            <Select id="toCurrency" value={toCurrency} onChange={(e) => setToCurrency(e.target.value)}>
+              {availableCurrencies.map(c => <option key={c} value={c}>{c}</option>)}
+            </Select>
+          </div>
+        </div>
+        {exchangeRate !== null && (
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            {t('rate')}: 1 {fromCurrency} = {exchangeRate.toFixed(4)} {toCurrency}
+          </p>
+        )}
+        {error && <Alert type="error" message={error} />}
+        <Button onClick={handleConvert} className="w-full">
+          {t('convert')}
+        </Button>
+        {convertedAmount !== null && (
+          <Alert type="success" message={`${t('convertedAmount')}: ${toCurrency} ${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
+        )}
+      </div>
+    </Card>
+  );
+};
+
+// -----------------------------------------------------------------------------
+// III.F. Admin Panel Components (Placeholder for expansion)
+// -----------------------------------------------------------------------------
+
+export const AdminUserManagement: React.FC = () => {
+  const { t } = useI18n();
+  const { user } = useAuth();
+  if (!user?.roles.includes('ADMIN')) {
+    return <Alert type="error" message="Access Denied: You do not have permission to view this page." />;
+  }
+  return (
+    <Card title={t('userManagement')} className="max-w-4xl mx-auto">
+      <Alert type="info" message="This is a placeholder for a comprehensive user management interface where administrators can view, add, edit, and deactivate user accounts, manage roles and permissions, and reset passwords." />
+      <p className="text-gray-700 dark:text-gray-300">
+        Features would include: user search, filtering by role, bulk actions, detailed user profile views,
+        role assignment, password policy enforcement, and audit trail viewing for specific user actions.
+      </p>
+      {/* Example UI elements for future expansion */}
+      <div className="mt-4 flex flex-col space-y-3">
+        <Input placeholder="Search users by name or email..." />
+        <Select>
+          <option>Filter by Role</option>
+          <option>CUSTOMER</option>
+          <option>ADMIN</option>
+          <option>RELATIONSHIP_MANAGER</option>
+        </Select>
+        <Button>Add New User</Button>
+        {/* Placeholder for user table */}
+        <Table headers={['User ID', 'Name', 'Email', 'Roles', 'Status', 'Actions']}>
+          <tr>
+            <td colSpan={6} className="text-center py-4 text-gray-500 dark:text-gray-400">User list placeholder</td>
+          </tr>
+        </Table>
+      </div>
+    </Card>
+  );
+};
+
+export const AdminAuditLogs: React.FC = () => {
+  const { t } = useI18n();
+  const { user } = useAuth();
+  // No specific hook for audit logs, would integrate with a backend API directly
+  // This is a placeholder for a more robust audit log viewer.
+
+  if (!user?.roles.includes('ADMIN')) {
+    return <Alert type="error" message="Access Denied: You do not have permission to view this page." />;
+  }
+
+  const [logs, setLogs] = useState<AuditLogEntry[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchAuditLogs = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // In a real app, this would query a dedicated audit log API endpoint
+      // For demo purposes, we'll just show some static logs
+      const mockLogs: AuditLogEntry[] = [
+        { id: 'log-001', timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(), userId: 'user-001', action: 'LOGIN_SUCCESS', details: { username: 'admin' }, ipAddress: '192.168.1.1', status: 'SUCCESS' },
+        { id: 'log-002', timestamp: new Date(Date.now() - 1000 * 60 * 10).toISOString(), userId: 'user-002', action: 'UPDATE_ACCOUNT_DETAILS', details: { accountId: 'acc-001', field: 'name', oldValue: 'Checking', newValue: 'Primary Checking' }, ipAddress: '10.0.0.5', status: 'SUCCESS' },
+        { id: 'log-003', timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(), userId: 'user-001', action: 'USER_LOGIN', details: { username: 'invalid_user' }, ipAddress: '192.168.1.1', status: 'FAILURE' },
+        { id: 'log-004', timestamp: new Date(Date.now() - 1000 * 60 * 20).toISOString(), userId: 'user-002', action: 'PASSWORD_CHANGE', details: { success: true }, ipAddress: '10.0.0.5', status: 'SUCCESS' },
+        { id: 'log-005', timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(), userId: 'user-001', action: 'SYSTEM_CONFIG_UPDATE', details: { configKey: 'max_transaction_limit', oldValue: '10000', newValue: '20000' }, ipAddress: '192.168.1.2', status: 'SUCCESS' },
+      ].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      await new Promise(res => setTimeout(res, 500)); // Simulate API call
+      setLogs(mockLogs);
+    } catch (err: any) {
+      setError(err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAuditLogs();
+  }, [fetchAuditLogs]);
+
+  return (
+    <Card title={t('auditLogs')} className="max-w-full mx-auto">
+      <Alert type="info" message="This section provides a detailed immutable log of all significant activities within the application for compliance and security auditing." className="mb-4" />
+      <div className="flex justify-end mb-4">
+        <Button onClick={fetchAuditLogs}>Refresh Logs</Button>
+      </div>
+
+      {loading && <LoadingSpinner />}
+      {error && <Alert type="error" message={t('errorFetchingData', { message: error.message })} />}
+      {!loading && logs.length === 0 && <Alert type="info" message="No audit logs found." />}
+      {!loading && logs.length > 0 && (
+        <Table headers={['Timestamp', 'User ID', 'Action', 'Details', 'IP Address', 'Status']}>
+          {logs.map(log => (
+            <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 text-sm">
+              <td className="px-6 py-4 whitespace-nowrap">{new Date(log.timestamp).toLocaleString()}</td>
+              <td className="px-6 py-4 whitespace-nowrap">{log.userId}</td>
+              <td className="px-6 py-4 whitespace-nowrap">{log.action}</td>
+              <td className="px-6 py-4 text-xs font-mono text-gray-700 dark:text-gray-300">{JSON.stringify(log.details)}</td>
+              <td className="px-6 py-4 whitespace-nowrap">{log.ipAddress}</td>
+              <td className="px-6 py-4 whitespace-nowrap">
+                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                  log.status === 'SUCCESS' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                  'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                }`}>
+                  {log.status}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </Table>
+      )}
+    </Card>
+  );
+};
+
+// =============================================================================
+// IV. Main Application Layout and Routing
+// =============================================================================
+
+/**
+ * Placeholder for routing. In a real app, this would be react-router-dom.
+ */
+export const MainContentRouter: React.FC<{ currentPage: string; selectedGroup: AccountGroupOption | null }> = ({ currentPage, selectedGroup }) => {
+  const { user } = useAuth();
+  const { t } = useI18n();
+
+  const renderContent = () => {
+    switch (currentPage) {
+      case '/dashboard':
+        return (
+          <>
+            <AccountGroupSelector selectedGroup={selectedGroup} onSelectGroup={() => {}} /> {/* Dummy onSelectGroup, real one passed higher */}
+            {selectedGroup ? (
+              <>
+                <AccountGroupDetails group={selectedGroup} />
+                <TransactionsList group={selectedGroup} />
+              </>
+            ) : (
+              <Alert type="info" message={t('noAccountsSelected')} className="mt-6" />
+            )}
+          </>
+        );
+      case '/accounts':
+        return selectedGroup ? (
+          <AccountGroupDetails group={selectedGroup} />
+        ) : (
+          <>
+            <AccountGroupSelector selectedGroup={selectedGroup} onSelectGroup={() => {}} />
+            <Alert type="info" message={t('noAccountsSelected')} className="mt-6" />
+          </>
+        );
+      case '/transactions':
+        return <TransactionsList group={selectedGroup} />;
+      case '/settings':
+        return <UserSettings />;
+      case '/currency-converter':
+        return <CurrencyConverter />;
+      case '/admin/users':
+        return <AdminUserManagement />;
+      case '/admin/audit':
+        return <AdminAuditLogs />;
+      // Add more routes here, e.g., '/investments', '/loans', '/credit-cards'
+      default:
+        return <Alert type="warning" message="Page not found or not yet implemented." />;
+    }
+  };
+
+  if (!user) {
+    return <Alert type="warning" message="Please log in to access the application features." />;
+  }
+
+  return (
+    <main className="flex-1 p-8 overflow-y-auto">
+      {renderContent()}
+    </main>
+  );
+};
+
+/**
+ * The main application component, bringing all contexts and components together.
+ * This is the expanded version of the `AccountGroupSelectOptions.json` schema concept.
+ */
+export const App: React.FC = () => {
+  const { isAuthenticated, user, isLoadingAuth } = useAuth();
+  const { t } = useI18n();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [currentPage, setCurrentPage] = useState<string>('/dashboard'); // Simulates routing
+  const [selectedAccountGroup, setSelectedAccountGroup] = useState<AccountGroupOption | null>(null);
+
+  useEffect(() => {
+    // Set default group from user preferences on login if available
+    if (isAuthenticated && user && !selectedAccountGroup && user.preferences.defaultAccountGroupId) {
+      // Need to fetch options to find the actual group object
+      graphQLClient.queryAccountGroupSelectOptions().then(options => {
+        const defaultGroup = options.find(opt => opt.value === user.preferences.defaultAccountGroupId);
+        if (defaultGroup) {
+          setSelectedAccountGroup(defaultGroup);
+        }
+      }).catch(console.error);
+    }
+  }, [isAuthenticated, user, selectedAccountGroup]);
+
+  // Simulate routing by intercepting link clicks for demo purposes
+  useEffect(() => {
+    const handleLinkClick = (event: MouseEvent) => {
+      const target = event.target as HTMLAnchorElement;
+      if (target.tagName === 'A' && target.href.startsWith(window.location.origin)) {
+        event.preventDefault();
+        const path = target.pathname;
+        setCurrentPage(path);
+      }
+    };
+    document.addEventListener('click', handleLinkClick);
+    return () => document.removeEventListener('click', handleLinkClick);
+  }, []);
+
+  if (isLoadingAuth) {
+    return (
+      <div className="flex justify-center items-center h-screen bg-gray-100 dark:bg-gray-900">
+        <LoadingSpinner size={48} color="blue-600" />
+        <span className="ml-4 text-xl text-gray-700 dark:text-gray-300">Loading application...</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-200">
+      {isAuthenticated ? (
+        <>
+          <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+          <div className={`flex flex-col flex-1 transition-all duration-300 ease-in-out ${isSidebarOpen ? 'ml-64' : 'ml-0'}`}>
+            <Header onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} isSidebarOpen={isSidebarOpen} />
+            <div className="p-8 flex-1">
+              {/* This AccountGroupSelector is rendered outside MainContentRouter
+                  to persist across different routes for authenticated users */}
+              <AccountGroupSelector
+                selectedGroup={selectedAccountGroup}
+                onSelectGroup={setSelectedAccountGroup}
+              />
+              <MainContentRouter currentPage={currentPage} selectedGroup={selectedAccountGroup} />
+            </div>
+            <Footer />
+          </div>
+        </>
+      ) : (
+        <div className="flex flex-col justify-center items-center flex-1">
+          <Card title={t('login')} className="w-96">
+            <LoginForm />
+          </Card>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export const LoginForm: React.FC = () => {
+  const { login, isLoadingAuth, authError } = useAuth();
+  const { t } = useI18n();
+  const [username, setUsername] = useState('jdoe'); // Default for demo
+  const [password, setPassword] = useState('securepass'); // Default for demo
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await login(username, password);
+    } catch (err) {
+      // Error already handled by AuthProvider and set in authError state
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('username')}</label>
+        <Input
+          id="username"
+          type="text"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          required
+          disabled={isLoadingAuth}
+        />
+      </div>
+      <div>
+        <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('password')}</label>
+        <Input
+          id="password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          disabled={isLoadingAuth}
+        />
+      </div>
+      {authError && <Alert type="error" message={authError.message} />}
+      <Button type="submit" className="w-full" disabled={isLoadingAuth}>
+        {isLoadingAuth ? <LoadingSpinner size={20} color="white" /> : t('login')}
+      </Button>
+      <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-4">
+        Demo credentials: <br/>
+        User: `jdoe` / `securepass` <br/>
+        Admin: `admin` / `adminpass`
+      </p>
+    </form>
+  );
+};
+
+// =============================================================================
+// V. App Entry Point with Providers
+// =============================================================================
+
+/**
+ * This component wraps the main App with all necessary context providers.
+ * In a real application, this would typically be in an index.tsx or similar file.
+ */
+export const AppWrapper: React.FC = () => (
+  <AppErrorBoundary>
+    <AuthProvider>
+      <I18nProvider>
+        <ThemeProvider>
+          <App />
+        </ThemeProvider>
+      </I18nProvider>
+    </AuthProvider>
+  </AppErrorBoundary>
+);
+
+export default AppWrapper;

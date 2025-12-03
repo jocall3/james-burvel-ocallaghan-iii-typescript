@@ -1,0 +1,573 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. CRSTMT.
+       AUTHOR. MAINFRAME-DEVELOPERS.
+       DATE-WRITTEN. 1992-01-20.
+      ******************************************************************
+      * FINANCIAL SERVICES - GENERATE CARDHOLDER STATEMENT
+      *
+      * GENERATES A MONTHLY STATEMENT FOR A GIVEN CARDHOLDER,
+      * INCLUDING ALL TRANSACTIONS, SUMMARY OF CHARGES, INTEREST,
+      * MINIMUM PAYMENT DUE, AND AI-POWERED SPENDING INSIGHTS.
+      ******************************************************************
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT CARDHOLDER-MASTER-FILE ASSIGN TO CARDMAST
+               ORGANIZATION IS INDEXED
+               ACCESS MODE IS RANDOM
+               RECORD KEY IS CR-CARD-NUMBER.
+           SELECT TRANSACTION-FILE ASSIGN TO TRANLOG.
+           SELECT STATEMENT-FILE ASSIGN TO STMTOUT.
+           SELECT AI-INSIGHTS-FILE ASSIGN TO AIINOUT
+               ORGANIZATION IS SEQUENTIAL
+               ACCESS MODE IS SEQUENTIAL.
+
+       DATA DIVISION.
+       FILE SECTION.
+       FD CARDHOLDER-MASTER-FILE.
+       01 CARD-FILE-RECORD    PIC X(114).
+       FD TRANSACTION-FILE.
+       01 TX-RECORD-IN.
+          05 TX-CARD-NUMBER     PIC 9(16).
+          05 TX-DATE            PIC X(10).
+          05 TX-DESCRIPTION     PIC X(50).
+          05 TX-AMOUNT          PIC S9(7)V99.
+          05 TX-TYPE            PIC X(03). *> 'PUR', 'PMT', 'ADV', 'FEE', 'INT'
+          05 TX-CATEGORY        PIC X(20). *> 'TRAVEL', 'GROCERY', 'UTILITY', 'RETAIL'
+       FD STATEMENT-FILE.
+       01 STMT-LINE           PIC X(132).
+       FD AI-INSIGHTS-FILE.
+       01 AI-RECORD-IN-OUT.
+          05 AI-CARD-NUMBER      PIC 9(16).
+          05 AI-CATEGORY-DATA    PIC X(100). *> JSON-like string for spending categories
+          05 AI-RECOMMENDATIONS  PIC X(150). *> Personalized financial advice
+          05 AI-SENTIMENT-SCORE  PIC 9(03).  *> 0-100, overall sentiment of spending
+          05 AI-LAST-UPDATE      PIC X(10).  *> Date AI data was last refreshed
+
+       WORKING-STORAGE SECTION.
+       01 WS-INPUT-CARD-NUMBER   PIC 9(16).
+       01 WS-EOF-FLAG            PIC X(01) VALUE 'N'.
+          88 END-OF-TRANSACTIONS  VALUE 'Y'.
+       01 WS-STATEMENT-DATES.
+          05 WS-CURRENT-DATE    PIC X(10).
+          05 WS-START-DATE      PIC X(10) VALUE "2024-07-01".
+          05 WS-END-DATE        PIC X(10) VALUE "2024-07-31".
+          05 WS-DUE-DATE        PIC X(10).
+       01 WS-REPORT-TOTALS.
+          05 WS-TOTAL-CHARGES   PIC S9(9)V99 VALUE 0.
+          05 WS-TOTAL-PAYMENTS  PIC S9(9)V99 VALUE 0.
+          05 WS-TOTAL-FEES      PIC S9(7)V99 VALUE 0.
+          05 WS-TOTAL-INTEREST  PIC S9(7)V99 VALUE 0.
+          05 WS-NEW-BALANCE     PIC S9(9)V99.
+          05 WS-PREVIOUS-BALANCE PIC S9(9)V99 VALUE 0.
+       01 WS-INTEREST-CALC.
+          05 WS-DAILY-BALANCE-SUM PIC S9(11)V99 VALUE 0.
+          05 WS-DAYS-IN-CYCLE   PIC 99        VALUE 0.
+          05 WS-AVG-DAILY-BALANCE PIC S9(9)V99 VALUE 0.
+          05 WS-ANNUAL-INT-RATE PIC V9(4)     VALUE .1800. *> 18.00%
+          05 WS-MONTHLY-INT-RATE PIC V9(4).
+          05 WS-COMPUTED-INTEREST PIC S9(7)V99 VALUE 0.
+       01 WS-MINIMUM-PAYMENT.
+          05 WS-MIN-PAY-RATE    PIC V99       VALUE .02. *> 2% of new balance
+          05 WS-MIN-PAY-AMOUNT  PIC S9(7)V99  VALUE 0.
+          05 WS-MIN-PAY-FLAT    PIC S9(7)V99  VALUE 25.00. *> Minimum flat payment
+       01 WS-PAGE-CONTROL.
+          05 WS-PAGE-NUMBER     PIC 99        VALUE 1.
+          05 WS-LINE-COUNT      PIC 99        VALUE 0.
+          05 WS-MAX-LINES       PIC 99        VALUE 55.
+       01 WS-REWARDS-POINTS.
+          05 WS-PREV-POINTS     PIC 9(9)      VALUE 0.
+          05 WS-EARNED-POINTS   PIC 9(9)      VALUE 0.
+          05 WS-BONUS-POINTS    PIC 9(9)      VALUE 0.
+          05 WS-TOTAL-POINTS    PIC 9(9)      VALUE 0.
+          05 WS-REDEEMED-POINTS PIC 9(9)      VALUE 0.
+          05 WS-POINTS-DISPLAY  PIC Z,ZZZ,ZZ9.
+       01 WS-AI-DATA.
+          05 WS-AI-CATEGORY-DATA PIC X(100).
+          05 WS-AI-RECOMMENDATIONS PIC X(150).
+          05 WS-AI-SENTIMENT-SCORE PIC 9(03).
+          05 WS-AI-LAST-UPDATE-DATE PIC X(10).
+
+       COPY CPCR01. *> Assumes CR-CARDHOLDER-NAME, CR-ADDRESS-LINE1, CR-CITY, CR-STATE, CR-ZIP, CR-CREDIT-LIMIT, CR-REWARDS-POINTS-TOTAL, CR-ACCOUNT-STATUS, etc.
+
+       01 WS-STATEMENT-HEADER.
+          05 FILLER             PIC X(05) VALUE SPACES.
+          05 FILLER             PIC X(20) VALUE 'STATEMENT FOR CARD: '.
+          05 ST-CARD-NUM        PIC 9(16).
+          05 FILLER             PIC X(30) VALUE SPACES.
+          05 FILLER             PIC X(05) VALUE 'PAGE: '.
+          05 ST-PAGE-NUM        PIC Z9.
+          05 FILLER             PIC X(40) VALUE SPACES.
+          05 ST-STATEMENT-DATE  PIC X(10).
+       01 WS-ADDRESS-LINE.
+          05 FILLER             PIC X(05) VALUE SPACES.
+          05 ST-CUSTOMER-NAME   PIC X(30).
+          05 FILLER             PIC X(97) VALUE SPACES.
+       01 WS-ADDRESS-LINE2.
+          05 FILLER             PIC X(05) VALUE SPACES.
+          05 ST-ADDRESS1        PIC X(30).
+          05 FILLER             PIC X(97) VALUE SPACES.
+       01 WS-ADDRESS-LINE3.
+          05 FILLER             PIC X(05) VALUE SPACES.
+          05 ST-CITY-STATE-ZIP  PIC X(30).
+          05 FILLER             PIC X(97) VALUE SPACES.
+       01 WS-STATEMENT-PERIOD-LINE.
+          05 FILLER             PIC X(05) VALUE SPACES.
+          05 FILLER             PIC X(20) VALUE 'Statement Period: '.
+          05 ST-START-DATE      PIC X(10).
+          05 FILLER             PIC X(03) VALUE ' - '.
+          05 ST-END-DATE        PIC X(10).
+          05 FILLER             PIC X(10) VALUE ' Due Date: '.
+          05 ST-DUE-DATE        PIC X(10).
+       01 WS-TRANSACTION-HEADER.
+          05 FILLER             PIC X(05) VALUE SPACES.
+          05 FILLER             PIC X(10) VALUE 'DATE'.
+          05 FILLER             PIC X(03) VALUE SPACES.
+          05 FILLER             PIC X(04) VALUE 'TYPE'.
+          05 FILLER             PIC X(03) VALUE SPACES.
+          05 FILLER             PIC X(20) VALUE 'CATEGORY'.
+          05 FILLER             PIC X(03) VALUE SPACES.
+          05 FILLER             PIC X(50) VALUE 'DESCRIPTION'.
+          05 FILLER             PIC X(05) VALUE SPACES.
+          05 FILLER             PIC X(10) VALUE 'AMOUNT'.
+       01 WS-TRANSACTION-LINE.
+          05 FILLER             PIC X(05) VALUE SPACES.
+          05 ST-TX-DATE         PIC X(10).
+          05 FILLER             PIC X(03) VALUE SPACES.
+          05 ST-TX-TYPE         PIC X(03).
+          05 FILLER             PIC X(04) VALUE SPACES.
+          05 ST-TX-CATEGORY     PIC X(20).
+          05 FILLER             PIC X(03) VALUE SPACES.
+          05 ST-TX-DESC         PIC X(50).
+          05 ST-TX-AMOUNT       PIC ZZZ,ZZZ,ZZ9.99-.
+       01 WS-SUMMARY-LINE.
+          05 FILLER             PIC X(05) VALUE SPACES.
+          05 SL-LABEL           PIC X(30).
+          05 FILLER             PIC X(10) VALUE SPACES.
+          05 SL-AMOUNT          PIC ZZZ,ZZZ,ZZ9.99-.
+       01 WS-REWARDS-SUMMARY-LINE.
+          05 FILLER             PIC X(05) VALUE SPACES.
+          05 RL-LABEL           PIC X(30).
+          05 FILLER             PIC X(10) VALUE SPACES.
+          05 RL-POINTS          PIC Z,ZZZ,ZZ9.
+       01 WS-AI-INSIGHTS-HEADER.
+          05 FILLER             PIC X(05) VALUE SPACES.
+          05 FILLER             PIC X(30) VALUE 'AI-POWERED SPENDING INSIGHTS'.
+       01 WS-AI-INSIGHTS-LINE.
+          05 FILLER             PIC X(05) VALUE SPACES.
+          05 AIL-DESCRIPTION    PIC X(120).
+       01 WS-FOOTER.
+          05 FILLER             PIC X(05) VALUE SPACES.
+          05 FILLER             PIC X(120) VALUE 'Thank you for being a valued customer.'.
+
+       PROCEDURE DIVISION.
+       0000-MAIN-LOGIC.
+           PERFORM 1100-INITIALIZE-PROCESS.
+           OPEN INPUT CARDHOLDER-MASTER-FILE, TRANSACTION-FILE.
+           OPEN I-O AI-INSIGHTS-FILE. *> Open for read/write for AI data
+           OPEN OUTPUT STATEMENT-FILE.
+
+           DISPLAY "ENTER CARD NUMBER FOR STATEMENT GENERATION: ".
+           ACCEPT WS-INPUT-CARD-NUMBER.
+           PERFORM 1200-READ-CARDHOLDER.
+           PERFORM 1300-READ-AI-DATA.
+           PERFORM 1400-CALCULATE-STATEMENT-DATES.
+           PERFORM 2000-WRITE-PAGE-HEADER.
+           PERFORM 2100-WRITE-ADDRESS-DETAILS.
+           PERFORM 2200-WRITE-STATEMENT-PERIOD.
+           PERFORM 2300-WRITE-TRANSACTION-HEADER.
+
+           PERFORM 3000-PROCESS-TRANSACTIONS
+               UNTIL END-OF-TRANSACTIONS.
+
+           PERFORM 3500-CALCULATE-INTEREST.
+           PERFORM 3600-APPLY-INTEREST-CHARGE.
+           PERFORM 3700-CALCULATE-REWARDS.
+           PERFORM 3800-SIMULATE-AI-UPDATES.
+
+           PERFORM 4000-WRITE-SUMMARY.
+           PERFORM 4100-WRITE-MIN-PAYMENT-SECTION.
+           PERFORM 4200-WRITE-REWARDS-SECTION.
+           PERFORM 4300-WRITE-AI-RECOMMENDATIONS.
+           PERFORM 4400-WRITE-FOOTER.
+           PERFORM 9000-CLOSE-FILES.
+           DISPLAY "STATEMENT GENERATED.".
+           STOP RUN.
+
+       1100-INITIALIZE-PROCESS.
+           ACCEPT WS-CURRENT-DATE FROM DATE YYYYMMDD.
+           COMPUTE WS-MONTHLY-INT-RATE = WS-ANNUAL-INT-RATE / 12.
+           MOVE CR-CURRENT-BALANCE TO WS-PREVIOUS-BALANCE.
+
+       1200-READ-CARDHOLDER.
+           MOVE WS-INPUT-CARD-NUMBER TO CR-CARD-NUMBER.
+           READ CARDHOLDER-MASTER-FILE
+               INVALID KEY DISPLAY "CARD NOT FOUND" STOP RUN.
+
+       1300-READ-AI-DATA.
+           MOVE WS-INPUT-CARD-NUMBER TO AI-CARD-NUMBER.
+           READ AI-INSIGHTS-FILE
+               INVALID KEY
+                   DISPLAY "AI DATA NOT FOUND FOR CARD: " WS-INPUT-CARD-NUMBER
+                   MOVE SPACES TO WS-AI-CATEGORY-DATA
+                   MOVE "No AI insights available this month." TO WS-AI-RECOMMENDATIONS
+                   MOVE 0 TO WS-AI-SENTIMENT-SCORE
+                   MOVE WS-CURRENT-DATE TO WS-AI-LAST-UPDATE-DATE
+               NOT INVALID KEY
+                   MOVE AI-CATEGORY-DATA TO WS-AI-CATEGORY-DATA
+                   MOVE AI-RECOMMENDATIONS TO WS-AI-RECOMMENDATIONS
+                   MOVE AI-SENTIMENT-SCORE TO WS-AI-SENTIMENT-SCORE
+                   MOVE AI-LAST-UPDATE TO WS-AI-LAST-UPDATE-DATE
+           END-READ.
+
+       1400-CALCULATE-STATEMENT-DATES.
+      *> Simple date calculation for illustration. In a real system,
+      *> this would use date routines or a date-management copybook.
+           MOVE WS-CURRENT-DATE TO WS-DUE-DATE.
+      *> Add 21 days for due date (e.g., WS-DUE-DATE + 21 days)
+      *> For simplicity, let's just use end of statement month + 21
+      *> (not implemented in COBOL here, just illustrative).
+           MOVE "2024-08-21" TO WS-DUE-DATE.
+
+       2000-WRITE-PAGE-HEADER.
+           ADD 1 TO WS-PAGE-NUMBER.
+           MOVE WS-INPUT-CARD-NUMBER TO ST-CARD-NUM.
+           MOVE WS-PAGE-NUMBER TO ST-PAGE-NUM.
+           MOVE WS-CURRENT-DATE TO ST-STATEMENT-DATE.
+           WRITE STMT-LINE FROM WS-STATEMENT-HEADER.
+           MOVE 3 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+
+       2100-WRITE-ADDRESS-DETAILS.
+           MOVE CR-CARDHOLDER-NAME TO ST-CUSTOMER-NAME.
+           WRITE STMT-LINE FROM WS-ADDRESS-LINE.
+           MOVE CR-ADDRESS-LINE1 TO ST-ADDRESS1.
+           WRITE STMT-LINE FROM WS-ADDRESS-LINE2.
+           STRING CR-CITY DELIMITED BY SIZE
+                  ", " DELIMITED BY SIZE
+                  CR-STATE DELIMITED BY SIZE
+                  "  " DELIMITED BY SIZE
+                  CR-ZIP DELIMITED BY SIZE INTO ST-CITY-STATE-ZIP.
+           WRITE STMT-LINE FROM WS-ADDRESS-LINE3.
+           ADD 3 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+           WRITE STMT-LINE FROM " ".
+           ADD 1 TO WS-LINE-COUNT.
+
+       2200-WRITE-STATEMENT-PERIOD.
+           MOVE WS-START-DATE TO ST-START-DATE.
+           MOVE WS-END-DATE TO ST-END-DATE.
+           MOVE WS-DUE-DATE TO ST-DUE-DATE.
+           WRITE STMT-LINE FROM WS-STATEMENT-PERIOD-LINE.
+           WRITE STMT-LINE FROM " ".
+           ADD 2 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+
+       2300-WRITE-TRANSACTION-HEADER.
+           WRITE STMT-LINE FROM WS-TRANSACTION-HEADER.
+           WRITE STMT-LINE FROM " ".
+           ADD 2 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+
+       2500-CHECK-PAGE-BREAK.
+           IF WS-LINE-COUNT >= WS-MAX-LINES
+              WRITE STMT-LINE FROM " "
+              WRITE STMT-LINE FROM " "
+              PERFORM 2000-WRITE-PAGE-HEADER
+              PERFORM 2300-WRITE-TRANSACTION-HEADER
+              MOVE 0 TO WS-LINE-COUNT
+           END-IF.
+
+       3000-PROCESS-TRANSACTIONS.
+           READ TRANSACTION-FILE
+               AT END SET END-OF-TRANSACTIONS TO TRUE
+           END-READ.
+
+           IF NOT END-OF-TRANSACTIONS
+              IF (TX-CARD-NUMBER = WS-INPUT-CARD-NUMBER) AND
+                 (TX-DATE >= WS-START-DATE) AND (TX-DATE <= WS-END-DATE)
+                 PERFORM 3100-FORMAT-AND-WRITE-LINE
+                 PERFORM 3200-ACCUMULATE-FOR-AI-AND-INTEREST
+              END-IF
+           END-IF.
+
+       3100-FORMAT-AND-WRITE-LINE.
+           MOVE TX-DATE        TO ST-TX-DATE.
+           MOVE TX-TYPE        TO ST-TX-TYPE.
+           MOVE TX-CATEGORY    TO ST-TX-CATEGORY.
+           MOVE TX-DESCRIPTION TO ST-TX-DESC.
+           MOVE TX-AMOUNT      TO ST-TX-AMOUNT.
+           WRITE STMT-LINE FROM WS-TRANSACTION-LINE.
+           ADD 1 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+
+           IF TX-TYPE = 'PUR' OR TX-TYPE = 'ADV' OR TX-TYPE = 'FEE'
+              ADD TX-AMOUNT TO WS-TOTAL-CHARGES
+              IF TX-TYPE = 'FEE'
+                 ADD TX-AMOUNT TO WS-TOTAL-FEES
+              END-IF
+           ELSE IF TX-TYPE = 'PMT'
+              ADD TX-AMOUNT TO WS-TOTAL-PAYMENTS
+           END-IF.
+
+       3200-ACCUMULATE-FOR-AI-AND-INTEREST.
+           ADD TX-AMOUNT TO WS-PREVIOUS-BALANCE. *> Temporarily use previous balance as running daily balance
+           ADD WS-PREVIOUS-BALANCE TO WS-DAILY-BALANCE-SUM.
+           ADD 1 TO WS-DAYS-IN-CYCLE.
+           PERFORM 3710-ACCUMULATE-REWARDS-POINTS.
+
+       3500-CALCULATE-INTEREST.
+           IF WS-DAYS-IN-CYCLE > 0
+              DIVIDE WS-DAILY-BALANCE-SUM BY WS-DAYS-IN-CYCLE
+                  GIVING WS-AVG-DAILY-BALANCE.
+           END-IF.
+
+           IF WS-AVG-DAILY-BALANCE > 0
+              COMPUTE WS-COMPUTED-INTEREST = WS-AVG-DAILY-BALANCE * WS-MONTHLY-INT-RATE.
+           END-IF.
+           MOVE WS-COMPUTED-INTEREST TO WS-TOTAL-INTEREST.
+
+       3600-APPLY-INTEREST-CHARGE.
+           IF WS-COMPUTED-INTEREST > 0
+              MOVE WS-END-DATE TO ST-TX-DATE.
+              MOVE 'INT' TO ST-TX-TYPE.
+              MOVE 'INTEREST' TO ST-TX-CATEGORY.
+              MOVE 'FINANCE CHARGE - INTEREST' TO ST-TX-DESC.
+              MOVE WS-COMPUTED-INTEREST TO ST-TX-AMOUNT.
+              WRITE STMT-LINE FROM WS-TRANSACTION-LINE.
+              ADD 1 TO WS-LINE-COUNT.
+              PERFORM 2500-CHECK-PAGE-BREAK.
+           END-IF.
+
+       3700-CALCULATE-REWARDS.
+           MOVE CR-REWARDS-POINTS-TOTAL TO WS-PREV-POINTS.
+           COMPUTE WS-EARNED-POINTS = WS-TOTAL-CHARGES / 10. *> 1 point for every $10 spent
+           *> Simulate AI-driven bonus points for certain categories
+           IF WS-AI-CATEGORY-DATA CONTAINS "TRAVEL" OR "DINING"
+              COMPUTE WS-BONUS-POINTS = WS-TOTAL-CHARGES / 10 * 0.50. *> 50% bonus
+           ELSE
+              MOVE 0 TO WS-BONUS-POINTS.
+           END-IF.
+           COMPUTE WS-TOTAL-POINTS = WS-PREV-POINTS + WS-EARNED-POINTS + WS-BONUS-POINTS - WS-REDEEMED-POINTS.
+
+       3710-ACCUMULATE-REWARDS-POINTS.
+           *> This would be part of 3200 but separated for clarity
+           *> Actual accumulation would happen per transaction.
+           *> For this statement, we sum up.
+           CONTINUE.
+
+       3800-SIMULATE-AI-UPDATES.
+           *> In a real scenario, this would involve calling an external AI service.
+           *> Here, we simulate by updating some AI fields based on transaction activity.
+           IF WS-TOTAL-CHARGES > 1000
+              MOVE "Consider budget analysis for large spending months." TO WS-AI-RECOMMENDATIONS
+              STRING WS-AI-CATEGORY-DATA DELIMITED BY SPACE
+                     ", High Spending" DELIMITED BY SIZE
+                     INTO WS-AI-CATEGORY-DATA
+              MOVE 75 TO WS-AI-SENTIMENT-SCORE
+           ELSE
+              MOVE "Keep up the good financial habits!" TO WS-AI-RECOMMENDATIONS
+              MOVE 90 TO WS-AI-SENTIMENT-SCORE
+           END-IF.
+           MOVE WS-CURRENT-DATE TO WS-AI-LAST-UPDATE-DATE.
+
+           *> Update the AI-INSIGHTS-FILE
+           MOVE WS-INPUT-CARD-NUMBER TO AI-CARD-NUMBER.
+           MOVE WS-AI-CATEGORY-DATA TO AI-CATEGORY-DATA.
+           MOVE WS-AI-RECOMMENDATIONS TO AI-RECOMMENDATIONS.
+           MOVE WS-AI-SENTIMENT-SCORE TO AI-SENTIMENT-SCORE.
+           MOVE WS-AI-LAST-UPDATE-DATE TO AI-LAST-UPDATE.
+
+           REWRITE AI-RECORD-IN-OUT
+               INVALID KEY
+                   DISPLAY "ERROR: AI Record rewrite failed."
+                   *> In a real system, would handle inserting new record if not found
+           END-REWRITE.
+
+       4000-WRITE-SUMMARY.
+           WRITE STMT-LINE FROM " ".
+           ADD 1 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+           MOVE "--- ACCOUNT SUMMARY ---" TO STMT-LINE.
+           WRITE STMT-LINE.
+           ADD 1 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+           WRITE STMT-LINE FROM " ".
+           ADD 1 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+
+           MOVE "Previous Balance:" TO SL-LABEL.
+           MOVE WS-PREVIOUS-BALANCE TO SL-AMOUNT.
+           WRITE STMT-LINE FROM WS-SUMMARY-LINE.
+           ADD 1 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+
+           MOVE "Total Purchases & Advances:" TO SL-LABEL.
+           MOVE WS-TOTAL-CHARGES TO SL-AMOUNT.
+           WRITE STMT-LINE FROM WS-SUMMARY-LINE.
+           ADD 1 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+
+           MOVE "Total Fees:" TO SL-LABEL.
+           MOVE WS-TOTAL-FEES TO SL-AMOUNT.
+           WRITE STMT-LINE FROM WS-SUMMARY-LINE.
+           ADD 1 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+
+           MOVE "Total Payments/Credits:" TO SL-LABEL.
+           MOVE WS-TOTAL-PAYMENTS TO SL-AMOUNT.
+           WRITE STMT-LINE FROM WS-SUMMARY-LINE.
+           ADD 1 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+
+           MOVE "Total Interest Charged:" TO SL-LABEL.
+           MOVE WS-TOTAL-INTEREST TO SL-AMOUNT.
+           WRITE STMT-LINE FROM WS-SUMMARY-LINE.
+           ADD 1 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+
+           COMPUTE WS-NEW-BALANCE = WS-PREVIOUS-BALANCE +
+               WS-TOTAL-CHARGES + WS-TOTAL-FEES + WS-TOTAL-INTEREST + WS-TOTAL-PAYMENTS. *> Payments are negative
+           MOVE "NEW BALANCE:" TO SL-LABEL.
+           MOVE WS-NEW-BALANCE TO SL-AMOUNT.
+           WRITE STMT-LINE FROM WS-SUMMARY-LINE.
+           ADD 1 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+
+       4100-WRITE-MIN-PAYMENT-SECTION.
+           WRITE STMT-LINE FROM " ".
+           ADD 1 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+           MOVE "--- PAYMENT INFORMATION ---" TO STMT-LINE.
+           WRITE STMT-LINE.
+           ADD 1 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+           WRITE STMT-LINE FROM " ".
+           ADD 1 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+
+           COMPUTE WS-MIN-PAY-AMOUNT = WS-NEW-BALANCE * WS-MIN-PAY-RATE.
+           IF WS-MIN-PAY-AMOUNT < WS-MIN-PAY-FLAT
+              MOVE WS-MIN-PAY-FLAT TO WS-MIN-PAY-AMOUNT
+           END-IF.
+           IF WS-MIN-PAY-AMOUNT > WS-NEW-BALANCE
+              MOVE WS-NEW-BALANCE TO WS-MIN-PAY-AMOUNT
+           END-IF.
+           IF WS-NEW-BALANCE <= 0
+              MOVE 0 TO WS-MIN-PAY-AMOUNT
+           END-IF.
+
+           MOVE "Minimum Payment Due:" TO SL-LABEL.
+           MOVE WS-MIN-PAY-AMOUNT TO SL-AMOUNT.
+           WRITE STMT-LINE FROM WS-SUMMARY-LINE.
+           ADD 1 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+
+           MOVE "Payment Due Date:" TO SL-LABEL.
+           MOVE WS-DUE-DATE TO SL-AMOUNT. *> Reuse SL-AMOUNT for date display
+           WRITE STMT-LINE FROM WS-SUMMARY-LINE.
+           ADD 1 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+
+       4200-WRITE-REWARDS-SECTION.
+           WRITE STMT-LINE FROM " ".
+           ADD 1 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+           MOVE "--- REWARDS SUMMARY ---" TO STMT-LINE.
+           WRITE STMT-LINE.
+           ADD 1 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+           WRITE STMT-LINE FROM " ".
+           ADD 1 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+
+           MOVE "Previous Rewards Points:" TO RL-LABEL.
+           MOVE WS-PREV-POINTS TO WS-POINTS-DISPLAY.
+           MOVE WS-POINTS-DISPLAY TO RL-POINTS.
+           WRITE STMT-LINE FROM WS-REWARDS-SUMMARY-LINE.
+           ADD 1 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+
+           MOVE "Points Earned This Cycle:" TO RL-LABEL.
+           MOVE WS-EARNED-POINTS TO WS-POINTS-DISPLAY.
+           MOVE WS-POINTS-DISPLAY TO RL-POINTS.
+           WRITE STMT-LINE FROM WS-REWARDS-SUMMARY-LINE.
+           ADD 1 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+
+           MOVE "Bonus Points (AI-Driven):" TO RL-LABEL.
+           MOVE WS-BONUS-POINTS TO WS-POINTS-DISPLAY.
+           MOVE WS-POINTS-DISPLAY TO RL-POINTS.
+           WRITE STMT-LINE FROM WS-REWARDS-SUMMARY-LINE.
+           ADD 1 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+
+           MOVE "Points Redeemed:" TO RL-LABEL.
+           MOVE WS-REDEEMED-POINTS TO WS-POINTS-DISPLAY.
+           MOVE WS-POINTS-DISPLAY TO RL-POINTS.
+           WRITE STMT-LINE FROM WS-REWARDS-SUMMARY-LINE.
+           ADD 1 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+
+           MOVE "Total Available Points:" TO RL-LABEL.
+           MOVE WS-TOTAL-POINTS TO WS-POINTS-DISPLAY.
+           MOVE WS-POINTS-DISPLAY TO RL-POINTS.
+           WRITE STMT-LINE FROM WS-REWARDS-SUMMARY-LINE.
+           ADD 1 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+
+       4300-WRITE-AI-RECOMMENDATIONS.
+           WRITE STMT-LINE FROM " ".
+           ADD 1 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+           MOVE WS-AI-INSIGHTS-HEADER TO STMT-LINE.
+           WRITE STMT-LINE.
+           ADD 1 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+           WRITE STMT-LINE FROM " ".
+           ADD 1 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+
+           MOVE "Our Mainframe's AI analyzed your recent spending." TO AIL-DESCRIPTION.
+           WRITE STMT-LINE FROM WS-AI-INSIGHTS-LINE.
+           ADD 1 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+
+           STRING "Overall Sentiment Score: " DELIMITED BY SIZE
+                  WS-AI-SENTIMENT-SCORE DELIMITED BY SIZE
+                  " (100 is excellent)" DELIMITED BY SIZE
+                  INTO AIL-DESCRIPTION.
+           WRITE STMT-LINE FROM WS-AI-INSIGHTS-LINE.
+           ADD 1 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+
+           STRING "Top Spending Categories: " DELIMITED BY SIZE
+                  WS-AI-CATEGORY-DATA DELIMITED BY SPACE
+                  INTO AIL-DESCRIPTION.
+           WRITE STMT-LINE FROM WS-AI-INSIGHTS-LINE.
+           ADD 1 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+
+           MOVE "Personalized Recommendation:" TO AIL-DESCRIPTION.
+           WRITE STMT-LINE FROM WS-AI-INSIGHTS-LINE.
+           ADD 1 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+
+           MOVE WS-AI-RECOMMENDATIONS TO AIL-DESCRIPTION.
+           WRITE STMT-LINE FROM WS-AI-INSIGHTS-LINE.
+           ADD 1 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+
+       4400-WRITE-FOOTER.
+           WRITE STMT-LINE FROM " ".
+           ADD 1 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+           WRITE STMT-LINE FROM WS-FOOTER.
+           ADD 1 TO WS-LINE-COUNT.
+           PERFORM 2500-CHECK-PAGE-BREAK.
+
+       9000-CLOSE-FILES.
+           CLOSE CARDHOLDER-MASTER-FILE, TRANSACTION-FILE,
+                 AI-INSIGHTS-FILE, STATEMENT-FILE.
+
+       END PROGRAM CRSTMT.

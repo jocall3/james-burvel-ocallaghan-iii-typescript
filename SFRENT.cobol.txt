@@ -1,0 +1,322 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. SFRENT.
+       AUTHOR. PROGRAMMING-TEAM.
+      ******************************************************************
+      * SAFE DEPOSIT BOX RENTAL MANAGEMENT SYSTEM - RENT BOX PROCESS
+      * This program facilitates the rental of a new safe deposit box
+      * to an eligible customer. It includes customer validation,
+      * box availability checks, and record updates, integrating
+      * an AI-assisted suitability assessment.
+      ******************************************************************
+       ENVIRONMENT DIVISION.
+       FILE-CONTROL.
+           SELECT SAFE-DEPOSIT-FILE ASSIGN TO SFMAST
+               ORGANIZATION IS INDEXED
+               ACCESS MODE IS RANDOM
+               RECORD KEY IS S-BOX-NUM
+               FILE STATUS IS WS-SAFE-DEPOSIT-FILE-STATUS.
+           SELECT CUSTOMER-MASTER-FILE ASSIGN TO CUSTMAST
+               ORGANIZATION IS INDEXED
+               ACCESS MODE IS RANDOM
+               RECORD KEY IS C-CUSTOMER-ID
+               FILE STATUS IS WS-CUSTOMER-MASTER-STATUS.
+
+       DATA DIVISION.
+       FILE SECTION.
+       FD SAFE-DEPOSIT-FILE.
+       01 SAFE-DEPOSIT-RECORD.
+          05 S-BOX-NUM                 PIC X(10).
+          05 S-BOX-SIZE                PIC X(05).
+          05 S-LOCATION-CODE           PIC X(03).
+          05 S-STATUS                  PIC X(01).
+             88 S-STATUS-AVAILABLE     VALUE 'A'.
+             88 S-STATUS-RENTED        VALUE 'R'.
+             88 S-STATUS-MAINTENANCE   VALUE 'M'.
+          05 S-PRIMARY-CUST-ID         PIC 9(10).
+          05 S-SECONDARY-CUST-ID       PIC 9(10).
+          05 S-RENTAL-START-DATE       PIC 9(08).
+          05 S-RENTAL-END-DATE         PIC 9(08).
+          05 S-LAST-ACCESS-DATE        PIC 9(08).
+          05 S-ANNUAL-FEE              PIC 9(07)V99.
+          05 S-PAYMENT-STATUS          PIC X(01).
+             88 S-PAYMENT-PAID         VALUE 'P'.
+             88 S-PAYMENT-OUTSTANDING  VALUE 'O'.
+          05 S-AI-SUITABILITY-SCORE    PIC 9(03).
+          05 S-AI-RECOMMENDATION       PIC X(20).
+          05 S-BOX-COMMENT             PIC X(18).
+
+       FD CUSTOMER-MASTER-FILE.
+       01 CUSTOMER-RECORD.
+          05 C-CUSTOMER-ID             PIC 9(10).
+          05 C-CUSTOMER-NAME           PIC X(30).
+          05 C-ADDRESS                 PIC X(50).
+          05 C-PHONE                   PIC X(15).
+          05 C-EMAIL                   PIC X(40).
+          05 C-STATUS                  PIC X(01).
+             88 C-STATUS-ACTIVE        VALUE 'A'.
+             88 C-STATUS-INACTIVE      VALUE 'I'.
+          05 C-CREDIT-SCORE            PIC 9(03).
+          05 FILLER                    PIC X(29). *> Total 180 chars
+
+       WORKING-STORAGE SECTION.
+       01 WS-PROGRAM-FLAGS.
+          05 WS-VALID-BOX-FOUND        PIC X(01) VALUE 'N'.
+          05 WS-VALID-CUST-FOUND       PIC X(01) VALUE 'N'.
+          05 WS-RENTAL-SUCCESS         PIC X(01) VALUE 'N'.
+          05 WS-FILE-ERROR-FLAG        PIC X(01) VALUE 'N'.
+             88 FILE-ERROR-OCCURRED    VALUE 'Y'.
+
+       01 WS-INPUT-DETAILS.
+          05 WS-BOX-NUM-IN             PIC X(10).
+          05 WS-CUST-ID-IN             PIC 9(10).
+          05 WS-SEC-CUST-ID-IN         PIC 9(10) VALUE ZEROS.
+          05 WS-RENTAL-PERIOD          PIC 9(02).
+          05 WS-PAYMENT-METHOD         PIC X(10).
+          05 WS-AGREED-FEE             PIC 9(07)V99.
+
+       01 WS-DATE-FIELDS.
+          05 WS-CURRENT-DATE-COMP      PIC 9(08).
+          05 WS-RENTAL-END-DATE-COMP   PIC 9(08).
+
+       01 WS-SAFE-DEPOSIT-FILE-STATUS  PIC X(02).
+          88 SD-FILE-OK                VALUE '00'.
+          88 SD-FILE-NOT-FOUND         VALUE '23'.
+          88 SD-FILE-DUPLICATE-KEY     VALUE '22'.
+          88 SD-FILE-EOF               VALUE '10'.
+
+       01 WS-CUSTOMER-MASTER-STATUS    PIC X(02).
+          88 CM-FILE-OK                VALUE '00'.
+          88 CM-FILE-NOT-FOUND         VALUE '23'.
+
+       01 WS-AI-RESPONSE-DATA.
+          05 WS-AI-SUIT-SCORE          PIC 9(03) VALUE ZEROS.
+          05 WS-AI-RECOMMEND           PIC X(20) VALUE SPACES.
+
+       COPY CPSF01. *> Assuming CPSF01 contains general utility fields/routines
+
+       PROCEDURE DIVISION.
+       MAIN-LOGIC.
+           PERFORM INITIALIZE-PROGRAM.
+           PERFORM GET-INPUTS.
+           PERFORM VALIDATE-CUSTOMER-DETAILS.
+           IF WS-VALID-CUST-FOUND = 'Y'
+               PERFORM CHECK-BOX-AVAILABILITY
+               IF WS-VALID-BOX-FOUND = 'Y'
+                   PERFORM PROCESS-AI-ASSESSMENT
+                   PERFORM PROCESS-RENTAL-AGREEMENT
+                   IF WS-RENTAL-SUCCESS = 'Y'
+                       PERFORM UPDATE-SAFE-DEPOSIT-RECORD
+                   END-IF
+               ELSE
+                   DISPLAY "ERROR: SAFE DEPOSIT BOX NOT AVAILABLE OR INVALID."
+               END-IF
+           ELSE
+               DISPLAY "ERROR: PRIMARY CUSTOMER NOT FOUND OR INELIGIBLE."
+           END-IF.
+           PERFORM TERMINATE-PROGRAM.
+
+       INITIALIZE-PROGRAM.
+           DISPLAY "SFRENT - NEW SAFE DEPOSIT BOX RENTAL APPLICATION".
+           OPEN I-O SAFE-DEPOSIT-FILE
+           IF NOT SD-FILE-OK
+               DISPLAY "ERROR OPENING SAFE DEPOSIT FILE: "
+                       WS-SAFE-DEPOSIT-FILE-STATUS
+               SET FILE-ERROR-OCCURRED TO TRUE
+               PERFORM TERMINATE-PROGRAM
+           END-IF.
+           OPEN INPUT CUSTOMER-MASTER-FILE
+           IF NOT CM-FILE-OK
+               DISPLAY "ERROR OPENING CUSTOMER MASTER FILE: "
+                       WS-CUSTOMER-MASTER-STATUS
+               SET FILE-ERROR-OCCURRED TO TRUE
+               PERFORM TERMINATE-PROGRAM
+           END-IF.
+
+           ACCEPT WS-CURRENT-DATE-COMP FROM DATE YYYYMMDD.
+           MOVE 'N' TO WS-VALID-BOX-FOUND WS-VALID-CUST-FOUND
+                       WS-RENTAL-SUCCESS WS-FILE-ERROR-FLAG.
+
+       GET-INPUTS.
+           DISPLAY "ENTER BOX NUMBER (10 CHARS): ".
+           ACCEPT WS-BOX-NUM-IN.
+           IF WS-BOX-NUM-IN = SPACES OR LENGTH OF WS-BOX-NUM-IN NOT = 10
+               DISPLAY "INVALID BOX NUMBER FORMAT. PLEASE RE-ENTER."
+               PERFORM GET-INPUTS
+           END-IF.
+
+           DISPLAY "ENTER PRIMARY CUSTOMER ID (10 DIGITS): ".
+           ACCEPT WS-CUST-ID-IN.
+           IF WS-CUST-ID-IN IS NOT NUMERIC OR WS-CUST-ID-IN = ZEROS
+               DISPLAY "INVALID CUSTOMER ID FORMAT. PLEASE RE-ENTER."
+               PERFORM GET-INPUTS
+           END-IF.
+
+           DISPLAY "ENTER SECONDARY CUSTOMER ID (OPTIONAL, 10 DIGITS, 0 FOR NONE): ".
+           ACCEPT WS-SEC-CUST-ID-IN.
+           IF WS-SEC-CUST-ID-IN IS NOT NUMERIC
+               DISPLAY "INVALID SECONDARY CUSTOMER ID FORMAT. PLEASE RE-ENTER."
+               PERFORM GET-INPUTS
+           END-IF.
+
+           DISPLAY "ENTER RENTAL PERIOD IN MONTHS (1-36): ".
+           ACCEPT WS-RENTAL-PERIOD.
+           IF WS-RENTAL-PERIOD IS NOT NUMERIC OR WS-RENTAL-PERIOD < 1
+               OR WS-RENTAL-PERIOD > 36
+               DISPLAY "INVALID RENTAL PERIOD. PLEASE RE-ENTER."
+               PERFORM GET-INPUTS
+           END-IF.
+
+           DISPLAY "ENTER AGREED ANNUAL FEE (e.g., 1500.00): ".
+           ACCEPT WS-AGREED-FEE.
+           IF WS-AGREED-FEE IS NOT NUMERIC OR WS-AGREED-FEE = ZEROS
+               DISPLAY "INVALID FEE AMOUNT. PLEASE RE-ENTER."
+               PERFORM GET-INPUTS
+           END-IF.
+
+       VALIDATE-CUSTOMER-DETAILS.
+           MOVE WS-CUST-ID-IN TO C-CUSTOMER-ID.
+           READ CUSTOMER-MASTER-FILE
+               INVALID KEY
+                   DISPLAY "PRIMARY CUSTOMER ID " WS-CUST-ID-IN
+                           " NOT FOUND."
+                   MOVE 'N' TO WS-VALID-CUST-FOUND
+               NOT INVALID KEY
+                   IF C-STATUS-ACTIVE
+                       DISPLAY "PRIMARY CUSTOMER " C-CUSTOMER-NAME
+                               " (ID: " C-CUSTOMER-ID ") VERIFIED."
+                       MOVE 'Y' TO WS-VALID-CUST-FOUND
+                   ELSE
+                       DISPLAY "PRIMARY CUSTOMER " C-CUSTOMER-NAME
+                               " (ID: " C-CUSTOMER-ID ") IS INACTIVE."
+                       MOVE 'N' TO WS-VALID-CUST-FOUND
+                   END-IF
+           END-READ.
+
+           IF WS-VALID-CUST-FOUND = 'Y' AND WS-SEC-CUST-ID-IN NOT = ZEROS
+               MOVE WS-SEC-CUST-ID-IN TO C-CUSTOMER-ID
+               READ CUSTOMER-MASTER-FILE
+                   INVALID KEY
+                       DISPLAY "WARNING: SECONDARY CUSTOMER ID "
+                               WS-SEC-CUST-ID-IN " NOT FOUND."
+                       MOVE ZEROS TO WS-SEC-CUST-ID-IN
+                   NOT INVALID KEY
+                       IF C-STATUS-ACTIVE
+                           DISPLAY "SECONDARY CUSTOMER " C-CUSTOMER-NAME
+                                   " VERIFIED."
+                       ELSE
+                           DISPLAY "WARNING: SECONDARY CUSTOMER "
+                                   C-CUSTOMER-NAME " IS INACTIVE."
+                           MOVE ZEROS TO WS-SEC-CUST-ID-IN
+                       END-IF
+               END-READ
+           END-IF.
+
+       CHECK-BOX-AVAILABILITY.
+           MOVE WS-BOX-NUM-IN TO S-BOX-NUM.
+           READ SAFE-DEPOSIT-FILE
+               INVALID KEY
+                   DISPLAY "SAFE DEPOSIT BOX " WS-BOX-NUM-IN
+                           " DOES NOT EXIST."
+                   MOVE 'N' TO WS-VALID-BOX-FOUND
+               NOT INVALID KEY
+                   IF S-STATUS-AVAILABLE
+                       DISPLAY "BOX " S-BOX-NUM " IS AVAILABLE ("
+                               S-BOX-SIZE ", " S-LOCATION-CODE "). "
+                       MOVE 'Y' TO WS-VALID-BOX-FOUND
+                   ELSE
+                       DISPLAY "BOX " S-BOX-NUM " IS CURRENTLY "
+                               S-STATUS " (" S-BOX-SIZE ", "
+                               S-LOCATION-CODE "). "
+                       MOVE 'N' TO WS-VALID-BOX-FOUND
+                   END-IF
+           END-READ.
+           IF NOT SD-FILE-OK AND NOT SD-FILE-NOT-FOUND
+               DISPLAY "FILE READ ERROR FOR SAFE DEPOSIT FILE: "
+                       WS-SAFE-DEPOSIT-FILE-STATUS
+               SET FILE-ERROR-OCCURRED TO TRUE
+               PERFORM TERMINATE-PROGRAM
+           END-IF.
+
+       PROCESS-AI-ASSESSMENT.
+           DISPLAY "INITIATING AI-POWERED CLIENT SUITABILITY ANALYSIS...".
+           *> In a real scenario, this would be a CALL to an AI microservice.
+           *> For this simulation, we'll assign a sample score and recommendation.
+           *> The AI system considers factors like customer history, credit score,
+           *> and prior interactions to provide a predictive assessment.
+           DISPLAY "AI ACCESSING CUSTOMER DATA FOR PREDICTIVE MODELING...".
+
+           *> Simulate AI processing based on primary customer's credit score
+           MOVE WS-CUST-ID-IN TO C-CUSTOMER-ID.
+           READ CUSTOMER-MASTER-FILE
+               INVALID KEY
+                   MOVE 50 TO WS-AI-SUIT-SCORE
+                   MOVE "REVIEW REQUIRED" TO WS-AI-RECOMMEND
+               NOT INVALID KEY
+                   IF C-CREDIT-SCORE > 800
+                       MOVE 95 TO WS-AI-SUIT-SCORE
+                       MOVE "HIGHLY RECOMMENDED" TO WS-AI-RECOMMEND
+                   ELSE IF C-CREDIT-SCORE > 700
+                       MOVE 80 TO WS-AI-SUIT-SCORE
+                       MOVE "RECOMMENDED" TO WS-AI-RECOMMEND
+                   ELSE IF C-CREDIT-SCORE > 600
+                       MOVE 65 TO WS-AI-SUIT-SCORE
+                       MOVE "ACCEPTABLE" TO WS-AI-RECOMMEND
+                   ELSE
+                       MOVE 40 TO WS-AI-SUIT-SCORE
+                       MOVE "RISK ASSESSMENT" TO WS-AI-RECOMMEND
+                   END-IF
+           END-READ.
+           DISPLAY "AI ASSESSMENT COMPLETE. Suitability Score: "
+                   WS-AI-SUIT-SCORE ", Recommendation: " WS-AI-RECOMMEND.
+
+       PROCESS-RENTAL-AGREEMENT.
+           DISPLAY "COLLECTING SIGNATURES AND ISSUING KEYS...".
+           DISPLAY "PROCESSING INITIAL PAYMENT for annual fee "
+                   WS-AGREED-FEE.
+           *> In a real system, this would involve payment gateway integration.
+           MOVE "CARD" TO WS-PAYMENT-METHOD.
+           DISPLAY "PAYMENT PROCESSED VIA " WS-PAYMENT-METHOD.
+           MOVE 'Y' TO WS-RENTAL-SUCCESS.
+
+       UPDATE-SAFE-DEPOSIT-RECORD.
+           MOVE WS-BOX-NUM-IN      TO S-BOX-NUM.
+           MOVE 'R'                TO S-STATUS.
+           MOVE WS-CUST-ID-IN      TO S-PRIMARY-CUST-ID.
+           MOVE WS-SEC-CUST-ID-IN  TO S-SECONDARY-CUST-ID.
+           MOVE WS-CURRENT-DATE-COMP TO S-RENTAL-START-DATE.
+
+           COMPUTE WS-RENTAL-END-DATE-COMP =
+               FUNCTION ADD-DURATION(WS-CURRENT-DATE-COMP,
+                                    DURATION MM WS-RENTAL-PERIOD).
+           MOVE WS-RENTAL-END-DATE-COMP TO S-RENTAL-END-DATE.
+
+           MOVE ZEROS              TO S-LAST-ACCESS-DATE.
+           MOVE WS-AGREED-FEE      TO S-ANNUAL-FEE.
+           MOVE 'P'                TO S-PAYMENT-STATUS.
+           MOVE WS-AI-SUIT-SCORE   TO S-AI-SUITABILITY-SCORE.
+           MOVE WS-AI-RECOMMEND    TO S-AI-RECOMMENDATION.
+           MOVE "Rental A-OK"     TO S-BOX-COMMENT.
+
+           REWRITE SAFE-DEPOSIT-RECORD
+               INVALID KEY
+                   DISPLAY "ERROR: REWRITE FAILED FOR BOX " S-BOX-NUM
+                           " STATUS: " WS-SAFE-DEPOSIT-FILE-STATUS
+                   SET FILE-ERROR-OCCURRED TO TRUE
+               NOT INVALID KEY
+                   DISPLAY "BOX " S-BOX-NUM " RENTAL COMPLETE AND RECORD UPDATED."
+           END-REWRITE.
+           IF NOT SD-FILE-OK
+               SET FILE-ERROR-OCCURRED TO TRUE
+               PERFORM TERMINATE-PROGRAM
+           END-IF.
+
+       TERMINATE-PROGRAM.
+           IF FILE-ERROR-OCCURRED
+               DISPLAY "PROGRAM TERMINATED DUE TO FILE ERROR."
+           END-IF.
+           CLOSE SAFE-DEPOSIT-FILE.
+           CLOSE CUSTOMER-MASTER-FILE.
+           DISPLAY "SFRENT - PROGRAM ENDED."
+           STOP RUN.
+
+       END PROGRAM SFRENT.

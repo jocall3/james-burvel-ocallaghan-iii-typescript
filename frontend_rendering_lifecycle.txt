@@ -1,0 +1,194 @@
+graph TD
+    %% Frontend Rendering Lifecycle - Quantum Leap Financial AI Platform
+
+    subgraph Browser Initial Processing
+        A[HTML Document Start Parsing]
+        A --> B[Meta Tags & Favicons Load]
+        B --> C[Critical Resource Preloading Images Fonts Video]
+        C --> D[CSS Stylesheet Loading]
+        D --> E[Inline Styles CSSVars AuroraIllusion Preloader]
+        E --> F[Global JS Frameworks Tailwind Plaid D3js]
+    end
+
+    subgraph Font Loading & Preloader Activation
+        F --> G[WebFont Loader Execution]
+        G --> H[Initial Loader Displayed CustomSpinner LogoText]
+    end
+
+    subgraph Core JavaScript Module Loading
+        H --> I[Importmap Parsing ESM Module Setup]
+        I --> J[Core React ReactDOM Module Load]
+        J --> K[AI ML Libraries Load GoogleGenAI ApolloClient]
+        K --> L[UI UX Libraries Load FramerMotion Zustand Recharts Chartjs]
+        L --> M[Utility Libraries Load Dayjs]
+    end
+
+    subgraph React Application Initialization & Data Flow
+        M --> N[Execute index.tsx Main Entry]
+        N --> O[React App Initialization Mount to #root]
+        O --> P[Initial Component Tree Rendering]
+        P --> Q[Zustand State Management Setup]
+        P --> R[GraphQL Data Fetching via ApolloClient]
+        P --> S[Plaid Link Integration for Bank Connect]
+        R --> T[Process Financial Data AICore]
+        S --> T
+        T --> U[Dynamic Data Visualization D3 Recharts Chartjs]
+        U --> V[FramerMotion Advanced UI Animations]
+    end
+
+    subgraph Post Render & Analytics Activation
+        V --> W[AI Engines Initialized Text Update]
+        W --> X[Preloader FadeOut Transition Cleanup]
+        X --> Y[Application Fully Interactive UserReady]
+        Y --> Z[Analytics GA4 Hotjar Intercom Activation]
+        Y --> AA[Cookie Consent Management Cookiebot]
+    end
+
+    subgraph Always Active Background Features
+        E --- BB[Aurora Illusion Visual Effect]
+        A --- CC[SEO Structured Data JSONLD]
+        A --- DD[NoScript Fallback Content]
+    end
+
+    BB --> V %% Aurora Illusion continues, potentially influenced by FramerMotion later
+
+    note right of A
+        The browser begins parsing the index.html document.
+        This initial phase focuses on rapid document loading,
+        critical for perceived performance.
+    end
+    note right of B
+        Metadata for SEO and browser behavior (description, keywords, robots),
+        Open Graph/Twitter cards, and various favicon links are processed.
+    end
+    note right of C
+        <link rel="preload"> tags instruct the browser to fetch
+        crucial assets (images, custom fonts, hero video, primary CSS)
+        early in the loading process, improving Core Web Vitals (LCP, FCP).
+    end
+    note right of D
+        The main external stylesheet (/style.css) is loaded,
+        applying global visual rules.
+    end
+    note right of E
+        Inline <style> block defines CSS variables for a consistent
+        design system, the subtle 'aurora illusion' background animation,
+        and initial styles for the preloader. These styles are immediately
+        available for rendering.
+    end
+    note right of F
+        Essential third-party JavaScript libraries are loaded via CDN:
+        TailwindCSS for utility-first styling, Plaid Link for secure
+        bank account connectivity, and D3.js for advanced data visualization.
+    end
+    note right of G
+        The WebFont Loader script ensures custom brand fonts (Inter)
+        are loaded optimally, managing potential FOUC (Flash Of Unstyled Content)
+        and ensuring typography consistency.
+    end
+    note right of H
+        The #initial-loader div becomes visible, displaying a branded
+        spinner, logo, and "Initializing AI Engines..." text,
+        providing a smooth, branded user waiting experience.
+    end
+    note right of I
+        The <script type="importmap"> is parsed, dynamically mapping
+        module specifiers to their corresponding CDN URLs (e.g., React, GenAI).
+        This enables modern ES module syntax in the browser.
+    end
+    note right of J
+        Core frontend framework modules like 'react' and 'react-dom/client'
+        are fetched and evaluated based on the importmap.
+    end
+    note right of K
+        Advanced AI/ML and data fetching libraries, such as @google/genai
+        and @apollo/client (for GraphQL), are loaded.
+    end
+    note right of L
+        UI/UX enhancement libraries, including Framer Motion for animations,
+        Zustand for state management, and charting libraries Recharts and
+        Chart.js, are loaded.
+    end
+    note right of M
+        Essential utility libraries like Day.js for date manipulation
+        are loaded.
+    end
+    note right of N
+        The main application script, /index.tsx, is executed,
+        initiating the React application.
+    end
+    note right of O
+        The React application mounts and hydrates the content
+        within the <div id="root"> element, taking control of
+        the DOM.
+    end
+    note right of P
+        React renders the initial hierarchy of application components,
+        including dashboards, navigation, and core UI elements.
+    end
+    note right of Q
+        Global application state is initialized and managed using Zustand,
+        ensuring consistent data across components.
+    end
+    note right of R
+        Apollo Client performs GraphQL queries to fetch crucial
+        financial data, user portfolios, and AI-generated insights
+        from the backend.
+    end
+    note right of S
+        The Plaid Link client is initialized, securely connecting
+        user bank accounts to aggregate financial data within the platform.
+    end
+    note right of T
+        Fetched financial data is fed into the AI core for advanced
+        predictive analytics, risk assessment, and personalized recommendations.
+    end
+    note right of U
+        Interactive and high-fidelity data visualizations are rendered
+        using D3.js, Recharts, and Chart.js, presenting complex financial
+        information clearly.
+    end
+    note right of V
+        Framer Motion is utilized to apply sophisticated, performant
+        animations and transitions to UI elements, enhancing user
+        engagement and visual feedback.
+    end
+    note right of W
+        The preloader's text might dynamically update, for example,
+        to "AI Engines Activated" or "Data Loaded", providing
+        real-time feedback before fade-out.
+    end
+    note right of X
+        After a configurable delay (750ms in seed) and upon React
+        application readiness, the #initial-loader gracefully
+        fades out and is removed from the DOM, revealing the full application.
+    end
+    note right of Y
+        The application is now fully loaded, interactive, and responsive
+        to user input, providing a complete financial intelligence experience.
+    end
+    note right of Z
+        Google Analytics (GA4), Hotjar (heatmaps, session recordings),
+        and Intercom (customer support) are fully initialized to
+        track user behavior and provide support.
+    end
+    note right of AA
+        Cookiebot, or a similar CMP, activates to manage and enforce
+        user consent preferences for data tracking, ensuring GDPR/CCPA
+        compliance.
+    end
+    note right of BB
+        The CSS-driven 'aurora illusion' background effect
+        runs continuously and subtly throughout the application's lifespan,
+        contributing to the premium aesthetic.
+    end
+    note right of CC
+        JSON-LD structured data for Organization, WebSite, and
+        FinancialService schema is present in the HTML, allowing
+        search engines to better understand and represent the content.
+    end
+    note right of DD
+        A specific message and placeholder content are displayed
+        if JavaScript is disabled, informing the user of the
+        platform's requirements and offering an alternative view.
+    end

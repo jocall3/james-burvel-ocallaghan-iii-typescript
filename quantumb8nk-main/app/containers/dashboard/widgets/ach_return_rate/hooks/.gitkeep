@@ -1,0 +1,4661 @@
+export const b_url_const = 'citibankdemobusiness.dev';
+export const c_name_const = 'Citibank demo business Inc';
+export const all_svc_configs = {
+  "gemini": {
+    "id": "svc_gemini_u3qch1s8",
+    "n": "Gemini",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.gemini.dev/v5",
+      "rate_l": 621,
+      "tout_ms": 11090,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-gemini-b9x6y8x2v1j",
+        "X-CDBI-Trace-Id": "trace-0.j67fqn8oizp",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "offset"
+    },
+    "auth_strat": {
+      "type": "oauth2_cc",
+      "cred_loc": "header",
+      "key_name": "gemini_sk",
+      "token_url": "https://auth.gemini.dev/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": true,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716386623696,
+      "updated_ts": 1716911323696,
+      "config_version": "v2.3.15",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "chatgpt": {
+    "id": "svc_chatgpt_7z3z9w1y",
+    "n": "ChatGPT",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.chatgpt.net/v3",
+      "rate_l": 559,
+      "tout_ms": 11756,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-chatgpt-10z6w231f7w5",
+        "X-CDBI-Trace-Id": "trace-0.90x6u4l4bci",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "header",
+      "key_name": "chatgpt_sk",
+      "token_url": "https://auth.chatgpt.net/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": false,
+      "requires_mfa": true
+    },
+    "internal_meta": {
+      "created_ts": 1716616091497,
+      "updated_ts": 1716911323697,
+      "config_version": "v2.3.8",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "pipedream": {
+    "id": "svc_pipedream_hifd6n48",
+    "n": "Pipedream",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.pipedream.org/v1",
+      "rate_l": 277,
+      "tout_ms": 7808,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-pipedream-mvy312f2qg",
+        "X-CDBI-Trace-Id": "trace-0.k8p4x7q5d5u",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "cursor"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "header",
+      "key_name": "pipedream_sk",
+      "token_url": "https://auth.pipedream.org/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": false,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": true
+    },
+    "internal_meta": {
+      "created_ts": 1716174301548,
+      "updated_ts": 1716911323697,
+      "config_version": "v2.3.16",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "github": {
+    "id": "svc_github_kggn70j3",
+    "n": "GitHub",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.github.net/v2",
+      "rate_l": 883,
+      "tout_ms": 11335,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-github-1q2sfgv9wzkr",
+        "X-CDBI-Trace-Id": "trace-0.u11x7k2v7mk",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "oauth2_cc",
+      "cred_loc": "body",
+      "key_name": "github_sk",
+      "token_url": "https://auth.github.net/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": true,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": true
+    },
+    "internal_meta": {
+      "created_ts": 1716298583648,
+      "updated_ts": 1716911323697,
+      "config_version": "v2.3.4",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "huggingface": {
+    "id": "svc_huggingface_1g97d02",
+    "n": "Hugging Face",
+    "actv": false,
+    "api_meta": {
+      "base": "https://api.huggingface.net/v5",
+      "rate_l": 555,
+      "tout_ms": 11099,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-huggingface-92p03k591rr",
+        "X-CDBI-Trace-Id": "trace-0.v280lq57c7c",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "cursor"
+    },
+    "auth_strat": {
+      "type": "oauth2_cc",
+      "cred_loc": "body",
+      "key_name": "huggingface_sk",
+      "token_url": "https://auth.huggingface.net/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": true,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": true
+    },
+    "internal_meta": {
+      "created_ts": 1716186358117,
+      "updated_ts": 1716911323697,
+      "config_version": "v2.3.17",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "plaid": {
+    "id": "svc_plaid_u4bzzr8q",
+    "n": "Plaid",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.plaid.io/v1",
+      "rate_l": 551,
+      "tout_ms": 7862,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-plaid-1d6e1o4u41m3",
+        "X-CDBI-Trace-Id": "trace-0.j6c5n6o78o",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "offset"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "header",
+      "key_name": "plaid_sk",
+      "token_url": "https://auth.plaid.io/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": true,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716301389808,
+      "updated_ts": 1716911323697,
+      "config_version": "v2.3.17",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "moderntreasury": {
+    "id": "svc_moderntreasury_1b1k942l",
+    "n": "Modern Treasury",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.moderntreasury.com/v3",
+      "rate_l": 551,
+      "tout_ms": 11180,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-moderntreasury-d3r8r2b55u",
+        "X-CDBI-Trace-Id": "trace-0.k7f9d1s92c",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "body",
+      "key_name": "moderntreasury_sk",
+      "token_url": "https://auth.moderntreasury.com/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716499834164,
+      "updated_ts": 1716911323697,
+      "config_version": "v2.3.16",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "googledrive": {
+    "id": "svc_googledrive_g7j3u5u1",
+    "n": "Google Drive",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.googledrive.net/v1",
+      "rate_l": 551,
+      "tout_ms": 13959,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-googledrive-4y540a02qg5",
+        "X-CDBI-Trace-Id": "trace-0.j7x7h26a9xc",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "offset"
+    },
+    "auth_strat": {
+      "type": "oauth2_cc",
+      "cred_loc": "body",
+      "key_name": "googledrive_sk",
+      "token_url": "https://auth.googledrive.net/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716298539091,
+      "updated_ts": 1716911323697,
+      "config_version": "v2.3.9",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "onedrive": {
+    "id": "svc_onedrive_a65529k3",
+    "n": "OneDrive",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.onedrive.io/v4",
+      "rate_l": 558,
+      "tout_ms": 11504,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-onedrive-1t5p91q0w35r",
+        "X-CDBI-Trace-Id": "trace-0.j9y8p05xazp",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "oauth2_cc",
+      "cred_loc": "body",
+      "key_name": "onedrive_sk",
+      "token_url": "https://auth.onedrive.io/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": false,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": false,
+      "requires_mfa": true
+    },
+    "internal_meta": {
+      "created_ts": 1716613385684,
+      "updated_ts": 1716911323698,
+      "config_version": "v2.3.9",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "azure": {
+    "id": "svc_azure_v6838385",
+    "n": "Azure",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.azure.net/v5",
+      "rate_l": 234,
+      "tout_ms": 7728,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-azure-c4e9v67f9l",
+        "X-CDBI-Trace-Id": "trace-0.k9n4e3m1v3",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "offset"
+    },
+    "auth_strat": {
+      "type": "oauth2_cc",
+      "cred_loc": "body",
+      "key_name": "azure_sk",
+      "token_url": "https://auth.azure.net/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": false,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716769490204,
+      "updated_ts": 1716911323698,
+      "config_version": "v2.3.17",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "googlecloud": {
+    "id": "svc_googlecloud_4w6c8n3w",
+    "n": "Google Cloud",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.googlecloud.dev/v1",
+      "rate_l": 863,
+      "tout_ms": 11370,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-googlecloud-1011l7j3v57f",
+        "X-CDBI-Trace-Id": "trace-0.u1w9c685b8s",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "offset"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "header",
+      "key_name": "googlecloud_sk",
+      "token_url": "https://auth.googlecloud.dev/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716405234509,
+      "updated_ts": 1716911323698,
+      "config_version": "v2.3.17",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "supabase": {
+    "id": "svc_supabase_7k3g129k",
+    "n": "Supabase",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.supabase.net/v2",
+      "rate_l": 558,
+      "tout_ms": 11394,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-supabase-b5b0h9s3b2j",
+        "X-CDBI-Trace-Id": "trace-0.j9y8p05xazp",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "body",
+      "key_name": "supabase_sk",
+      "token_url": "https://auth.supabase.net/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": true,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": true
+    },
+    "internal_meta": {
+      "created_ts": 1716388481489,
+      "updated_ts": 1716911323698,
+      "config_version": "v2.3.15",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "vercel": {
+    "id": "svc_vercel_8r982363",
+    "n": "Vercel",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.vercel.io/v2",
+      "rate_l": 551,
+      "tout_ms": 7862,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-vercel-10o49x86d87",
+        "X-CDBI-Trace-Id": "trace-0.u32j3u445d4",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "header",
+      "key_name": "vercel_sk",
+      "token_url": "https://auth.vercel.io/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716301389808,
+      "updated_ts": 1716911323698,
+      "config_version": "v2.3.17",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "salesforce": {
+    "id": "svc_salesforce_6h2h67j1",
+    "n": "Salesforce",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.salesforce.io/v3",
+      "rate_l": 559,
+      "tout_ms": 11756,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-salesforce-k959r5l7q7",
+        "X-CDBI-Trace-Id": "trace-0.90x6u4l4bci",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "offset"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "body",
+      "key_name": "salesforce_sk",
+      "token_url": "https://auth.salesforce.io/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": false,
+      "requires_mfa": true
+    },
+    "internal_meta": {
+      "created_ts": 1716616091497,
+      "updated_ts": 1716911323698,
+      "config_version": "v2.3.8",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "oracle": {
+    "id": "svc_oracle_7h0h284r",
+    "n": "Oracle",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.oracle.com/v1",
+      "rate_l": 558,
+      "tout_ms": 11394,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-oracle-1x7o983o3gqr",
+        "X-CDBI-Trace-Id": "trace-0.u1v947v4c9k",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "offset"
+    },
+    "auth_strat": {
+      "type": "oauth2_cc",
+      "cred_loc": "header",
+      "key_name": "oracle_sk",
+      "token_url": "https://auth.oracle.com/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": true,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": true
+    },
+    "internal_meta": {
+      "created_ts": 1716388481489,
+      "updated_ts": 1716911323698,
+      "config_version": "v2.3.15",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "marqeta": {
+    "id": "svc_marqeta_0c0f993f",
+    "n": "MARQETA",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.marqeta.net/v1",
+      "rate_l": 558,
+      "tout_ms": 11504,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-marqeta-1p6o9g3549k1",
+        "X-CDBI-Trace-Id": "trace-0.k9n4e3m1v3",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "offset"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "body",
+      "key_name": "marqeta_sk",
+      "token_url": "https://auth.marqeta.net/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": true,
+      "supports_realtime_status": false,
+      "supports_metadata": true,
+      "requires_mfa": true
+    },
+    "internal_meta": {
+      "created_ts": 1716613385684,
+      "updated_ts": 1716911323698,
+      "config_version": "v2.3.9",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "citibank": {
+    "id": "svc_citibank_8s5s6g1k",
+    "n": "Citibank",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.citibank.net/v1",
+      "rate_l": 551,
+      "tout_ms": 7862,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-citibank-70y4n2s0d0",
+        "X-CDBI-Trace-Id": "trace-0.90x6u4l4bci",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "body",
+      "key_name": "citibank_sk",
+      "token_url": "https://auth.citibank.net/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716301389808,
+      "updated_ts": 1716911323698,
+      "config_version": "v2.3.17",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "shopify": {
+    "id": "svc_shopify_88j9a071",
+    "n": "Shopify",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.shopify.com/v4",
+      "rate_l": 551,
+      "tout_ms": 11180,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-shopify-1w7y3v9k61q5",
+        "X-CDBI-Trace-Id": "trace-0.u1w9c685b8s",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "oauth2_cc",
+      "cred_loc": "header",
+      "key_name": "shopify_sk",
+      "token_url": "https://auth.shopify.com/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716499834164,
+      "updated_ts": 1716911323698,
+      "config_version": "v2.3.16",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "woocommerce": {
+    "id": "svc_woocommerce_37435f4w",
+    "n": "WooCommerce",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.woocommerce.net/v1",
+      "rate_l": 551,
+      "tout_ms": 7862,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-woocommerce-q57p7781v8",
+        "X-CDBI-Trace-Id": "trace-0.90x6u4l4bci",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "body",
+      "key_name": "woocommerce_sk",
+      "token_url": "https://auth.woocommerce.net/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716301389808,
+      "updated_ts": 1716911323698,
+      "config_version": "v2.3.17",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "godaddy": {
+    "id": "svc_godaddy_n5t58h7x",
+    "n": "GoDaddy",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.godaddy.com/v4",
+      "rate_l": 551,
+      "tout_ms": 7862,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-godaddy-g8820w8j37",
+        "X-CDBI-Trace-Id": "trace-0.k8p4x7q5d5u",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "body",
+      "key_name": "godaddy_sk",
+      "token_url": "https://auth.godaddy.com/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716301389808,
+      "updated_ts": 1716911323699,
+      "config_version": "v2.3.17",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "cpanel": {
+    "id": "svc_cpanel_a4w56w45",
+    "n": "CPanel",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.cpanel.net/v2",
+      "rate_l": 551,
+      "tout_ms": 7862,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-cpanel-8s5q78y8z8",
+        "X-CDBI-Trace-Id": "trace-0.u1w9c685b8s",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "cursor"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "body",
+      "key_name": "cpanel_sk",
+      "token_url": "https://auth.cpanel.net/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716301389808,
+      "updated_ts": 1716911323699,
+      "config_version": "v2.3.17",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "adobe": {
+    "id": "svc_adobe_5h442d8w",
+    "n": "Adobe",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.adobe.org/v2",
+      "rate_l": 551,
+      "tout_ms": 7862,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-adobe-k516m8s6j5",
+        "X-CDBI-Trace-Id": "trace-0.k8p4x7q5d5u",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "body",
+      "key_name": "adobe_sk",
+      "token_url": "https://auth.adobe.org/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716301389808,
+      "updated_ts": 1716911323699,
+      "config_version": "v2.3.17",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "twilio": {
+    "id": "svc_twilio_c0c0e5f2",
+    "n": "Twilio",
+    "actv": false,
+    "api_meta": {
+      "base": "https://api.twilio.dev/v2",
+      "rate_l": 551,
+      "tout_ms": 7862,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-twilio-451s23j8m1",
+        "X-CDBI-Trace-Id": "trace-0.k7f9d1s92c",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "body",
+      "key_name": "twilio_sk",
+      "token_url": "https://auth.twilio.dev/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716301389808,
+      "updated_ts": 1716911323699,
+      "config_version": "v2.3.17",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "stripe": {
+    "id": "svc_stripe_w8i9j3l4",
+    "n": "Stripe",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.stripe.com/v1",
+      "rate_l": 551,
+      "tout_ms": 7862,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-stripe-h7f9s9a0j1",
+        "X-CDBI-Trace-Id": "trace-0.u1w9c685b8s",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "body",
+      "key_name": "stripe_sk",
+      "token_url": "https://auth.stripe.com/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716301389808,
+      "updated_ts": 1716911323699,
+      "config_version": "v2.3.17",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "paypal": {
+    "id": "svc_paypal_k1l2m3n4",
+    "n": "PayPal",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.paypal.com/v1",
+      "rate_l": 551,
+      "tout_ms": 7862,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-paypal-a1b2c3d4e5",
+        "X-CDBI-Trace-Id": "trace-0.u1w9c685b8s",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "body",
+      "key_name": "paypal_sk",
+      "token_url": "https://auth.paypal.com/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716301389808,
+      "updated_ts": 1716911323699,
+      "config_version": "v2.3.17",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "braintree": {
+    "id": "svc_braintree_b5e6f7g8",
+    "n": "Braintree",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.braintree.com/v1",
+      "rate_l": 551,
+      "tout_ms": 7862,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-braintree-x1y2z3a4b5",
+        "X-CDBI-Trace-Id": "trace-0.u1w9c685b8s",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "body",
+      "key_name": "braintree_sk",
+      "token_url": "https://auth.braintree.com/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716301389808,
+      "updated_ts": 1716911323699,
+      "config_version": "v2.3.17",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "adyen": {
+    "id": "svc_adyen_c6d7e8f9",
+    "n": "Adyen",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.adyen.com/v1",
+      "rate_l": 551,
+      "tout_ms": 7862,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-adyen-p1q2r3s4t5",
+        "X-CDBI-Trace-Id": "trace-0.u1w9c685b8s",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "body",
+      "key_name": "adyen_sk",
+      "token_url": "https://auth.adyen.com/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716301389808,
+      "updated_ts": 1716911323699,
+      "config_version": "v2.3.17",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "square": {
+    "id": "svc_square_d7e8f9g0",
+    "n": "Square",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.square.com/v1",
+      "rate_l": 551,
+      "tout_ms": 7862,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-square-u1v2w3x4y5",
+        "X-CDBI-Trace-Id": "trace-0.u1w9c685b8s",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "body",
+      "key_name": "square_sk",
+      "token_url": "https://auth.square.com/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716301389808,
+      "updated_ts": 1716911323699,
+      "config_version": "v2.3.17",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "brex": {
+    "id": "svc_brex_e8f9g0h1",
+    "n": "Brex",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.brex.com/v1",
+      "rate_l": 551,
+      "tout_ms": 7862,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-brex-z1a2b3c4d5",
+        "X-CDBI-Trace-Id": "trace-0.u1w9c685b8s",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "body",
+      "key_name": "brex_sk",
+      "token_url": "https://auth.brex.com/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716301389808,
+      "updated_ts": 1716911323699,
+      "config_version": "v2.3.17",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "ramp": {
+    "id": "svc_ramp_f9g0h1i2",
+    "n": "Ramp",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.ramp.com/v1",
+      "rate_l": 551,
+      "tout_ms": 7862,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-ramp-e5f6g7h8i9",
+        "X-CDBI-Trace-Id": "trace-0.u1w9c685b8s",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "body",
+      "key_name": "ramp_sk",
+      "token_url": "https://auth.ramp.com/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716301389808,
+      "updated_ts": 1716911323699,
+      "config_version": "v2.3.17",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "quickbooks": {
+    "id": "svc_quickbooks_g0h1i2j3",
+    "n": "QuickBooks",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.quickbooks.com/v1",
+      "rate_l": 551,
+      "tout_ms": 7862,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-quickbooks-j9k0l1m2n3",
+        "X-CDBI-Trace-Id": "trace-0.u1w9c685b8s",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "body",
+      "key_name": "quickbooks_sk",
+      "token_url": "https://auth.quickbooks.com/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716301389808,
+      "updated_ts": 1716911323699,
+      "config_version": "v2.3.17",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "xero": {
+    "id": "svc_xero_h1i2j3k4",
+    "n": "Xero",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.xero.com/v1",
+      "rate_l": 551,
+      "tout_ms": 7862,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-xero-o3p4q5r6s7",
+        "X-CDBI-Trace-Id": "trace-0.u1w9c685b8s",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "body",
+      "key_name": "xero_sk",
+      "token_url": "https://auth.xero.com/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716301389808,
+      "updated_ts": 1716911323699,
+      "config_version": "v2.3.17",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "netsuite": {
+    "id": "svc_netsuite_i2j3k4l5",
+    "n": "NetSuite",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.netsuite.com/v1",
+      "rate_l": 551,
+      "tout_ms": 7862,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-netsuite-t7u8v9w0x1",
+        "X-CDBI-Trace-Id": "trace-0.u1w9c685b8s",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "body",
+      "key_name": "netsuite_sk",
+      "token_url": "https://auth.netsuite.com/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716301389808,
+      "updated_ts": 1716911323699,
+      "config_version": "v2.3.17",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "sap": {
+    "id": "svc_sap_j3k4l5m6",
+    "n": "SAP",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.sap.com/v1",
+      "rate_l": 551,
+      "tout_ms": 7862,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-sap-y1z2a3b4c5",
+        "X-CDBI-Trace-Id": "trace-0.u1w9c685b8s",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "body",
+      "key_name": "sap_sk",
+      "token_url": "https://auth.sap.com/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716301389808,
+      "updated_ts": 1716911323699,
+      "config_version": "v2.3.17",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "workday": {
+    "id": "svc_workday_k4l5m6n7",
+    "n": "Workday",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.workday.com/v1",
+      "rate_l": 551,
+      "tout_ms": 7862,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-workday-d5e6f7g8h9",
+        "X-CDBI-Trace-Id": "trace-0.u1w9c685b8s",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "body",
+      "key_name": "workday_sk",
+      "token_url": "https://auth.workday.com/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716301389808,
+      "updated_ts": 1716911323699,
+      "config_version": "v2.3.17",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "hubspot": {
+    "id": "svc_hubspot_l5m6n7o8",
+    "n": "HubSpot",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.hubspot.com/v1",
+      "rate_l": 551,
+      "tout_ms": 7862,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-hubspot-i9j0k1l2m3",
+        "X-CDBI-Trace-Id": "trace-0.u1w9c685b8s",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "body",
+      "key_name": "hubspot_sk",
+      "token_url": "https://auth.hubspot.com/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716301389808,
+      "updated_ts": 1716911323700,
+      "config_version": "v2.3.17",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "zendesk": {
+    "id": "svc_zendesk_m6n7o8p9",
+    "n": "Zendesk",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.zendesk.com/v1",
+      "rate_l": 551,
+      "tout_ms": 7862,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-zendesk-n3o4p5q6r7",
+        "X-CDBI-Trace-Id": "trace-0.u1w9c685b8s",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "body",
+      "key_name": "zendesk_sk",
+      "token_url": "https://auth.zendesk.com/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716301389808,
+      "updated_ts": 1716911323700,
+      "config_version": "v2.3.17",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "jira": {
+    "id": "svc_jira_n7o8p9q0",
+    "n": "Jira",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.jira.com/v1",
+      "rate_l": 551,
+      "tout_ms": 7862,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-jira-s7t8u9v0w1",
+        "X-CDBI-Trace-Id": "trace-0.u1w9c685b8s",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "body",
+      "key_name": "jira_sk",
+      "token_url": "https://auth.jira.com/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716301389808,
+      "updated_ts": 1716911323700,
+      "config_version": "v2.3.17",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "confluence": {
+    "id": "svc_confluence_o8p9q0r1",
+    "n": "Confluence",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.confluence.com/v1",
+      "rate_l": 551,
+      "tout_ms": 7862,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-confluence-x1y2z3a4b5",
+        "X-CDBI-Trace-Id": "trace-0.u1w9c685b8s",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "body",
+      "key_name": "confluence_sk",
+      "token_url": "https://auth.confluence.com/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716301389808,
+      "updated_ts": 1716911323700,
+      "config_version": "v2.3.17",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "slack": {
+    "id": "svc_slack_p9q0r1s2",
+    "n": "Slack",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.slack.com/v1",
+      "rate_l": 551,
+      "tout_ms": 7862,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-slack-c5d6e7f8g9",
+        "X-CDBI-Trace-Id": "trace-0.u1w9c685b8s",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "body",
+      "key_name": "slack_sk",
+      "token_url": "https://auth.slack.com/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716301389808,
+      "updated_ts": 1716911323700,
+      "config_version": "v2.3.17",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "microsoftteams": {
+    "id": "svc_microsoftteams_q0r1s2t3",
+    "n": "Microsoft Teams",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.microsoftteams.com/v1",
+      "rate_l": 551,
+      "tout_ms": 7862,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-microsoftteams-h9i0j1k2l3",
+        "X-CDBI-Trace-Id": "trace-0.u1w9c685b8s",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "body",
+      "key_name": "microsoftteams_sk",
+      "token_url": "https://auth.microsoftteams.com/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716301389808,
+      "updated_ts": 1716911323700,
+      "config_version": "v2.3.17",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "zoom": {
+    "id": "svc_zoom_r1s2t3u4",
+    "n": "Zoom",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.zoom.com/v1",
+      "rate_l": 551,
+      "tout_ms": 7862,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-zoom-m3n4o5p6q7",
+        "X-CDBI-Trace-Id": "trace-0.u1w9c685b8s",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "body",
+      "key_name": "zoom_sk",
+      "token_url": "https://auth.zoom.com/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716301389808,
+      "updated_ts": 1716911323700,
+      "config_version": "v2.3.17",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "asana": {
+    "id": "svc_asana_s2t3u4v5",
+    "n": "Asana",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.asana.com/v1",
+      "rate_l": 551,
+      "tout_ms": 7862,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-asana-r7s8t9u0v1",
+        "X-CDBI-Trace-Id": "trace-0.u1w9c685b8s",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "body",
+      "key_name": "asana_sk",
+      "token_url": "https://auth.asana.com/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716301389808,
+      "updated_ts": 1716911323700,
+      "config_version": "v2.3.17",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "trello": {
+    "id": "svc_trello_t3u4v5w6",
+    "n": "Trello",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.trello.com/v1",
+      "rate_l": 551,
+      "tout_ms": 7862,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-trello-w1x2y3z4a5",
+        "X-CDBI-Trace-Id": "trace-0.u1w9c685b8s",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "body",
+      "key_name": "trello_sk",
+      "token_url": "https://auth.trello.com/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716301389808,
+      "updated_ts": 1716911323700,
+      "config_version": "v2.3.17",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "notion": {
+    "id": "svc_notion_u4v5w6x7",
+    "n": "Notion",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.notion.com/v1",
+      "rate_l": 551,
+      "tout_ms": 7862,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-notion-b5c6d7e8f9",
+        "X-CDBI-Trace-Id": "trace-0.u1w9c685b8s",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "body",
+      "key_name": "notion_sk",
+      "token_url": "https://auth.notion.com/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716301389808,
+      "updated_ts": 1716911323700,
+      "config_version": "v2.3.17",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "figma": {
+    "id": "svc_figma_v5w6x7y8",
+    "n": "Figma",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.figma.com/v1",
+      "rate_l": 551,
+      "tout_ms": 7862,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-figma-g9h0i1j2k3",
+        "X-CDBI-Trace-Id": "trace-0.u1w9c685b8s",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "body",
+      "key_name": "figma_sk",
+      "token_url": "https://auth.figma.com/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716301389808,
+      "updated_ts": 1716911323700,
+      "config_version": "v2.3.17",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "sketch": {
+    "id": "svc_sketch_w6x7y8z9",
+    "n": "Sketch",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.sketch.com/v1",
+      "rate_l": 551,
+      "tout_ms": 7862,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-sketch-l3m4n5o6p7",
+        "X-CDBI-Trace-Id": "trace-0.u1w9c685b8s",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "body",
+      "key_name": "sketch_sk",
+      "token_url": "https://auth.sketch.com/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716301389808,
+      "updated_ts": 1716911323700,
+      "config_version": "v2.3.17",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "invision": {
+    "id": "svc_invision_x7y8z9a0",
+    "n": "InVision",
+    "actv": true,
+    "api_meta": {
+      "base": "https://api.invision.com/v1",
+      "rate_l": 551,
+      "tout_ms": 7862,
+      "hdr_tpl": {
+        "X-CDBI-App-Id": "app-invision-q7r8s9t0u1",
+        "X-CDBI-Trace-Id": "trace-0.u1w9c685b8s",
+        "User-Agent": "CDBI-Integration-Engine/2.1.0 (Citibank demo business Inc)"
+      },
+      "pagination_style": "page"
+    },
+    "auth_strat": {
+      "type": "api_key",
+      "cred_loc": "body",
+      "key_name": "invision_sk",
+      "token_url": "https://auth.invision.com/oauth/token",
+      "scopes_req": [
+        "ach:r",
+        "ach:w",
+        "txn:r",
+        "bal:r",
+        "user:r",
+        "webhook:rw"
+      ]
+    },
+    "endpoints_map": {
+      "fetch_txns": "/transactions?limit=100",
+      "fetch_bal": "/accounts/{accountId}/balance",
+      "initiate_transfer": "/ach/transfers",
+      "get_transfer_status": "/ach/transfers/{transferId}",
+      "get_ach_returns": "/ach/returns?days=90",
+      "list_webhooks": "/webhooks",
+      "create_webhook": "/webhooks",
+      "delete_webhook": "/webhooks/{webhookId}",
+      "get_counterparties": "/counterparties",
+      "create_counterparty": "/counterparties"
+    },
+    "data_schemas": {
+      "transaction": {
+        "transactionId": "string",
+        "amount": "number",
+        "currencyCode": "string",
+        "transactionDate": "iso_string",
+        "descriptionText": "string",
+        "accountId": "string",
+        "status": [
+          "pending",
+          "posted",
+          "failed",
+          "returned",
+          "cancelled"
+        ],
+        "type": [
+          "credit",
+          "debit"
+        ],
+        "metadata": "object"
+      },
+      "ach_return": {
+        "returnId": "string",
+        "originalTransactionId": "string",
+        "returnCode": "string",
+        "returnDescription": "string",
+        "returnDate": "iso_string",
+        "returnAmount": "number",
+        "reason_metadata": "object"
+      },
+      "balance": {
+        "accountId": "string",
+        "available": "number",
+        "current": "number",
+        "currency": "string",
+        "last_updated": "iso_string"
+      }
+    },
+    "transform_logic": {
+      "normalize_transaction": "(d) => ({ uuid: d.transactionId, val: d.amount, ccy: d.currencyCode, ts: new Date(d.transactionDate).getTime(), dsc: d.descriptionText, aid: d.accountId, st: d.status, m: d.metadata })",
+      "normalize_return": "(d) => ({ ruid: d.returnId, otuid: d.originalTransactionId, rc: d.returnCode, rd: d.returnDescription, ts: new Date(d.returnDate).getTime(), val: d.returnAmount, rm: d.reason_metadata })"
+    },
+    "feature_flags": {
+      "supports_webhooks": true,
+      "supports_batching": false,
+      "supports_realtime_status": true,
+      "supports_metadata": true,
+      "requires_mfa": false
+    },
+    "internal_meta": {
+      "created_ts": 1716301389808,
+      "updated_ts": 1716911323700,
+      "config_version": "v2.3.17",
+      "maintainer": "ai-system-01"
+    }
+  },
+  "canva": {
+    "id

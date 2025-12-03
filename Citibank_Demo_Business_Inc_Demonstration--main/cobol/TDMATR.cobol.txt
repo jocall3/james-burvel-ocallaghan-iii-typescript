@@ -1,0 +1,345 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. TDMATR.
+       AUTHOR. SYSTEM-ADMIN.
+      ******************************************************************
+      * TIME DEPOSIT MATURITY PROCESSING SYSTEM
+      * This program processes time deposit (CD) accounts to handle
+      * maturities, including renewals and payouts, and integrates
+      * an AI-assisted decision-making module for enhanced customer
+      * engagement and retention strategies.
+      ******************************************************************
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT TIME-DEPOSIT-FILE ASSIGN TO TDMAST
+               ORGANIZATION IS LINE SEQUENTIAL
+               FILE STATUS IS WS-TD-FILE-STATUS.
+
+       DATA DIVISION.
+       FILE SECTION.
+       FD TIME-DEPOSIT-FILE
+           RECORD CONTAINS 200 CHARACTERS.
+       01 TD-FILE-RECORD PIC X(200).
+
+       WORKING-STORAGE SECTION.
+      ******************************************************************
+      * File Status and Control Flags
+      ******************************************************************
+       01 WS-FILE-STATUS-FIELDS.
+           05 WS-TD-FILE-STATUS     PIC X(02) VALUE '00'.
+              88 TD-FILE-OPEN-OK    VALUE '00'.
+              88 TD-FILE-EOF        VALUE '10'.
+           05 WS-EOF-FLAG           PIC X(01) VALUE 'N'.
+              88 END-OF-FILE        VALUE 'Y'.
+
+      ******************************************************************
+      * Current Date Information
+      ******************************************************************
+       01 WS-CURRENT-DATE-DATA.
+           05 WS-CURRENT-YEAR   PIC X(04).
+           05 WS-CURRENT-MONTH  PIC X(02).
+           05 WS-CURRENT-DAY    PIC X(02).
+       01 WS-CURRENT-DATE-NUM   PIC 9(08).
+
+      ******************************************************************
+      * Program Statistics and Summary Report Fields
+      ******************************************************************
+       01 WS-SUMMARY-DATA.
+           05 WS-RECORDS-PROCESSED  PIC 9(09) VALUE ZEROS.
+           05 WS-MATURE-RECORDS     PIC 9(09) VALUE ZEROS.
+           05 WS-RENEWED-CDS        PIC 9(09) VALUE ZEROS.
+           05 WS-PAID-CDS           PIC 9(09) VALUE ZEROS.
+           05 WS-AI-REVIEWED-CDS    PIC 9(09) VALUE ZEROS.
+           05 WS-SPECIAL-OFFER-CDS  PIC 9(09) VALUE ZEROS.
+           05 WS-TOTAL-PAYOUT-AMT   PIC S9(13)V99 COMP-3 VALUE ZEROS.
+           05 WS-TOTAL-RENEWAL-AMT  PIC S9(13)V99 COMP-3 VALUE ZEROS.
+
+      ******************************************************************
+      * Time Deposit Detail Record Structure (for IN/OUT)
+      ******************************************************************
+       01 TD-DETAIL-RECORD.
+          05 TD-ACCOUNT-NUMBER      PIC X(10).
+          05 TD-CUSTOMER-ID         PIC X(10).
+          05 TD-PRINCIPAL-AMOUNT    PIC S9(11)V99 COMP-3.
+          05 TD-INTEREST-RATE       PIC S9V9(5) COMP-3.
+          05 TD-OPEN-DATE           PIC X(08).  *> YYYYMMDD
+          05 TD-MATURITY-DATE       PIC X(08).  *> YYYYMMDD
+          05 TD-TERM-MONTHS         PIC S9(03) COMP-3.
+          05 TD-RENEWAL-CODE        PIC X(01).
+             88 RENEW-AUTO          VALUE 'R'.  *> Auto-renew
+             88 RENEW-PAYOUT        VALUE 'P'.  *> Payout at maturity
+             88 RENEW-AI-SUGGEST    VALUE 'S'.  *> AI-suggested action
+             88 RENEW-MANUAL-REVIEW VALUE 'M'.  *> Manual review required
+          05 TD-LAST-INTEREST-DATE  PIC X(08).  *> YYYYMMDD
+          05 TD-LAST-RENEWAL-DATE   PIC X(08).  *> YYYYMMDD
+          05 TD-STATUS-CODE         PIC X(01).
+             88 STATUS-ACTIVE       VALUE 'A'.
+             88 STATUS-MATURE       VALUE 'M'.
+             88 STATUS-CLOSED       VALUE 'X'.
+             88 STATUS-AI-REVIEW    VALUE 'S'.   *> AI-suggested special handling
+          05 TD-AI-FLAG             PIC X(01).
+             88 AI-REVIEWED         VALUE 'Y'.
+             88 AI-NOT-REVIEWED     VALUE 'N'.
+          05 TD-AI-RECOMMENDATION   PIC X(50).
+          05 TD-NEW-INTEREST-RATE   PIC S9V9(5) COMP-3.
+          05 TD-PAYOUT-AMOUNT       PIC S9(11)V99 COMP-3.
+          05 TD-FILLER              PIC X(71).
+
+      ******************************************************************
+      * Temporary fields for calculations
+      ******************************************************************
+       01 WS-CALCULATION-FIELDS.
+           05 WS-MATURITY-DATE-NUM  PIC 9(08).
+           05 WS-NEW-MATURITY-DATE-N PIC 9(08).
+           05 WS-YEARS-TO-ADD       PIC S9(03).
+
+       PROCEDURE DIVISION.
+       MAIN-LOGIC.
+           DISPLAY "TDMATR - TIME DEPOSIT MATURITY BATCH PROCESSING STARTING".
+
+           MOVE FUNCTION CURRENT-DATE (1:8) TO WS-CURRENT-DATE-DATA.
+           MOVE WS-CURRENT-DATE-DATA TO WS-CURRENT-DATE-NUM.
+           DISPLAY "Processing date: " WS-CURRENT-DATE-NUM.
+
+           OPEN I-O TIME-DEPOSIT-FILE.
+           IF NOT TD-FILE-OPEN-OK
+               DISPLAY "ERROR: Could not open TIME-DEPOSIT-FILE. Status: "
+                       WS-TD-FILE-STATUS
+               STOP RUN
+           END-IF.
+
+           PERFORM READ-TIME-DEPOSIT-FILE. *> Initial read
+           PERFORM PROCESS-RECORDS UNTIL END-OF-FILE.
+           PERFORM GENERATE-SUMMARY-REPORT.
+           CLOSE TIME-DEPOSIT-FILE.
+           DISPLAY "TDMATR - TIME DEPOSIT MATURITY BATCH PROCESSING COMPLETE.".
+           STOP RUN.
+
+      ******************************************************************
+      * Read a record from the Time Deposit file
+      ******************************************************************
+       READ-TIME-DEPOSIT-FILE.
+           READ TIME-DEPOSIT-FILE INTO TD-DETAIL-RECORD
+               AT END SET END-OF-FILE TO TRUE
+           END-READ.
+           IF NOT END-OF-FILE
+               IF NOT TD-FILE-OPEN-OK *> Status check after read
+                   DISPLAY "ERROR: Could not read record. Status: "
+                           WS-TD-FILE-STATUS
+                   STOP RUN
+               END-IF
+               ADD 1 TO WS-RECORDS-PROCESSED
+           END-IF.
+
+      ******************************************************************
+      * Main loop to process all records
+      ******************************************************************
+       PROCESS-RECORDS.
+           IF NOT END-OF-FILE
+               IF TD-MATURITY-DATE <= WS-CURRENT-DATE-NUM
+                   PERFORM PROCESS-MATURE-RECORD
+               ELSE
+                   DISPLAY "INFO: Record " TD-ACCOUNT-NUMBER
+                           " not yet mature. Maturity Date: "
+                           TD-MATURITY-DATE
+               END-IF
+           END-IF.
+           PERFORM READ-TIME-DEPOSIT-FILE.
+
+      ******************************************************************
+      * Handle a mature time deposit record
+      ******************************************************************
+       PROCESS-MATURE-RECORD.
+           ADD 1 TO WS-MATURE-RECORDS.
+           DISPLAY "PROCESSING MATURE RECORD: " TD-ACCOUNT-NUMBER
+                   " Maturity Date: " TD-MATURITY-DATE.
+
+           PERFORM INVOKE-AI-ASSISTANT. *> Call AI for recommendations
+
+           EVALUATE TRUE
+               WHEN RENEW-AUTO
+                   PERFORM RENEW-CD
+               WHEN RENEW-PAYOUT
+                   PERFORM PAYOUT-CD
+               WHEN RENEW-AI-SUGGEST
+                   PERFORM AI-SUGGESTED-ACTION
+               WHEN OTHER
+                   DISPLAY "WARNING: Unknown renewal code '" TD-RENEWAL-CODE
+                           "' for " TD-ACCOUNT-NUMBER
+                           ". Defaulting to manual review."
+                   MOVE 'M' TO TD-STATUS-CODE
+                   MOVE 'N' TO TD-AI-FLAG
+                   MOVE 'Manual review required - unknown code'
+                       TO TD-AI-RECOMMENDATION
+           END-EVALUATE.
+
+           REWRITE TD-FILE-RECORD FROM TD-DETAIL-RECORD.
+           IF NOT TD-FILE-OPEN-OK
+               DISPLAY "ERROR: Could not rewrite record for "
+                       TD-ACCOUNT-NUMBER " Status: " WS-TD-FILE-STATUS
+               *> In a real system, robust error handling, rollback, or
+               *> error logging would be implemented here.
+           END-IF.
+
+      ******************************************************************
+      * Renew a Time Deposit account
+      ******************************************************************
+       RENEW-CD.
+           DISPLAY "INFO: Renewing CD for account: " TD-ACCOUNT-NUMBER.
+           ADD 1 TO WS-RENEWED-CDS.
+
+           *> Simplified date calculation for renewal.
+           *> In a production system, a robust date calculation module
+           *> considering months, days, leap years would be used.
+           MOVE TD-MATURITY-DATE TO WS-MATURITY-DATE-NUM.
+           COMPUTE WS-YEARS-TO-ADD = TD-TERM-MONTHS / 12.
+           IF WS-YEARS-TO-ADD = 0 AND TD-TERM-MONTHS > 0
+               ADD 1 TO WS-YEARS-TO-ADD *> Ensure at least 1 year for short terms
+           END-IF.
+           
+           COMPUTE WS-NEW-MATURITY-DATE-N =
+               (WS-MATURITY-DATE-NUM / 10000) * 10000 +   *> Original year part
+               (WS-YEARS-TO-ADD * 10000) +                *> Years to add
+               (WS-MATURITY-DATE-NUM MOD 10000).          *> Month & day part
+
+           MOVE WS-NEW-MATURITY-DATE-N TO TD-MATURITY-DATE.
+           MOVE WS-CURRENT-DATE-NUM TO TD-LAST-RENEWAL-DATE.
+           MOVE 'A' TO TD-STATUS-CODE. *> Set status back to active
+
+           IF AI-REVIEWED AND TD-NEW-INTEREST-RATE > TD-INTEREST-RATE
+               MOVE TD-NEW-INTEREST-RATE TO TD-INTEREST-RATE
+               ADD 1 TO WS-SPECIAL-OFFER-CDS
+           END-IF.
+
+           ADD TD-PRINCIPAL-AMOUNT TO WS-TOTAL-RENEWAL-AMT.
+           DISPLAY "INFO: CD " TD-ACCOUNT-NUMBER " renewed. New Maturity Date: "
+                   TD-MATURITY-DATE " New Rate: " TD-INTEREST-RATE.
+
+      ******************************************************************
+      * Process payout for a Time Deposit account
+      ******************************************************************
+       PAYOUT-CD.
+           DISPLAY "INFO: Processing payout for account: " TD-ACCOUNT-NUMBER.
+           ADD 1 TO WS-PAID-CDS.
+
+           *> Calculate final payout amount (Principal + accrued Interest)
+           *> This is a simplified calculation. A real system would use
+           *> daily accruals or specific interest calculation routines.
+           COMPUTE TD-PAYOUT-AMOUNT = TD-PRINCIPAL-AMOUNT +
+                                     (TD-PRINCIPAL-AMOUNT * TD-INTEREST-RATE * TD-TERM-MONTHS / 12 / 100).
+           MOVE 'X' TO TD-STATUS-CODE. *> Set status to closed
+           ADD TD-PAYOUT-AMOUNT TO WS-TOTAL-PAYOUT-AMT.
+           DISPLAY "INFO: CD " TD-ACCOUNT-NUMBER " paid out. Amount: "
+                   TD-PAYOUT-AMOUNT.
+
+      ******************************************************************
+      * Simulate AI Assistant for recommendations
+      * This module provides 'story-like' AI integration by applying
+      * rule-based logic to suggest actions for customer retention
+      * or special offers.
+      ******************************************************************
+       INVOKE-AI-ASSISTANT.
+           MOVE 'N' TO TD-AI-FLAG.
+           MOVE SPACES TO TD-AI-RECOMMENDATION.
+           MOVE TD-INTEREST-RATE TO TD-NEW-INTEREST-RATE. *> Default to current rate
+
+           ADD 1 TO WS-AI-REVIEWED-CDS.
+
+      *    Simulate AI decision based on customer profile and amount
+      *    Rule 1: High-Value, Loyal Customer Retention Strategy
+      *    (Example: Customer ID ending in '0' might indicate loyalty program)
+           IF TD-PRINCIPAL-AMOUNT > 10000000  *> E.g., over $100,000.00
+              AND TD-CUSTOMER-ID(10:1) = '0'
+               MOVE 'Y' TO TD-AI-FLAG
+               MOVE 'AI: Offer +0.15% rate for loyal retention'
+                   TO TD-AI-RECOMMENDATION
+               COMPUTE TD-NEW-INTEREST-RATE = TD-INTEREST-RATE + 0.0015
+               DISPLAY "AI ASSISTANT: Loyalty retention strategy for "
+                       TD-ACCOUNT-NUMBER
+           ELSE
+      *    Rule 2: High-Value Customer General Retention Strategy
+           IF TD-PRINCIPAL-AMOUNT > 5000000   *> E.g., over $50,000.00
+               MOVE 'Y' TO TD-AI-FLAG
+               MOVE 'AI: Suggest standard +0.05% for retention'
+                   TO TD-AI-RECOMMENDATION
+               COMPUTE TD-NEW-INTEREST-RATE = TD-INTEREST-RATE + 0.0005
+               DISPLAY "AI ASSISTANT: General retention strategy for "
+                       TD-ACCOUNT-NUMBER
+           ELSE
+      *    Rule 3: Mid-Value Customer Engagement Opportunity
+           IF TD-PRINCIPAL-AMOUNT > 1000000  *> E.g., over $10,000.00
+               MOVE 'Y' TO TD-AI-FLAG
+               MOVE 'AI: Recommend review for alternative products'
+                   TO TD-AI-RECOMMENDATION
+               DISPLAY "AI ASSISTANT: Alternative product review for "
+                       TD-ACCOUNT-NUMBER
+           ELSE
+      *    Rule 4: Standard Processing - No Special AI Action
+               MOVE 'N' TO TD-AI-FLAG
+               MOVE 'AI: Standard processing, no special action'
+                   TO TD-AI-RECOMMENDATION
+           END-IF
+           END-IF
+           END-IF.
+
+           IF AI-REVIEWED
+               SET STATUS-AI-REVIEW TO TRUE
+               SET RENEW-AI-SUGGEST TO TRUE *> Mark for AI-suggested action
+           END-IF.
+
+      ******************************************************************
+      * Act on AI Assistant's suggestions
+      ******************************************************************
+       AI-SUGGESTED-ACTION.
+           DISPLAY "INFO: AI Suggested Action for " TD-ACCOUNT-NUMBER ": "
+                   TD-AI-RECOMMENDATION.
+           
+           *> Based on the AI recommendation text, trigger appropriate action.
+           *> This simulates an integration point where AI output guides workflow.
+           IF TD-AI-RECOMMENDATION(1:3) = 'AI:'
+               IF TD-AI-RECOMMENDATION(5:5) = 'Offer'
+                   PERFORM RENEW-CD  *> Renew with the AI-suggested special rate
+               ELSE IF TD-AI-RECOMMENDATION(5:7) = 'Suggest'
+                   PERFORM RENEW-CD  *> Renew with AI-suggested rate
+               ELSE IF TD-AI-RECOMMENDATION(5:9) = 'Recommend'
+                   *> For "recommend check for alternative products",
+                   *> we'll renew normally but the recommendation is logged
+                   *> for a human follow-up. The AI system provides data,
+                   *> not necessarily direct action here.
+                   PERFORM RENEW-CD
+               ELSE
+                   *> Fallback for unrecognized AI recommendation
+                   DISPLAY "WARNING: Unrecognized AI recommendation for "
+                           TD-ACCOUNT-NUMBER ". Proceeding with standard renewal."
+                   PERFORM RENEW-CD
+               END-IF
+           ELSE
+               *> If AI did not provide a specific recommendation (e.g., filler data),
+               *> default to a standard renewal based on existing policy.
+               DISPLAY "INFO: No specific AI recommendation, applying standard renewal for "
+                       TD-ACCOUNT-NUMBER.
+               PERFORM RENEW-CD
+           END-IF.
+
+      ******************************************************************
+      * Generate a summary report of the batch processing
+      ******************************************************************
+       GENERATE-SUMMARY-REPORT.
+           DISPLAY " ".
+           DISPLAY "----------------------------------------------------".
+           DISPLAY "TDMATR - BATCH PROCESSING SUMMARY REPORT".
+           DISPLAY "----------------------------------------------------".
+           DISPLAY "Total records read:      " WS-RECORDS-PROCESSED.
+           DISPLAY "Total mature records:    " WS-MATURE-RECORDS.
+           DISPLAY " ".
+           DISPLAY "CDs renewed:             " WS-RENEWED-CDS.
+           DISPLAY "CDs paid out:            " WS-PAID-CDS.
+           DISPLAY "Records AI reviewed:     " WS-AI-REVIEWED-CDS.
+           DISPLAY "CDs with special offers: " WS-SPECIAL-OFFER-CDS.
+           DISPLAY " ".
+           DISPLAY "Total principal renewed: " WS-TOTAL-RENEWAL-AMT.
+           DISPLAY "Total amount paid out:   " WS-TOTAL-PAYOUT-AMT.
+           DISPLAY "----------------------------------------------------".
+           DISPLAY "End of TDMATR processing summary.".
+
+       END PROGRAM TDMATR.

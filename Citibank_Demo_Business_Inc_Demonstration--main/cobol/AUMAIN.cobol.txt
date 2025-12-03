@@ -1,0 +1,98 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. AUMAIN.
+       AUTHOR. AI-MAINFRAME-DEVELOPERS.
+      ******************************************************************
+      * AUDIT MAIN MODULE
+      * This program serves as the central menu for the Audit System.
+      * It provides access to various audit functionalities, including
+      * traditional log reviews, transaction trails, manual flagging,
+      * and advanced AI-driven analysis capabilities.
+      ******************************************************************
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01 WS-MENU-SWITCHES.
+          05 WS-USER-CHOICE       PIC X(01).
+             88 EXIT-AU-MENU      VALUE 'X'.
+       01 WS-MESSAGE-AREA.
+          05 WS-DISPLAY-MSG       PIC X(70) VALUE SPACES.
+          05 WS-LAST-ACTION       PIC X(50) VALUE "SYSTEM READY".
+
+       PROCEDURE DIVISION.
+       MAIN-LOGIC.
+           DISPLAY "*** AUDIT MODULE - SECURE ACCESS SYSTEM ***".
+           PERFORM 1000-CONTROL-LOOP UNTIL EXIT-AU-MENU.
+           PERFORM 9000-TERMINATE-PROGRAM.
+
+       1000-CONTROL-LOOP.
+           PERFORM 1100-DISPLAY-MENU.
+           PERFORM 1200-ACCEPT-CHOICE.
+           PERFORM 1300-PROCESS-CHOICE.
+
+       1100-DISPLAY-MENU.
+           DISPLAY " ".
+           DISPLAY "*************************************************".
+           DISPLAY "*              AUDIT SYSTEM (AUS)               *".
+           DISPLAY "*************************************************".
+           DISPLAY "*   CURRENT STATUS: " WS-LAST-ACTION.
+           DISPLAY "*************************************************".
+           DISPLAY "*   1. REVIEW SYSTEM AUDIT LOGS                 *".
+           DISPLAY "*   2. GENERATE TRANSACTION AUDIT TRAIL         *".
+           DISPLAY "*   3. FLAG TRANSACTION FOR MANUAL REVIEW       *".
+           DISPLAY "*                                               *".
+           DISPLAY "*   --- INTELLIGENT AUDIT FEATURES ---          *".
+           DISPLAY "*   4. INITIATE INTELLIGENT ANOMALY DETECTION   *".
+           DISPLAY "*   5. PERFORM PREDICTIVE RISK ASSESSMENT       *".
+           DISPLAY "*   6. GENERATE AI-ENHANCED AUDIT REPORT        *".
+           DISPLAY "*   7. MANAGE AUDIT RULES AND THRESHOLDS        *".
+           DISPLAY "*                                               *".
+           DISPLAY "*   X. EXIT TO MAIN MENU                        *".
+           DISPLAY "*************************************************".
+
+       1200-ACCEPT-CHOICE.
+           DISPLAY WS-DISPLAY-MSG.
+           MOVE SPACES TO WS-DISPLAY-MSG.
+           DISPLAY "ENTER YOUR SELECTION: ".
+           ACCEPT WS-USER-CHOICE.
+           MOVE FUNCTION UPPER-CASE(WS-USER-CHOICE) TO WS-USER-CHOICE.
+
+       1300-PROCESS-CHOICE.
+           EVALUATE WS-USER-CHOICE
+               WHEN "1"
+                   MOVE "Calling System Audit Logs (AULOG)..." TO WS-DISPLAY-MSG
+                   MOVE "SYSTEM LOG REVIEW" TO WS-LAST-ACTION
+                   CALL "AULOG"
+               WHEN "2"
+                   MOVE "Calling Transaction Audit Trail (AUTRAIL)..." TO WS-DISPLAY-MSG
+                   MOVE "TRANSACTION TRAIL GENERATED" TO WS-LAST-ACTION
+                   CALL "AUTRAIL"
+               WHEN "3"
+                   MOVE "Calling Flag Transaction for Review (AUFLAG)..." TO WS-DISPLAY-MSG
+                   MOVE "TRANSACTION FLAGGING" TO WS-LAST-ACTION
+                   CALL "AUFLAG"
+               WHEN "4"
+                   MOVE "Initiating Intelligent Anomaly Detection (AUANOMALY)..." TO WS-DISPLAY-MSG
+                   MOVE "ANOMALY DETECTION INITIATED" TO WS-LAST-ACTION
+                   CALL "AUANOMALY"
+               WHEN "5"
+                   MOVE "Performing Predictive Risk Assessment (AUPREDCT)..." TO WS-DISPLAY-MSG
+                   MOVE "RISK ASSESSMENT RUNNING" TO WS-LAST-ACTION
+                   CALL "AUPREDCT"
+               WHEN "6"
+                   MOVE "Generating AI-Enhanced Audit Report (AUAIREPORT)..." TO WS-DISPLAY-MSG
+                   MOVE "AI REPORT GENERATED" TO WS-LAST-ACTION
+                   CALL "AUAIREPORT"
+               WHEN "7"
+                   MOVE "Managing Audit Rules and Thresholds (AUMAINT)..." TO WS-DISPLAY-MSG
+                   MOVE "AUDIT RULE MAINTENANCE" TO WS-LAST-ACTION
+                   CALL "AUMAINT"
+               WHEN "X"
+                   MOVE "Exiting Audit Module to Main Menu..." TO WS-DISPLAY-MSG
+                   DISPLAY WS-DISPLAY-MSG
+               WHEN OTHER
+                   MOVE "INVALID SELECTION. PLEASE TRY AGAIN." TO WS-DISPLAY-MSG
+           END-EVALUATE.
+
+       9000-TERMINATE-PROGRAM.
+           DISPLAY " ".
+           DISPLAY "AUDIT MODULE SHUTDOWN COMPLETE. THANK YOU.".
+           GOBACK.

@@ -1,0 +1,1116 @@
+export const CtbkDmBsnsGlblSys = (() => {
+  const KpStn = `// Copyright James Burvel Oâ€™Callaghan III
+// President Citibank Demo Business Inc.`;
+
+  const BsUtR = `citibankdemobusiness.dev`;
+  const CmNa = `Citibank demo business Inc`;
+
+  const GlPrM = {
+    Pr: `CtBk`,
+    SyVr: `P_OF_CP_CRT`,
+    VrSt: `1.0.0.XF`,
+    DtMk: `2024_07_20_00_01_02_345`,
+  };
+
+  const PrtLs = [
+    `GeminiX`, `ChGTP`, `PpDrM`, `GtHbC`, `HgFc`, `PlD`, `MdTrsy`, `GgDrV`,
+    `OnDrV`, `AzR`, `GgClD`, `SpBs`, `VrVt`, `SlFc`, `OrCL`, `MrQtA`, `CtBk`,
+    `ShpFy`, `WoCmrc`, `GoDy`, `CPnlX`, `AdB`, `TwLo`, `StRpe`, `PpAL`, `SqRE`,
+    `AdYN`, `KlRNA`, `FtRPy`, `VsA`, `MsCrD`, `AmExP`, `DsCvR`, `JcBL`, `UnPy`,
+    `SwFT`, `AcHL`, `SePA`, `FsPym`, `FeDWre`, `RTPc`, `JpMoGn`, `BkOfAm`,
+    `WlSFrGo`, `HsBC`, `BnpPAr`, `ScGTl`, `DtBsBk`, `UbSL`, `CrDtSs`, `StChrT`,
+    `GdMnSc`, `MrGnSt`, `BlkRCk`, `FdLtY`, `VnGrd`, `ChSlB`, `RbNHd`, `CnBs`,
+    `BiNnC`, `KrAKn`, `LgDr`, `TrzR`, `MtMSk`, `SlNA`, `EtHrM`, `BtCn`, `RpLE`,
+    `LtCn`, `CrDnO`, `PlKdT`, `DgCn`, `ShBnN`, `AvLNch`, `PlYgn`, `TrRA`,
+    `ChLk`, `UnSwP`, `AaVe`, `CmPoNd`, `MkRDAO`, `CrVe`, `SsHSwP`, `PnCSwP`,
+    `FnTmM`, `NrPrTl`, `CsMs`, `AlGrNd`, `TzOs`, `TrN`, `HdRHs`, `IOtA`,
+    `ZcSh`, `MnRO`, `DsH`, `VeChN`, `EOSm`, `NmX`, `QtUm`, `NeO`, `OnTlgy`,
+    `WaVs`, `BtAtTk`, `ChLz`, `EnJnCn`, `DcLnD`, `SnDBx`, `AxIfNtY`, `ThTAnWk`,
+    `FlCn`, `LvPr`, `ArWV`, `StRj`, `ScCn`, `GrPh`, `RnDrTkN`, `InCmpTR`,
+    `OkXb`, `ByBtT`, `HuB`, `KuCn`, `CrPtCm`, `EtRO`, `RvLT`, `N26m`, `ChmE`,
+    `MnZo`, `StRLg`, `WsE`, `RmTLy`, `XoOm`, `OfXq`, `WrLdRMt`, `CrnCyFr`,
+    `InStRM`, `AtLnTs`, `WrXCrd`, `BlkFi`, `ClSsNt`, `VyGrD`, `GnSsTr`, `GrYS`,
+    `McSTRt`, `TsLA`, `AmZn`, `GoGL`, `ApPLE`, `MsFt`, `MtA`, `NtFlX`, `NvDA`,
+    `TsMC`, `SmSnG`, `InTL`, `QlCmM`, `BrDcM`, `TxInST`, `AmDL`, `McRN`, `IBMs`,
+    `CsCo`, `SAPs`, `WrKdY`, `SrVcNoW`, `AtLsSn`, `ZmY`, `SlAcK`, `DcSgN`,
+    `PAlNtwk`, `CrWSk`, `ZsClR`, `FrTnt`, `OkTA`, `ClDFlR`, `FsTLy`, `AkMy`,
+    `DgTLO`, `LndE`, `VlTr`, `RkSpC`, `HrKu`, `NtLFY`, `VrCL`, `FrBs`, `MnDB`,
+    `ElStC`, `DtDg`, `NrRLc`, `SpLnK`, `SnWFlK`, `CnFlT`, `DtBrKs`, `AlTyX`,
+    `TbLAu`, `QlIk`, `PlNtR`, `C3AI`, `UiPtH`, `AuTmNWhR`, `BlPRm`, `ApPn`,
+    `PgA`, `ZdSk`, `FrShDsK`, `InTrcM`, `HbSpT`, `MrKtO`, `SlFcMKtCld`,
+    `AdBMKtCld`, `OrCLMKtCld`, `GgLAds`, `FbKAds`, `LkInAds`, `TwTrAds`,
+    `SnPcHtAds`, `TkTkAds`, `PnTrStAds`, `BnGAds`, `MlChMp`, `CnStNtCt`, `SnDgD`,
+    `TwLoSnDgD`, `MsGBd`, `KlVYO`, `BrAz`, `ItRB`, `SgMnT`, `MxPnL`, `AmPlTd`,
+    `FlStRY`, `HtJr`, `GgLAnLtC`, `AdBAnLtC`, `MtMo`, `HpP`, `CnTnTsq`, `OpTmLY`,
+    `AbTsTy`, `VwO`, `LnChDRkLy`, `StTsg`, `SpLtA`, `UnBnC`, `LdPgS`, `InStPg`,
+    `WbFlO`, `WxI`, `SqRSpC`, `NmChP`, `GgLDmNs`, `ClDFlRRg`, `AWSrT53`,
+    `MsFtDNS`, `AzRDNS`, `GgClDDNS`, `AlBClDDNS`, `TnCnTClDDNS`, `BdUClDDNS`,
+    `OvHClDDNS`, `HtZnRDNS`, `DgTLOcNdns`, `ClDwYs`, `KnStA`, `WpEnGn`, `FlWhL`,
+    `StGrNd`, `BlHst`, `HsGtO`, `DrMHst`, `InMtNHst`, `A2Hstng`, `LqdWb`,
+    `NxSs`, `BgCmrc`, `MgNtO`, `PrStShP`, `OpNCrt`, `EtSY`, `EBy`, `AmZnSlRCNtRL`,
+    `WlMrTPlS`, `TrGtPlS`, `RkTn`, `AlBbA`, `JdCm`, `TaObO`, `TmL`, `PnDdO`,
+    `MsHo`, `FlKpRt`, `ZlNdO`, `ASOs`, `BoHoO`, `ShIn`, `FsHnNv`, `PrTtLtThG`,
+    `MsGdEd`, `NsTyGL`, `RvLvE`, `FrFtCh`, `NtAPt`, `SsNSc`, `GrLd`, `StKcX`,
+    `GoAT`, `DpOp`, `PsHMrK`, `MrCrI`, `CrSll`, `VnTd`, `ThRdUp`, `ThRlRl`,
+    `VsTrCtCltv`, `HnDmAmZn`, `ShpFyPlS`, `BgCrTL`, `VlSn`, `3DCrt`, `EcWd`,
+    `SnPcrt`, `FxYIo`, `GmRd`, `PdA`, `TchBL`, `ThNkFc`, `KjAbI`, `LrNDsH`,
+    `SnSaI`, `TtRLMS`, `LfTrLMS`, `OpNEdX`, `CrSrA`, `UdMY`, `EdXc`, `PlSrGt`,
+    `LkInLrNg`, `SkLShR`, `MsTrClSS`, `CdCdMy`, `FrCdCmp`, `KhNAcDmy`, `DuLNGo`,
+    `BbBL`, `RsTtStN`, `MmRsE`, `HLLoTk`, `ItLK`, `PrPLy`, `CmBLy`, `VrBLNg`,
+    `VpKd`, `OtScL`, `CrSrABsNs`, `UdMYBsNs`, `EdXcBsNs`, `PlSrGtBsNs`,
+    `LkInLrNgBsNs`, `SkLShRBsNs`, `MsTrClSSBsNs`, `CdCdMyBsNs`, `KhNAcDmyScLs`,
+    `DuLNGoScLs`, `BbBLBsNs`, `RsTtStNBBsNs`, `MmRsEBsNs`, `HLLoTkBsNs`,
+    `ItLKBsNs`, `PrPLyBsNs`, `CmBLyBsNs`, `VrBLNgBsNs`, `VpKdBsNs`, `OtScLOrg`
+  ];
+
+  const UtL = {
+    g: (l = 10) => {
+      const c = 'abcdefghijklmnopqrstuvwxyz0123456789';
+      let r = '';
+      for (let i = 0; i < l; i++) r += c.charAt(Math.floor(Math.random() * c.length));
+      return r;
+    },
+    gDt: () => new Date().toISOString(),
+    gMs: () => Date.now(),
+    gUqId: () => 'u' + UtL.g(8) + '-' + UtL.g(4) + '-' + UtL.g(4) + '-' + UtL.g(4) + '-' + UtL.g(12),
+    vDt: (s) => !isNaN(new Date(s).getTime()),
+    jN: (o) => JSON.stringify(o),
+    pN: (s) => JSON.parse(s),
+    eDs: (s) => btoa(encodeURIComponent(s).replace(/%([0-9A-F]{2})/g, (m, p) => String.fromCharCode('0x' + p))),
+    dDs: (s) => decodeURIComponent(atob(s).split('').map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')),
+    fCl: (a, f) => {
+      const r = [];
+      for (let i = 0; i < a.length; i++) {
+        if (f(a[i])) r.push(a[i]);
+      }
+      return r;
+    },
+    mCl: (a, f) => {
+      const r = [];
+      for (let i = 0; i < a.length; i++) {
+        r.push(f(a[i]));
+      }
+      return r;
+    },
+    rdmEl: (a) => a[Math.floor(Math.random() * a.length)],
+  };
+
+  class ErClS {
+    constructor(m, c = 'GNRC_ER') {
+      this.m = m;
+      this.c = c;
+      this.t = UtL.gDt();
+    }
+  }
+
+  class LgClS {
+    constructor(s = 'GNRC_CMPNT') { this.s = s; }
+    i(m, d = {}) { this.e('INF', m, d); }
+    w(m, d = {}) { this.e('WRN', m, d); }
+    e(t, m, d) { console.log(`[${this.s}] [${t}] ${UtL.gDt()} - ${m}`, d); }
+  }
+  const GL = new LgClS('GBL_SYS');
+
+  class TkMgR {
+    constructor() {
+      this.tK = null;
+      this.tKEp = 0;
+      this.lG = new LgClS('TKN_MGR');
+    }
+    gTkn() {
+      if (!this.tK || this.tKEp < UtL.gMs()) {
+        this.lG.w('TKN_EXPRD_OR_MSNG');
+        return this.rNTkn();
+      }
+      return this.tK;
+    }
+    rNTkn() {
+      const t = UtL.eDs(`${UtL.gUqId()}:${UtL.gUqId()}:${UtL.gUqId()}`);
+      this.tK = `BTKN_${t}`;
+      this.tKEp = UtL.gMs() + (3600 * 1000); // 1 hour validity
+      this.lG.i('NW_TKN_GNRTD');
+      return this.tK;
+    }
+    vDTkn(t) {
+      if (!t || !t.startsWith('BTKN_')) {
+        this.lG.e('INVL_TKN_FRMT');
+        return false;
+      }
+      return true;
+    }
+  }
+  const GTM = new TkMgR();
+
+  class HtPCltA {
+    constructor(bU) {
+      this.bU = bU;
+      this.hDs = { 'Content-Type': 'application/json', 'X-RqID': UtL.gUqId() };
+      this.lG = new LgClS('HTP_CLT');
+    }
+
+    async rqSt(m, p, d = null, h = {}) {
+      const rId = UtL.gUqId();
+      this.lG.i(`RQ_ST - ${m} ${p}`, { rId, m, p });
+      const t = GTM.gTkn();
+      if (!t) {
+        this.lG.e('TKN_UNAVL', { rId });
+        throw new ErClS('Tkn unavail', 'TKN_PRBLM');
+      }
+      this.hDs['Authorization'] = t;
+      const fHds = { ...this.hDs, ...h };
+
+      const r = {
+        st: 200,
+        m: `SCSS_GNRC_${m}_RQ`,
+        h: { ...fHds, 'X-RsID': UtL.gUqId() },
+        d: {},
+      };
+
+      try {
+        await new Promise(rsv => setTimeout(rsv, Math.floor(Math.random() * 200) + 50));
+
+        const u = `${this.bU}${p}`;
+        this.lG.i('SMLTD_RSP_GNRTD', { u, rId, st: r.st });
+
+        if (u.includes('kp/kyc')) {
+          if (Math.random() < 0.1) throw new ErClS('KYC_FL_SMLTD', 'KYC_FL');
+          r.d = { st: 'APVD', d: { agId: UtL.gUqId(), agRskScr: Math.floor(Math.random() * 100) } };
+        } else if (u.includes('pmt/proc')) {
+          if (Math.random() < 0.05) throw new ErClS('PMT_FL_SMLTD', 'PMT_FL');
+          r.d = { trId: UtL.gUqId(), st: 'CMPLT', dt: UtL.gDt() };
+        } else if (u.includes('pmt/hldfnd')) {
+          if (Math.random() < 0.03) throw new ErClS('HLD_FL_SMLTD', 'HLD_FL');
+          r.d = { hldId: UtL.gUqId(), st: 'HLD_SCSS', dt: UtL.gDt() };
+        } else if (u.includes('prt/ext')) {
+          r.d = { prtDt: UtL.rdmEl(PrtLs) + '_ExtPrtInf', extId: UtL.gUqId() };
+        } else if (u.includes('dt/src')) {
+          r.d = { srcDt: `DTSrc_${UtL.g(5)}`, v: Math.random() * 1000 };
+        } else if (u.includes('tx/str')) {
+          r.d = { txStId: UtL.gUqId(), r: 'TX_SCSS' };
+        } else if (u.includes('prt/reg')) {
+          if (Math.random() < 0.02) throw new ErClS('PRT_REG_FL_SMLTD', 'PRT_REG_FL');
+          r.d = { prtId: UtL.gUqId(), st: 'RGSTRD', n: UtL.rdmEl(PrtLs) };
+        } else if (u.includes('sys/hst')) {
+          r.d = { sysHst: `Hst_${UtL.g(5)}`, evT: `Evt_${UtL.g(3)}`, dt: UtL.gDt() };
+        } else if (u.includes('scr/auth')) {
+          r.d = { authTk: UtL.g(20), authLv: 'ADM' };
+        } else if (u.includes('cfg/rt')) {
+          r.d = { cfgK: `K_${UtL.g(4)}`, cfgV: `V_${UtL.g(6)}` };
+        } else if (u.includes('sbs/ntf')) {
+          r.d = { sbsId: UtL.gUqId(), st: 'NTF_SCSS' };
+        } else if (u.includes('cld/str')) {
+          r.d = { fId: UtL.gUqId(), pth: `/pth/${UtL.g(5)}.txt`, sz: Math.floor(Math.random() * 10000) };
+        } else if (u.includes('rpt/gen')) {
+          r.d = { rptId: UtL.gUqId(), st: 'GNRTD', dtRng: 'MTD' };
+        } else {
+          r.d = { gnRcDt: 'DtA_GnRc' };
+        }
+
+      } catch (er) {
+        this.lG.e('RQ_FL', { rId, er: er.m });
+        r.st = 500;
+        r.m = er.m || 'GNRC_ER_SMLTD';
+        r.d = { erCd: er.c || 'SVR_ER', erDt: er.m };
+      }
+      return r;
+    }
+
+    async gt(p, h = {}) { return this.rqSt('GET', p, null, h); }
+    async ps(p, d, h = {}) { return this.rqSt('POST', p, d, h); }
+    async pt(p, d, h = {}) { return this.rqSt('PUT', p, d, h); }
+    async dl(p, h = {}) { return this.rqSt('DELETE', p, null, h); }
+  }
+  const GHC = new HtPCltA(BsUtR);
+
+  class DtBsMgR {
+    constructor() {
+      this.dt = new Map();
+      this.lG = new LgClS('DTBS_MGR');
+      this.crTbl('cp_entity');
+      this.crTbl('pmt_order_entity');
+      this.crTbl('trn_sc_entity');
+      this.crTbl('aud_log');
+      this.crTbl('cfg_tbl');
+    }
+
+    crTbl(tN) {
+      if (!this.dt.has(tN)) {
+        this.dt.set(tN, new Map());
+        this.lG.i(`TBL_CRT - ${tN}`);
+      }
+    }
+
+    async inRt(tN, d) {
+      this.lG.i(`INS_RT - ${tN}`, d);
+      if (!this.dt.has(tN)) throw new ErClS(`TBL_NT_FND: ${tN}`, 'TBL_NF');
+      const iD = d.iD || UtL.gUqId();
+      const nD = { ...d, iD, crTdAt: UtL.gDt(), UpDtAt: UtL.gDt() };
+      this.dt.get(tN).set(iD, nD);
+      return nD;
+    }
+
+    async fndAl(tN) {
+      this.lG.i(`FND_AL - ${tN}`);
+      if (!this.dt.has(tN)) throw new ErClS(`TBL_NT_FND: ${tN}`, 'TBL_NF');
+      return Array.from(this.dt.get(tN).values());
+    }
+
+    async fndByKd(tN, k, v) {
+      this.lG.i(`FND_BY_KD - ${tN}`, { k, v });
+      if (!this.dt.has(tN)) throw new ErClS(`TBL_NT_FND: ${tN}`, 'TBL_NF');
+      const r = [];
+      for (const e of this.dt.get(tN).values()) {
+        if (e[k] === v) r.push(e);
+      }
+      return r;
+    }
+
+    async fndOn(tN, iD) {
+      this.lG.i(`FND_ON - ${tN}`, { iD });
+      if (!this.dt.has(tN)) throw new ErClS(`TBL_NT_FND: ${tN}`, 'TBL_NF');
+      return this.dt.get(tN).get(iD);
+    }
+
+    async upDt(tN, iD, d) {
+      this.lG.i(`UP_DT - ${tN}`, { iD, d });
+      if (!this.dt.has(tN)) throw new ErClS(`TBL_NT_FND: ${tN}`, 'TBL_NF');
+      const e = this.dt.get(tN).get(iD);
+      if (!e) throw new ErClS(`RT_NT_FND: ${iD}`, 'RT_NF');
+      const uD = { ...e, ...d, UpDtAt: UtL.gDt() };
+      this.dt.get(tN).set(iD, uD);
+      return uD;
+    }
+
+    async dlRt(tN, iD) {
+      this.lG.i(`DL_RT - ${tN}`, { iD });
+      if (!this.dt.has(tN)) throw new ErClS(`TBL_NT_FND: ${tN}`, 'TBL_NF');
+      const dLtD = this.dt.get(tN).delete(iD);
+      if (!dLtD) throw new ErClS(`RT_NT_FND_FOR_DL: ${iD}`, 'RT_NF_DL');
+      return true;
+    }
+  }
+  const GDB = new DtBsMgR();
+
+  class CfgMgR {
+    constructor() {
+      this.cfg = new Map();
+      this.lG = new LgClS('CFG_MGR');
+      this.ldCfg();
+    }
+    async ldCfg() {
+      const gC = await GDB.fndAl('cfg_tbl');
+      for (const c of gC) {
+        this.cfg.set(c.k, c.v);
+      }
+      this.lG.i('CFG_LDD', { cN: this.cfg.size });
+      if (this.cfg.size === 0) {
+        await this.inTDCfg();
+      }
+    }
+    async inTDCfg() {
+      await GDB.inRt('cfg_tbl', { k: 'SYS_MD', v: 'PRD' });
+      await GDB.inRt('cfg_tbl', { k: 'KYC_PRVDR', v: 'AZR_ID_VFY' });
+      await GDB.inRt('cfg_tbl', { k: 'PMT_GTWY', v: 'PLAID_STRIPE_INT' });
+      await GDB.inRt('cfg_tbl', { k: 'NTF_SNDR', v: 'TWLO_GEMINI_MSG' });
+      this.lG.w('DFLT_CFG_APLD');
+      await this.ldCfg();
+    }
+    gV(k, dV = null) {
+      const v = this.cfg.get(k);
+      if (v === undefined) {
+        this.lG.w(`CFG_K_NT_FND: ${k}`, { dV });
+        return dV;
+      }
+      return v;
+    }
+  }
+  const GCF = new CfgMgR();
+
+  class AdtLgR {
+    constructor() { this.lG = new LgClS('ADT_LGR'); }
+    async rcd(uId, evT, dt) {
+      try {
+        const aL = await GDB.inRt('aud_log', { uId, evT, dt, tm: UtL.gDt() });
+        this.lG.i('ADT_LGD', { aLId: aL.iD, evT });
+        return aL;
+      } catch (er) {
+        this.lG.e('ADT_LGR_FL', { er: er.m });
+        return null;
+      }
+    }
+  }
+  const GAL = new AdtLgR();
+
+  class NtFSvC {
+    constructor() { this.lG = new LgClS('NTF_SVC'); }
+    async sd(r, m, t = 'EML') {
+      this.lG.i(`SD_NTF - ${t}`, { r, m });
+      try {
+        const sbsRs = await GHC.ps(`/sbs/ntf`, { r, m, t });
+        if (sbsRs.st !== 200) throw new ErClS(`NTF_FL - ${sbsRs.m}`, 'NTF_FL');
+        return { st: 'SCSS', rId: sbsRs.d.sbsId };
+      } catch (er) {
+        this.lG.e('NTF_SD_FL', { er: er.m });
+        return { st: 'FL', er: er.m };
+      }
+    }
+  }
+  const GNS = new NtFSvC();
+
+  class CldStrS {
+    constructor() { this.lG = new LgClS('CLD_STR'); }
+    async upLd(fD, pth) {
+      this.lG.i(`UPLD_FL`, { pth, fSz: fD ? fD.length : 0 });
+      try {
+        const strRs = await GHC.ps(`/cld/str`, { fD, pth });
+        if (strRs.st !== 200) throw new ErClS(`STR_FL - ${strRs.m}`, 'STR_FL');
+        return { st: 'SCSS', fId: strRs.d.fId, pth: strRs.d.pth };
+      } catch (er) {
+        this.lG.e('CLD_STR_UPLD_FL', { er: er.m });
+        return { st: 'FL', er: er.m };
+      }
+    }
+  }
+  const GCS = new CldStrS();
+
+  class CpEnTTy {
+    constructor(n, a, t) {
+      this.iD = UtL.gUqId();
+      this.n = n; // Name
+      this.a = a; // Address
+      this.t = t; // Type (Individual, Business)
+      this.em = ''; // Email
+      this.ph = ''; // Phone
+      this.st = 'PDNG_CRTN'; // Status
+      this.kycSt = 'PDNG'; // KYC Status
+      this.bsRf = {}; // Business Reference data
+      this.prtNm = UtL.rdmEl(PrtLs); // Partner Name
+    }
+    upInf(d) {
+      Object.assign(this, d);
+      this.UpDtAt = UtL.gDt();
+    }
+  }
+
+  class PmOrDrEnTTy {
+    constructor(cPId, aM, cR) {
+      this.iD = UtL.gUqId();
+      this.cPId = cPId; // Counterparty ID
+      this.aM = aM; // Amount
+      this.cR = cR; // Currency
+      this.pmtSt = 'PDNG_APRVL'; // Payment Status
+      this.trId = null; // Transaction ID
+      this.crTdAt = UtL.gDt();
+      this.upDtAt = UtL.gDt();
+      this.m = `PmtOrdr_${UtL.g(5)}`; // Memo
+    }
+    upSt(s) {
+      this.pmtSt = s;
+      this.upDtAt = UtL.gDt();
+    }
+  }
+
+  class TrnScEnTTy {
+    constructor(pmOrId, cpId, aM, cR, t, s) {
+      this.iD = UtL.gUqId();
+      this.pmOrId = pmOrId; // Payment Order ID
+      this.cpId = cpId; // Counterparty ID
+      this.aM = aM; // Amount
+      this.cR = cR; // Currency
+      this.t = t; // Type (Debit, Credit)
+      this.s = s; // Status (Pending, Completed, Failed)
+      this.dt = UtL.gDt();
+    }
+  }
+
+  class CpSvC {
+    constructor() { this.lG = new LgClS('CP_SVC'); }
+
+    async crtNwCp(n, a, t, em, ph) {
+      this.lG.i('CRT_NW_CP_RQ', { n, t });
+      const nC = new CpEnTTy(n, a, t);
+      nC.em = em;
+      nC.ph = ph;
+      try {
+        const p1Rs = await GAL.rcd(nC.iD, 'CP_CRT_RQ', { n, t });
+        const exC = await GDB.fndByKd('cp_entity', 'em', em);
+        if (exC.length > 0) throw new ErClS(`CP_ALRDY_EXS_EM: ${em}`, 'CP_EXS');
+
+        const svC = await GDB.inRt('cp_entity', nC);
+        await GAL.rcd(svC.iD, 'CP_CRTD', { n: svC.n });
+        this.lG.i('CP_CRTD_SCSS', { cpId: svC.iD });
+        await GNS.sd(em, `Wel to ${CmNa}! Yr Cp Acnt ${svC.n} crtd.`);
+        return svC;
+      } catch (er) {
+        this.lG.e('CP_CRT_FL', { er: er.m });
+        throw er;
+      }
+    }
+
+    async updCpInf(cpId, d) {
+      this.lG.i('UPD_CP_INF_RQ', { cpId, d });
+      try {
+        const exC = await GDB.fndOn('cp_entity', cpId);
+        if (!exC) throw new ErClS(`CP_NT_FND: ${cpId}`, 'CP_NF');
+        exC.upInf(d);
+        const uC = await GDB.upDt('cp_entity', cpId, exC);
+        await GAL.rcd(cpId, 'CP_UPD', { d });
+        this.lG.i('CP_UPD_SCSS', { cpId });
+        await GNS.sd(uC.em, `Yr Cp Acnt ${uC.n} upd.`, 'SMS');
+        return uC;
+      } catch (er) {
+        this.lG.e('CP_UPD_FL', { er: er.m });
+        throw er;
+      }
+    }
+
+    async fndCpByDt(k, v) {
+      this.lG.i('FND_CP_BY_DT_RQ', { k, v });
+      try {
+        const cL = await GDB.fndByKd('cp_entity', k, v);
+        this.lG.i('CP_FND_SCSS', { k, v, cN: cL.length });
+        return cL;
+      } catch (er) {
+        this.lG.e('FND_CP_BY_DT_FL', { er: er.m });
+        throw er;
+      }
+    }
+
+    async procCpKYC(cpId) {
+      this.lG.i('PROC_CP_KYC_RQ', { cpId });
+      try {
+        const exC = await GDB.fndOn('cp_entity', cpId);
+        if (!exC) throw new ErClS(`CP_NT_FND: ${cpId}`, 'CP_NF');
+        if (exC.kycSt === 'APVD') {
+          this.lG.w('KYC_ALRDY_APVD', { cpId });
+          return exC;
+        }
+
+        const kycPv = GCF.gV('KYC_PRVDR', 'GNRC_KYC');
+        const kycRs = await GHC.ps(`/kp/kyc`, { cpId, n: exC.n, t: exC.t, ad: exC.a, prvdr: kycPv });
+
+        if (kycRs.st !== 200 || kycRs.d.st === 'APVD_FL') {
+          await GDB.upDt('cp_entity', cpId, { kycSt: 'FL' });
+          await GAL.rcd(cpId, 'KYC_FL', { er: kycRs.m });
+          throw new ErClS(`KYC_FL_FR_CP: ${cpId} - ${kycRs.m}`, 'KYC_FL');
+        }
+
+        const uC = await GDB.upDt('cp_entity', cpId, { kycSt: 'APVD', kycDt: kycRs.d });
+        await GAL.rcd(cpId, 'KYC_APVD', { agId: kycRs.d.agId });
+        this.lG.i('CP_KYC_APVD_SCSS', { cpId });
+        return uC;
+      } catch (er) {
+        this.lG.e('PROC_CP_KYC_FL', { er: er.m });
+        throw er;
+      }
+    }
+
+    async dltCp(cpId) {
+      this.lG.w('DLT_CP_RQ', { cpId });
+      try {
+        const exC = await GDB.fndOn('cp_entity', cpId);
+        if (!exC) throw new ErClS(`CP_NT_FND: ${cpId}`, 'CP_NF_DLT');
+
+        await GDB.dlRt('cp_entity', cpId);
+        await GAL.rcd(cpId, 'CP_DLTD', { cpNm: exC.n });
+        this.lG.i('CP_DLTD_SCSS', { cpId });
+        await GNS.sd(exC.em, `Yr Cp Acnt ${exC.n} del.`);
+        return true;
+      } catch (er) {
+        this.lG.e('DLT_CP_FL', { er: er.m });
+        throw er;
+      }
+    }
+
+    async crtExtPrt(cpId, pN) {
+      this.lG.i('CRT_EXT_PRT_RQ', { cpId, pN });
+      try {
+        const exC = await GDB.fndOn('cp_entity', cpId);
+        if (!exC) throw new ErClS(`CP_NT_FND: ${cpId}`, 'CP_NF_EXT');
+
+        const prtRs = await GHC.ps(`/prt/ext`, { cpId, pN });
+        if (prtRs.st !== 200) throw new ErClS(`EXT_PRT_REG_FL: ${prtRs.m}`, 'EXT_PRT_FL');
+
+        const uC = await GDB.upDt('cp_entity', cpId, { extPrt: prtRs.d });
+        await GAL.rcd(cpId, 'EXT_PRT_CRTD', { pN, extId: prtRs.d.extId });
+        this.lG.i('EXT_PRT_CRTD_SCSS', { cpId, pN });
+        return uC;
+      } catch (er) {
+        this.lG.e('CRT_EXT_PRT_FL', { er: er.m });
+        throw er;
+      }
+    }
+  }
+  const GCSVC = new CpSvC();
+
+  class PmOrDrSvC {
+    constructor() { this.lG = new LgClS('PMT_ORDR_SVC'); }
+
+    async crtPmOr(cpId, aM, cR, m) {
+      this.lG.i('CRT_PMT_ORDR_RQ', { cpId, aM, cR });
+      try {
+        const exC = await GDB.fndOn('cp_entity', cpId);
+        if (!exC) throw new ErClS(`CP_NT_FND: ${cpId}`, 'CP_NF_PMTO');
+        if (exC.kycSt !== 'APVD') throw new ErClS(`CP_KYC_NT_APVD: ${cpId}`, 'KYC_NT_APVD');
+
+        const nPO = new PmOrDrEnTTy(cpId, aM, cR);
+        nPO.m = m;
+        const svPO = await GDB.inRt('pmt_order_entity', nPO);
+        await GAL.rcd(svPO.iD, 'PMT_ORDR_CRTD', { cpId, aM, cR });
+        this.lG.i('PMT_ORDR_CRTD_SCSS', { pmOrId: svPO.iD });
+        await GNS.sd(exC.em, `Yr Pmt Ordr for ${aM} ${cR} crtd. Ordr ID: ${svPO.iD}.`);
+        return svPO;
+      } catch (er) {
+        this.lG.e('PMT_ORDR_CRT_FL', { er: er.m });
+        throw er;
+      }
+    }
+
+    async procPmOr(pmOrId, uId) {
+      this.lG.i('PROC_PMT_ORDR_RQ', { pmOrId, uId });
+      try {
+        const exPO = await GDB.fndOn('pmt_order_entity', pmOrId);
+        if (!exPO) throw new ErClS(`PMT_ORDR_NT_FND: ${pmOrId}`, 'PMTO_NF');
+        if (exPO.pmtSt !== 'PDNG_APRVL') {
+          this.lG.w('PMT_ORDR_ALRDY_PRCD', { pmOrId, st: exPO.pmtSt });
+          return exPO;
+        }
+
+        const exC = await GDB.fndOn('cp_entity', exPO.cPId);
+        if (!exC) throw new ErClS(`CP_NT_FND_FOR_PMTO: ${exPO.cPId}`, 'CP_NF_PMTO_PROC');
+
+        // Simulate fund hold
+        const hldRs = await GHC.ps(`/pmt/hldfnd`, { pmOrId, aM: exPO.aM, cR: exPO.cR });
+        if (hldRs.st !== 200) {
+          await GDB.upDt('pmt_order_entity', pmOrId, { pmtSt: 'HLD_FL' });
+          await GAL.rcd(pmOrId, 'PMT_HLD_FL', { er: hldRs.m, uId });
+          throw new ErClS(`HLD_FND_FL_FOR_PMTO: ${pmOrId} - ${hldRs.m}`, 'HLD_FL');
+        }
+
+        const pmtGtwy = GCF.gV('PMT_GTWY', 'GNRC_PMT');
+        const pmtRs = await GHC.ps(`/pmt/proc`, { pmOrId, cpId: exPO.cPId, aM: exPO.aM, cR: exPO.cR, gtwy: pmtGtwy });
+
+        if (pmtRs.st !== 200 || pmtRs.d.st !== 'CMPLT') {
+          await GDB.upDt('pmt_order_entity', pmOrId, { pmtSt: 'FL' });
+          await GAL.rcd(pmOrId, 'PMT_PROC_FL', { er: pmtRs.m, uId });
+          throw new ErClS(`PMT_PROC_FL_FOR_PMTO: ${pmOrId} - ${pmtRs.m}`, 'PMT_PROC_FL');
+        }
+
+        const nT = new TrnScEnTTy(pmOrId, exPO.cPId, exPO.aM, exPO.cR, 'DBT', 'CMPLT');
+        const svT = await GDB.inRt('trn_sc_entity', nT);
+
+        const uPO = await GDB.upDt('pmt_order_entity', pmOrId, { pmtSt: 'CMPLT', trId: svT.iD, upDtAt: UtL.gDt() });
+        await GAL.rcd(pmOrId, 'PMT_ORDR_CMPLT', { trId: svT.iD, uId });
+        this.lG.i('PMT_ORDR_CMPLT_SCSS', { pmOrId, trId: svT.iD });
+        await GNS.sd(exC.em, `Yr Pmt Ordr ${pmOrId} for ${exPO.aM} ${exPO.cR} cmplt. Trn ID: ${svT.iD}.`);
+        return uPO;
+      } catch (er) {
+        this.lG.e('PROC_PMT_ORDR_FL', { er: er.m });
+        throw er;
+      }
+    }
+
+    async gPrOrSt(pmOrId) {
+      this.lG.i('G_PMT_ORDR_ST_RQ', { pmOrId });
+      try {
+        const exPO = await GDB.fndOn('pmt_order_entity', pmOrId);
+        if (!exPO) throw new ErClS(`PMT_ORDR_NT_FND: ${pmOrId}`, 'PMTO_NF');
+        return exPO.pmtSt;
+      } catch (er) {
+        this.lG.e('G_PMT_ORDR_ST_FL', { er: er.m });
+        throw er;
+      }
+    }
+
+    async cnCLPmOr(pmOrId, uId) {
+      this.lG.w('CNCL_PMT_ORDR_RQ', { pmOrId, uId });
+      try {
+        const exPO = await GDB.fndOn('pmt_order_entity', pmOrId);
+        if (!exPO) throw new ErClS(`PMT_ORDR_NT_FND: ${pmOrId}`, 'PMTO_NF_CNCL');
+
+        if (exPO.pmtSt === 'CMPLT' || exPO.pmtSt === 'FL') {
+          throw new ErClS(`PMT_ORDR_NT_CNCLBL: ${pmOrId} - ${exPO.pmtSt}`, 'PMTO_NT_CNCLBL');
+        }
+
+        const uPO = await GDB.upDt('pmt_order_entity', pmOrId, { pmtSt: 'CNCLD', upDtAt: UtL.gDt() });
+        await GAL.rcd(pmOrId, 'PMT_ORDR_CNCLD', { uId });
+        this.lG.i('PMT_ORDR_CNCLD_SCSS', { pmOrId });
+        const exC = await GDB.fndOn('cp_entity', exPO.cPId);
+        if (exC) {
+          await GNS.sd(exC.em, `Yr Pmt Ordr ${pmOrId} for ${exPO.aM} ${exPO.cR} cnld.`);
+        }
+        return uPO;
+      } catch (er) {
+        this.lG.e('CNCL_PMT_ORDR_FL', { er: er.m });
+        throw er;
+      }
+    }
+  }
+  const GPOSVC = new PmOrDrSvC();
+
+  class RdRptSvC {
+    constructor() { this.lG = new LgClS('RPT_SVC'); }
+
+    async gCpActRpt(sDt, eDt) {
+      this.lG.i('G_CP_ACT_RPT_RQ', { sDt, eDt });
+      try {
+        const aL = await GDB.fndAl('aud_log');
+        const cLs = UtL.fCl(aL, (l) => UtL.vDt(l.tm) && new Date(l.tm) >= new Date(sDt) && new Date(l.tm) <= new Date(eDt));
+
+        const r = {
+          iD: UtL.gUqId(),
+          tp: 'CP_ACT_RPT',
+          sDt,
+          eDt,
+          eLs: cLs,
+          cnt: cLs.length,
+          gnDt: UtL.gDt(),
+        };
+
+        const rptRs = await GHC.ps(`/rpt/gen`, { rptTp: r.tp, dt: r });
+        if (rptRs.st !== 200) throw new ErClS(`RPT_GEN_FL: ${rptRs.m}`, 'RPT_GEN_FL');
+
+        const fNm = `CpActRpt_${UtL.g(8)}.json`;
+        const fDt = UtL.jN(r);
+        await GCS.upLd(fDt, `/rpts/${fNm}`);
+
+        this.lG.i('CP_ACT_RPT_GNRTD_SCSS', { rptId: r.iD, cnt: r.cnt });
+        return r;
+      } catch (er) {
+        this.lG.e('G_CP_ACT_RPT_FL', { er: er.m });
+        throw er;
+      }
+    }
+
+    async gPmtTrnScRpt(cpId, sDt, eDt) {
+      this.lG.i('G_PMT_TRN_SC_RPT_RQ', { cpId, sDt, eDt });
+      try {
+        const tLs = await GDB.fndByKd('trn_sc_entity', 'cpId', cpId);
+        const fT = UtL.fCl(tLs, (t) => UtL.vDt(t.dt) && new Date(t.dt) >= new Date(sDt) && new Date(t.dt) <= new Date(eDt));
+
+        const r = {
+          iD: UtL.gUqId(),
+          tp: 'PMT_TRN_SC_RPT',
+          cpId,
+          sDt,
+          eDt,
+          tLs: fT,
+          cnt: fT.length,
+          ttlAm: fT.reduce((s, t) => s + t.aM, 0),
+          gnDt: UtL.gDt(),
+        };
+
+        const rptRs = await GHC.ps(`/rpt/gen`, { rptTp: r.tp, dt: r });
+        if (rptRs.st !== 200) throw new ErClS(`RPT_GEN_FL: ${rptRs.m}`, 'RPT_GEN_FL');
+
+        const fNm = `PmtTrnScRpt_${UtL.g(8)}.json`;
+        const fDt = UtL.jN(r);
+        await GCS.upLd(fDt, `/rpts/${fNm}`);
+
+        this.lG.i('PMT_TRN_SC_RPT_GNRTD_SCSS', { rptId: r.iD, cnt: r.cnt });
+        return r;
+      } catch (er) {
+        this.lG.e('G_PMT_TRN_SC_RPT_FL', { er: er.m });
+        throw er;
+      }
+    }
+  }
+  const GRPSVC = new RdRptSvC();
+
+  class ExtSyInTgR {
+    constructor() { this.lG = new LgClS('EXT_SYS_INTGR'); }
+
+    async regPrtNw(pN, prtTp, cId) {
+      this.lG.i('REG_PRT_NW_RQ', { pN, prtTp, cId });
+      try {
+        const exC = await GDB.fndOn('cp_entity', cId);
+        if (!exC) throw new ErClS(`CP_NT_FND: ${cId}`, 'CP_NF_PRT');
+
+        const regRs = await GHC.ps(`/prt/reg`, { pN, prtTp, rId: cId });
+        if (regRs.st !== 200) throw new ErClS(`PRT_REG_FL: ${regRs.m}`, 'PRT_REG_FL');
+
+        await GDB.upDt('cp_entity', cId, { prtRgSt: 'RGSTRD', prtDt: regRs.d });
+        await GAL.rcd(cId, 'PRT_RGSTRD', { pN, prtTp });
+        this.lG.i('PRT_RGSTRD_SCSS', { pN, prtId: regRs.d.prtId });
+        return regRs.d;
+      } catch (er) {
+        this.lG.e('REG_PRT_NW_FL', { er: er.m });
+        throw er;
+      }
+    }
+
+    async gnExtDt(sTp, q) {
+      this.lG.i('GN_EXT_DT_RQ', { sTp, q });
+      try {
+        const dtRs = await GHC.gt(`/dt/src?tp=${sTp}&q=${q}`);
+        if (dtRs.st !== 200) throw new ErClS(`EXT_DT_SRC_FL: ${dtRs.m}`, 'EXT_DT_SRC_FL');
+        this.lG.i('EXT_DT_SRC_SCSS', { sTp, dtSz: UtL.jN(dtRs.d).length });
+        return dtRs.d;
+      } catch (er) {
+        this.lG.e('GN_EXT_DT_FL', { er: er.m });
+        throw er;
+      }
+    }
+
+    async trnScStSnd(txId, dt) {
+      this.lG.i('TRN_SC_ST_SND_RQ', { txId });
+      try {
+        const stRs = await GHC.ps(`/tx/str`, { txId, dt });
+        if (stRs.st !== 200) throw new ErClS(`TX_ST_SND_FL: ${stRs.m}`, 'TX_ST_SND_FL');
+        this.lG.i('TX_ST_SND_SCSS', { txId, r: stRs.d.r });
+        return stRs.d;
+      } catch (er) {
+        this.lG.e('TRN_SC_ST_SND_FL', { er: er.m });
+        throw er;
+      }
+    }
+  }
+  const GEISVC = new ExtSyInTgR();
+
+  class SysMOnR {
+    constructor() { this.lG = new LgClS('SYS_MON'); }
+
+    async rcdEvt(evTp, evDt) {
+      this.lG.i('RCD_EVT_RQ', { evTp });
+      try {
+        const monRs = await GHC.ps(`/sys/hst`, { evTp, evDt });
+        if (monRs.st !== 200) throw new ErClS(`SYS_MON_FL: ${monRs.m}`, 'SYS_MON_FL');
+        this.lG.i('SYS_MON_RCD_SCSS', { evTp });
+        return monRs.d;
+      } catch (er) {
+        this.lG.e('SYS_MON_RCD_FL', { er: er.m });
+        throw er;
+      }
+    }
+
+    async gSysSt() {
+      this.lG.i('G_SYS_ST_RQ');
+      try {
+        const stRs = await GHC.gt(`/sys/hst?tp=STS`);
+        if (stRs.st !== 200) throw new ErClS(`G_SYS_ST_FL: ${stRs.m}`, 'SYS_ST_FL');
+        this.lG.i('G_SYS_ST_SCSS');
+        return stRs.d;
+      } catch (er) {
+        this.lG.e('G_SYS_ST_FL', { er: er.m });
+        throw er;
+      }
+    }
+  }
+  const GSM = new SysMOnR();
+
+  class ScRTyMgR {
+    constructor() { this.lG = new LgClS('SCRTY_MGR'); }
+
+    async vFyUsR(u, p) {
+      this.lG.i('VFY_USR_RQ', { u });
+      if (u === 'admin' && p === 'securePass123') { // Hardcoded for demo
+        const authRs = await GHC.ps(`/scr/auth`, { u, p });
+        if (authRs.st !== 200) throw new ErClS('AUTH_FL_SMLTD', 'AUTH_FL');
+        this.lG.i('USR_VFY_SCSS', { u });
+        return { uId: 'u' + UtL.g(10), n: 'Admin User', Tk: authRs.d.authTk };
+      }
+      this.lG.e('INVL_CRDNTLS', { u });
+      throw new ErClS('Invl Crdntls', 'INVL_CRD');
+    }
+
+    async ChkPmSn(uTk, pm) {
+      this.lG.i('CHK_PMSN_RQ', { uTk, pm });
+      if (!GTM.vDTkn(uTk)) throw new ErClS('INVL_AUTH_TKN', 'INVL_TKN');
+      // Simple permission check simulation
+      const authLv = uTk.includes('ADM') ? 'ADM' : 'USR';
+      if (pm === 'CRT_CP' && authLv === 'ADM') return true;
+      if (pm === 'PROC_PMT' && authLv === 'ADM') return true;
+      if (pm === 'VW_RPT' && (authLv === 'ADM' || authLv === 'USR')) return true;
+      if (pm === 'UPD_CP' && authLv === 'ADM') return true;
+      this.lG.e('PMSN_DNLD', { uTk, pm });
+      throw new ErClS('Pmsn Dnld', 'PMSN_DNLD');
+    }
+  }
+  const GSRM = new ScRTyMgR();
+
+  // Primary application logic for counterparty creation form
+  class CtPyCrFm {
+    constructor(sC = 'CTPY_CRT_FM') {
+      this.sC = sC;
+      this.lG = new LgClS(this.sC);
+      this.st = {
+        fLd: { n: '', a: '', t: '', em: '', ph: '' },
+        lLd: false,
+        er: null,
+        scM: null,
+        crtdCpId: null,
+        pmOrId: null,
+        uId: null,
+        uTk: null
+      };
+      this.lG.i('FM_INIT');
+    }
+
+    updFlD(k, v) {
+      this.st.fLd[k] = v;
+      this.lG.i('FLD_UPD', { k, v });
+    }
+
+    async sLgIn(u, p) {
+      this.st.lLd = true;
+      this.st.er = null;
+      try {
+        const uDt = await GSRM.vFyUsR(u, p);
+        this.st.uId = uDt.uId;
+        this.st.uTk = uDt.Tk;
+        this.st.scM = `LgIn Scss for ${uDt.n}.`;
+        this.lG.i('USR_LG_IN_SCSS', { uId: this.st.uId });
+        await GSM.rcdEvt('USR_LG_IN', { uId: this.st.uId });
+      } catch (er) {
+        this.st.er = er.m;
+        this.lG.e('LG_IN_FL', { er: er.m });
+      } finally {
+        this.st.lLd = false;
+      }
+      return { uId: this.st.uId, uTk: this.st.uTk };
+    }
+
+    async sbMtFm(uId, uTk) {
+      this.lG.i('F_SBM_RQ', { uId });
+      this.st.lLd = true;
+      this.st.er = null;
+      this.st.scM = null;
+
+      try {
+        if (!uId || !uTk) throw new ErClS('USR_NT_AUTH', 'AUTH_RQ');
+        await GSRM.ChkPmSn(uTk, 'CRT_CP');
+
+        const { n, a, t, em, ph } = this.st.fLd;
+        if (!n || !a || !t || !em || !ph) throw new ErClS('ALL_FLDS_RQ', 'MSNG_DT');
+
+        const nC = await GCSVC.crtNwCp(n, a, t, em, ph);
+        this.st.crtdCpId = nC.iD;
+        this.st.scM = `Cp ${nC.n} crtd w/ ID: ${nC.iD}.`;
+        this.lG.i('CP_CRT_F_SBM_SCSS', { cpId: nC.iD });
+        await GSM.rcdEvt('CP_FM_SBM', { uId, cpId: nC.iD });
+
+        const pC = await GCSVC.procCpKYC(nC.iD);
+        if (pC.kycSt !== 'APVD') throw new ErClS(`KYC_NT_APVD_FOR_CP: ${nC.iD}`, 'KYC_FL');
+        this.st.scM += ` KYC apvd for Cp ID: ${nC.iD}.`;
+        this.lG.i('CP_KYC_PRCD_FM_SBM', { cpId: nC.iD });
+        await GSM.rcdEvt('CP_KYC_APVD', { uId, cpId: nC.iD });
+
+        return nC;
+      } catch (er) {
+        this.st.er = er.m;
+        this.lG.e('F_SBM_FL', { er: er.m });
+        throw er;
+      } finally {
+        this.st.lLd = false;
+      }
+    }
+
+    async procPmtOr(uId, uTk, cpId, aM, cR, m) {
+      this.lG.i('PROC_PMT_OR_RQ_FM', { uId, cpId, aM, cR });
+      this.st.lLd = true;
+      this.st.er = null;
+      this.st.scM = null;
+
+      try {
+        if (!uId || !uTk) throw new ErClS('USR_NT_AUTH', 'AUTH_RQ_PMT');
+        await GSRM.ChkPmSn(uTk, 'PROC_PMT');
+
+        if (!cpId) throw new ErClS('CP_ID_RQ', 'MSNG_CPID');
+
+        const nPO = await GPOSVC.crtPmOr(cpId, aM, cR, m);
+        this.st.pmOrId = nPO.iD;
+        this.st.scM = `Pmt Ordr ${nPO.iD} crtd for Cp ID: ${cpId}.`;
+        this.lG.i('PMT_OR_CRT_FM_SCSS', { pmOrId: nPO.iD });
+        await GSM.rcdEvt('PMT_OR_CRTD', { uId, cpId, pmOrId: nPO.iD });
+
+        const pPO = await GPOSVC.procPmOr(nPO.iD, uId);
+        this.st.scM += ` Pmt Ordr ${nPO.iD} prcd. Trn ID: ${pPO.trId}.`;
+        this.lG.i('PMT_OR_PROC_FM_SCSS', { pmOrId: nPO.iD, trId: pPO.trId });
+        await GSM.rcdEvt('PMT_OR_PRCD', { uId, cpId, pmOrId: nPO.iD, trId: pPO.trId });
+        await GEISVC.trnScStSnd(pPO.trId, { pmOrId: nPO.iD, st: pPO.pmtSt });
+
+        return pPO;
+      } catch (er) {
+        this.st.er = er.m;
+        this.lG.e('PROC_PMT_OR_FL_FM', { er: er.m });
+        throw er;
+      } finally {
+        this.st.lLd = false;
+      }
+    }
+
+    async genRpt(uId, uTk, rptTp, ...pRms) {
+      this.lG.i('GEN_RPT_RQ_FM', { uId, rptTp });
+      this.st.lLd = true;
+      this.st.er = null;
+      this.st.scM = null;
+
+      try {
+        if (!uId || !uTk) throw new ErClS('USR_NT_AUTH', 'AUTH_RQ_RPT');
+        await GSRM.ChkPmSn(uTk, 'VW_RPT');
+
+        let rpt;
+        if (rptTp === 'CP_ACT') {
+          rpt = await GRPSVC.gCpActRpt(pRms[0], pRms[1]);
+        } else if (rptTp === 'PMT_TRN_SC') {
+          rpt = await GRPSVC.gPmtTrnScRpt(pRms[0], pRms[1], pRms[2]);
+        } else {
+          throw new ErClS('INVL_RPT_TP', 'INVL_RPT');
+        }
+
+        this.st.scM = `${rptTp} Rpt ${rpt.iD} gnrt scss.`;
+        this.lG.i('RPT_GNRTD_FM_SCSS', { rptId: rpt.iD, rptTp });
+        await GSM.rcdEvt('RPT_GNRTD', { uId, rptTp, rptId: rpt.iD });
+        return rpt;
+      } catch (er) {
+        this.st.er = er.m;
+        this.lG.e('GEN_RPT_FL_FM', { er: er.m });
+        throw er;
+      } finally {
+        this.st.lLd = false;
+      }
+    }
+
+    async gCnf(k) {
+      this.lG.i('G_CFG_RQ', { k });
+      return GCF.gV(k);
+    }
+
+    async simExtDtSrc(sTp, q) {
+      this.lG.i('SIM_EXT_DT_SRC_RQ', { sTp, q });
+      return GEISVC.gnExtDt(sTp, q);
+    }
+
+    async sysSts() {
+      this.lG.i('SYS_STS_RQ');
+      return GSM.gSysSt();
+    }
+
+    async gnrtCp(nu = 100) {
+      const gNms = ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Zeta', 'Eta', 'Theta'];
+      const gAdrs = ['123 Main St', '456 Oak Ave', '789 Pine Ln', '101 Elm Blvd'];
+      const gTps = ['B', 'I'];
+      const gEms = ['@example.com', '@test.org', '@demo.net'];
+      const gPhs = ['555-0101', '555-0202', '555-0303'];
+      let c = 0;
+      for (let i = 0; i < nu; i++) {
+        const n = `${UtL.rdmEl(gNms)} ${UtL.g(5)}`;
+        const a = UtL.rdmEl(gAdrs);
+        const t = UtL.rdmEl(gTps);
+        const em = `${n.replace(/\s/g, '').toLowerCase()}${UtL.rdmEl(gEms)}`;
+        const ph = UtL.rdmEl(gPhs);
+        try {
+          const nc = await GCSVC.crtNwCp(n, a, t, em, ph);
+          await GCSVC.procCpKYC(nc.iD);
+          c++;
+        } catch (er) {
+          this.lG.e('GNRT_CP_FL', { er: er.m });
+        }
+      }
+      this.lG.i('GNRT_CP_CMPLT', { c });
+      return c;
+    }
+
+    async gnrtPmtOr(num = 50) {
+      let c = 0;
+      const cL = await GDB.fndAl('cp_entity');
+      const cRs = ['USD', 'EUR', 'GBP', 'JPY'];
+      if (cL.length === 0) {
+        this.lG.w('NO_CPS_TO_GNRT_PMT');
+        return 0;
+      }
+      for (let i = 0; i < num; i++) {
+        const rc = UtL.rdmEl(cL);
+        const am = Math.floor(Math.random() * 1000) + 50;
+        const cr = UtL.rdmEl(cRs);
+        const m = `Tst Pmt for ${rc.n}`;
+        try {
+          const po = await GPOSVC.crtPmOr(rc.iD, am, cr, m);
+          await GPOSVC.procPmOr(po.iD, 'sys_usr_gnrt');
+          c++;
+        } catch (er) {
+          this.lG.e('GNRT_PMT_OR_FL', { er: er.m });
+        }
+      }
+      this.lG.i('GNRT_PMT_OR_CMPLT', { c });
+      return c;
+    }
+
+    gSts() {
+      return this.st;
+    }
+  }
+
+  // Orchestrator for the entire module
+  class CrtCpOrChStr {
+    constructor() {
+      this.fm = new CtPyCrFm();
+      this.lG = new LgClS('CRT_CP_ORCH');
+      this.lG.i('ORCH_INIT', { Pr: GlPrM.Pr, SyVr: GlPrM.SyVr });
+    }
+
+    async initSys() {
+      this.lG.i('SYS_INIT_STRT');
+      await GCF.ldCfg();
+      await GTM.rNTkn();
+      this.lG.i('SYS_INIT_CMPLT');
+      await GSM.rcdEvt('SYS_BOOT', { vr: GlPrM.SyVr });
+    }
+
+    async lG(u, p) {
+      return this.fm.sLgIn(u, p);
+    }
+
+    async crtCpFm(uId, uTk, n, a, t, em, ph) {
+      this.fm.updFlD('n', n);
+      this.fm.updFlD('a', a);
+      this.fm.updFlD('t', t);
+      this.fm.updFlD('em', em);
+      this.fm.updFlD('ph', ph);
+      return this.fm.sbMtFm(uId, uTk);
+    }
+
+    async prcPmt(uId, uTk, cpId, aM, cR, m) {
+      return this.fm.procPmtOr(uId, uTk, cpId, aM, cR, m);
+    }
+
+    async rpt(uId, uTk, rptTp, ...pRms) {
+      return this.fm.genRpt(uId, uTk, rptTp, ...pRms);
+    }
+
+    async fetchExtData(sTp, q) {
+      return this.fm.simExtDtSrc(sTp, q);
+    }
+
+    async getSysStat() {
+      return this.fm.sysSts();
+    }
+
+    async getCurCfg(k) {
+      return this.fm.gCnf(k);
+    }
+
+    async sRndDt(c, p) {
+      this.lG.w('SRND_DT_GNRT_RQ', { c, p });
+      const cr = await this.fm.gnrtCp(c);
+      const pr = await this.fm.gnrtPmtOr(p);
+      this.lG.i('SRND_DT_GNRT_CMPLT', { cr, pr });
+      return { crtdCps: cr, prcdPmts: pr };
+    }
+
+    getOrchSts() {
+      return {
+        fmSt: this.fm.gSts(),
+        gdbDtSz: GDB.dt.size,
+        cfgDtSz: GCF.cfg.size,
+        prtLsCnt: PrtLs.length,
+        tknSt: { tkn: GTM.tK, expr: GTM.tKEp > UtL.gMs() }
+      };
+    }
+  }
+
+  const GCO = new CrtCpOrChStr();
+
+  // Export the main orchestrator for external use
+  return GCO;
+})();

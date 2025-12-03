@@ -1,0 +1,642 @@
+```python
+import os
+import google.generativeai as genai
+import logging
+from typing import List, Dict, Union, Any, Optional, AsyncGenerator
+from PIL import Image
+import base64
+from io import BytesIO
+
+# Configure logging for commercial grade applications
+logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO").upper(),
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# --- Configuration ---
+# It's best practice to load API keys from environment variables.
+# For commercial grade, ensure this is handled securely (e.g., AWS Secrets Manager, Vault)
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+if not GEMINI_API_KEY:
+    logger.warning("GEMINI_API_KEY environment variable not set. Gemini API calls will fail unless configured dynamically.")
+
+try:
+    if GEMINI_API_KEY:
+        genai.configure(api_key=GEMINI_API_KEY)
+        logger.info("Gemini API configured using GEMINI_API_KEY from environment.")
+    else:
+        logger.warning("Gemini API not configured via environment variable. Ensure it's configured dynamically or globally if needed.")
+except Exception as e:
+    logger.error(f"Failed to configure Gemini API: {e}")
+    # In a commercial app, you might want to exit or raise a critical error here.
+
+
+# --- Function Calling Tools Definition ---
+
+class GeminiFunctionTool:
+    """
+    A class to represent a callable tool for the Gemini API.
+    It encapsulates a Python function and its JSON schema definition,
+    allowing the Gemini model to invoke it.
+    """
+    def __init__(self, name: str, description: str, func: callable, parameters: Dict[str, Any]):
+        """
+        Initializes a GeminiFunctionTool.
+
+        Args:
+            name (str): The name of the function as the model will see it.
+            description (str): A description of what the function does.
+            func (callable): The actual Python function to be executed. Can be async or sync.
+            parameters (Dict[str, Any]): A JSON schema definition of the function's parameters.
+                                        Example: {"type": "object", "properties": {"arg1": {"type": "string"}}, "required": ["arg1"]}
+        """
+        self.name = name
+        self.description = description
+        self.func = func
+        self.parameters = parameters # JSON schema for parameters
+
+    def get_tool_definition(self) -> genai.FunctionDeclaration:
+        """Returns the tool definition in the format expected by the Gemini API."""
+        return genai.FunctionDeclaration(
+            name=self.name,
+            description=self.description,
+            parameters=self.parameters
+        )
+
+    async def execute(self, **kwargs) -> Any:
+        """Executes the wrapped function."""
+        logger.debug(f"Executing tool: {self.name} with args: {kwargs}")
+        try:
+            # Check if the function is an awaitable (async)
+            if hasattr(self.func, '__call__') and hasattr(self.func, '__await__'):
+                result = await self.func(**kwargs)
+            else:
+                result = self.func(**kwargs)
+            logger.debug(f"Tool {self.name} executed successfully. Result: {result}")
+            return result
+        except Exception as e:
+            logger.error(f"Error executing tool {self.name} with args {kwargs}: {e}", exc_info=True)
+            # For commercial grade, return a structured error message to the LLM
+            return {"error": f"Failed to execute function {self.name}: {str(e)}"}
+
+# --- Core Gemini API Wrapper ---
+
+class GeminiApiClient:
+    """
+    A commercial-grade asynchronous client for the Google Gemini API,
+    supporting various models, streaming, and robust function calling.
+    """
+    def __init__(self, model_name: str = "gemini-pro", temperature: float = 0.7,
+                 top_p: float = 0.95, top_k: int = 40, max_output_tokens: int = 8192,
+                 tools: Optional[List[GeminiFunctionTool]] = None,
+                 api_key: Optional[str] = None):
+        """
+        Initializes the Gemini API client.
+
+        Args:
+            model_name (str): The name of the Gemini model to use (e.g., "gemini-pro", "gemini-pro-vision").
+            temperature (float): Controls the randomness of the output. Higher values mean more random.
+            top_p (float): The maximum cumulative probability of tokens to consider.
+            top_k (int): The maximum number of tokens to consider.
+            max_output_tokens (int): The maximum number of tokens to generate in the response.
+            tools (Optional[List[GeminiFunctionTool]]): A list of `GeminiFunctionTool` instances
+                                                          that the model can call.
+            api_key (Optional[str]): An API key for this specific client instance.
+                                     If None, it defaults to the globally configured key (from env var).
+        """
+        self.model_name = model_name
+        self._api_key = api_key if api_key else GEMINI_API_KEY
+        if not self._api_key:
+            raise ValueError("Gemini API key is not provided or set in GEMINI_API_KEY environment variable.")
+
+        # Reconfigure if a specific API key is passed for this instance
+        if api_key and api_key != GEMINI_API_KEY:
+             genai.configure(api_key=self._api_key)
+             logger.info("Gemini API configured for this instance with a specific API key.")
+
+        self.generation_config = genai.GenerationConfig(
+            temperature=temperature,
+            top_p=top_p,
+            top_k=top_k,
+            max_output_tokens=max_output_tokens,
+        )
+        # Configure safety settings to be less restrictive by default for function calling flexibility
+        # In a real commercial product, these thresholds should be carefully chosen.
+        self.safety_settings = [
+            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+        ]
+        self.tools = tools if tools is not None else []
+        self._configured_tools = [tool.get_tool_definition() for tool in self.tools]
+        self._tool_map = {tool.name: tool for tool in self.tools}
+
+        try:
+            self.model = genai.GenerativeModel(
+                model_name=self.model_name,
+                generation_config=self.generation_config,
+                safety_settings=self.safety_settings,
+                tools=self._configured_tools if self.tools else None
+            )
+            logger.info(f"GeminiApiClient initialized with model: {self.model_name}, tools: {len(self.tools)}")
+        except Exception as e:
+            logger.error(f"Failed to initialize Gemini model '{self.model_name}': {e}", exc_info=True)
+            raise
+
+    async def _process_response_with_function_calls(self, response: genai.types.GenerateContentResponse) -> Any:
+        """
+        Processes the Gemini response, executing function calls if present and returning
+        the tool's result, or the generated text. This method is for single-turn or
+        the final resolution of a function call in a multi-turn chat if handled externally.
+        """
+        if not response.candidates:
+            logger.debug("No candidates in Gemini response.")
+            return None
+
+        candidate = response.candidates[0]
+        if candidate.function_calls:
+            # For simplicity, we assume one function call per turn for direct content generation.
+            # Chat sessions handle chaining multiple calls more gracefully.
+            function_call = candidate.function_calls[0]
+            function_name = function_call.name
+            function_args = {k: v for k, v in function_call.args.items()}
+            logger.info(f"Model requested function call: {function_name} with args: {function_args}")
+
+            if function_name not in self._tool_map:
+                logger.warning(f"Model requested unknown function: {function_name}")
+                return {"error": f"Function '{function_name}' not found or registered."}
+
+            tool_instance = self._tool_map[function_name]
+            try:
+                tool_result = await tool_instance.execute(**function_args)
+                logger.info(f"Tool {function_name} executed, result type: {type(tool_result)}")
+                return {"function_call_result": tool_result, "function_name": function_name}
+            except Exception as e:
+                logger.error(f"Error during function execution for {function_name}: {e}")
+                return {"error": f"Error executing function {function_name}: {str(e)}"}
+        elif candidate.content and candidate.content.parts:
+            # Regular text response
+            full_text_response = "".join(part.text for part in candidate.content.parts if part.text)
+            return full_text_response
+        
+        logger.debug("No function calls or text content found in response candidate.")
+        return None # No content or function call
+
+    async def generate_content(self, prompt: Union[str, List[Union[str, Image.Image, genai.FunctionResponse]]],
+                               chat_history: Optional[List[Dict[str, Any]]] = None,
+                               stream: bool = False) -> Union[str, Any, AsyncGenerator[str, None]]:
+        """
+        Generates content using the configured Gemini model.
+
+        Args:
+            prompt (Union[str, List[Union[str, Image.Image, genai.FunctionResponse]]]): The prompt to send to the model.
+                                                                  Can be a string, a list of text/PIL Image objects
+                                                                  for multi-modal prompts, or a FunctionResponse.
+            chat_history (Optional[List[Dict[str, Any]]]): A list of message dictionaries representing chat history.
+                                                            Each dict should have 'role' ('user' or 'model')
+                                                            and 'parts' (list of text or function_call/response).
+            stream (bool): If True, returns an asynchronous generator yielding chunks of the response.
+                           If False, returns the complete response after generation.
+
+        Returns:
+            Union[str, Any, AsyncGenerator[str, None]]: The generated content. If `stream` is True, an async generator.
+                                        If function calls are triggered, returns a dictionary with tool result.
+                                        If regular text, returns the text.
+                                        Returns None on failure/no content.
+        Raises:
+            ValueError: If API key is not configured or prompt is invalid.
+            Exception: If there's an API error.
+        """
+        if not self._api_key:
+            logger.error("Gemini API key is not configured for this client instance.")
+            raise ValueError("Gemini API key is not configured.")
+
+        contents_to_send = []
+        if isinstance(prompt, str):
+            contents_to_send.append(prompt)
+        elif isinstance(prompt, list):
+            for item in prompt:
+                if isinstance(item, str):
+                    contents_to_send.append(item)
+                elif isinstance(item, Image.Image):
+                    contents_to_send.append(item)
+                elif isinstance(item, genai.FunctionResponse):
+                    # This is specifically for sending function responses back to the model
+                    contents_to_send.append(item)
+                else:
+                    logger.warning(f"Unsupported prompt part type: {type(item)}. Skipping.")
+        elif isinstance(prompt, genai.FunctionResponse):
+            contents_to_send.append(prompt)
+        else:
+            raise ValueError("Prompt must be a string, a list of strings/PIL Images/FunctionResponse, or a FunctionResponse object.")
+
+        model_input = []
+        if chat_history:
+            for message in chat_history:
+                role = message.get("role")
+                parts = message.get("parts")
+                if not role or not parts:
+                    logger.warning(f"Invalid message in chat_history: {message}. Skipping.")
+                    continue
+                # Ensure parts are in the correct format for genai.
+                # Assuming parts are already list of str, dict (for function call/response) or Image.
+                model_input.append({"role": role, "parts": parts})
+        
+        # Add current user prompt
+        # If the prompt itself is a FunctionResponse, it's a model turn, not a user turn.
+        # This case is typically handled by ChatSession.send_message.
+        # For direct generate_content, assuming the 'prompt' is always the initial user input.
+        if not (isinstance(prompt, genai.FunctionResponse) or (isinstance(prompt, list) and any(isinstance(p, genai.FunctionResponse) for p in prompt))):
+            model_input.append({"role": "user", "parts": contents_to_send})
+        else:
+            # If the prompt IS a function response, it means we are sending back a tool output.
+            # This is typically done within a chat session, but if done directly, it's a model's turn
+            # to receive the info to generate a text response.
+            model_input.append({"role": "model", "parts": contents_to_send})
+        
+        logger.debug(f"Calling Gemini with model_input: {model_input[:2]}...") # log first few parts
+
+        try:
+            if stream:
+                response_stream = self.model.generate_content(
+                    model_input,
+                    stream=True,
+                    safety_settings=self.safety_settings,
+                    generation_config=self.generation_config,
+                    tools=self._configured_tools if self.tools else None
+                )
+                return self._stream_response(response_stream)
+            else:
+                response = await self.model.generate_content_async(
+                    model_input,
+                    safety_settings=self.safety_settings,
+                    generation_config=self.generation_config,
+                    tools=self._configured_tools if self.tools else None
+                )
+                return await self._process_response_with_function_calls(response)
+        except genai.types.BlockedPromptException as e:
+            logger.error(f"Prompt was blocked by safety settings: {e}")
+            raise ValueError("Prompt blocked by safety settings.") from e
+        except Exception as e:
+            logger.error(f"Error during Gemini API call: {e}", exc_info=True)
+            raise
+
+    async def _stream_response(self, response_stream) -> AsyncGenerator[str, None]:
+        """
+        Asynchronously yields parts of the streamed response.
+        Handles text content only for streaming. Function calls are generally not streamed
+        as partial text output.
+        """
+        try:
+            async for chunk in response_stream:
+                if chunk.candidates:
+                    candidate = chunk.candidates[0]
+                    if candidate.content and candidate.content.parts:
+                        for part in candidate.content.parts:
+                            if part.text:
+                                yield part.text
+                    elif candidate.function_calls:
+                        # If a function call is detected mid-stream, it means the model
+                        # wants to perform an action. For streaming, we typically yield text.
+                        # This might indicate a complex multi-turn action that's better
+                        # handled by the non-streaming `send_message` in `GeminiChatSession`.
+                        logger.warning(f"Function call detected in streaming response ({candidate.function_calls[0].name}). "
+                                       "Stopping text stream. Consider non-streaming for full function call handling.")
+                        # You could yield a special token or stop the stream.
+                        # For robustness, we will stop streaming text and indicate this.
+                        yield f"[FUNCTION_CALL_REQUESTED: {candidate.function_calls[0].name}]"
+                        return # Stop further text streaming
+        except Exception as e:
+            logger.error(f"Error during streaming Gemini API call: {e}", exc_info=True)
+            raise
+
+    async def start_chat(self, history: Optional[List[Dict[str, Any]]] = None) -> "GeminiChatSession":
+        """
+        Starts a new chat session with the Gemini model, supporting multi-turn conversations
+        and function calling.
+
+        Args:
+            history (Optional[List[Dict[str, Any]]]): Initial chat history.
+                                                     Each dict should have 'role' ('user' or 'model')
+                                                     and 'parts' (list of text or function_call/response).
+
+        Returns:
+            GeminiChatSession: An object representing the ongoing chat session.
+        """
+        if not self._api_key:
+            logger.error("Gemini API key is not configured for this client instance.")
+            raise ValueError("Gemini API key is not configured.")
+
+        try:
+            chat_session = self.model.start_chat(history=history)
+            logger.info(f"Gemini chat session started with model: {self.model_name}. Initial history length: {len(history) if history else 0}")
+            return GeminiChatSession(self, chat_session)
+        except Exception as e:
+            logger.error(f"Failed to start chat session with model '{self.model_name}': {e}", exc_info=True)
+            raise
+
+# --- Chat Session Wrapper ---
+
+class GeminiChatSession:
+    """
+    A wrapper around the Gemini `ChatSession` for managing multi-turn conversations
+    and handling function calls within the chat context, ensuring commercial-grade
+    robustness and developer experience.
+    """
+    def __init__(self, api_client: GeminiApiClient, chat_session: genai.ChatSession):
+        self._api_client = api_client
+        self._chat_session = chat_session
+        logger.info("GeminiChatSession initialized.")
+
+    @property
+    def history(self) -> List[Dict[str, Any]]:
+        """
+        Returns the current chat history, converted into a more Pythonic dictionary format.
+        """
+        # Convert genai.protos.Content objects to dicts for easier use
+        converted_history = []
+        for message in self._chat_session.history:
+            parts_list = []
+            for part in message.parts:
+                if hasattr(part, 'text'):
+                    parts_list.append({"text": part.text})
+                elif hasattr(part, 'function_call'):
+                    parts_list.append({"function_call": {"name": part.function_call.name, "args": dict(part.function_call.args)}})
+                elif hasattr(part, 'function_response'):
+                    parts_list.append({"function_response": {"name": part.function_response.name, "response": part.function_response.response}})
+                # Add other part types if needed, e.g., image.
+            converted_history.append({"role": message.role, "parts": parts_list})
+        return converted_history
+
+    async def send_message(self, message: Union[str, List[Union[str, Image.Image, genai.FunctionResponse]]],
+                           stream: bool = False) -> Union[str, Any, AsyncGenerator[str, None]]:
+        """
+        Sends a message to the chat session and gets a response.
+        Handles function calls and integrates their results back into the chat flow.
+
+        Args:
+            message (Union[str, List[Union[str, Image.Image, genai.FunctionResponse]]]): The message content.
+                                                                  Can be a string, a list of text/PIL Image objects
+                                                                  for multi-modal prompts, or a FunctionResponse object.
+            stream (bool): If True, returns an asynchronous generator yielding chunks of the response.
+
+        Returns:
+            Union[str, Any, AsyncGenerator[str, None]]: The generated content.
+                                        If `stream` is True, an async generator of text chunks.
+                                        If a function call is triggered, it automatically executes
+                                        the function and sends the result back to the model,
+                                        then returns the model's final textual response.
+                                        Returns the final textual response or specific error/debug dict.
+        Raises:
+            ValueError: If API key is not configured or message is invalid.
+            Exception: If there's an API error.
+        """
+        if not self._api_client._api_key:
+            logger.error("Gemini API key is not configured for this chat session.")
+            raise ValueError("Gemini API key is not configured.")
+
+        contents_to_send = []
+        if isinstance(message, str):
+            contents_to_send.append(message)
+        elif isinstance(message, list):
+            for item in message:
+                if isinstance(item, str):
+                    contents_to_send.append(item)
+                elif isinstance(item, Image.Image):
+                    contents_to_send.append(item)
+                elif isinstance(item, genai.FunctionResponse):
+                    contents_to_send.append(item)
+                else:
+                    logger.warning(f"Unsupported message part type: {type(item)}. Skipping.")
+        elif isinstance(message, genai.FunctionResponse):
+            contents_to_send.append(message)
+        else:
+            raise ValueError("Message must be a string, a list of strings/PIL Images/FunctionResponse, or a FunctionResponse object.")
+
+        try:
+            if stream:
+                response_stream = await self._chat_session.send_message_async(
+                    contents_to_send,
+                    stream=True,
+                    safety_settings=self._api_client.safety_settings,
+                    generation_config=self._api_client.generation_config,
+                    tools=self._api_client._configured_tools if self._api_client.tools else None
+                )
+                return self._api_client._stream_response(response_stream)
+            else:
+                response = await self._chat_session.send_message_async(
+                    contents_to_send,
+                    safety_settings=self._api_client.safety_settings,
+                    generation_config=self._api_client.generation_config,
+                    tools=self._api_client._configured_tools if self._api_client.tools else None
+                )
+
+                if response.candidates:
+                    candidate = response.candidates[0]
+                    if candidate.function_calls:
+                        # Process function call
+                        function_call = candidate.function_calls[0] # Assuming one call for simplicity
+                        function_name = function_call.name
+                        function_args = {k: v for k, v in function_call.args.items()}
+                        logger.info(f"Chat model requested function call: {function_name} with args: {function_args}")
+
+                        if function_name not in self._api_client._tool_map:
+                            logger.warning(f"Chat model requested unknown function: {function_name}")
+                            return {"error": f"Function '{function_name}' not found or registered in chat session."}
+
+                        tool_instance = self._api_client._tool_map[function_name]
+                        tool_result_raw = await tool_instance.execute(**function_args)
+
+                        # Send the tool result back to the model for the next turn
+                        tool_response_part = genai.types.FunctionResponse(
+                            name=function_name,
+                            response=tool_result_raw # Pass the actual result dict/object
+                        )
+                        logger.info(f"Sending tool result for '{function_name}' back to model in chat session.")
+                        
+                        # The ChatSession's send_message automatically handles this chaining.
+                        # It takes the FunctionResponse, adds it to history, and makes a subsequent call.
+                        # We then process the result of *that* subsequent call for the final text response.
+                        final_response = await self._chat_session.send_message_async(
+                            tool_response_part,
+                            safety_settings=self._api_client.safety_settings,
+                            generation_config=self._api_client.generation_config,
+                            tools=self._api_client._configured_tools if self._api_client.tools else None
+                        )
+                        
+                        if final_response.candidates and final_response.candidates[0].content:
+                            return "".join(part.text for part in final_response.candidates[0].content.parts if part.text)
+                        else:
+                            logger.warning(f"No textual response after tool call for '{function_name}'. Raw response: {final_response}")
+                            return {"tool_executed": function_name, "tool_result": tool_result_raw, "final_model_response": None}
+
+                    elif candidate.content and candidate.content.parts:
+                        # Regular text response
+                        full_text_response = "".join(part.text for part in candidate.content.parts if part.text)
+                        return full_text_response
+                return None # No content or function call
+        except genai.types.BlockedPromptException as e:
+            logger.error(f"Prompt was blocked by safety settings: {e}")
+            raise ValueError("Prompt blocked by safety settings.") from e
+        except Exception as e:
+            logger.error(f"Error during Gemini Chat API call: {e}", exc_info=True)
+            raise
+
+# --- Example Usage / Exported Functions (for general utility and direct calls) ---
+
+async def get_gemini_text_response(prompt: str, model_name: str = "gemini-pro",
+                                   temperature: float = 0.7, api_key: Optional[str] = None) -> Optional[str]:
+    """
+    A simple, top-level function to get a text response from Gemini.
+    Useful for quick, single-turn interactions without advanced features.
+    """
+    try:
+        client = GeminiApiClient(model_name=model_name, temperature=temperature, api_key=api_key)
+        response = await client.generate_content(prompt)
+        if isinstance(response, str):
+            return response
+        elif isinstance(response, dict) and "error" in response:
+            logger.error(f"Error in Gemini text response: {response['error']}")
+            return None
+        else:
+            logger.warning(f"Unexpected response type from get_gemini_text_response: {type(response)}. Content: {response}")
+            return str(response) if response else None # Try to cast, or return None
+    except Exception as e:
+        logger.error(f"Failed to get Gemini text response for prompt '{prompt[:50]}...': {e}", exc_info=True)
+        return None
+
+async def get_gemini_vision_response(prompt_parts: List[Union[str, Image.Image]],
+                                     model_name: str = "gemini-pro-vision",
+                                     temperature: float = 0.4, api_key: Optional[str] = None) -> Optional[str]:
+    """
+    A simple, top-level function for multi-modal (text and image) interaction.
+    """
+    try:
+        client = GeminiApiClient(model_name=model_name, temperature=temperature, api_key=api_key)
+        response = await client.generate_content(prompt_parts)
+        if isinstance(response, str):
+            return response
+        elif isinstance(response, dict) and "error" in response:
+            logger.error(f"Error in Gemini vision response: {response['error']}")
+            return None
+        else:
+            logger.warning(f"Unexpected response type from get_gemini_vision_response: {type(response)}. Content: {response}")
+            return str(response) if response else None # Try to cast, or return None
+    except Exception as e:
+        logger.error(f"Failed to get Gemini vision response for prompt: {e}", exc_info=True)
+        return None
+
+# --- Helper for parsing image data (e.g., from base64 if coming from frontend) ---
+
+def load_image_from_base64(base64_string: str) -> Image.Image:
+    """
+    Loads a PIL Image from a base64 encoded string.
+    Supports common image formats.
+    """
+    try:
+        # Check if base64_string contains a data URI prefix
+        if "," in base64_string:
+            _, base64_string = base64_string.split(",", 1)
+        
+        img_bytes = base64.b64decode(base64_string)
+        return Image.open(BytesIO(img_bytes))
+    except (TypeError, ValueError) as e:
+        logger.error(f"Invalid base64 image data: {e}", exc_info=True)
+        raise ValueError("Invalid base64 image data provided. Ensure it's correctly formatted.") from e
+    except Exception as e:
+        logger.error(f"Failed to load image from base64 string: {e}", exc_info=True)
+        raise RuntimeError(f"An unexpected error occurred while loading image: {e}") from e
+
+
+# --- Define some example functions that the Gemini model could call ---
+
+async def get_current_weather(location: str, unit: str = "celsius") -> Dict[str, Any]:
+    """
+    Gets the current weather for a specified location.
+    This is a dummy function for demonstration purposes.
+    """
+    logger.info(f"Simulating weather lookup for {location}, unit: {unit}")
+    # In a real application, this would call an external weather API like OpenWeatherMap.
+    location_lower = location.lower()
+    if "san francisco" in location_lower:
+        temp_c = 15
+        temp_f = 59
+        conditions = "cloudy"
+    elif "new york" in location_lower:
+        temp_c = 22
+        temp_f = 72
+        conditions = "sunny"
+    elif "london" in location_lower:
+        temp_c = 10
+        temp_f = 50
+        conditions = "rainy"
+    else:
+        return {"location": location, "temperature": "N/A", "conditions": "unknown", "unit": unit}
+
+    temperature = f"{temp_c}C" if unit == "celsius" else f"{temp_f}F"
+    return {"location": location, "temperature": temperature, "conditions": conditions, "unit": unit}
+
+async def get_stock_price(ticker: str) -> Dict[str, Any]:
+    """
+    Gets the current stock price for a given ticker symbol.
+    This is a dummy function for demonstration purposes.
+    """
+    logger.info(f"Simulating stock price lookup for {ticker}")
+    # In a real application, this would call a stock market API like Alpha Vantage.
+    ticker = ticker.upper()
+    if ticker == "GOOG":
+        return {"ticker": ticker, "price": 170.50, "currency": "USD", "change": "+1.2%"}
+    elif ticker == "AAPL":
+        return {"ticker": ticker, "price": 185.20, "currency": "USD", "change": "-0.5%"}
+    elif ticker == "MSFT":
+        return {"ticker": ticker, "price": 420.00, "currency": "USD", "change": "+0.8%"}
+    else:
+        return {"ticker": ticker, "price": "N/A", "currency": "N/A", "change": "N/A"}
+
+# Define GeminiFunctionTool instances for the example functions
+WEATHER_TOOL = GeminiFunctionTool(
+    name="get_current_weather",
+    description="Gets the current weather for a specified location. Defaults to Celsius.",
+    func=get_current_weather,
+    parameters={
+        "type": "object",
+        "properties": {
+            "location": {"type": "string", "description": "The city and state, e.g. San Francisco, CA"},
+            "unit": {"type": "string", "enum": ["celsius", "fahrenheit"], "description": "The unit for temperature (celsius or fahrenheit). Defaults to celsius.", "default": "celsius"}
+        },
+        "required": ["location"]
+    }
+)
+
+STOCK_PRICE_TOOL = GeminiFunctionTool(
+    name="get_stock_price",
+    description="Gets the current stock price for a given ticker symbol.",
+    func=get_stock_price,
+    parameters={
+        "type": "object",
+        "properties": {
+            "ticker": {"type": "string", "description": "The stock ticker symbol, e.g. GOOG"}
+        },
+        "required": ["ticker"]
+    }
+)
+
+# A default list of tools that can be passed to the client or chat session
+DEFAULT_GEMINI_TOOLS = [WEATHER_TOOL, STOCK_PRICE_TOOL]
+
+# Additional Notes for a "king" and "full" commercial-grade implementation:
+# 1. Error Handling: More granular custom exceptions could be defined.
+# 2. Rate Limiting: Implement client-side rate limiting or use a library.
+# 3. Caching: Cache common LLM responses or tool results to reduce API calls and latency.
+# 4. Observability: Integrate with tracing (e.g., OpenTelemetry) and metrics systems.
+# 5. Security: Ensure API keys are handled securely (e.g., environment variables, secret managers)
+#             and input/output sanitization.
+# 6. Scalability: Design for concurrent requests if the application serves many users.
+# 7. Model Management: Allow for easy swapping/configuration of different models and versions.
+# 8. User Feedback: Implement mechanisms to collect and incorporate user feedback to improve prompts/tools.
+# 9. Persistent History: For long-running chats, integrate with a database to store and retrieve chat history.
+# 10. Streaming Function Calls: The Gemini API currently doesn't stream function calls;
+#                              if it did, _stream_response would need expansion.
+# 11. Custom Safety Settings: Allow dynamic per-request safety settings adjustments based on user context.
+```

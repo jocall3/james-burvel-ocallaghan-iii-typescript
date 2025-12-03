@@ -1,0 +1,317 @@
+// Copyright James Burvel Oâ€™Callaghan III
+// President Citibank Demo Business Inc.
+
+import React, { useState, useEffect, FormEvent, ChangeEvent, createContext, useContext, useCallback, useMemo } from 'react';
+
+// --- Global Utility Types ---
+type ISO8601String = string; // Represents an ISO 8601 date string (e.g., "2023-10-27T10:00:00Z")
+type UUID = string; // Represents a unique identifier, e.g., 'ach_setting_1'
+type MonetaryValue = number; // Represents currency amounts
+
+// --- GraphQL Types (Derived from the provided fragment and extended for a commercial application) ---
+
+export interface User {
+  id: UUID;
+  username: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  roleId: UUID;
+  isActive: boolean;
+  lastLogin: ISO8601String | null;
+  createdAt: ISO8601String;
+  updatedAt: ISO8601String;
+  path: string;
+}
+
+export interface Role {
+  id: UUID;
+  name: string;
+  description: string;
+  permissions: string[]; // e.g., ['ach:read', 'ach:create', 'ach:approve', 'user:manage']
+  createdAt: ISO8601String;
+  updatedAt: ISO8601String;
+  path: string;
+}
+
+export interface InternalAccount {
+  typename: '__typename';
+  id: UUID;
+  bestName: string;
+  accountNumber: string;
+  accountType: 'CHECKING' | 'SAVINGS' | 'BUSINESS_CHECKING' | 'LOAN';
+  currency: string; // e.g., 'USD', 'CAD'
+  availableBalance: MonetaryValue;
+  currentBalance: MonetaryValue;
+  bankName: string;
+  routingNumber: string;
+  associatedClientIds: UUID[];
+  status: 'ACTIVE' | 'INACTIVE' | 'FROZEN' | 'CLOSED';
+  createdAt: ISO8601String;
+  updatedAt: ISO8601String;
+  path: string;
+}
+
+export interface AchSettingTemplate {
+  typename: '__typename';
+  id: UUID;
+  name: string;
+  description: string;
+  defaultDirection: 'INCOMING' | 'OUTGOING';
+  defaultAmountLimit: MonetaryValue | null;
+  defaultFrequency: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'ONCE' | 'ADHOC';
+  defaultRequiresApproval: boolean;
+  defaultPriority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  defaultTags: string[];
+  isGlobal: boolean;
+  allowedRolesForCreation: UUID[]; // Role IDs that can use this template
+  createdAt: ISO8601String;
+  updatedAt: ISO8601String;
+  path: string;
+}
+
+export interface AchSetting {
+  typename: '__typename';
+  id: UUID;
+  name: string;
+  description: string | null;
+  path: string;
+  version: number;
+  policyId: UUID | null; // Link to an applied policy
+  nachaRulesetId: UUID | null; // Link to specific NACHA ruleset config
+  isScheduled: boolean;
+  nextScheduledRun: ISO8601String | null;
+}
+
+export interface AccountACHSettingNode {
+  typename: '__typename';
+  id: UUID;
+  internalAccount: InternalAccount;
+  prettyDirection: 'INCOMING' | 'OUTGOING';
+  achSetting: AchSetting;
+  amountLimit: MonetaryValue | null;
+  frequency: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'ONCE' | 'ADHOC';
+  effectiveDate: ISO8601String;
+  expirationDate: ISO8601String | null;
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  isActive: boolean;
+  requiresApproval: boolean;
+  approvalStatus: 'PENDING' | 'APPROVED' | 'REJECTED' | 'N/A';
+  approvedBy: User | null;
+  approvedAt: ISO8601String | null;
+  prettyImmediateOrigin: string;
+  immediateOriginId: UUID; // New: UUID for an origin entity
+  immediateOriginName: string;
+  immediateDestination: string; // Often a routing number or specific identifier
+  immediateDestinationName: string;
+  connectionEndpointLabel: string;
+  connectionEndpointId: UUID; // New: UUID for the connection endpoint
+  discardedAt: ISO8601String | null; // ISO Date string or null
+  createdAt: ISO8601String; // ISO Date string
+  updatedAt: ISO8601String;
+  lastEditedBy: User | null;
+  notes: string | null;
+  tags: string[];
+  reconciliationStatus: 'PENDING' | 'COMPLETED' | 'FAILED' | 'OVERDUE';
+  riskScore: number; // 0-100, higher is riskier
+  complianceStatus: 'PASS' | 'FAIL' | 'WARNING' | 'PENDING_REVIEW';
+  path: string;
+}
+
+export interface PageInfo {
+  startCursor: string | null;
+  endCursor: string | null;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+  typename: '__typename';
+  totalCount?: number;
+}
+
+export interface AccountACHSettingConnection {
+  edges: { node: AccountACHSettingNode; cursor: string; typename: '__typename' }[];
+  pageInfo: PageInfo;
+  typename: '__typename';
+}
+
+export interface AchTransaction {
+  id: UUID;
+  accountId: UUID;
+  achSettingId: UUID;
+  amount: MonetaryValue;
+  currency: string;
+  transactionType: 'DEBIT' | 'CREDIT';
+  status: 'PENDING' | 'PROCESSED' | 'FAILED' | 'RETURNED' | 'CANCELLED';
+  processingDate: ISO8601String;
+  effectiveEntryDate: ISO8601String;
+  traceNumber: string;
+  nachaFileId: UUID | null; // Link to the NACHA file it was part of
+  returnCode: string | null; // e.g., 'R01', 'R03'
+  returnReason: string | null;
+  originatorId: string;
+  addendaInformation: string | null;
+  createdAt: ISO8601String;
+  updatedAt: ISO8601String;
+  path: string;
+}
+
+export interface AchApprovalRequest {
+  id: UUID;
+  achSettingId: UUID;
+  requestedBy: User;
+  requestType: 'CREATE' | 'UPDATE' | 'DELETE' | 'ACTIVATE' | 'DEACTIVATE';
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+  requestedAt: ISO8601String;
+  approvedBy: User | null;
+  approvedAt: ISO8601String | null;
+  rejectionReason: string | null;
+  comment: string | null;
+  currentSettingSnapshot: Partial<AccountACHSettingNode>; // Snapshot of the setting at request time
+  proposedSettingChanges: Partial<AccountACHSettingNode>; // Only changed fields
+  requiredApprovers: UUID[]; // Role IDs or User IDs
+  path: string;
+}
+
+export interface AuditLog {
+  id: UUID;
+  entityType: 'AchSetting' | 'User' | 'Role' | 'Account' | 'ApprovalRequest';
+  entityId: UUID;
+  action: string; // e.g., 'CREATE', 'UPDATE', 'DELETE', 'APPROVE', 'LOGIN'
+  oldValue: string | null; // JSON string of old state
+  newValue: string | null; // JSON string of new state
+  changedBy: User;
+  changedAt: ISO8601String;
+  ipAddress: string;
+  userAgent: string;
+  path: string;
+}
+
+export interface NachaFileDetails {
+  id: UUID;
+  fileName: string;
+  batchCount: number;
+  transactionCount: number;
+  totalDebitAmount: MonetaryValue;
+  totalCreditAmount: MonetaryValue;
+  fileStatus: 'GENERATED' | 'TRANSMITTED' | 'RECEIVED_ACK' | 'REJECTED' | 'SETTLED';
+  generatedBy: User;
+  generatedAt: ISO8601String;
+  transmittedAt: ISO8601String | null;
+  acknowledgementReceivedAt: ISO8601String | null;
+  rejectionReason: string | null;
+  path: string;
+}
+
+export interface IntegrationConfig {
+  id: UUID;
+  name: string;
+  type: 'PLAID' | 'STRIPE' | 'DWOLLA' | 'INTERNAL_CORE_BANKING' | 'CUSTOM_SFTP';
+  status: 'ACTIVE' | 'INACTIVE' | 'ERROR';
+  lastSyncAt: ISO8601String | null;
+  configuration: Record<string, any>; // e.g., API keys, endpoint URLs
+  createdAt: ISO8601String;
+  updatedAt: ISO8601String;
+  path: string;
+}
+
+export interface PolicyRule {
+  id: UUID;
+  name: string;
+  description: string;
+  ruleType: 'AMOUNT_LIMIT' | 'FREQUENCY_LIMIT' | 'DIRECTION_RESTRICTION' | 'APPROVAL_THRESHOLD' | 'GEO_RESTRICTION';
+  conditions: Record<string, any>; // e.g., { 'amountGt': 10000, 'accountTypeIn': ['LOAN'] }
+  actions: Record<string, any>; // e.g., { 'requiresApproval': true, 'overridePriority': 'HIGH' }
+  isActive: boolean;
+  priority: number; // For rule application order
+  appliesToRoles: UUID[]; // Which roles this policy affects or is managed by
+  createdAt: ISO8601String;
+  updatedAt: ISO8601String;
+  path: string;
+}
+
+export interface AlertDefinition {
+  id: UUID;
+  name: string;
+  description: string;
+  eventType: 'ACH_TRANSACTION_FAILED' | 'ACH_SETTING_DISCARDED' | 'APPROVAL_OVERDUE' | 'HIGH_RISK_SETTING_CREATED' | 'UNEXPECTED_ACTIVITY';
+  triggerCondition: Record<string, any>; // e.g., { 'amountGt': 50000, 'direction': 'OUTGOING' }
+  severity: 'INFO' | 'WARNING' | 'CRITICAL';
+  recipientRoles: UUID[];
+  recipientUsers: UUID[];
+  deliveryMethod: 'EMAIL' | 'SMS' | 'IN_APP';
+  isActive: boolean;
+  createdAt: ISO8601String;
+  updatedAt: ISO8601String;
+  path: string;
+}
+
+export interface SystemConfiguration {
+  id: UUID;
+  key: string; // e.g., 'GLOBAL_MAX_DAILY_ACH_LIMIT', 'DEFAULT_APPROVAL_TIMEOUT_DAYS'
+  value: string; // Stored as string, parsed to appropriate type
+  description: string;
+  type: 'NUMBER' | 'STRING' | 'BOOLEAN' | 'JSON';
+  lastUpdatedBy: User | null;
+  updatedAt: ISO8601String;
+  path: string;
+}
+
+// --- Mock Data Store (In-memory simulation of a full backend) ---
+class InMemoryDB {
+  public users: User[] = [];
+  public roles: Role[] = [];
+  public internalAccounts: InternalAccount[] = [];
+  public achSettings: AchSetting[] = [];
+  public accountAchSettings: AccountACHSettingNode[] = [];
+  public achSettingTemplates: AchSettingTemplate[] = [];
+  public achTransactions: AchTransaction[] = [];
+  public achApprovalRequests: AchApprovalRequest[] = [];
+  public auditLogs: AuditLog[] = [];
+  public nachaFiles: NachaFileDetails[] = [];
+  public integrationConfigs: IntegrationConfig[] = [];
+  public policyRules: PolicyRule[] = [];
+  public alertDefinitions: AlertDefinition[] = [];
+  public systemConfigurations: SystemConfiguration[] = [];
+
+  constructor() {
+    this.initializeData();
+  }
+
+  private generateUUID(): UUID {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  }
+
+  private initializeData() {
+    // Roles
+    const adminRole: Role = {
+      id: this.generateUUID(), name: 'Administrator', description: 'Full system access', permissions: ['ach:read', 'ach:create', 'ach:update', 'ach:delete', 'ach:approve', 'user:manage', 'role:manage', 'audit:read', 'reports:read', 'config:manage', 'policy:manage', 'alert:manage', 'integration:manage'], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), path: '/roles/admin'
+    };
+    const approverRole: Role = {
+      id: this.generateUUID(), name: 'ACH Approver', description: 'Can approve ACH settings and transactions', permissions: ['ach:read', 'ach:approve', 'reports:read'], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), path: '/roles/approver'
+    };
+    const creatorRole: Role = {
+      id: this.generateUUID(), name: 'ACH Creator', description: 'Can create and manage own ACH settings', permissions: ['ach:read', 'ach:create', 'ach:update', 'ach:delete_own'], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), path: '/roles/creator'
+    };
+    const viewerRole: Role = {
+      id: this.generateUUID(), name: 'ACH Viewer', description: 'Can view ACH settings and transactions', permissions: ['ach:read', 'reports:read'], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), path: '/roles/viewer'
+    };
+    this.roles = [adminRole, approverRole, creatorRole, viewerRole];
+
+    // Users
+    const adminUser: User = {
+      id: this.generateUUID(), username: 'admin.user', email: 'admin@example.com', firstName: 'Admin', lastName: 'User', roleId: adminRole.id, isActive: true, lastLogin: new Date().toISOString(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), path: '/users/admin'
+    };
+    const approverUser: User = {
+      id: this.generateUUID(), username: 'approver.user', email: 'approver@example.com', firstName: 'Jane', lastName: 'Doe', roleId: approverRole.id, isActive: true, lastLogin: new Date().toISOString(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), path: '/users/approver'
+    };
+    const creatorUser: User = {
+      id: this.generateUUID(), username: 'creator.user', email: 'creator@example.com', firstName: 'John', lastName: 'Smith', roleId: creatorRole.id, isActive: true, lastLogin: new Date().toISOString(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), path: '/users/creator'
+    };
+    this.users = [adminUser, approverUser, creatorUser];
+
+    // Internal Accounts
+    const mainChecking: InternalAccount = {
+      typename: '__typename', id: 'internal_acc_1', bestName: 'Main Checking Account', accountNumber: '1234567890', accountType: 'BUSINESS_CHECKING', currency: 'USD', availableBalance: 150000.

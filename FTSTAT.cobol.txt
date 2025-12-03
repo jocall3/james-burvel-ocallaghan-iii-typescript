@@ -1,0 +1,325 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. FTSTAT.
+       AUTHOR. GLOBAL-FINTECH-CONSORTIUM.
+       DATE-WRITTEN. 1993-02-11.
+       DATE-COMPILED. 2023-10-27.
+      ******************************************************************
+      * GLOBAL FINANCIAL SYSTEMS - INQUIRE FUNDS TRANSFER STATUS
+      * This program provides comprehensive status inquiry for funds
+      * transfers, incorporating advanced data presentation and
+      * integration with an Adaptive Insight Engine for predictive
+      * analytics and suggested actions.
+      ******************************************************************
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT FUNDS-TRANSFER-FILE ASSIGN TO FTMAST
+               ORGANIZATION IS INDEXED
+               ACCESS MODE IS RANDOM
+               RECORD KEY IS FT-TRANSACTION-ID
+               FILE STATUS IS WS-FTMAST-STATUS.
+
+       DATA DIVISION.
+       FILE SECTION.
+       FD FUNDS-TRANSFER-FILE.
+       01 FT-FILE-RECORD         PIC X(500). *> Expanded record size
+
+       WORKING-STORAGE SECTION.
+       01 WS-PROGRAM-SWITCHES.
+          05 WS-FTMAST-STATUS       PIC X(02).
+             88 FTMAST-OK            VALUE '00'.
+             88 FTMAST-NOT-FOUND     VALUE '23'.
+          05 WS-CONTINUE-FLAG       PIC X(01) VALUE 'Y'.
+             88 CONTINUE-INQUIRY     VALUE 'Y'.
+             88 END-INQUIRY          VALUE 'N'.
+
+       01 WS-INPUT-FIELDS.
+          05 WS-INQUIRY-TX-ID       PIC X(36). *> Expanded for UUID/GUIDs
+          05 WS-USER-ACTION-CHOICE  PIC X(01).
+
+       01 WS-DISPLAY-FIELDS.
+          05 WS-DISPLAY-DATE        PIC 9(8).
+          05 WS-DISPLAY-TIME        PIC 9(6).
+          05 I                      PIC 9(02). *> Loop counter
+
+       01 WS-AI-MODULE-DATA.
+          05 WS-AI-ANALYSIS-RESULT  PIC X(200).
+          05 WS-AI-CONFIDENCE-LEVEL PIC 9(03) VALUE ZEROS.
+          05 WS-AI-SUGGESTED-ACTION PIC X(100).
+
+       *> The following structure for WS-FUNDS-TRANSFER is assumed to be
+       *> present in the CPFT01 COPYBOOK. For this example, it is explicitly
+       *> defined here to demonstrate the expanded data fields.
+       COPY CPFT01 REPLACING ==FUNDS-TRANSFER-RECORD== BY
+                             ==WS-FUNDS-TRANSFER==.
+
+       01 WS-FUNDS-TRANSFER.
+          00 FT-TRANSACTION-ID       PIC X(36).
+          00 FT-TRANSFER-AMOUNT      PIC 9(13)V99.
+          00 FT-CURRENCY             PIC X(03).
+          00 FT-SENDER-ACCOUNT       PIC X(20).
+          00 FT-RECEIVER-ACCOUNT     PIC X(20).
+          00 FT-SENDER-NAME          PIC X(50).
+          00 FT-RECEIVER-NAME        PIC X(50).
+          00 FT-INITIATION-DATETIME.
+             05 FT-INITIATION-DATE   PIC 9(08).
+             05 FT-INITIATION-TIME   PIC 9(06).
+          00 FT-COMPLETION-DATETIME.
+             05 FT-COMPLETION-DATE   PIC 9(08).
+             05 FT-COMPLETION-TIME   PIC 9(06).
+          00 FT-STATUS               PIC X(01).
+             88 FT-STATUS-PENDING    VALUE 'P'.
+             88 FT-STATUS-COMPLETED  VALUE 'C'.
+             88 FT-STATUS-FAILED     VALUE 'F'.
+             88 FT-STATUS-CANCELLED  VALUE 'X'.
+             88 FT-STATUS-REVIEW     VALUE 'R'. *> New status for AI review
+             88 FT-STATUS-HOLD       VALUE 'H'. *> New status for temporary hold
+          00 FT-STATUS-REASON        PIC X(100).
+          00 FT-RISK-SCORE           PIC 9(03). *> New field, e.g., 000-999
+          00 FT-AUDIT-TRAIL OCCURS 10 TIMES. *> Transaction history
+             05 FT-AUDIT-DATETIME.
+                10 FT-AUDIT-DATE     PIC 9(08).
+                10 FT-AUDIT-TIME     PIC 9(06).
+             05 FT-AUDIT-EVENT      PIC X(80).
+             05 FT-AUDIT-USER       PIC X(10).
+
+       PROCEDURE DIVISION.
+       0000-MAIN-LOGIC.
+           PERFORM 1000-INITIALIZATION.
+           PERFORM UNTIL END-INQUIRY
+               PERFORM 2000-ACCEPT-INPUT
+               IF CONTINUE-INQUIRY
+                   PERFORM 3000-PROCESS-INQUIRY
+                   PERFORM 9000-CONTINUE-PROMPT
+               END-IF
+           END-PERFORM.
+           PERFORM 9999-TERMINATION.
+           STOP RUN.
+
+       1000-INITIALIZATION.
+           ACCEPT WS-DISPLAY-DATE FROM DATE YYYYMMDD.
+           ACCEPT WS-DISPLAY-TIME FROM TIME HHMMSS.
+           DISPLAY " ".
+           DISPLAY "GLOBAL FINANCIAL SYSTEMS - FUNDS TRANSFER STATUS INQUIRY".
+           DISPLAY "CURRENT DATE: " WS-DISPLAY-DATE " TIME: " WS-DISPLAY-TIME.
+           DISPLAY "VERSION 2.0 - INTEGRATED ADAPTIVE INSIGHTS".
+           DISPLAY "----------------------------------------------------".
+           OPEN INPUT FUNDS-TRANSFER-FILE.
+           IF NOT FTMAST-OK
+              DISPLAY "ERROR: UNABLE TO OPEN FUNDS TRANSFER FILE. STATUS: "
+                      WS-FTMAST-STATUS
+              PERFORM 9999-TERMINATION
+              STOP RUN
+           END-IF.
+
+       2000-ACCEPT-INPUT.
+           MOVE SPACES TO WS-INQUIRY-TX-ID.
+           DISPLAY " ".
+           DISPLAY "ENTER TRANSACTION ID (36 CHARS) FOR STATUS INQUIRY (OR 'EXIT' TO QUIT): ".
+           ACCEPT WS-INQUIRY-TX-ID.
+           IF WS-INQUIRY-TX-ID = 'EXIT' OR WS-INQUIRY-TX-ID = 'exit'
+              SET END-INQUIRY TO TRUE
+           END-IF.
+
+       3000-PROCESS-INQUIRY.
+           PERFORM 3100-READ-RECORD
+           IF FTMAST-OK
+              PERFORM 4000-DISPLAY-STATUS-DETAILS
+              PERFORM 5000-DISPLAY-AUDIT-TRAIL
+              PERFORM 6000-INVOKE-ADAPTIVE-INSIGHTS
+              PERFORM 7000-OFFER-NEXT-ACTIONS
+           ELSE
+              DISPLAY "ERROR: TRANSACTION ID '" WS-INQUIRY-TX-ID
+                      "' NOT FOUND. PLEASE VERIFY AND TRY AGAIN."
+           END-IF.
+
+       3100-READ-RECORD.
+           MOVE WS-INQUIRY-TX-ID TO FT-TRANSACTION-ID OF WS-FUNDS-TRANSFER.
+           READ FUNDS-TRANSFER-FILE INTO WS-FUNDS-TRANSFER
+               INVALID KEY MOVE '23' TO WS-FTMAST-STATUS.
+
+       4000-DISPLAY-STATUS-DETAILS.
+           DISPLAY " ".
+           DISPLAY "----------------------------------------------------".
+           DISPLAY "      COMPREHENSIVE TRANSFER STATUS REPORT          ".
+           DISPLAY "----------------------------------------------------".
+           DISPLAY "TRANSACTION ID  : " FT-TRANSACTION-ID OF WS-FUNDS-TRANSFER.
+           DISPLAY "STATUS          : " WITH NO ADVANCING.
+           EVALUATE FT-STATUS OF WS-FUNDS-TRANSFER
+               WHEN 'P' DISPLAY "PENDING"
+               WHEN 'C' DISPLAY "COMPLETED"
+               WHEN 'F' DISPLAY "FAILED"
+               WHEN 'X' DISPLAY "CANCELLED"
+               WHEN 'R' DISPLAY "PENDING REVIEW (AI FLAGGED)"
+               WHEN 'H' DISPLAY "ON HOLD (MANUAL INTERVENTION)"
+               WHEN OTHER DISPLAY "UNKNOWN (" FT-STATUS OF WS-FUNDS-TRANSFER ")"
+           END-EVALUATE.
+           IF FT-STATUS-REASON OF WS-FUNDS-TRANSFER NOT = SPACES
+              DISPLAY "STATUS REASON   : " FT-STATUS-REASON OF WS-FUNDS-TRANSFER
+           END-IF.
+           DISPLAY "AMOUNT          : " FT-TRANSFER-AMOUNT OF WS-FUNDS-TRANSFER
+                   " " FT-CURRENCY OF WS-FUNDS-TRANSFER.
+           DISPLAY "SENDER          : " FT-SENDER-NAME OF WS-FUNDS-TRANSFER
+                   " (ACCT: " FT-SENDER-ACCOUNT OF WS-FUNDS-TRANSFER ")".
+           DISPLAY "RECEIVER        : " FT-RECEIVER-NAME OF WS-FUNDS-TRANSFER
+                   " (ACCT: " FT-RECEIVER-ACCOUNT OF WS-FUNDS-TRANSFER ")".
+           DISPLAY "INITIATED       : " FT-INITIATION-DATE OF WS-FUNDS-TRANSFER
+                   " AT " FT-INITIATION-TIME OF WS-FUNDS-TRANSFER.
+           IF FT-STATUS-COMPLETED OR FT-STATUS-FAILED OR FT-STATUS-CANCELLED
+              DISPLAY "LAST UPDATE     : " FT-COMPLETION-DATE OF WS-FUNDS-TRANSFER
+                      " AT " FT-COMPLETION-TIME OF WS-FUNDS-TRANSFER.
+           END-IF.
+           DISPLAY "RISK SCORE      : " FT-RISK-SCORE OF WS-FUNDS-TRANSFER
+                   " (0-999)".
+           DISPLAY "----------------------------------------------------".
+
+       5000-DISPLAY-AUDIT-TRAIL.
+           DISPLAY " ".
+           DISPLAY "------------- TRANSACTION AUDIT TRAIL --------------".
+           PERFORM VARYING I FROM 1 BY 1 UNTIL I > 10
+               IF FT-AUDIT-EVENT (I) NOT = SPACES
+                  DISPLAY "  DATE: " FT-AUDIT-DATE (I)
+                          " TIME: " FT-AUDIT-TIME (I)
+                          " USER: " FT-AUDIT-USER (I)
+                          " EVENT: " FT-AUDIT-EVENT (I)
+               END-IF
+           END-PERFORM.
+           DISPLAY "----------------------------------------------------".
+
+       6000-INVOKE-ADAPTIVE-INSIGHTS.
+           MOVE SPACES TO WS-AI-ANALYSIS-RESULT.
+           MOVE ZEROS TO WS-AI-CONFIDENCE-LEVEL.
+           MOVE SPACES TO WS-AI-SUGGESTED-ACTION.
+           DISPLAY " ".
+           DISPLAY "------------- ADAPTIVE INSIGHTS ENGINE -------------".
+           DISPLAY "Processing with Predictive Analytics Module...".
+
+           *> Simulate AI analysis based on transaction status and risk score
+           EVALUATE TRUE
+               WHEN FT-STATUS-PENDING
+                   MOVE "The Adaptive Insight Engine indicates this transaction is currently awaiting external confirmation. Common delays involve intermediary bank processing or regulatory checks."
+                   TO WS-AI-ANALYSIS-RESULT
+                   IF FT-RISK-SCORE OF WS-FUNDS-TRANSFER > 500
+                       STRING WS-AI-ANALYSIS-RESULT DELIMITED BY SIZE
+                              " High risk score suggests potential for "
+                              "additional scrutiny. Consider a manual review."
+                              DELIMITED BY SIZE INTO WS-AI-ANALYSIS-RESULT
+                       MOVE "Manual Review & Escalation" TO WS-AI-SUGGESTED-ACTION
+                       MOVE 85 TO WS-AI-CONFIDENCE-LEVEL
+                   ELSE
+                       MOVE "Monitor status. Expected completion within 2-4 hours."
+                       TO WS-AI-SUGGESTED-ACTION
+                       MOVE 90 TO WS-AI-CONFIDENCE-LEVEL
+                   END-IF
+
+               WHEN FT-STATUS-FAILED
+                   MOVE "Predictive analysis suggests the failure might be due to incorrect beneficiary details or insufficient funds. Cross-reference with error logs."
+                   TO WS-AI-ANALYSIS-RESULT
+                   MOVE "Investigate Failure Reason & Customer Outreach"
+                   TO WS-AI-SUGGESTED-ACTION
+                   MOVE 95 TO WS-AI-CONFIDENCE-LEVEL
+
+               WHEN FT-STATUS-COMPLETED
+                   MOVE "Transaction successfully settled. No anomalies detected by the insight engine. Customer notification has been dispatched."
+                   TO WS-AI-ANALYSIS-RESULT
+                   MOVE "Archive Transaction" TO WS-AI-SUGGESTED-ACTION
+                   MOVE 99 TO WS-AI-CONFIDENCE-LEVEL
+
+               WHEN FT-STATUS-CANCELLED
+                   MOVE "Transaction was cancelled by user or system. Ensure all funds are correctly reversed and accounts updated."
+                   TO WS-AI-ANALYSIS-RESULT
+                   MOVE "Confirm Reversal & Record Audit" TO WS-AI-SUGGESTED-ACTION
+                   MOVE 98 TO WS-AI-CONFIDENCE-LEVEL
+
+               WHEN FT-STATUS-REVIEW OR FT-STATUS-HOLD
+                   MOVE "This transaction has been flagged for manual review by the real-time anomaly detection system due to a moderate to high risk score and unusual pattern."
+                   TO WS-AI-ANALYSIS-RESULT
+                   MOVE "Immediate Manual Review & Hold" TO WS-AI-SUGGESTED-ACTION
+                   MOVE 90 TO WS-AI-CONFIDENCE-LEVEL
+
+               WHEN OTHER
+                   MOVE "The Adaptive Insight Engine cannot provide specific analysis for this status. Further manual investigation may be required."
+                   TO WS-AI-ANALYSIS-RESULT
+                   MOVE "Manual Investigation" TO WS-AI-SUGGESTED-ACTION
+                   MOVE 60 TO WS-AI-CONFIDENCE-LEVEL
+           END-EVALUATE.
+
+           DISPLAY "AI ANALYSIS       : " WS-AI-ANALYSIS-RESULT.
+           DISPLAY "PREDICTION CONF.  : " WS-AI-CONFIDENCE-LEVEL "%".
+           DISPLAY "SUGGESTED ACTION  : " WS-AI-SUGGESTED-ACTION.
+           DISPLAY "----------------------------------------------------".
+
+       7000-OFFER-NEXT-ACTIONS.
+           DISPLAY " ".
+           DISPLAY "--- AVAILABLE ACTIONS ---".
+           DISPLAY "1. View extended details (if available)".
+           DISPLAY "2. Escalate (for PENDING/REVIEW/FAILED/HOLD)".
+           DISPLAY "3. Print detailed report".
+           DISPLAY "4. Return to main inquiry".
+           DISPLAY "Enter your choice: ".
+           ACCEPT WS-USER-ACTION-CHOICE.
+
+           EVALUATE WS-USER-ACTION-CHOICE
+               WHEN '1'
+                   PERFORM 7100-VIEW-EXTENDED-DETAILS
+               WHEN '2'
+                   IF FT-STATUS-PENDING OR FT-STATUS-FAILED
+                   OR FT-STATUS-REVIEW OR FT-STATUS-HOLD
+                       PERFORM 7200-ESCALATE-TRANSFER
+                   ELSE
+                       DISPLAY "Action not applicable for current status."
+                   END-IF
+               WHEN '3'
+                   PERFORM 7300-PRINT-REPORT
+               WHEN OTHER
+                   DISPLAY "Invalid choice or returning to main menu."
+           END-EVALUATE.
+
+       7100-VIEW-EXTENDED-DETAILS.
+           DISPLAY " ".
+           DISPLAY "--- EXTENDED TRANSACTION DETAILS ---".
+           DISPLAY "FUTURE FEATURE: This would display more granular data, ".
+           DISPLAY "like specific network timestamps, fees breakdown, ".
+           DISPLAY "or associated compliance checks. ".
+           DISPLAY "Currently simulated."
+           DISPLAY "------------------------------------".
+
+       7200-ESCALATE-TRANSFER.
+           DISPLAY " ".
+           DISPLAY "--- ESCALATION PROCESS INITIATED ---".
+           DISPLAY "Transaction " FT-TRANSACTION-ID OF WS-FUNDS-TRANSFER
+                   " has been flagged for manual escalation. ".
+           DISPLAY "A notification has been sent to the Operations Team ".
+           DISPLAY "and relevant compliance officers. ".
+           DISPLAY "The system will automatically log this action.".
+           DISPLAY "------------------------------------".
+           *> In a real system, this would trigger an update to the FT record
+           *> changing its status to 'E' (Escalated) or adding an audit entry.
+
+       7300-PRINT-REPORT.
+           DISPLAY " ".
+           DISPLAY "--- PRINTING DETAILED REPORT ---".
+           DISPLAY "A comprehensive report for transaction "
+                   FT-TRANSACTION-ID OF WS-FUNDS-TRANSFER
+                   " is being generated and sent to the designated ".
+           DISPLAY "print queue/digital archive. This report includes ".
+           DISPLAY "all audit trails and AI insights."
+           DISPLAY "------------------------------------".
+
+       9000-CONTINUE-PROMPT.
+           IF CONTINUE-INQUIRY
+              DISPLAY " ".
+              DISPLAY "Perform another inquiry? (Y/N): ".
+              ACCEPT WS-CONTINUE-FLAG
+              IF WS-CONTINUE-FLAG NOT = 'Y' AND WS-CONTINUE-FLAG NOT = 'y'
+                 SET END-INQUIRY TO TRUE
+              END-IF
+           END-IF.
+
+       9999-TERMINATION.
+           CLOSE FUNDS-TRANSFER-FILE.
+           DISPLAY "----------------------------------------------------".
+           DISPLAY "FTSTAT MODULE TERMINATED. THANK YOU FOR USING ".
+           DISPLAY "GLOBAL FINANCIAL SYSTEMS - ADAPTIVE INSIGHTS.".
+           DISPLAY "----------------------------------------------------".
+           DISPLAY " ".

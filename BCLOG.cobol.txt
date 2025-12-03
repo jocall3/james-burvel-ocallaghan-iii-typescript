@@ -1,0 +1,344 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. BCLOG.
+       AUTHOR. AI-MAINFRAME-INTEGRATOR.
+      ******************************************************************
+      * MAINFRAME JOB LOG VIEWER
+      *
+      * This program allows operators to view batch job logs.
+      * It has been enhanced with an experimental AI-driven analysis
+      * module to provide insights into potential operational issues.
+      * The goal is to assist operators in understanding job behavior
+      * and proactively identifying patterns that might require attention.
+      ******************************************************************
+       ENVIRONMENT DIVISION.
+       FILE-CONTROL.
+           SELECT JOB-LOG-FILE ASSIGN TO JOBLOGS.
+           SELECT AI-INSIGHTS-FILE ASSIGN TO AIINLOGS.
+       DATA DIVISION.
+       FILE SECTION.
+       FD JOB-LOG-FILE.
+       01 LOG-RECORD PIC X(132).
+
+       FD AI-INSIGHTS-FILE.
+       01 AI-INSIGHT-RECORD.
+           05 AIR-JOB-ID        PIC X(08).
+           05 AIR-TIMESTAMP     PIC X(14). *> YYYYMMDDHHMMSS
+           05 AIR-INSIGHT-TYPE  PIC X(10). *> ERROR, WARNING, ANOMALY, TREND, OK
+           05 AIR-DESCRIPTION   PIC X(100).
+           05 AIR-AI-VERSION    PIC X(05). *> E.g., V1.0
+
+       WORKING-STORAGE SECTION.
+       01 WS-INQUIRY-JOB-ID PIC X(08).
+       01 WS-EOF-FLAG PIC X(01) VALUE 'N'.
+          88 END-OF-FILE VALUE 'Y'.
+       01 WS-FILE-STATUS PIC X(02).
+          88 FILE-OK VALUE '00'.
+          88 FILE-NOT-FOUND VALUE '35'.
+
+       01 WS-USER-OPTION PIC X(01).
+          88 OPT-VIEW-FULL-LOG VALUE '1'.
+          88 OPT-SEARCH-LOG VALUE '2'.
+          88 OPT-ANALYZE-LOG VALUE '3'.
+          88 OPT-EXIT VALUE 'E'.
+
+       01 WS-SEARCH-TERM PIC X(30).
+       01 WS-LINE-COUNT PIC 9(05) VALUE ZEROS.
+       01 WS-MATCH-COUNT PIC 9(05) VALUE ZEROS.
+
+       01 WS-AI-ANALYSIS-VARS.
+           05 WS-ERROR-COUNT        PIC 9(05) VALUE ZEROS.
+           05 WS-WARNING-COUNT      PIC 9(05) VALUE ZEROS.
+           05 WS-ABEND-COUNT        PIC 9(05) VALUE ZEROS.
+           05 WS-HIGH-CPU-COUNT     PIC 9(05) VALUE ZEROS.
+           05 WS-I-O-ERROR-COUNT    PIC 9(05) VALUE ZEROS.
+           05 WS-DEADLOCK-COUNT     PIC 9(05) VALUE ZEROS.
+           05 WS-MEMORY-COUNT       PIC 9(05) VALUE ZEROS.
+           05 WS-AI-CURRENT-VERSION PIC X(05) VALUE 'V1.0'.
+
+           05 WS-COMMON-ERRORS-TABLE.
+               10 WS-COMMON-ERROR OCCURS 10 TIMES.
+                   15 WS-ERROR-KEYWORD PIC X(20).
+                   15 WS-ERROR-THRESHOLD PIC 9(03).
+                   15 WS-ERROR-TYPE    PIC X(15). *> Anomaly, Warning, Critical, Performance, Infra
+                   15 WS-ERROR-MESSAGE PIC X(80).
+           05 WS-CURRENT-TIMESTAMP PIC X(14).
+
+       77 WS-AI-INITIALIZED PIC X(01) VALUE 'N'.
+          88 AI-IS-INITIALIZED VALUE 'Y'.
+
+       PROCEDURE DIVISION.
+       MAIN-LOGIC.
+           PERFORM INITIALIZE-AI-DATA.
+           PERFORM DISPLAY-MAIN-MENU UNTIL OPT-EXIT.
+           STOP RUN.
+
+       INITIALIZE-AI-DATA.
+           MOVE 'ERROR' TO WS-ERROR-KEYWORD(1).
+           MOVE 5 TO WS-ERROR-THRESHOLD(1).
+           MOVE 'ANOMALY' TO WS-ERROR-TYPE(1).
+           MOVE 'Potential application error cluster detected.' TO WS-ERROR-MESSAGE(1).
+
+           MOVE 'WARNING' TO WS-ERROR-KEYWORD(2).
+           MOVE 10 TO WS-ERROR-THRESHOLD(2).
+           MOVE 'WARNING' TO WS-ERROR-TYPE(2).
+           MOVE 'Multiple warnings suggest configuration issues.' TO WS-ERROR-MESSAGE(2).
+
+           MOVE 'ABEND' TO WS-ERROR-KEYWORD(3).
+           MOVE 1 TO WS-ERROR-THRESHOLD(3).
+           MOVE 'CRITICAL' TO WS-ERROR-TYPE(3).
+           MOVE 'Critical job termination detected.' TO WS-ERROR-MESSAGE(3).
+
+           MOVE 'CPU EXCEEDED' TO WS-ERROR-KEYWORD(4).
+           MOVE 3 TO WS-ERROR-THRESHOLD(4).
+           MOVE 'PERFORMANCE' TO WS-ERROR-TYPE(4).
+           MOVE 'High CPU usage anomaly detected.' TO WS-ERROR-MESSAGE(4).
+
+           MOVE 'I/O ERROR' TO WS-ERROR-KEYWORD(5).
+           MOVE 2 TO WS-ERROR-THRESHOLD(5).
+           MOVE 'INFRASTRUCTURE' TO WS-ERROR-TYPE(5).
+           MOVE 'I/O subsystem integrity check advised.' TO WS-ERROR-MESSAGE(5).
+
+           MOVE 'DEADLOCK' TO WS-ERROR-KEYWORD(6).
+           MOVE 1 TO WS-ERROR-THRESHOLD(6).
+           MOVE 'CRITICAL' TO WS-ERROR-TYPE(6).
+           MOVE 'Database or resource deadlock detected.' TO WS-ERROR-MESSAGE(6).
+
+           MOVE 'MEMORY' TO WS-ERROR-KEYWORD(7).
+           MOVE 3 TO WS-ERROR-THRESHOLD(7).
+           MOVE 'PERFORMANCE' TO WS-ERROR-TYPE(7).
+           MOVE 'Unusual memory allocation pattern observed.' TO WS-ERROR-MESSAGE(7).
+           
+           MOVE 'Y' TO WS-AI-INITIALIZED.
+           DISPLAY "AI Analysis module " WS-AI-CURRENT-VERSION " initialized.".
+
+       DISPLAY-MAIN-MENU.
+           DISPLAY "********************************************".
+           DISPLAY "* BCLOG - MAINFRAME JOB LOG VIEWER         *".
+           DISPLAY "* AI-Enhanced Operational Insight System   *".
+           DISPLAY "********************************************".
+           DISPLAY "1. View Full Job Log".
+           DISPLAY "2. Search Job Log (Keyword)".
+           DISPLAY "3. Perform AI Log Analysis".
+           DISPLAY "E. Exit".
+           DISPLAY "Enter your choice: ".
+           ACCEPT WS-USER-OPTION.
+
+           EVALUATE WS-USER-OPTION
+               WHEN '1' PERFORM VIEW-FULL-LOG
+               WHEN '2' PERFORM SEARCH-LOG
+               WHEN '3' PERFORM PERFORM-AI-ANALYSIS
+               WHEN 'E' DISPLAY "Exiting BCLOG. Goodbye to "
+                                 "the future of mainframe operations!"
+               WHEN OTHER DISPLAY "Invalid option. Please try again."
+           END-EVALUATE.
+           DISPLAY SPACE.
+
+       VIEW-FULL-LOG.
+           DISPLAY "ENTER JOB ID TO VIEW LOG (e.g., JOB00001): ".
+           ACCEPT WS-INQUIRY-JOB-ID.
+           DISPLAY "RETRIEVING FULL LOG FOR " WS-INQUIRY-JOB-ID "...".
+
+           PERFORM OPEN-LOG-FILE.
+           IF FILE-OK
+               PERFORM DISPLAY-ALL-LOG-LINES UNTIL END-OF-FILE
+               PERFORM CLOSE-LOG-FILE
+           ELSE
+               DISPLAY "ERROR: Could not open log file for " WS-INQUIRY-JOB-ID "."
+               DISPLAY "Please ensure the job ID is correct and logs exist."
+           END-IF.
+
+       SEARCH-LOG.
+           DISPLAY "ENTER JOB ID TO SEARCH LOG (e.g., JOB00001): ".
+           ACCEPT WS-INQUIRY-JOB-ID.
+           DISPLAY "ENTER SEARCH TERM (case-insensitive, max 30 chars): ".
+           ACCEPT WS-SEARCH-TERM.
+           DISPLAY "SEARCHING LOG FOR " WS-INQUIRY-JOB-ID " WITH TERM '" WS-SEARCH-TERM "'...".
+
+           MOVE ZEROS TO WS-MATCH-COUNT.
+           PERFORM OPEN-LOG-FILE.
+           IF FILE-OK
+               PERFORM SEARCH-AND-DISPLAY-LOG-LINES UNTIL END-OF-FILE
+               DISPLAY "--- End of search results for '" WS-SEARCH-TERM "' ---"
+               DISPLAY WS-MATCH-COUNT " line(s) found containing '" WS-SEARCH-TERM "'."
+               PERFORM CLOSE-LOG-FILE
+           ELSE
+               DISPLAY "ERROR: Could not open log file for " WS-INQUIRY-JOB-ID "."
+           END-IF.
+
+       PERFORM-AI-ANALYSIS.
+           DISPLAY "ENTER JOB ID FOR AI ANALYSIS (e.g., JOB00001): ".
+           ACCEPT WS-INQUIRY-JOB-ID.
+           DISPLAY "Initiating AI-driven analysis for " WS-INQUIRY-JOB-ID "...".
+
+           PERFORM RESET-AI-COUNTERS.
+           PERFORM OPEN-LOG-FILE.
+           IF FILE-OK
+               PERFORM PROCESS-LOG-FOR-AI UNTIL END-OF-FILE
+               PERFORM CLOSE-LOG-FILE
+               PERFORM GENERATE-AI-REPORT
+           ELSE
+               DISPLAY "ERROR: Could not open log file for " WS-INQUIRY-JOB-ID "."
+           END-IF.
+
+       OPEN-LOG-FILE.
+           MOVE 'N' TO WS-EOF-FLAG.
+           OPEN INPUT JOB-LOG-FILE
+               WITH GIVING WS-FILE-STATUS.
+           IF NOT FILE-OK AND NOT FILE-NOT-FOUND
+               DISPLAY "System Error: Could not open file. Status: " WS-FILE-STATUS
+           END-IF.
+           MOVE ZEROS TO WS-LINE-COUNT.
+
+       CLOSE-LOG-FILE.
+           CLOSE JOB-LOG-FILE.
+
+       DISPLAY-ALL-LOG-LINES.
+           READ JOB-LOG-FILE
+               AT END SET END-OF-FILE TO TRUE
+           END-READ.
+           IF NOT END-OF-FILE
+              ADD 1 TO WS-LINE-COUNT
+              DISPLAY LOG-RECORD
+           END-IF.
+
+       SEARCH-AND-DISPLAY-LOG-LINES.
+           READ JOB-LOG-FILE
+               AT END SET END-OF-FILE TO TRUE
+           END-READ.
+           IF NOT END-OF-FILE
+              IF FUNCTION UPPER(LOG-RECORD) CONTAINS FUNCTION UPPER(WS-SEARCH-TERM)
+                 DISPLAY LOG-RECORD
+                 ADD 1 TO WS-MATCH-COUNT
+              END-IF
+           END-IF.
+
+       RESET-AI-COUNTERS.
+           MOVE ZEROS TO WS-ERROR-COUNT.
+           MOVE ZEROS TO WS-WARNING-COUNT.
+           MOVE ZEROS TO WS-ABEND-COUNT.
+           MOVE ZEROS TO WS-HIGH-CPU-COUNT.
+           MOVE ZEROS TO WS-I-O-ERROR-COUNT.
+           MOVE ZEROS TO WS-DEADLOCK-COUNT.
+           MOVE ZEROS TO WS-MEMORY-COUNT.
+
+       PROCESS-LOG-FOR-AI.
+           READ JOB-LOG-FILE
+               AT END SET END-OF-FILE TO TRUE
+           END-READ.
+           IF NOT END-OF-FILE
+               IF FUNCTION UPPER(LOG-RECORD) CONTAINS FUNCTION UPPER(WS-ERROR-KEYWORD(1)) *> ERROR
+                   ADD 1 TO WS-ERROR-COUNT
+               END-IF
+               IF FUNCTION UPPER(LOG-RECORD) CONTAINS FUNCTION UPPER(WS-ERROR-KEYWORD(2)) *> WARNING
+                   ADD 1 TO WS-WARNING-COUNT
+               END-IF
+               IF FUNCTION UPPER(LOG-RECORD) CONTAINS FUNCTION UPPER(WS-ERROR-KEYWORD(3)) OR
+                  FUNCTION UPPER(LOG-RECORD) CONTAINS 'COMPLETION CODE U' *> ABEND
+                   ADD 1 TO WS-ABEND-COUNT
+               END-IF
+               IF FUNCTION UPPER(LOG-RECORD) CONTAINS FUNCTION UPPER(WS-ERROR-KEYWORD(4)) *> CPU EXCEEDED
+                   ADD 1 TO WS-HIGH-CPU-COUNT
+               END-IF
+               IF FUNCTION UPPER(LOG-RECORD) CONTAINS FUNCTION UPPER(WS-ERROR-KEYWORD(5)) *> I/O ERROR
+                   ADD 1 TO WS-I-O-ERROR-COUNT
+               END-IF
+               IF FUNCTION UPPER(LOG-RECORD) CONTAINS FUNCTION UPPER(WS-ERROR-KEYWORD(6)) *> DEADLOCK
+                   ADD 1 TO WS-DEADLOCK-COUNT
+               END-IF
+               IF FUNCTION UPPER(LOG-RECORD) CONTAINS FUNCTION UPPER(WS-ERROR-KEYWORD(7)) *> MEMORY
+                   ADD 1 TO WS-MEMORY-COUNT
+               END-IF
+               *> Future expansion could include natural language processing simulation here
+           END-IF.
+
+       GENERATE-AI-REPORT.
+           DISPLAY "********************************************".
+           DISPLAY "* AI-DRIVEN LOG ANALYSIS FOR JOB: " WS-INQUIRY-JOB-ID "*".
+           DISPLAY "* AI System Version: " WS-AI-CURRENT-VERSION "           *".
+           DISPLAY "********************************************".
+           DISPLAY "Summary of Detected Patterns:".
+           DISPLAY "  Errors Found:            " WS-ERROR-COUNT.
+           DISPLAY "  Warnings Found:          " WS-WARNING-COUNT.
+           DISPLAY "  Abends/Failures:         " WS-ABEND-COUNT.
+           DISPLAY "  High CPU Alerts:         " WS-HIGH-CPU-COUNT.
+           DISPLAY "  I/O Errors:              " WS-I-O-ERROR-COUNT.
+           DISPLAY "  Deadlocks Detected:      " WS-DEADLOCK-COUNT.
+           DISPLAY "  Memory Alerts:           " WS-MEMORY-COUNT.
+           DISPLAY SPACE.
+
+           DISPLAY "AI System Insights:".
+           PERFORM CHECK-FOR-ANOMALIES.
+           DISPLAY SPACE.
+           DISPLAY "AI analysis completed. Consult further system logs "
+                   "and the AIINLOGS dataset for detailed diagnostics.".
+
+       CHECK-FOR-ANOMALIES.
+           MOVE FUNCTION CURRENT-DATE (1:14) TO WS-CURRENT-TIMESTAMP.
+           
+           PERFORM VARYING I FROM 1 BY 1 UNTIL I > 7
+               IF I = 1 AND WS-ERROR-COUNT > WS-ERROR-THRESHOLD(I) THEN
+                   DISPLAY "  [" WS-ERROR-TYPE(I) "] " WS-ERROR-MESSAGE(I)
+                   PERFORM WRITE-AI-INSIGHTS-RECORD
+                       USING WS-INQUIRY-JOB-ID, WS-CURRENT-TIMESTAMP,
+                             WS-ERROR-TYPE(I), WS-ERROR-MESSAGE(I)
+               ELSE IF I = 2 AND WS-WARNING-COUNT > WS-ERROR-THRESHOLD(I) THEN
+                   DISPLAY "  [" WS-ERROR-TYPE(I) "] " WS-ERROR-MESSAGE(I)
+                   PERFORM WRITE-AI-INSIGHTS-RECORD
+                       USING WS-INQUIRY-JOB-ID, WS-CURRENT-TIMESTAMP,
+                             WS-ERROR-TYPE(I), WS-ERROR-MESSAGE(I)
+               ELSE IF I = 3 AND WS-ABEND-COUNT > WS-ERROR-THRESHOLD(I) THEN
+                   DISPLAY "  [" WS-ERROR-TYPE(I) "] " WS-ERROR-MESSAGE(I)
+                   PERFORM WRITE-AI-INSIGHTS-RECORD
+                       USING WS-INQUIRY-JOB-ID, WS-CURRENT-TIMESTAMP,
+                             WS-ERROR-TYPE(I), WS-ERROR-MESSAGE(I)
+               ELSE IF I = 4 AND WS-HIGH-CPU-COUNT > WS-ERROR-THRESHOLD(I) THEN
+                   DISPLAY "  [" WS-ERROR-TYPE(I) "] " WS-ERROR-MESSAGE(I)
+                   PERFORM WRITE-AI-INSIGHTS-RECORD
+                       USING WS-INQUIRY-JOB-ID, WS-CURRENT-TIMESTAMP,
+                             WS-ERROR-TYPE(I), WS-ERROR-MESSAGE(I)
+               ELSE IF I = 5 AND WS-I-O-ERROR-COUNT > WS-ERROR-THRESHOLD(I) THEN
+                   DISPLAY "  [" WS-ERROR-TYPE(I) "] " WS-ERROR-MESSAGE(I)
+                   PERFORM WRITE-AI-INSIGHTS-RECORD
+                       USING WS-INQUIRY-JOB-ID, WS-CURRENT-TIMESTAMP,
+                             WS-ERROR-TYPE(I), WS-ERROR-MESSAGE(I)
+               ELSE IF I = 6 AND WS-DEADLOCK-COUNT > WS-ERROR-THRESHOLD(I) THEN
+                   DISPLAY "  [" WS-ERROR-TYPE(I) "] " WS-ERROR-MESSAGE(I)
+                   PERFORM WRITE-AI-INSIGHTS-RECORD
+                       USING WS-INQUIRY-JOB-ID, WS-CURRENT-TIMESTAMP,
+                             WS-ERROR-TYPE(I), WS-ERROR-MESSAGE(I)
+               ELSE IF I = 7 AND WS-MEMORY-COUNT > WS-ERROR-THRESHOLD(I) THEN
+                   DISPLAY "  [" WS-ERROR-TYPE(I) "] " WS-ERROR-MESSAGE(I)
+                   PERFORM WRITE-AI-INSIGHTS-RECORD
+                       USING WS-INQUIRY-JOB-ID, WS-CURRENT-TIMESTAMP,
+                             WS-ERROR-TYPE(I), WS-ERROR-MESSAGE(I)
+               END-IF
+           END-PERFORM.
+
+           IF WS-ERROR-COUNT = ZEROS AND WS-WARNING-COUNT = ZEROS AND
+              WS-ABEND-COUNT = ZEROS AND WS-HIGH-CPU-COUNT = ZEROS AND
+              WS-I-O-ERROR-COUNT = ZEROS AND WS-DEADLOCK-COUNT = ZEROS AND
+              WS-MEMORY-COUNT = ZEROS
+               DISPLAY "  No significant anomalies detected by AI system. Job appears to have run smoothly."
+               PERFORM WRITE-AI-INSIGHTS-RECORD
+                   USING WS-INQUIRY-JOB-ID, WS-CURRENT-TIMESTAMP, 'OK',
+                         'No significant anomalies detected.'
+           END-IF.
+
+       WRITE-AI-INSIGHTS-RECORD USING P-JOB-ID P-TIMESTAMP P-TYPE P-DESC.
+           MOVE P-JOB-ID TO AIR-JOB-ID.
+           MOVE P-TIMESTAMP TO AIR-TIMESTAMP.
+           MOVE P-TYPE TO AIR-INSIGHT-TYPE.
+           MOVE P-DESC TO AIR-DESCRIPTION.
+           MOVE WS-AI-CURRENT-VERSION TO AIR-AI-VERSION.
+
+           OPEN EXTEND AI-INSIGHTS-FILE
+               WITH GIVING WS-FILE-STATUS.
+           IF FILE-OK
+               WRITE AI-INSIGHT-RECORD.
+               CLOSE AI-INSIGHTS-FILE.
+           ELSE
+               DISPLAY "WARNING: Could not write AI insight to file. Status: " WS-FILE-STATUS
+               DISPLAY "This might indicate an issue with the AIINLOGS dataset."
+           END-IF.
+
+       END PROGRAM BCLOG.

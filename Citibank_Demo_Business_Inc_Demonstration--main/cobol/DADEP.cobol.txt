@@ -1,0 +1,313 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. DADEP.
+       AUTHOR. INSTITUTION-DEV-TEAM.
+       DATE-WRITTEN. 1989-01-15.
+      ******************************************************************
+      * FINANCIAL INSTITUTION - DEPOSIT PROCESSING MODULE
+      *
+      * APPLIES A DEPOSIT TO A CUSTOMER'S ACCOUNT.
+      * INCLUDES ENHANCED VALIDATION AND AI-ASSISTED ANOMALY DETECTION.
+      ******************************************************************
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT DEPOSIT-ACCOUNT-FILE ASSIGN TO DEPMAST
+               ORGANIZATION IS INDEXED
+               ACCESS MODE IS DYNAMIC
+               RECORD KEY IS DA-ACCOUNT-NUMBER
+               FILE STATUS IS WS-DEPMAST-STATUS.
+
+           SELECT TRANSACTION-LOG-FILE ASSIGN TO TRANLOG
+               ORGANIZATION IS SEQUENTIAL
+               ACCESS MODE IS SEQUENTIAL
+               FILE STATUS IS WS-TRANLOG-STATUS.
+
+       DATA DIVISION.
+       FILE SECTION.
+       FD DEPOSIT-ACCOUNT-FILE.
+       01 DEPOSIT-FILE-RECORD    PIC X(201).
+      *    The actual structure is defined in WS-DEPOSIT-ACCOUNT below
+      *    as a simulated COPY member CPDA01 for expansion purposes.
+
+       FD TRANSACTION-LOG-FILE.
+       01 TRANSACTION-LOG-RECORD.
+          05 TLR-TRANSACTION-ID      PIC 9(18).
+          05 TLR-ACCOUNT-NUMBER      PIC 9(12).
+          05 TLR-TRANSACTION-TYPE    PIC X(01) VALUE 'D'. *> 'D' for Deposit
+          05 TLR-AMOUNT              PIC S9(13)V99.
+          05 TLR-TRANSACTION-DATE    PIC 9(08).
+          05 TLR-TRANSACTION-TIME    PIC 9(06).
+          05 TLR-AI-REVIEW-FLAG      PIC X(01). *> 'Y' or 'N'
+          05 TLR-STATUS-CODE         PIC X(02). *> 'OK', 'AE' (Account Error), 'AV' (Amount Valid), 'AF' (AI Flagged)
+          05 TLR-FILLER              PIC X(20).
+
+       WORKING-STORAGE SECTION.
+       01 WS-PROGRAM-SWITCHES.
+          05 WS-DEPMAST-STATUS     PIC X(02).
+             88 DEPMAST-OK            VALUE '00'.
+             88 DEPMAST-NOT-FOUND     VALUE '23'.
+          05 WS-TRANLOG-STATUS     PIC X(02).
+             88 TRANLOG-OK            VALUE '00'.
+          05 WS-AI-REVIEW-FLAG     PIC X(01) VALUE 'N'.
+             88 AI-REVIEW-REQUIRED    VALUE 'Y'.
+             88 AI-REVIEW-NOT-REQUIRED VALUE 'N'.
+          05 WS-TRANSACTION-STATUS PIC X(02) VALUE 'OK'.
+             88 TRANSACTION-SUCCESS   VALUE 'OK'.
+             88 TRANSACTION-FAILED    VALUE 'FA'.
+             88 ACCOUNT-NOT-FOUND     VALUE 'AN'.
+             88 INVALID-AMOUNT        VALUE 'IA'.
+             88 AI-FLAGGED            VALUE 'AF'.
+
+
+       01 WS-INPUT-FIELDS.
+          05 WS-INPUT-ACCT-NUM    PIC 9(12).
+          05 WS-INPUT-DEP-AMT     PIC S9(13)V99.
+
+       01 WS-DATE-TIME-FIELDS.
+          05 WS-CURRENT-DATE-IS.
+             10 WS-CURRENT-YEAR    PIC 9(04).
+             10 WS-CURRENT-MONTH   PIC 9(02).
+             10 WS-CURRENT-DAY     PIC 9(02).
+          05 WS-CURRENT-TIME-IS.
+             10 WS-CURRENT-HOUR    PIC 9(02).
+             10 WS-CURRENT-MINUTE  PIC 9(02).
+             10 WS-CURRENT-SECOND  PIC 9(02).
+             10 WS-CURRENT-HUNDRED PIC 9(02).
+          05 WS-GENERATED-TRAN-ID PIC 9(18).
+          05 WS-NEXT-TRAN-SEQ     PIC 9(06) VALUE 0.
+
+       01 WS-CONSTANTS.
+          05 WS-MAX-DEPOSIT-AMOUNT PIC S9(13)V99 VALUE +99999999999.99.
+          05 WS-AI-FLAG-THRESHOLD  PIC S9(13)V99 VALUE +50000.00. *> Deposits over this amount trigger AI review
+
+      * This section simulates the content of CPDA01 for WS-DEPOSIT-ACCOUNT.
+      * In a real scenario, this would be a COPY statement.
+       01 WS-DEPOSIT-ACCOUNT.
+          05 DA-ACCOUNT-NUMBER         PIC 9(12).
+          05 DA-CUSTOMER-ID            PIC 9(10).
+          05 DA-ACCOUNT-TYPE           PIC X(02). *> e.g., 'SA' for Savings, 'CK' for Checking
+          05 DA-ACCOUNT-STATUS         PIC X(01). *> 'A' for Active, 'I' for Inactive, 'H' for Hold
+          05 DA-OPEN-DATE              PIC 9(08).
+          05 DA-CURRENT-BALANCE        PIC S9(13)V99.
+          05 DA-AVAILABLE-BAL          PIC S9(13)V99.
+          05 DA-LAST-TRANSACTION-DATE  PIC 9(08).
+          05 DA-DAILY-DEPOSIT-COUNT    PIC 9(03) VALUE ZEROS.
+          05 DA-DAILY-DEPOSIT-TOTAL    PIC S9(13)V99 VALUE +0.00.
+          05 DA-MONTHLY-DEPOSIT-COUNT  PIC 9(04) VALUE ZEROS.
+          05 DA-MONTHLY-DEPOSIT-TOTAL  PIC S9(13)V99 VALUE +0.00.
+          05 DA-AI-RISK-SCORE          PIC 9(02) VALUE ZEROS. *> 00-99, higher means more risk
+          05 DA-LAST-AI-REVIEW-DATE    PIC 9(08) VALUE ZEROS.
+          05 DA-FILLER                 PIC X(30).
+
+       PROCEDURE DIVISION.
+       0000-MAIN-LOGIC.
+           PERFORM 1000-INITIALIZATION.
+           PERFORM 2000-PROCESS-DEPOSIT-LOOP UNTIL WS-INPUT-ACCT-NUM = ZEROS.
+           PERFORM 9999-TERMINATION.
+           STOP RUN.
+
+       1000-INITIALIZATION.
+           DISPLAY " ".
+           DISPLAY "INITIALIZING DADEP - DEPOSIT PROCESSING MODULE.".
+           DISPLAY "Loading secure AI models for anomaly detection...".
+           MOVE 'N' TO WS-AI-REVIEW-FLAG.
+           MOVE 'OK' TO WS-TRANSACTION-STATUS.
+
+           OPEN I-O DEPOSIT-ACCOUNT-FILE.
+           IF NOT DEPMAST-OK
+              DISPLAY "CRITICAL ERROR: FAILED TO OPEN DEPOSIT ACCOUNT FILE. STATUS: "
+                      WS-DEPMAST-STATUS
+              PERFORM 9999-TERMINATION
+           END-IF.
+
+           OPEN EXTEND TRANSACTION-LOG-FILE.
+           IF NOT TRANLOG-OK
+              DISPLAY "CRITICAL ERROR: FAILED TO OPEN TRANSACTION LOG FILE. STATUS: "
+                      WS-TRANLOG-STATUS
+              PERFORM 9999-TERMINATION
+           END-IF.
+
+           PERFORM 1010-GET-CURRENT-DATETIME.
+           DISPLAY "System Date: " WS-CURRENT-YEAR "/" WS-CURRENT-MONTH "/" WS-CURRENT-DAY.
+           DISPLAY "System Time: " WS-CURRENT-HOUR ":" WS-CURRENT-MINUTE ":" WS-CURRENT-SECOND.
+           DISPLAY "Initialization complete. Ready for transactions.".
+           DISPLAY " ".
+
+       1010-GET-CURRENT-DATETIME.
+           ACCEPT WS-CURRENT-DATE-IS FROM DATE YYYYMMDD.
+           ACCEPT WS-CURRENT-TIME-IS FROM TIME.
+           ADD 1 TO WS-NEXT-TRAN-SEQ.
+           IF WS-NEXT-TRAN-SEQ > 999999
+               MOVE 1 TO WS-NEXT-TRAN-SEQ
+           END-IF.
+           COMPUTE WS-GENERATED-TRAN-ID =
+               FUNCTION NUMVAL(WS-CURRENT-YEAR & WS-CURRENT-MONTH & WS-CURRENT-DAY &
+                               WS-CURRENT-HOUR & WS-CURRENT-MINUTE & WS-CURRENT-SECOND)
+               * 1000000 + WS-NEXT-TRAN-SEQ.
+
+
+       2000-PROCESS-DEPOSIT-LOOP.
+           DISPLAY "=".
+           DISPLAY "ENTER ACCOUNT NUMBER (12 digits, 0 to exit): ".
+           ACCEPT WS-INPUT-ACCT-NUM.
+
+           IF WS-INPUT-ACCT-NUM = ZEROS
+               GO TO 2000-PROCESS-DEPOSIT-EXIT
+           END-IF.
+
+           IF NOT (WS-INPUT-ACCT-NUM IS NUMERIC AND LENGTH OF WS-INPUT-ACCT-NUM = 12)
+              DISPLAY "ERROR: INVALID ACCOUNT NUMBER FORMAT. MUST BE 12 DIGITS."
+              MOVE 'IA' TO WS-TRANSACTION-STATUS
+              PERFORM 2150-LOG-TRANSACTION
+              GO TO 2000-PROCESS-DEPOSIT-EXIT
+           END-IF.
+
+           DISPLAY "ENTER DEPOSIT AMOUNT (e.g., 1234.56): ".
+           ACCEPT WS-INPUT-DEP-AMT.
+
+           PERFORM 2010-VALIDATE-DEPOSIT-AMOUNT.
+           IF INVALID-AMOUNT
+              DISPLAY "ERROR: " WS-INPUT-DEP-AMT " IS AN INVALID DEPOSIT AMOUNT."
+              PERFORM 2150-LOG-TRANSACTION
+              GO TO 2000-PROCESS-DEPOSIT-EXIT
+           END-IF.
+
+           PERFORM 2020-READ-ACCOUNT-RECORD.
+           IF ACCOUNT-NOT-FOUND
+              DISPLAY "ERROR: ACCOUNT NUMBER " WS-INPUT-ACCT-NUM " NOT FOUND."
+              PERFORM 2150-LOG-TRANSACTION
+           ELSE IF TRANSACTION-SUCCESS *> Account found, proceed
+              PERFORM 2050-AI-PRE-CHECK
+              PERFORM 2100-UPDATE-BALANCE
+              PERFORM 2150-LOG-TRANSACTION
+           END-IF.
+       2000-PROCESS-DEPOSIT-EXIT.
+           EXIT.
+
+       2010-VALIDATE-DEPOSIT-AMOUNT.
+           MOVE 'OK' TO WS-TRANSACTION-STATUS.
+           IF WS-INPUT-DEP-AMT <= 0
+              DISPLAY "Validation: Deposit amount must be positive."
+              MOVE 'IA' TO WS-TRANSACTION-STATUS
+              GO TO 2010-VALIDATE-DEPOSIT-AMOUNT-EXIT
+           END-IF.
+           IF WS-INPUT-DEP-AMT > WS-MAX-DEPOSIT-AMOUNT
+              DISPLAY "Validation: Deposit amount exceeds maximum allowed: "
+                      WS-MAX-DEPOSIT-AMOUNT "."
+              MOVE 'IA' TO WS-TRANSACTION-STATUS
+              GO TO 2010-VALIDATE-DEPOSIT-AMOUNT-EXIT
+           END-IF.
+           DISPLAY "Validation: Deposit amount " WS-INPUT-DEP-AMT " is valid.".
+       2010-VALIDATE-DEPOSIT-AMOUNT-EXIT.
+           EXIT.
+
+       2020-READ-ACCOUNT-RECORD.
+           MOVE 'OK' TO WS-TRANSACTION-STATUS.
+           MOVE WS-INPUT-ACCT-NUM TO DA-ACCOUNT-NUMBER OF
+                                    WS-DEPOSIT-ACCOUNT.
+           READ DEPOSIT-ACCOUNT-FILE INTO WS-DEPOSIT-ACCOUNT
+               INVALID KEY
+                   MOVE '23' TO WS-DEPMAST-STATUS
+                   MOVE 'AN' TO WS-TRANSACTION-STATUS
+                   DISPLAY "Account read failed: " WS-DEPMAST-STATUS
+           END-READ.
+           IF DEPMAST-OK
+               DISPLAY "Account " DA-ACCOUNT-NUMBER OF WS-DEPOSIT-ACCOUNT " found."
+           ELSE
+               DISPLAY "Account read error. Status: " WS-DEPMAST-STATUS
+           END-IF.
+       2020-READ-ACCOUNT-RECORD-EXIT.
+           EXIT.
+
+       2050-AI-PRE-CHECK.
+           MOVE 'N' TO WS-AI-REVIEW-FLAG.
+           IF WS-INPUT-DEP-AMT > WS-AI-FLAG-THRESHOLD
+              OR DA-DAILY-DEPOSIT-TOTAL OF WS-DEPOSIT-ACCOUNT + WS-INPUT-DEP-AMT > (WS-AI-FLAG-THRESHOLD * 2)
+              OR DA-AI-RISK-SCORE OF WS-DEPOSIT-ACCOUNT > 50
+              MOVE 'Y' TO WS-AI-REVIEW-FLAG
+              DISPLAY "AI ANOMALY DETECTION: Transaction flagged for review due to unusual activity."
+              DISPLAY "   Amount: " WS-INPUT-DEP-AMT ", Daily Total: " DA-DAILY-DEPOSIT-TOTAL OF WS-DEPOSIT-ACCOUNT
+              DISPLAY "   AI Risk Score: " DA-AI-RISK-SCORE OF WS-DEPOSIT-ACCOUNT
+              MOVE 'AF' TO WS-TRANSACTION-STATUS
+              PERFORM 2060-SIMULATE-AI-ANALYSIS
+           END-IF.
+           IF NOT AI-REVIEW-REQUIRED
+               DISPLAY "AI ANOMALY DETECTION: Transaction appears normal."
+           END-IF.
+       2050-AI-PRE-CHECK-EXIT.
+           EXIT.
+
+       2060-SIMULATE-AI-ANALYSIS.
+      * This section simulates a more in-depth AI analysis, perhaps updating a risk score
+      * and providing a recommendation. For this program, we just update the risk score
+      * and log the AI review date.
+           DISPLAY "Simulating advanced AI analysis..."
+           ADD 5 TO DA-AI-RISK-SCORE OF WS-DEPOSIT-ACCOUNT.
+           IF DA-AI-RISK-SCORE OF WS-DEPOSIT-ACCOUNT > 99
+               MOVE 99 TO DA-AI-RISK-SCORE OF WS-DEPOSIT-ACCOUNT
+           END-IF.
+           MOVE WS-CURRENT-DATE-IS TO DA-LAST-AI-REVIEW-DATE OF WS-DEPOSIT-ACCOUNT.
+           DISPLAY "AI analysis updated account risk score to " DA-AI-RISK-SCORE OF WS-DEPOSIT-ACCOUNT.
+           DISPLAY "Consider reviewing this account for unusual patterns."
+       2060-SIMULATE-AI-ANALYSIS-EXIT.
+           EXIT.
+
+
+       2100-UPDATE-BALANCE.
+           DISPLAY "CURRENT BALANCE: " DA-CURRENT-BALANCE OF
+                                        WS-DEPOSIT-ACCOUNT.
+           ADD WS-INPUT-DEP-AMT TO DA-CURRENT-BALANCE OF
+                                   WS-DEPOSIT-ACCOUNT.
+           ADD WS-INPUT-DEP-AMT TO DA-AVAILABLE-BAL OF
+                                   WS-DEPOSIT-ACCOUNT.
+
+           ADD 1 TO DA-DAILY-DEPOSIT-COUNT OF WS-DEPOSIT-ACCOUNT.
+           ADD WS-INPUT-DEP-AMT TO DA-DAILY-DEPOSIT-TOTAL OF WS-DEPOSIT-ACCOUNT.
+           ADD 1 TO DA-MONTHLY-DEPOSIT-COUNT OF WS-DEPOSIT-ACCOUNT.
+           ADD WS-INPUT-DEP-AMT TO DA-MONTHLY-DEPOSIT-TOTAL OF WS-DEPOSIT-ACCOUNT.
+
+           MOVE WS-CURRENT-DATE-IS TO DA-LAST-TRANSACTION-DATE OF WS-DEPOSIT-ACCOUNT.
+
+           DISPLAY "NEW BALANCE:     " DA-CURRENT-BALANCE OF
+                                        WS-DEPOSIT-ACCOUNT.
+
+           REWRITE DEPOSIT-FILE-RECORD FROM WS-DEPOSIT-ACCOUNT.
+
+           IF DEPMAST-OK
+              DISPLAY "DEPOSIT PROCESSED SUCCESSFULLY."
+              IF NOT AI-FLAGGED
+                 MOVE 'OK' TO WS-TRANSACTION-STATUS
+              END-IF
+           ELSE
+              DISPLAY "CRITICAL ERROR: FAILED TO UPDATE ACCOUNT. STATUS: "
+                      WS-DEPMAST-STATUS
+              MOVE 'FA' TO WS-TRANSACTION-STATUS
+           END-IF.
+       2100-UPDATE-BALANCE-EXIT.
+           EXIT.
+
+       2150-LOG-TRANSACTION.
+           PERFORM 1010-GET-CURRENT-DATETIME. *> Ensure latest date/time and new TRAN_ID
+           MOVE WS-GENERATED-TRAN-ID TO TLR-TRANSACTION-ID.
+           MOVE WS-INPUT-ACCT-NUM    TO TLR-ACCOUNT-NUMBER.
+           MOVE WS-INPUT-DEP-AMT     TO TLR-AMOUNT.
+           MOVE WS-CURRENT-DATE-IS   TO TLR-TRANSACTION-DATE.
+           MOVE WS-CURRENT-TIME-IS   TO TLR-TRANSACTION-TIME.
+           MOVE WS-AI-REVIEW-FLAG    TO TLR-AI-REVIEW-FLAG.
+           MOVE WS-TRANSACTION-STATUS TO TLR-STATUS-CODE.
+
+           WRITE TRANSACTION-LOG-RECORD.
+           IF NOT TRANLOG-OK
+              DISPLAY "WARNING: FAILED TO WRITE TO TRANSACTION LOG. STATUS: "
+                      WS-TRANLOG-STATUS
+           ELSE
+              DISPLAY "Transaction " TLR-TRANSACTION-ID " logged successfully."
+           END-IF.
+       2150-LOG-TRANSACTION-EXIT.
+           EXIT.
+
+       9999-TERMINATION.
+           CLOSE DEPOSIT-ACCOUNT-FILE.
+           CLOSE TRANSACTION-LOG-FILE.
+           DISPLAY "DADEP MODULE TERMINATED. All files closed.".
+           DISPLAY " ".

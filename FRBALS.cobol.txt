@@ -1,0 +1,475 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. FRBALS.
+       AUTHOR. AI-FINANCE-ASSISTANT.
+      ******************************************************************
+      * AI-POWERED MAINFRAME FINANCIAL REPORTING - BALANCE SHEET
+      *
+      * This program generates a comprehensive Balance Sheet report,
+      * integrating AI-driven insights for enhanced financial analysis.
+      * It processes Asset, Liability, and Equity accounts from
+      * various data sources and validates the fundamental accounting
+      * equation: Assets = Liabilities + Equity.
+      *
+      * The AI component assists in data validation, trend observation,
+      * and provides high-level narrative summaries.
+      ******************************************************************
+
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.
+       SOURCE-COMPUTER. MAINFRAME-AI-FINANCE.
+       OBJECT-COMPUTER. MAINFRAME-AI-FINANCE.
+
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT ASSET-FILE
+               ASSIGN TO 'ASSETS.DAT'
+               ORGANIZATION IS LINE SEQUENTIAL.
+
+           SELECT LIABILITY-FILE
+               ASSIGN TO 'LIABS.DAT'
+               ORGANIZATION IS LINE SEQUENTIAL.
+
+           SELECT EQUITY-FILE
+               ASSIGN TO 'EQUITY.DAT'
+               ORGANIZATION IS LINE SEQUENTIAL.
+
+           SELECT BALANCE-SHEET-REPORT
+               ASSIGN TO 'BALSHEET.RPT'
+               ORGANIZATION IS LINE SEQUENTIAL.
+
+       DATA DIVISION.
+       FILE SECTION.
+       FD  ASSET-FILE.
+       01  ASSET-RECORD.
+           05  ASSET-ACCOUNT-ID        PIC X(10).
+           05  ASSET-DESCRIPTION       PIC X(30).
+           05  ASSET-BALANCE           PIC S9(11)V99.
+
+       FD  LIABILITY-FILE.
+       01  LIABILITY-RECORD.
+           05  LIAB-ACCOUNT-ID         PIC X(10).
+           05  LIAB-DESCRIPTION        PIC X(30).
+           05  LIAB-BALANCE            PIC S9(11)V99.
+
+       FD  EQUITY-FILE.
+       01  EQUITY-RECORD.
+           05  EQUITY-ACCOUNT-ID       PIC X(10).
+           05  EQUITY-DESCRIPTION      PIC X(30).
+           05  EQUITY-BALANCE          PIC S9(11)V99.
+
+       FD  BALANCE-SHEET-REPORT.
+       01  REPORT-LINE                 PIC X(132).
+
+       WORKING-STORAGE SECTION.
+      ******************************************************************
+      * Program Control and Flags
+      ******************************************************************
+       01  WS-PROGRAM-FLAGS.
+           05  WS-ASSET-EOF-FLAG       PIC X(01) VALUE 'N'.
+               88  ASSET-EOF           VALUE 'Y'.
+           05  WS-LIAB-EOF-FLAG        PIC X(01) VALUE 'N'.
+               88  LIAB-EOF            VALUE 'Y'.
+           05  WS-EQUITY-EOF-FLAG      PIC X(01) VALUE 'N'.
+               88  EQUITY-EOF          VALUE 'Y'.
+           05  WS-REPORT-PAGE-NUMBER   PIC 9(03) VALUE ZEROS.
+           05  WS-REPORT-LINE-COUNT    PIC 9(02) VALUE ZEROS.
+           05  WS-MAX-LINES-PER-PAGE   PIC 9(02) VALUE 50.
+
+      ******************************************************************
+      * Financial Accumulators
+      ******************************************************************
+       01  WS-FINANCIAL-ACCUMULATORS.
+           05  WS-TOTAL-ASSETS         PIC S9(15)V99 VALUE ZEROS.
+           05  WS-TOTAL-LIABILITIES    PIC S9(15)V99 VALUE ZEROS.
+           05  WS-TOTAL-EQUITY         PIC S9(15)V99 VALUE ZEROS.
+           05  WS-LIABS-PLUS-EQUITY    PIC S9(15)V99 VALUE ZEROS.
+           05  WS-BALANCE-DIFFERENCE   PIC S9(15)V99 VALUE ZEROS.
+
+      ******************************************************************
+      * Date and Time for Reporting
+      ******************************************************************
+       01  WS-CURRENT-DATE-TIME.
+           05  WS-CURRENT-DATE.
+               10  WS-YEAR             PIC 9(04).
+               10  WS-MONTH            PIC 9(02).
+               10  WS-DAY              PIC 9(02).
+           05  WS-CURRENT-TIME.
+               10  WS-HOURS            PIC 9(02).
+               10  WS-MINUTES          PIC 9(02).
+               10  WS-SECONDS          PIC 9(02).
+               10  WS-HUNDREDTHS       PIC 9(02).
+
+      ******************************************************************
+      * Report Heading and Detail Lines
+      ******************************************************************
+       01  REPORT-HEADING-1.
+           05  FILLER                  PIC X(45) VALUE SPACES.
+           05  FILLER                  PIC X(42) VALUE
+               'AI-POWERED BALANCE SHEET'.
+           05  FILLER                  PIC X(45) VALUE SPACES.
+       01  REPORT-HEADING-2.
+           05  FILLER                  PIC X(50) VALUE SPACES.
+           05  FILLER                  PIC X(10) VALUE 'As of:'.
+           05  RPT-DATE                PIC X(10).
+           05  FILLER                  PIC X(52) VALUE SPACES.
+       01  REPORT-HEADING-3.
+           05  FILLER                  PIC X(05) VALUE SPACES.
+           05  FILLER                  PIC X(20) VALUE 'Account ID'.
+           05  FILLER                  PIC X(35) VALUE 'Description'.
+           05  FILLER                  PIC X(20) VALUE 'Balance'.
+           05  FILLER                  PIC X(52) VALUE SPACES.
+
+       01  DETAIL-LINE.
+           05  FILLER                  PIC X(05) VALUE SPACES.
+           05  DL-ACCOUNT-ID           PIC X(10).
+           05  FILLER                  PIC X(05) VALUE SPACES.
+           05  DL-DESCRIPTION          PIC X(30).
+           05  FILLER                  PIC X(05) VALUE SPACES.
+           05  DL-BALANCE              PIC ZZZ,ZZZ,ZZZ,ZZ9.99.
+           05  FILLER                  PIC X(62) VALUE SPACES.
+
+       01  TOTAL-LINE.
+           05  FILLER                  PIC X(05) VALUE SPACES.
+           05  TL-LABEL                PIC X(45).
+           05  FILLER                  PIC X(05) VALUE SPACES.
+           05  TL-AMOUNT               PIC ZZZ,ZZZ,ZZZ,ZZ9.99.
+           05  FILLER                  PIC X(62) VALUE SPACES.
+
+       01  AI-INSIGHT-LINE.
+           05  FILLER                  PIC X(05) VALUE SPACES.
+           05  AI-INSIGHT-TEXT         PIC X(122).
+           05  FILLER                  PIC X(05) VALUE SPACES.
+
+       01  BLANK-LINE.
+           05  FILLER                  PIC X(132) VALUE SPACES.
+
+       PROCEDURE DIVISION.
+       MAIN-LOGIC.
+           PERFORM 1000-INITIALIZE-PROGRAM.
+           PERFORM 2000-PROCESS-ASSETS.
+           PERFORM 3000-PROCESS-LIABILITIES.
+           PERFORM 4000-PROCESS-EQUITY.
+           PERFORM 5000-PERFORM-BALANCE-CHECK.
+           PERFORM 6000-GENERATE-REPORT-SUMMARY.
+           PERFORM 7000-FINAL-CLEANUP.
+           STOP RUN.
+
+      ******************************************************************
+      * 1000-INITIALIZE-PROGRAM: Opens files, sets up report headers,
+      *                          and provides an initial AI message.
+      ******************************************************************
+       1000-INITIALIZE-PROGRAM.
+           DISPLAY "AI-FINANCE-ASSISTANT: Initiating Balance Sheet generation...".
+           DISPLAY "AI-FINANCE-ASSISTANT: Opening data sources and report file.".
+
+           OPEN INPUT ASSET-FILE
+                      LIABILITY-FILE
+                      EQUITY-FILE
+                OUTPUT BALANCE-SHEET-REPORT.
+
+           IF ASSET-FILE STATUS NOT = '00'
+               DISPLAY "ERROR: Could not open ASSET-FILE. Status: " ASSET-FILE STATUS
+               PERFORM 7000-FINAL-CLEANUP
+               STOP RUN
+           END-IF.
+           IF LIABILITY-FILE STATUS NOT = '00'
+               DISPLAY "ERROR: Could not open LIABILITY-FILE. Status: " LIABILITY-FILE STATUS
+               PERFORM 7000-FINAL-CLEANUP
+               STOP RUN
+           END-IF.
+           IF EQUITY-FILE STATUS NOT = '00'
+               DISPLAY "ERROR: Could not open EQUITY-FILE. Status: " EQUITY-FILE STATUS
+               PERFORM 7000-FINAL-CLEANUP
+               STOP RUN
+           END-IF.
+           IF BALANCE-SHEET-REPORT STATUS NOT = '00'
+               DISPLAY "ERROR: Could not open BALANCE-SHEET-REPORT. Status: " BALANCE-SHEET-REPORT STATUS
+               PERFORM 7000-FINAL-CLEANUP
+               STOP RUN
+           END-IF.
+
+           ACCEPT WS-CURRENT-DATE-TIME FROM DATE YYYYMMDD.
+           MOVE WS-MONTH TO RPT-DATE(1:2).
+           MOVE '/' TO RPT-DATE(3:1).
+           MOVE WS-DAY TO RPT-DATE(4:2).
+           MOVE '/' TO RPT-DATE(6:1).
+           MOVE WS-YEAR TO RPT-DATE(7:4).
+
+           PERFORM 1100-WRITE-REPORT-HEADER.
+
+      ******************************************************************
+      * 1100-WRITE-REPORT-HEADER: Writes page heading and column titles.
+      ******************************************************************
+       1100-WRITE-REPORT-HEADER.
+           ADD 1 TO WS-REPORT-PAGE-NUMBER.
+           MOVE ZEROS TO WS-REPORT-LINE-COUNT.
+
+           WRITE REPORT-LINE FROM BLANK-LINE.
+           WRITE REPORT-LINE FROM REPORT-HEADING-1.
+           WRITE REPORT-LINE FROM REPORT-HEADING-2.
+           WRITE REPORT-LINE FROM BLANK-LINE.
+           WRITE REPORT-LINE FROM BLANK-LINE.
+           ADD 5 TO WS-REPORT-LINE-COUNT.
+
+           DISPLAY "AI-FINANCE-ASSISTANT: Report header generated. Proceeding with data processing.".
+
+      ******************************************************************
+      * 2000-PROCESS-ASSETS: Reads asset accounts and sums their balances.
+      ******************************************************************
+       2000-PROCESS-ASSETS.
+           DISPLAY "AI-FINANCE-ASSISTANT: Analyzing asset accounts...".
+           MOVE "         ASSETS          " TO REPORT-LINE(05:25).
+           WRITE REPORT-LINE.
+           ADD 1 TO WS-REPORT-LINE-COUNT.
+
+           PERFORM VARYING WS-REPORT-LINE-COUNT FROM WS-REPORT-LINE-COUNT BY 1
+               UNTIL WS-REPORT-LINE-COUNT > WS-MAX-LINES-PER-PAGE
+                   IF WS-REPORT-LINE-COUNT = WS-MAX-LINES-PER-PAGE
+                       PERFORM 1100-WRITE-REPORT-HEADER
+                   END-IF
+                   READ ASSET-FILE INTO ASSET-RECORD
+                       AT END
+                           SET ASSET-EOF TO TRUE
+                           EXIT PERFORM
+                   END-READ
+                   IF NOT ASSET-EOF
+                       ADD ASSET-BALANCE TO WS-TOTAL-ASSETS
+                       MOVE ASSET-ACCOUNT-ID TO DL-ACCOUNT-ID
+                       MOVE ASSET-DESCRIPTION TO DL-DESCRIPTION
+                       MOVE ASSET-BALANCE TO DL-BALANCE
+                       WRITE REPORT-LINE FROM DETAIL-LINE
+                       ADD 1 TO WS-REPORT-LINE-COUNT
+                   END-IF
+           END-PERFORM.
+           PERFORM UNTIL ASSET-EOF
+               READ ASSET-FILE INTO ASSET-RECORD
+                   AT END
+                       SET ASSET-EOF TO TRUE
+                   NOT AT END
+                       ADD ASSET-BALANCE TO WS-TOTAL-ASSETS
+                       MOVE ASSET-ACCOUNT-ID TO DL-ACCOUNT-ID
+                       MOVE ASSET-DESCRIPTION TO DL-DESCRIPTION
+                       MOVE ASSET-BALANCE TO DL-BALANCE
+                       IF WS-REPORT-LINE-COUNT >= WS-MAX-LINES-PER-PAGE
+                           PERFORM 1100-WRITE-REPORT-HEADER
+                       END-IF
+                       WRITE REPORT-LINE FROM DETAIL-LINE
+                       ADD 1 TO WS-REPORT-LINE-COUNT
+               END-READ
+           END-PERFORM.
+
+           IF WS-REPORT-LINE-COUNT >= WS-MAX-LINES-PER-PAGE
+               PERFORM 1100-WRITE-REPORT-HEADER
+           END-IF.
+           WRITE REPORT-LINE FROM BLANK-LINE.
+           ADD 1 TO WS-REPORT-LINE-COUNT.
+           MOVE "Total Assets" TO TL-LABEL.
+           MOVE WS-TOTAL-ASSETS TO TL-AMOUNT.
+           WRITE REPORT-LINE FROM TOTAL-LINE.
+           ADD 1 TO WS-REPORT-LINE-COUNT.
+           WRITE REPORT-LINE FROM BLANK-LINE.
+           ADD 1 TO WS-REPORT-LINE-COUNT.
+           DISPLAY "AI-FINANCE-ASSISTANT: Asset aggregation complete. Total: " WS-TOTAL-ASSETS.
+
+      ******************************************************************
+      * 3000-PROCESS-LIABILITIES: Reads liability accounts and sums.
+      ******************************************************************
+       3000-PROCESS-LIABILITIES.
+           DISPLAY "AI-FINANCE-ASSISTANT: Processing liability accounts...".
+           IF WS-REPORT-LINE-COUNT >= WS-MAX-LINES-PER-PAGE - 5
+               PERFORM 1100-WRITE-REPORT-HEADER
+           END-IF.
+           MOVE "         LIABILITIES       " TO REPORT-LINE(05:25).
+           WRITE REPORT-LINE.
+           ADD 1 TO WS-REPORT-LINE-COUNT.
+
+           PERFORM UNTIL LIAB-EOF
+               READ LIABILITY-FILE INTO LIABILITY-RECORD
+                   AT END
+                       SET LIAB-EOF TO TRUE
+                   NOT AT END
+                       ADD LIAB-BALANCE TO WS-TOTAL-LIABILITIES
+                       MOVE LIAB-ACCOUNT-ID TO DL-ACCOUNT-ID
+                       MOVE LIAB-DESCRIPTION TO DL-DESCRIPTION
+                       MOVE LIAB-BALANCE TO DL-BALANCE
+                       IF WS-REPORT-LINE-COUNT >= WS-MAX-LINES-PER-PAGE
+                           PERFORM 1100-WRITE-REPORT-HEADER
+                       END-IF
+                       WRITE REPORT-LINE FROM DETAIL-LINE
+                       ADD 1 TO WS-REPORT-LINE-COUNT
+               END-READ
+           END-PERFORM.
+
+           IF WS-REPORT-LINE-COUNT >= WS-MAX-LINES-PER-PAGE
+               PERFORM 1100-WRITE-REPORT-HEADER
+           END-IF.
+           WRITE REPORT-LINE FROM BLANK-LINE.
+           ADD 1 TO WS-REPORT-LINE-COUNT.
+           MOVE "Total Liabilities" TO TL-LABEL.
+           MOVE WS-TOTAL-LIABILITIES TO TL-AMOUNT.
+           WRITE REPORT-LINE FROM TOTAL-LINE.
+           ADD 1 TO WS-REPORT-LINE-COUNT.
+           WRITE REPORT-LINE FROM BLANK-LINE.
+           ADD 1 TO WS-REPORT-LINE-COUNT.
+           DISPLAY "AI-FINANCE-ASSISTANT: Liability aggregation complete. Total: " WS-TOTAL-LIABILITIES.
+
+      ******************************************************************
+      * 4000-PROCESS-EQUITY: Reads equity accounts and sums.
+      ******************************************************************
+       4000-PROCESS-EQUITY.
+           DISPLAY "AI-FINANCE-ASSISTANT: Reviewing equity accounts...".
+           IF WS-REPORT-LINE-COUNT >= WS-MAX-LINES-PER-PAGE - 5
+               PERFORM 1100-WRITE-REPORT-HEADER
+           END-IF.
+           MOVE "         EQUITY            " TO REPORT-LINE(05:25).
+           WRITE REPORT-LINE.
+           ADD 1 TO WS-REPORT-LINE-COUNT.
+
+           PERFORM UNTIL EQUITY-EOF
+               READ EQUITY-FILE INTO EQUITY-RECORD
+                   AT END
+                       SET EQUITY-EOF TO TRUE
+                   NOT AT END
+                       ADD EQUITY-BALANCE TO WS-TOTAL-EQUITY
+                       MOVE EQUITY-ACCOUNT-ID TO DL-ACCOUNT-ID
+                       MOVE EQUITY-DESCRIPTION TO DL-DESCRIPTION
+                       MOVE EQUITY-BALANCE TO DL-BALANCE
+                       IF WS-REPORT-LINE-COUNT >= WS-MAX-LINES-PER-PAGE
+                           PERFORM 1100-WRITE-REPORT-HEADER
+                       END-IF
+                       WRITE REPORT-LINE FROM DETAIL-LINE
+                       ADD 1 TO WS-REPORT-LINE-COUNT
+               END-READ
+           END-PERFORM.
+
+           IF WS-REPORT-LINE-COUNT >= WS-MAX-LINES-PER-PAGE
+               PERFORM 1100-WRITE-REPORT-HEADER
+           END-IF.
+           WRITE REPORT-LINE FROM BLANK-LINE.
+           ADD 1 TO WS-REPORT-LINE-COUNT.
+           MOVE "Total Equity" TO TL-LABEL.
+           MOVE WS-TOTAL-EQUITY TO TL-AMOUNT.
+           WRITE REPORT-LINE FROM TOTAL-LINE.
+           ADD 1 TO WS-REPORT-LINE-COUNT.
+           WRITE REPORT-LINE FROM BLANK-LINE.
+           ADD 1 TO WS-REPORT-LINE-COUNT.
+           DISPLAY "AI-FINANCE-ASSISTANT: Equity aggregation complete. Total: " WS-TOTAL-EQUITY.
+
+      ******************************************************************
+      * 5000-PERFORM-BALANCE-CHECK: Validates the accounting equation.
+      *                             AI provides commentary based on results.
+      ******************************************************************
+       5000-PERFORM-BALANCE-CHECK.
+           DISPLAY "AI-FINANCE-ASSISTANT: Initiating Balance Sheet validation...".
+           COMPUTE WS-LIABS-PLUS-EQUITY = WS-TOTAL-LIABILITIES + WS-TOTAL-EQUITY.
+           COMPUTE WS-BALANCE-DIFFERENCE = WS-TOTAL-ASSETS - WS-LIABS-PLUS-EQUITY.
+
+           IF WS-REPORT-LINE-COUNT >= WS-MAX-LINES-PER-PAGE - 5
+               PERFORM 1100-WRITE-REPORT-HEADER
+           END-IF.
+           WRITE REPORT-LINE FROM BLANK-LINE.
+           ADD 1 TO WS-REPORT-LINE-COUNT.
+           MOVE "TOTAL LIABILITIES AND EQUITY" TO TL-LABEL.
+           MOVE WS-LIABS-PLUS-EQUITY TO TL-AMOUNT.
+           WRITE REPORT-LINE FROM TOTAL-LINE.
+           ADD 1 TO WS-REPORT-LINE-COUNT.
+           WRITE REPORT-LINE FROM BLANK-LINE.
+           ADD 1 TO WS-REPORT-LINE-COUNT.
+           MOVE "BALANCE DIFFERENCE (Assets - L+E)" TO TL-LABEL.
+           MOVE WS-BALANCE-DIFFERENCE TO TL-AMOUNT.
+           WRITE REPORT-LINE FROM TOTAL-LINE.
+           ADD 1 TO WS-REPORT-LINE-COUNT.
+           WRITE REPORT-LINE FROM BLANK-LINE.
+           ADD 1 TO WS-REPORT-LINE-COUNT.
+
+           IF WS-BALANCE-DIFFERENCE = ZEROS
+               DISPLAY "AI-FINANCE-ASSISTANT: 100% BALANCED. The accounting equation holds true."
+               MOVE "AI INSIGHT: Flawless balance observed. The financial structure appears robust."
+                   TO AI-INSIGHT-TEXT
+               WRITE REPORT-LINE FROM AI-INSIGHT-LINE
+               ADD 1 TO WS-REPORT-LINE-COUNT
+           ELSE IF ABS WS-BALANCE-DIFFERENCE < 0.01  *> Small tolerance for floating point
+               DISPLAY "AI-FINANCE-ASSISTANT: Minor variance detected. Potential rounding error."
+               MOVE "AI INSIGHT: A negligible variance suggests minor rounding. Consistency high."
+                   TO AI-INSIGHT-TEXT
+               WRITE REPORT-LINE FROM AI-INSIGHT-LINE
+               ADD 1 TO WS-REPORT-LINE-COUNT
+           ELSE
+               DISPLAY "AI-FINANCE-ASSISTANT: SIGNIFICANT IMBALANCE DETECTED! Difference: " WS-BALANCE-DIFFERENCE
+               MOVE "AI ALERT: Significant imbalance identified. Immediate human review required."
+                   TO AI-INSIGHT-TEXT
+               WRITE REPORT-LINE FROM AI-INSIGHT-LINE
+               ADD 1 TO WS-REPORT-LINE-COUNT
+               MOVE "AI RECOMMENDATION: Initiate detailed audit of source data and journal entries."
+                   TO AI-INSIGHT-TEXT
+               WRITE REPORT-LINE FROM AI-INSIGHT-LINE
+               ADD 1 TO WS-REPORT-LINE-COUNT
+           END-IF.
+           WRITE REPORT-LINE FROM BLANK-LINE.
+           ADD 1 TO WS-REPORT-LINE-COUNT.
+
+      ******************************************************************
+      * 6000-GENERATE-REPORT-SUMMARY: Adds final AI insights and report details.
+      ******************************************************************
+       6000-GENERATE-REPORT-SUMMARY.
+           DISPLAY "AI-FINANCE-ASSISTANT: Compiling final insights...".
+           IF WS-REPORT-LINE-COUNT >= WS-MAX-LINES-PER-PAGE - 5
+               PERFORM 1100-WRITE-REPORT-HEADER
+           END-IF.
+
+           MOVE "AI-FINANCE-ASSISTANT SUMMARY:" TO AI-INSIGHT-TEXT.
+           WRITE REPORT-LINE FROM AI-INSIGHT-LINE.
+           ADD 1 TO WS-REPORT-LINE-COUNT.
+           WRITE REPORT-LINE FROM BLANK-LINE.
+           ADD 1 TO WS-REPORT-LINE-COUNT.
+
+           IF WS-TOTAL-ASSETS > (WS-TOTAL-LIABILITIES * 2)
+               MOVE "AI OBSERVATION: Asset base significantly outweighs liabilities, indicating strong solvency."
+                   TO AI-INSIGHT-TEXT
+           ELSE IF WS-TOTAL-ASSETS > WS-TOTAL-LIABILITIES
+               MOVE "AI OBSERVATION: Assets cover liabilities adequately, maintaining a healthy financial position."
+                   TO AI-INSIGHT-TEXT
+           ELSE
+               MOVE "AI OBSERVATION: Liabilities are approaching or exceeding assets, suggesting potential solvency concerns."
+                   TO AI-INSIGHT-TEXT
+           END-IF.
+           WRITE REPORT-LINE FROM AI-INSIGHT-LINE.
+           ADD 1 TO WS-REPORT-LINE-COUNT.
+
+           IF WS-TOTAL-EQUITY > (WS-TOTAL-ASSETS * 0.5)
+               MOVE "AI INSIGHT: High proportion of equity financing, demonstrating financial independence and stability."
+                   TO AI-INSIGHT-TEXT
+           ELSE
+               MOVE "AI INSIGHT: Proportion of equity is moderate; consider reviewing capital structure efficiency."
+                   TO AI-INSIGHT-TEXT
+           END-IF.
+           WRITE REPORT-LINE FROM AI-INSIGHT-LINE.
+           ADD 1 TO WS-REPORT-LINE-COUNT.
+           WRITE REPORT-LINE FROM BLANK-LINE.
+           ADD 1 TO WS-REPORT-LINE-COUNT.
+
+           MOVE "Report generated by AI-Finance-Assistant on " TO AI-INSIGHT-TEXT(1:40).
+           MOVE RPT-DATE TO AI-INSIGHT-TEXT(41:10).
+           MOVE " at " TO AI-INSIGHT-TEXT(51:4).
+           ACCEPT WS-CURRENT-TIME FROM TIME.
+           MOVE WS-HOURS TO AI-INSIGHT-TEXT(55:2).
+           MOVE ":" TO AI-INSIGHT-TEXT(57:1).
+           MOVE WS-MINUTES TO AI-INSIGHT-TEXT(58:2).
+           MOVE ":" TO AI-INSIGHT-TEXT(60:1).
+           MOVE WS-SECONDS TO AI-INSIGHT-TEXT(61:2).
+           WRITE REPORT-LINE FROM AI-INSIGHT-LINE.
+           ADD 1 TO WS-REPORT-LINE-COUNT.
+           WRITE REPORT-LINE FROM BLANK-LINE.
+           ADD 1 TO WS-REPORT-LINE-COUNT.
+
+      ******************************************************************
+      * 7000-FINAL-CLEANUP: Closes all files and ends the program.
+      ******************************************************************
+       7000-FINAL-CLEANUP.
+           DISPLAY "AI-FINANCE-ASSISTANT: Closing data sources and report file.".
+           CLOSE ASSET-FILE
+                 LIABILITY-FILE
+                 EQUITY-FILE
+                 BALANCE-SHEET-REPORT.
+           DISPLAY "AI-FINANCE-ASSISTANT: Balance Sheet generation complete. System ready for next task.".
+           STOP RUN.

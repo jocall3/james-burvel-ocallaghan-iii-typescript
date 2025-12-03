@@ -1,0 +1,43 @@
+# === Database Migration Runner ===
+# A manually triggered workflow to apply database migrations to an environment.
+# This is a sensitive operation and should be protected with environment rules.
+
+name: 'DB: Run Migrations'
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'The environment to run migrations against'
+        required: true
+        type: choice
+        options:
+        - staging
+        - production
+
+jobs:
+  run-migrations:
+    name: 'Run migrations against ${{ github.event.inputs.environment }}'
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+
+    steps:
+      - name: 'Checkout Repository'
+        uses: actions/checkout@v4
+
+      - name: 'Run Database Migration Script'
+        # In a real-world scenario, this might be a Docker container
+        # that has the migration tool and scripts bundled.
+        working-directory: ./packages/db-migrations
+        env:
+          # Secrets are securely injected from the environment configuration
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+        run: |
+          echo "Connecting to ${{ secrets.DB_HOST }}..."
+          # Replace this with your actual migration command
+          # e.g., npx prisma migrate deploy
+          echo "Applying migrations..."
+          echo "Migrations applied successfully."

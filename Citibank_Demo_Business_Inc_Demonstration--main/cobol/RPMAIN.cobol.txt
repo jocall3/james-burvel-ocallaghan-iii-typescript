@@ -1,0 +1,125 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. RPMAIN.
+       AUTHOR. SYSTEM-DEVELOPER.
+       DATE-WRITTEN. 2024-07-27.
+      ******************************************************************
+      * REPORTING AND ANALYTICS SERVICES MAIN CONTROLLER
+      *
+      * THIS PROGRAM SERVES AS THE MAIN MENU CONTROLLER FOR THE
+      * REPORTING AND ANALYTICS SERVICES (RAS) SYSTEM. IT PROVIDES
+      * ACCESS TO BOTH STANDARD OPERATIONAL REPORTS AND ADVANCED,
+      * AI-ENHANCED ANALYTICAL INSIGHTS. USERS CAN SELECT VARIOUS
+      * OPTIONS TO GENERATE REPORTS, OPTIMIZE PARAMETERS, ACCESS
+      * NATURAL LANGUAGE INTERFACES, AND PERFORM ANOMALY DETECTION.
+      ******************************************************************
+       ENVIRONMENT DIVISION.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01 WS-MENU-SWITCHES.
+          05 WS-USER-CHOICE       PIC X(01).
+             88 EXIT-RP-MENU      VALUE 'X'.
+
+       01 WS-PROGRAM-MESSAGES.
+          05 MSG-INVALID-SELECTION PIC X(80) VALUE "INVALID SELECTION. PLEASE ENTER A VALID OPTION.".
+          05 MSG-RETURN-MAIN-MENU  PIC X(80) VALUE "RETURNING TO THE MAIN SYSTEM MENU...".
+          05 MSG-PROCESSING-REQUEST PIC X(80) VALUE "PROCESSING YOUR REQUEST. PLEASE WAIT WHILE GENERATING...".
+          05 MSG-CLEAR-SCREEN      PIC X(80) VALUE ALL SPACES.
+
+       01 WS-MENU-SCREEN.
+          05 FILLER PIC X(80) VALUE ALL "*".
+          05 FILLER PIC X(80) VALUE
+             "*        REPORTING & ANALYTICS SERVICES (RAS)          *".
+          05 FILLER PIC X(80) VALUE ALL "*".
+          05 FILLER PIC X(80) VALUE "*                                                    *".
+          05 FILLER PIC X(80) VALUE "*   -- STANDARD OPERATIONAL REPORTS --              *".
+          05 FILLER PIC X(80) VALUE "*                                                    *".
+          05 FILLER PIC X(80) VALUE "*   1. GENERATE DAILY SUMMARY REPORTS              *".
+          05 FILLER PIC X(80) VALUE "*   2. GENERATE MONTHLY FINANCIAL STATEMENTS       *".
+          05 FILLER PIC X(80) VALUE "*   3. GENERATE QUARTERLY PERFORMANCE REVIEW       *".
+          05 FILLER PIC X(80) VALUE "*   4. GENERATE YEAR-END COMPREHENSIVE REPORT      *".
+          05 FILLER PIC X(80) VALUE "*                                                    *".
+          05 FILLER PIC X(80) VALUE "*   -- AI-ENHANCED ANALYTICS & INSIGHTS --         *".
+          05 FILLER PIC X(80) VALUE "*                                                    *".
+          05 FILLER PIC X(80) VALUE "*   5. GENERATE PREDICTIVE TRENDS AND FORECASTS    *".
+          05 FILLER PIC X(80) VALUE "*   6. OPTIMIZE REPORTING PARAMETERS (AI-ASSISTED) *".
+          05 FILLER PIC X(80) VALUE "*   7. ACCESS NATURAL LANGUAGE QUERY INTERFACE     *".
+          05 FILLER PIC X(80) VALUE "*   8. PERFORM ANOMALY DETECTION & ALERTING        *".
+          05 FILLER PIC X(80) VALUE "*   9. CONFIGURE AI LEARNING PARAMETERS            *".
+          05 FILLER PIC X(80) VALUE "*                                                    *".
+          05 FILLER PIC X(80) VALUE "*   X. EXIT TO MAIN SYSTEM MENU                    *".
+          05 FILLER PIC X(80) VALUE ALL "*".
+
+       PROCEDURE DIVISION.
+       0000-MAIN-LOGIC.
+      *    Main control loop for the Reporting Services menu.
+      *    Repeatedly displays the menu and processes user input
+      *    until the user chooses to exit.
+           PERFORM 1000-CONTROL-LOOP UNTIL EXIT-RP-MENU.
+           GOBACK.
+
+       1000-CONTROL-LOOP.
+      *    Displays the menu screen, accepts user input, and
+      *    dispatches to the appropriate sub-program based on choice.
+           DISPLAY MSG-CLEAR-SCREEN UPON CONSOLE. *> Clear screen before displaying menu
+           DISPLAY WS-MENU-SCREEN UPON CONSOLE.
+           DISPLAY "ENTER YOUR CHOICE: " WITH NO ADVANCING.
+           ACCEPT WS-USER-CHOICE.
+           MOVE FUNCTION UPPER-CASE(WS-USER-CHOICE) TO WS-USER-CHOICE.
+
+           EVALUATE WS-USER-CHOICE
+               WHEN "1"
+                   DISPLAY MSG-PROCESSING-REQUEST
+                   CALL "RPTDLY" USING BY VALUE "DAILY-SUMMARY"
+                   PERFORM 1100-PAUSE-AND-CONTINUE
+               WHEN "2"
+                   DISPLAY MSG-PROCESSING-REQUEST
+                   CALL "RPTMTH" USING BY VALUE "MONTHLY-STATEMENTS"
+                   PERFORM 1100-PAUSE-AND-CONTINUE
+               WHEN "3"
+                   DISPLAY MSG-PROCESSING-REQUEST
+                   CALL "RPQTR" USING BY VALUE "QUARTERLY-REVIEW"
+                   PERFORM 1100-PAUSE-AND-CONTINUE
+               WHEN "4"
+                   DISPLAY MSG-PROCESSING-REQUEST
+                   CALL "RPYR" USING BY VALUE "YEAR-END-COMPREHENSIVE"
+                   PERFORM 1100-PAUSE-AND-CONTINUE
+               WHEN "5"
+                   DISPLAY MSG-PROCESSING-REQUEST
+                   CALL "RPTPRD" USING BY VALUE "PREDICTIVE-FORECASTS"
+                   PERFORM 1100-PAUSE-AND-CONTINUE
+               WHEN "6"
+                   DISPLAY MSG-PROCESSING-REQUEST
+                   CALL "OPTRPT" USING BY VALUE "AI-OPTIMIZATION"
+                   PERFORM 1100-PAUSE-AND-CONTINUE
+               WHEN "7"
+                   DISPLAY MSG-PROCESSING-REQUEST
+                   CALL "NLQINT" USING BY VALUE "NATURAL-LANGUAGE-QUERY"
+                   PERFORM 1100-PAUSE-AND-CONTINUE
+               WHEN "8"
+                   DISPLAY MSG-PROCESSING-REQUEST
+                   CALL "ANMDET" USING BY VALUE "ANOMALY-DETECTION"
+                   PERFORM 1100-PAUSE-AND-CONTINUE
+               WHEN "9"
+                   DISPLAY MSG-PROCESSING-REQUEST
+                   CALL "AICNFG" USING BY VALUE "AI-CONFIGURATION"
+                   PERFORM 1100-PAUSE-AND-CONTINUE
+               WHEN "X"
+                   DISPLAY MSG-RETURN-MAIN-MENU
+                   PERFORM 1100-PAUSE-SHORT
+               WHEN OTHER
+                   DISPLAY MSG-INVALID-SELECTION
+                   PERFORM 1100-PAUSE-AND-CONTINUE
+           END-EVALUATE.
+
+       1100-PAUSE-AND-CONTINUE.
+      *    Provides a brief pause and prompts the user to continue
+      *    before returning to the main menu, allowing them to read
+      *    any messages from the called sub-program.
+           DISPLAY "PRESS ENTER TO CONTINUE..." WITH NO ADVANCING.
+           ACCEPT WS-USER-CHOICE. *> Any input will continue.
+
+       1100-PAUSE-SHORT.
+      *    Provides a very brief pause for message display.
+           PERFORM VARYING I FROM 1 TO 1000000 *> Simple delay loop
+               CONTINUE
+           END-PERFORM.

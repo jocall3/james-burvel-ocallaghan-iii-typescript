@@ -1,0 +1,281 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. TMMENU.
+       AUTHOR. FICTIONAL-DEV-TEAM.
+       DATE-WRITTEN. 2024-07-27.
+      ******************************************************************
+      * TELLER MANAGEMENT SYSTEM - MAIN MENU
+      * This program presents the main menu for teller operations and
+      * dispatches to various sub-functions, including AI-enhanced ones.
+      ******************************************************************
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+      *----------------------------------------------------------------*
+      * Screen Definition for Main Menu
+      *----------------------------------------------------------------*
+       01 WS-MAIN-MENU-SCREEN.
+          05 FILLER PIC X(80) VALUE ALL "*".
+          05 FILLER PIC X(80) VALUE
+             "*          TELLER OPERATIONS AND ASSISTANT MENU        *".
+          05 FILLER PIC X(80) VALUE ALL "*".
+          05 FILLER PIC X(80) VALUE "*                                                    *".
+          05 FILLER PIC X(80) VALUE "*   1. OPEN TELLER DRAWER                          *".
+          05 FILLER PIC X(80) VALUE "*   2. BALANCE DRAWER                              *".
+          05 FILLER PIC X(80) VALUE "*   3. CLOSE TELLER DRAWER                         *".
+          05 FILLER PIC X(80) VALUE "*   4. VIEW TRANSACTION HISTORY                    *".
+          05 FILLER PIC X(80) VALUE "*                                                    *".
+          05 FILLER PIC X(80) VALUE "*   A. AI-ASSISTED ANOMALY DETECTION               *".
+          05 FILLER PIC X(80) VALUE "*   P. PREDICTIVE CASH MANAGEMENT                  *".
+          05 FILLER PIC X(80) VALUE "*   T. TELLER PERFORMANCE INSIGHTS                 *".
+          05 FILLER PIC X(80) VALUE "*                                                    *".
+          05 FILLER PIC X(80) VALUE "*   X. EXIT TO PREVIOUS MENU                       *".
+          05 FILLER PIC X(80) VALUE ALL "*".
+
+      *----------------------------------------------------------------*
+      * Program Control and User Input Variables
+      *----------------------------------------------------------------*
+       01 WS-PROGRAM-FLAGS.
+          05 WS-MENU-CHOICE       PIC X(01).
+             88 WS-CHOICE-OPEN-DRAWER       VALUE '1'.
+             88 WS-CHOICE-BALANCE-DRAWER    VALUE '2'.
+             88 WS-CHOICE-CLOSE-DRAWER      VALUE '3'.
+             88 WS-CHOICE-VIEW-HISTORY      VALUE '4'.
+             88 WS-CHOICE-AI-ANOMALY        VALUE 'A'.
+             88 WS-CHOICE-PREDICTIVE-CASH   VALUE 'P'.
+             88 WS-CHOICE-PERFORMANCE-INSIGHTS VALUE 'T'.
+             88 WS-CHOICE-EXIT              VALUE 'X', 'x'.
+          05 WS-EXIT-PROGRAM-FLAG PIC X(01) VALUE 'N'.
+             88 WS-EXIT-PROGRAM             VALUE 'Y'.
+
+      *----------------------------------------------------------------*
+      * Data Structures for Simulated Operations
+      *----------------------------------------------------------------*
+       01 WS-TELLER-DATA.
+          05 WS-TELLER-ID           PIC 9(05) VALUE 00123.
+          05 WS-DRAWER-STATUS       PIC X(10) VALUE 'CLOSED'.
+          05 WS-CURRENT-BALANCE     PIC S9(09)V99 COMP-3 VALUE +0.
+          05 WS-EXPECTED-BALANCE    PIC S9(09)V99 COMP-3 VALUE +0.
+          05 WS-OVER-SHORT-AMOUNT   PIC S9(09)V99 COMP-3 VALUE +0.
+
+       01 WS-TRANSACTION-RECORD.
+          05 WS-TRANS-ID            PIC 9(08).
+          05 WS-TRANS-DATE          PIC 9(08) VALUE ZEROS.
+          05 WS-TRANS-TIME          PIC 9(06) VALUE ZEROS.
+          05 WS-TRANS-TYPE          PIC X(10).
+             88 TRANS-TYPE-DEPOSIT           VALUE 'DEPOSIT'.
+             88 TRANS-TYPE-WITHDRAWAL        VALUE 'WITHDRAW'.
+             88 TRANS-TYPE-CHECK-CASH        VALUE 'CHECK CASH'.
+          05 WS-TRANS-AMOUNT        PIC S9(09)V99 COMP-3.
+          05 WS-CUSTOMER-ACCT       PIC X(12).
+
+      *----------------------------------------------------------------*
+      * AI System Simulation Messages
+      *----------------------------------------------------------------*
+       01 WS-AI-MESSAGES.
+          05 AI-MSG-ANOMALY-SCAN    PIC X(70) VALUE
+             "AI initiated: Scanning transaction stream for anomalies...".
+          05 AI-MSG-ANOMALY-RESULT  PIC X(70) VALUE
+             "AI detected potential pattern deviation. Review required.".
+          05 AI-MSG-PREDICT-INIT    PIC X(70) VALUE
+             "AI initiated: Analyzing historical data for cash flow...".
+          05 AI-MSG-PREDICT-RESULT  PIC X(70) VALUE
+             "AI suggests optimal cash levels for next 4 hours.".
+          05 AI-MSG-PERF-INIT       PIC X(70) VALUE
+             "AI initiated: Compiling teller efficiency metrics...".
+          05 AI-MSG-PERF-RESULT     PIC X(70) VALUE
+             "AI highlights areas for workflow enhancement.".
+
+       LINKAGE SECTION.
+       01 LS-CHOICE PIC X(01).
+
+       PROCEDURE DIVISION USING LS-CHOICE.
+       0000-MAIN-LOGIC.
+           PERFORM 1000-INITIALIZE-PROGRAM.
+           PERFORM 2000-DISPLAY-MENU-LOOP
+               UNTIL WS-EXIT-PROGRAM.
+           PERFORM 9000-TERMINATE-PROGRAM.
+           GOBACK.
+
+      ******************************************************************
+      * 1000-INITIALIZE-PROGRAM: Set up initial program state
+      ******************************************************************
+       1000-INITIALIZE-PROGRAM.
+           MOVE 'N' TO WS-EXIT-PROGRAM-FLAG.
+           DISPLAY ' ' AT 0101 ERASE. *> Clear screen on start.
+           DISPLAY 'Teller ID: ' WS-TELLER-ID AT 0101.
+           DISPLAY 'Drawer Status: ' WS-DRAWER-STATUS AT 0102.
+
+      ******************************************************************
+      * 2000-DISPLAY-MENU-LOOP: Main loop for menu interaction
+      ******************************************************************
+       2000-DISPLAY-MENU-LOOP.
+           DISPLAY WS-MAIN-MENU-SCREEN AT 0301.
+           DISPLAY "Enter your choice: " AT 2001.
+           ACCEPT WS-MENU-CHOICE AT 2021.
+           PERFORM 3000-PROCESS-CHOICE.
+           DISPLAY ' ' AT 2001 ERASE EOS. *> Clear input line
+
+      ******************************************************************
+      * 3000-PROCESS-CHOICE: Evaluate user input and call sub-routines
+      ******************************************************************
+       3000-PROCESS-CHOICE.
+           EVALUATE WS-MENU-CHOICE
+               WHEN WS-CHOICE-OPEN-DRAWER
+                   PERFORM 4100-OPEN-TELLER-DRAWER
+               WHEN WS-CHOICE-BALANCE-DRAWER
+                   PERFORM 4200-BALANCE-DRAWER
+               WHEN WS-CHOICE-CLOSE-DRAWER
+                   PERFORM 4300-CLOSE-TELLER-DRAWER
+               WHEN WS-CHOICE-VIEW-HISTORY
+                   PERFORM 4400-VIEW-TRANSACTION-HISTORY
+               WHEN WS-CHOICE-AI-ANOMALY
+                   PERFORM 5100-AI-ANOMALY-DETECTION
+               WHEN WS-CHOICE-PREDICTIVE-CASH
+                   PERFORM 5200-PREDICTIVE-CASH-MANAGEMENT
+               WHEN WS-CHOICE-PERFORMANCE-INSIGHTS
+                   PERFORM 5300-TELLER-PERFORMANCE-INSIGHTS
+               WHEN WS-CHOICE-EXIT
+                   MOVE 'Y' TO WS-EXIT-PROGRAM-FLAG
+                   MOVE WS-MENU-CHOICE TO LS-CHOICE
+               WHEN OTHER
+                   PERFORM 9100-INVALID-CHOICE-MESSAGE
+           END-EVALUATE.
+
+      ******************************************************************
+      * 4000-LEVEL: Core Teller Operations
+      ******************************************************************
+       4100-OPEN-TELLER-DRAWER.
+           IF WS-DRAWER-STATUS = 'CLOSED'
+               DISPLAY "Enter initial drawer amount (e.g., 500.00): " AT 2201
+               ACCEPT WS-CURRENT-BALANCE AT 2242
+               MOVE WS-CURRENT-BALANCE TO WS-EXPECTED-BALANCE
+               MOVE 'OPEN' TO WS-DRAWER-STATUS
+               DISPLAY ' ' AT 0101 ERASE.
+               DISPLAY 'Teller ID: ' WS-TELLER-ID AT 0101.
+               DISPLAY 'Drawer Status: ' WS-DRAWER-STATUS AT 0102.
+               DISPLAY 'Drawer opened with ' WS-CURRENT-BALANCE
+                       ' (Expected: ' WS-EXPECTED-BALANCE ')'.
+           ELSE
+               DISPLAY 'Drawer is already OPEN.'
+           END-IF.
+           PERFORM 9200-PRESS-ENTER-TO-CONTINUE.
+
+       4200-BALANCE-DRAWER.
+           IF WS-DRAWER-STATUS = 'OPEN'
+               DISPLAY 'Current system balance: ' WS-CURRENT-BALANCE.
+               DISPLAY 'Enter actual physical balance: ' AT 2201.
+               ACCEPT WS-EXPECTED-BALANCE AT 2232.
+               COMPUTE WS-OVER-SHORT-AMOUNT = WS-CURRENT-BALANCE - WS-EXPECTED-BALANCE.
+               IF WS-OVER-SHORT-AMOUNT = 0
+                   DISPLAY 'Drawer is perfectly balanced.'
+               ELSE IF WS-OVER-SHORT-AMOUNT > 0
+                   DISPLAY 'Drawer is SHORT by ' WS-OVER-SHORT-AMOUNT.
+               ELSE
+                   DISPLAY 'Drawer is OVER by ' WS-OVER-SHORT-AMOUNT * -1.
+               END-IF.
+           ELSE
+               DISPLAY 'Drawer must be OPEN to balance.'.
+           END-IF.
+           PERFORM 9200-PRESS-ENTER-TO-CONTINUE.
+
+       4300-CLOSE-TELLER-DRAWER.
+           IF WS-DRAWER-STATUS = 'OPEN'
+               DISPLAY 'Closing teller drawer...'.
+               PERFORM 4200-BALANCE-DRAWER. *> Force balance before close
+               IF WS-OVER-SHORT-AMOUNT = 0
+                   MOVE 'CLOSED' TO WS-DRAWER-STATUS
+                   MOVE ZEROS TO WS-CURRENT-BALANCE
+                   MOVE ZEROS TO WS-EXPECTED-BALANCE
+                   DISPLAY 'Drawer successfully CLOSED and cleared.'.
+                   DISPLAY ' ' AT 0101 ERASE.
+                   DISPLAY 'Teller ID: ' WS-TELLER-ID AT 0101.
+                   DISPLAY 'Drawer Status: ' WS-DRAWER-STATUS AT 0102.
+               ELSE
+                   DISPLAY 'Drawer cannot be closed with an OVER/SHORT. Please resolve.'.
+               END-IF.
+           ELSE
+               DISPLAY 'Drawer is already CLOSED.'.
+           END-IF.
+           PERFORM 9200-PRESS-ENTER-TO-CONTINUE.
+
+       4400-VIEW-TRANSACTION-HISTORY.
+           DISPLAY 'Fetching recent transaction history...'.
+           *> In a real system, this would call a transaction history module
+           *> For now, simulate with a dummy record
+           MOVE 10000001 TO WS-TRANS-ID.
+           MOVE 20240727 TO WS-TRANS-DATE.
+           MOVE 103000 TO WS-TRANS-TIME.
+           MOVE 'DEPOSIT' TO WS-TRANS-TYPE.
+           MOVE +500.75 TO WS-TRANS-AMOUNT.
+           MOVE 'ACC123456789' TO WS-CUSTOMER-ACCT.
+           DISPLAY 'TRANS ID: ' WS-TRANS-ID ', DATE: ' WS-TRANS-DATE
+                   ', TYPE: ' WS-TRANS-TYPE ', AMOUNT: ' WS-TRANS-AMOUNT
+                   ', ACCOUNT: ' WS-CUSTOMER-ACCT.
+           MOVE 10000002 TO WS-TRANS-ID.
+           MOVE 20240727 TO WS-TRANS-DATE.
+           MOVE 110500 TO WS-TRANS-TIME.
+           MOVE 'WITHDRAW' TO WS-TRANS-TYPE.
+           MOVE -100.00 TO WS-TRANS-AMOUNT.
+           MOVE 'ACC987654321' TO WS-CUSTOMER-ACCT.
+           DISPLAY 'TRANS ID: ' WS-TRANS-ID ', DATE: ' WS-TRANS-DATE
+                   ', TYPE: ' WS-TRANS-TYPE ', AMOUNT: ' WS-TRANS-AMOUNT
+                   ', ACCOUNT: ' WS-CUSTOMER-ACCT.
+           DISPLAY 'End of recent history. More history is available via report query.'.
+           PERFORM 9200-PRESS-ENTER-TO-CONTINUE.
+
+      ******************************************************************
+      * 5000-LEVEL: AI-Enhanced Teller Operations (Story-like integration)
+      ******************************************************************
+       5100-AI-ANOMALY-DETECTION.
+           DISPLAY AI-MSG-ANOMALY-SCAN AT 2201.
+           *> Simulate AI processing time or complex analysis
+           PERFORM 9300-SIMULATE-AI-PROCESSING.
+           DISPLAY AI-MSG-ANOMALY-RESULT AT 2202.
+           DISPLAY 'AI identified a sequence of three small, rapid withdrawals from the same account.'.
+           DISPLAY 'This pattern deviates from typical customer behavior for this account.'.
+           DISPLAY 'Recommendation: Flag for manual review by fraud prevention specialist.'.
+           PERFORM 9200-PRESS-ENTER-TO-CONTINUE.
+
+       5200-PREDICTIVE-CASH-MANAGEMENT.
+           DISPLAY AI-MSG-PREDICT-INIT AT 2201.
+           PERFORM 9300-SIMULATE-AI-PROCESSING.
+           DISPLAY AI-MSG-PREDICT-RESULT AT 2202.
+           DISPLAY 'Based on predicted customer traffic and historical withdrawal patterns:'.
+           DISPLAY 'Recommended next cash replenishment: $5,000 in $20s, $2,000 in $50s.'.
+           DISPLAY 'This is projected to last until end of shift with 98% confidence.'.
+           PERFORM 9200-PRESS-ENTER-TO-CONTINUE.
+
+       5300-TELLER-PERFORMANCE-INSIGHTS.
+           DISPLAY AI-MSG-PERF-INIT AT 2201.
+           PERFORM 9300-SIMULATE-AI-PROCESSING.
+           DISPLAY AI-MSG-PERF-RESULT AT 2202.
+           DISPLAY 'AI analyzed transaction processing times and customer wait times.'.
+           DISPLAY 'Insight: Average transaction time for deposits increased by 15% this hour.'.
+           DISPLAY 'Suggestion: Check for potential system latency or specific transaction complexities.'.
+           PERFORM 9200-PRESS-ENTER-TO-CONTINUE.
+
+      ******************************************************************
+      * 9000-LEVEL: Utility and Termination Routines
+      ******************************************************************
+       9000-TERMINATE-PROGRAM.
+           DISPLAY ' ' AT 0101 ERASE.
+           DISPLAY "Exiting Teller Management System. Goodbye!" AT 1030.
+           MOVE WS-MENU-CHOICE TO LS-CHOICE. *> Pass the exit choice back.
+
+       9100-INVALID-CHOICE-MESSAGE.
+           DISPLAY 'Invalid choice. Please enter a valid option.' AT 2201.
+           PERFORM 9200-PRESS-ENTER-TO-CONTINUE.
+
+       9200-PRESS-ENTER-TO-CONTINUE.
+           DISPLAY 'Press ENTER to continue...' AT 2401.
+           ACCEPT WS-MENU-CHOICE AT 2426 WITH CONVERSION. *> Just to pause, input is ignored
+           DISPLAY ' ' AT 2201 ERASE EOS. *> Clear message lines
+           DISPLAY ' ' AT 2401 ERASE EOS.
+
+       9300-SIMULATE-AI-PROCESSING.
+           *> A simple loop to simulate some "processing" time.
+           *> In a real mainframe, this might be a CALL to a service.
+           PERFORM VARYING I FROM 1 BY 1 UNTIL I > 50000
+               MOVE ' ' TO WS-PROGRAM-FLAGS(1:1) *> Dummy operation
+           END-PERFORM.
+           .
+       END PROGRAM TMMENU.
