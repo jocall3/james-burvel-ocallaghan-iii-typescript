@@ -1,0 +1,2113 @@
+// Copyright James Burvel Oâ€™Callaghan III
+// President Citibank Demo Business Inc.
+
+import React, { useState, useEffect, createContext, useContext, useMemo, useCallback, useRef } from 'react';
+import { Buffer } from 'buffer'; // Used for cursor encoding/decoding in the mock GraphQL client
+
+// --- Global Constants and Configuration ---
+export const APP_CONFIG = {
+  API_BASE_URL: '/graphql', // Assuming GraphQL endpoint
+  ACCOUNTS_PER_PAGE: 25,
+  MAX_ACCOUNT_SEARCH_LENGTH: 50,
+  SUPPORTED_CURRENCIES: ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'CHF', 'CNY', 'MXN'],
+  DEFAULT_LANGUAGE: 'en',
+  AVAILABLE_LANGUAGES: ['en', 'es', 'fr', 'de', 'zh'],
+  FEATURES: {
+    TRANSFERS_ENABLED: true,
+    STATEMENTS_ENABLED: true,
+    ALERTS_ENABLED: true,
+    AUDIT_LOG_ENABLED: true,
+    USER_MANAGEMENT_ENABLED: true,
+    REPORTING_ENABLED: true,
+    MULTIPLE_AUTH_FACTORS: true,
+    BIOMETRIC_AUTH: true,
+    VIRTUAL_CARDS: true,
+  },
+  THEME_MODES: ['light', 'dark', 'contrast'],
+  ACCOUNT_OPERATIONAL_STATUSES: ['ACTIVE', 'INACTIVE', 'BLOCKED', 'PENDING_ACTIVATION', 'FROZEN', 'CLOSED', 'SUSPENDED'],
+  INTERNAL_ACCOUNT_TYPES: ['CHECKING', 'SAVINGS', 'LOAN', 'CREDIT_CARD', 'INVESTMENT', 'MORTGAGE', 'OVERDRAFT', 'TRUST'],
+  MIN_PASSWORD_LENGTH: 12,
+  OTP_EXPIRATION_SECONDS: 300,
+  MAX_LOGIN_ATTEMPTS: 5,
+};
+
+// --- Utility Functions ---
+export const formatCurrency = (amount: number, currency: string = 'USD', locale: string = APP_CONFIG.DEFAULT_LANGUAGE) => {
+  try {
+    return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(amount);
+  } catch (e) {
+    console.error("Error formatting currency:", e);
+    return `${currency} ${amount.toFixed(2)}`;
+  }
+};
+
+export const formatDate = (dateString: string | Date, locale: string = APP_CONFIG.DEFAULT_LANGUAGE, options?: Intl.DateTimeFormatOptions) => {
+  const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+  try {
+    return new Intl.DateTimeFormat(locale, options).format(date);
+  } catch (e) {
+    console.error("Error formatting date:", e);
+    return date.toLocaleString(locale);
+  }
+};
+
+export const debounce = <T extends (...args: any[]) => void>(func: T, delay: number) => {
+  let timeout: NodeJS.Timeout;
+  return (...args: Parameters<T>) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), delay);
+  };
+};
+
+export const generateUniqueId = (prefix: string = 'id_') => `${prefix}${Date.now().toString(36)}-${Math.random().toString(36).substr(2, 9)}`;
+
+export const validateEmail = (email: string): boolean => {
+  return /\S+@\S+\.\S+/.test(email);
+};
+
+export const validatePassword = (password: string): boolean => {
+  return password.length >= APP_CONFIG.MIN_PASSWORD_LENGTH &&
+         /[A-Z]/.test(password) && // At least one uppercase letter
+         /[a-z]/.test(password) && // At least one lowercase letter
+         /[0-9]/.test(password) && // At least one digit
+         /[^A-Za-z0-9]/.test(password); // At least one special character
+};
+
+// --- i18n/Localization (Simplified) ---
+interface Translations {
+  [key: string]: { [lang: string]: string | undefined };
+}
+
+const EN_TRANSLATIONS: { [key: string]: string } = {
+  'app.title': 'Citibank Internal Account Management',
+  'dashboard.welcome': 'Welcome to your financial dashboard, {userName}.',
+  'dashboard.accountsOverview': 'Accounts Overview',
+  'dashboard.totalActiveAccounts': 'Total Active Accounts',
+  'dashboard.totalBalanceUSD': 'Total Balance (USD)',
+  'dashboard.viewAllAccounts': 'View All Accounts',
+  'dashboard.notifications': 'Notifications',
+  'dashboard.unreadAlerts': '{count} unread alerts!',
+  'dashboard.noNewNotifications': 'No new notifications.',
+  'dashboard.goToAlertsCenter': 'Go to Alerts Center',
+  'dashboard.recentTransactions': 'Recent Transactions',
+  'dashboard.noRecentTransactions': 'No recent transactions.',
+  'dashboard.viewAllTransactions': 'View All Transactions',
+  'accounts.title': 'Account Groups & Accounts',
+  'accounts.searchPlaceholder': 'Search by account name, ID, or bank',
+  'accounts.filterByCurrency': 'Filter by Currency',
+  'accounts.filterByStatus': 'Filter by Status',
+  'accounts.filterByActiveOnly': 'Show Active Only',
+  'accounts.noAccountsFound': 'No accounts found matching your criteria.',
+  'accounts.clearFilters': 'Clear Filters',
+  'accounts.accountDetails': 'Account Details',
+  'accounts.balance': 'Balance',
+  'account.id': 'Account ID',
+  'account.name': 'Account Name',
+  'account.bankName': 'Bank Name',
+  'account.currency': 'Currency',
+  'account.status': 'Operational Status',
+  'account.type': 'Account Type',
+  'account.parentAccount': 'Parent Account',
+  'account.lastUpdated': 'Last Updated',
+  'account.childrenCount': 'Sub-Accounts',
+  'account.viewTransactions': 'View Transactions',
+  'account.initiateTransfer': 'Initiate Transfer',
+  'account.viewStatements': 'View Statements',
+  'account.details': 'Details',
+  'account.currentBalance': 'Current Balance',
+  'account.availableBalance': 'Available Balance',
+  'account.openedDate': 'Opened Date',
+  'account.accountManager': 'Account Manager',
+  'account.securityLevel': 'Security Level',
+  'account.kycStatus': 'KYC Status',
+  'account.riskScore': 'Risk Score',
+  'account.fraudStatus': 'Fraud Status',
+  'account.dailyTransactionLimit': 'Daily Tx Limit',
+  'account.dailyTransferLimit': 'Daily Transfer Limit',
+  'account.deactivate': 'Deactivate',
+  'account.activate': 'Activate',
+  'pagination.prev': 'Previous',
+  'pagination.next': 'Next',
+  'pagination.pageInfo': 'Page {currentPage} of {totalPages}',
+  'errors.fetchAccounts': 'Failed to fetch accounts. Please try again.',
+  'errors.general': 'An unexpected error occurred.',
+  'errors.selectAccount': 'Please select an account.',
+  'errors.permissionDenied': 'You do not have permission to perform this action.',
+  'loading.accounts': 'Loading accounts...',
+  'loading.details': 'Loading details...',
+  'loading.transactions': 'Loading transactions...',
+  'loading.statements': 'Loading statements...',
+  'loading.alerts': 'Loading alerts...',
+  'loading.auditLog': 'Loading audit log...',
+  'loading.users': 'Loading users...',
+  'common.edit': 'Edit',
+  'common.save': 'Save Changes',
+  'common.cancel': 'Cancel',
+  'common.submitting': 'Submitting...',
+  'common.generating': 'Generating...',
+  'common.viewDetails': 'View Details',
+  'common.requiredField': 'This field is required.',
+  'common.invalidEmail': 'Invalid email format.',
+  'common.delete': 'Delete',
+  'actions': 'Actions',
+  'transfer.title': 'Initiate Funds Transfer',
+  'transfer.fromAccount': 'From Account',
+  'transfer.toAccount': 'To Account (Internal or External)',
+  'transfer.toAccountName': 'Beneficiary Name',
+  'transfer.toAccountType': 'Recipient Type',
+  'transfer.amount': 'Amount',
+  'transfer.currency': 'Currency',
+  'transfer.description': 'Description',
+  'transfer.submit': 'Submit Transfer',
+  'transfer.success': 'Transfer initiated successfully!',
+  'transfer.error': 'Failed to initiate transfer.',
+  'transactions.title': 'Transaction History',
+  'transactions.date': 'Date',
+  'transactions.type': 'Type',
+  'transactions.description': 'Description',
+  'transactions.merchant': 'Merchant',
+  'transactions.category': 'Category',
+  'transactions.reference': 'Reference',
+  'transactions.amount': 'Amount',
+  'transactions.balance': 'Balance',
+  'transactions.status': 'Status',
+  'transactions.noTransactions': 'No transactions found for this account.',
+  'errors.fetchTransactions': 'Failed to fetch transactions.',
+  'statements.title': 'Account Statements',
+  'statements.period': 'Statement Period',
+  'statements.download': 'Download Statement',
+  'statements.noStatements': 'No statements available for this period.',
+  'statements.balanceStart': 'Start Balance',
+  'statements.balanceEnd': 'End Balance',
+  'statements.totalCredits': 'Credits',
+  'statements.totalDebits': 'Debits',
+  'statements.transactionsCount': 'Transactions',
+  'errors.fetchStatements': 'Failed to fetch statements.',
+  'alerts.title': 'Alerts & Notifications',
+  'alerts.type': 'Type',
+  'alerts.message': 'Message',
+  'alerts.timestamp': 'Timestamp',
+  'alerts.markRead': 'Mark All as Read',
+  'alerts.markReadSingle': 'Mark Read',
+  'alerts.noAlerts': 'No alerts or notifications to display.',
+  'audit.title': 'Audit Log',
+  'audit.timestamp': 'Timestamp',
+  'audit.user': 'User',
+  'audit.action': 'Action',
+  'audit.entityType': 'Entity Type',
+  'audit.entityId': 'Entity ID',
+  'audit.details': 'Details',
+  'audit.ipAddress': 'IP Address',
+  'audit.noEntries': 'No audit log entries found.',
+  'errors.fetchAuditLog': 'Failed to fetch audit log.',
+  'admin.userMgmt.title': 'User Management',
+  'admin.userMgmt.addUser': 'Add New User',
+  'admin.userMgmt.editUser': 'Edit User',
+  'admin.userMgmt.deleteUser': 'Delete User',
+  'admin.userMgmt.name': 'Name',
+  'admin.userMgmt.email': 'Email',
+  'admin.userMgmt.role': 'Role',
+  'admin.userMgmt.status': 'Status',
+  'admin.userMgmt.lastLogin': 'Last Login',
+  'admin.userMgmt.confirmDelete': 'Are you sure you want to delete this user?',
+  'admin.userMgmt.deleteSuccess': 'User {userId} deleted successfully.',
+  'admin.userMgmt.deleteError': 'Failed to delete user.',
+  'admin.userMgmt.addSuccess': 'New user {userName} added successfully.',
+  'admin.userMgmt.updateSuccess': 'User {userName} updated successfully.',
+  'admin.userMgmt.noUsers': 'No users found.',
+  'errors.fetchUsers': 'Failed to fetch users.',
+  'errors.saveUser': 'Failed to save user.',
+  'reporting.title': 'Financial Reports',
+  'reporting.selectReport': 'Select Report Type',
+  'reporting.generate': 'Generate Report',
+  'reporting.exportPdf': 'Export PDF',
+  'reporting.exportCsv': 'Export CSV',
+  'reporting.errorGenerate': 'Failed to generate report.',
+  'reporting.lastGeneratedReport': 'Last Generated Report',
+  'nav.dashboard': 'Dashboard',
+  'nav.accounts': 'Accounts',
+  'nav.transfers': 'Transfers',
+  'nav.transactions': 'Transactions',
+  'nav.statements': 'Statements',
+  'nav.alerts': 'Alerts',
+  'nav.auditLog': 'Audit Log',
+  'nav.userManagement': 'User Management',
+  'nav.reports': 'Reports',
+  'nav.settings': 'Settings',
+  'settings.theme': 'Theme',
+  'settings.language': 'Language',
+  'settings.light': 'Light',
+  'settings.dark': 'Dark',
+  'settings.contrast': 'High Contrast',
+};
+
+const ES_TRANSLATIONS: { [key: string]: string } = {
+  'app.title': 'Gestión de Cuentas Internas de Citibank',
+  'dashboard.welcome': 'Bienvenido a tu panel financiero, {userName}.',
+  'dashboard.accountsOverview': 'Resumen de Cuentas',
+  'dashboard.totalActiveAccounts': 'Total de Cuentas Activas',
+  'dashboard.totalBalanceUSD': 'Balance Total (USD)',
+  'dashboard.viewAllAccounts': 'Ver Todas las Cuentas',
+  'dashboard.notifications': 'Notificaciones',
+  'dashboard.unreadAlerts': '¡{count} alertas no leídas!',
+  'dashboard.noNewNotifications': 'No hay notificaciones nuevas.',
+  'dashboard.goToAlertsCenter': 'Ir al Centro de Alertas',
+  'dashboard.recentTransactions': 'Transacciones Recientes',
+  'dashboard.noRecentTransactions': 'No hay transacciones recientes.',
+  'dashboard.viewAllTransactions': 'Ver Todas las Transacciones',
+  'accounts.title': 'Grupos de Cuentas y Cuentas',
+  'accounts.searchPlaceholder': 'Buscar por nombre de cuenta, ID o banco',
+  'accounts.filterByCurrency': 'Filtrar por Moneda',
+  'accounts.filterByStatus': 'Filtrar por Estado',
+  'accounts.filterByActiveOnly': 'Mostrar Solo Activas',
+  'accounts.noAccountsFound': 'No se encontraron cuentas que coincidan con tus criterios.',
+  'accounts.clearFilters': 'Borrar Filtros',
+  'accounts.accountDetails': 'Detalles de la Cuenta',
+  'accounts.balance': 'Balance',
+  'account.id': 'ID de Cuenta',
+  'account.name': 'Nombre de Cuenta',
+  'account.bankName': 'Nombre del Banco',
+  'account.currency': 'Moneda',
+  'account.status': 'Estado Operacional',
+  'account.type': 'Tipo de Cuenta',
+  'account.parentAccount': 'Cuenta Padre',
+  'account.lastUpdated': 'Última Actualización',
+  'account.childrenCount': 'Subcuentas',
+  'account.viewTransactions': 'Ver Transacciones',
+  'account.initiateTransfer': 'Iniciar Transferencia',
+  'account.viewStatements': 'Ver Extractos',
+  'account.details': 'Detalles',
+  'account.currentBalance': 'Balance Actual',
+  'account.availableBalance': 'Balance Disponible',
+  'account.openedDate': 'Fecha de Apertura',
+  'account.accountManager': 'Gestor de Cuenta',
+  'account.securityLevel': 'Nivel de Seguridad',
+  'account.kycStatus': 'Estado KYC',
+  'account.riskScore': 'Puntuación de Riesgo',
+  'account.fraudStatus': 'Estado de Fraude',
+  'account.dailyTransactionLimit': 'Límite Diario Tx',
+  'account.dailyTransferLimit': 'Límite Diario Transferencia',
+  'account.deactivate': 'Desactivar',
+  'account.activate': 'Activar',
+  'pagination.prev': 'Anterior',
+  'pagination.next': 'Siguiente',
+  'pagination.pageInfo': 'Página {currentPage} de {totalPages}',
+  'errors.fetchAccounts': 'Fallo al cargar cuentas. Intenta de nuevo.',
+  'errors.general': 'Ocurrió un error inesperado.',
+  'errors.selectAccount': 'Por favor, selecciona una cuenta.',
+  'errors.permissionDenied': 'No tienes permiso para realizar esta acción.',
+  'loading.accounts': 'Cargando cuentas...',
+  'loading.details': 'Cargando detalles...',
+  'loading.transactions': 'Cargando transacciones...',
+  'loading.statements': 'Cargando extractos...',
+  'loading.alerts': 'Cargando alertas...',
+  'loading.auditLog': 'Cargando registro de auditoría...',
+  'loading.users': 'Cargando usuarios...',
+  'common.edit': 'Editar',
+  'common.save': 'Guardar Cambios',
+  'common.cancel': 'Cancelar',
+  'common.submitting': 'Enviando...',
+  'common.generating': 'Generando...',
+  'common.viewDetails': 'Ver Detalles',
+  'common.requiredField': 'Este campo es obligatorio.',
+  'common.invalidEmail': 'Formato de correo electrónico no válido.',
+  'common.delete': 'Eliminar',
+  'actions': 'Acciones',
+  'transfer.title': 'Iniciar Transferencia de Fondos',
+  'transfer.fromAccount': 'Desde la Cuenta',
+  'transfer.toAccount': 'A la Cuenta (Interna o Externa)',
+  'transfer.toAccountName': 'Nombre del Beneficiario',
+  'transfer.toAccountType': 'Tipo de Receptor',
+  'transfer.amount': 'Cantidad',
+  'transfer.currency': 'Moneda',
+  'transfer.description': 'Descripción',
+  'transfer.submit': 'Enviar Transferencia',
+  'transfer.success': '¡Transferencia iniciada con éxito!',
+  'transfer.error': 'Fallo al iniciar la transferencia.',
+  'transactions.title': 'Historial de Transacciones',
+  'transactions.date': 'Fecha',
+  'transactions.type': 'Tipo',
+  'transactions.description': 'Descripción',
+  'transactions.merchant': 'Comercio',
+  'transactions.category': 'Categoría',
+  'transactions.reference': 'Referencia',
+  'transactions.amount': 'Cantidad',
+  'transactions.balance': 'Balance',
+  'transactions.status': 'Estado',
+  'transactions.noTransactions': 'No se encontraron transacciones para esta cuenta.',
+  'errors.fetchTransactions': 'Fallo al cargar transacciones.',
+  'statements.title': 'Extractos de Cuenta',
+  'statements.period': 'Período del Extracto',
+  'statements.download': 'Descargar Extracto',
+  'statements.noStatements': 'No hay extractos disponibles para este período.',
+  'statements.balanceStart': 'Balance Inicial',
+  'statements.balanceEnd': 'Balance Final',
+  'statements.totalCredits': 'Créditos Totales',
+  'statements.totalDebits': 'Débitos Totales',
+  'statements.transactionsCount': 'Número de Transacciones',
+  'errors.fetchStatements': 'Fallo al cargar extractos.',
+  'alerts.title': 'Alertas y Notificaciones',
+  'alerts.type': 'Tipo',
+  'alerts.message': 'Mensaje',
+  'alerts.timestamp': 'Marca de Tiempo',
+  'alerts.markRead': 'Marcar Todos como Leídos',
+  'alerts.markReadSingle': 'Marcar como Leído',
+  'alerts.noAlerts': 'No hay alertas ni notificaciones para mostrar.',
+  'audit.title': 'Registro de Auditoría',
+  'audit.timestamp': 'Marca de Tiempo',
+  'audit.user': 'Usuario',
+  'audit.action': 'Acción',
+  'audit.entityType': 'Tipo de Entidad',
+  'audit.entityId': 'ID de Entidad',
+  'audit.details': 'Detalles',
+  'audit.ipAddress': 'Dirección IP',
+  'audit.noEntries': 'No se encontraron entradas en el registro de auditoría.',
+  'errors.fetchAuditLog': 'Fallo al cargar el registro de auditoría.',
+  'admin.userMgmt.title': 'Gestión de Usuarios',
+  'admin.userMgmt.addUser': 'Añadir Nuevo Usuario',
+  'admin.userMgmt.editUser': 'Editar Usuario',
+  'admin.userMgmt.deleteUser': 'Eliminar Usuario',
+  'admin.userMgmt.name': 'Nombre',
+  'admin.userMgmt.email': 'Correo Electrónico',
+  'admin.userMgmt.role': 'Rol',
+  'admin.userMgmt.status': 'Estado',
+  'admin.userMgmt.lastLogin': 'Último Inicio de Sesión',
+  'admin.userMgmt.confirmDelete': '¿Estás seguro de que quieres eliminar a este usuario?',
+  'admin.userMgmt.deleteSuccess': 'Usuario {userId} eliminado con éxito.',
+  'admin.userMgmt.deleteError': 'Fallo al eliminar el usuario.',
+  'admin.userMgmt.addSuccess': 'Nuevo usuario {userName} añadido con éxito.',
+  'admin.userMgmt.updateSuccess': 'Usuario {userName} actualizado con éxito.',
+  'admin.userMgmt.noUsers': 'No se encontraron usuarios.',
+  'errors.fetchUsers': 'Fallo al cargar usuarios.',
+  'errors.saveUser': 'Fallo al guardar usuario.',
+  'reporting.title': 'Informes Financieros',
+  'reporting.selectReport': 'Seleccionar Tipo de Informe',
+  'reporting.generate': 'Generar Informe',
+  'reporting.exportPdf': 'Exportar PDF',
+  'reporting.exportCsv': 'Exportar CSV',
+  'reporting.errorGenerate': 'Fallo al generar el informe.',
+  'reporting.lastGeneratedReport': 'Último Informe Generado',
+  'nav.dashboard': 'Panel de Control',
+  'nav.accounts': 'Cuentas',
+  'nav.transfers': 'Transferencias',
+  'nav.transactions': 'Transacciones',
+  'nav.statements': 'Extractos',
+  'nav.alerts': 'Alertas',
+  'nav.auditLog': 'Registro de Auditoría',
+  'nav.userManagement': 'Gestión de Usuarios',
+  'nav.reports': 'Informes',
+  'nav.settings': 'Configuración',
+  'settings.theme': 'Tema',
+  'settings.language': 'Idioma',
+  'settings.light': 'Claro',
+  'settings.dark': 'Oscuro',
+  'settings.contrast': 'Alto Contraste',
+};
+
+const ALL_TRANSLATIONS: Translations = {
+  ...Object.fromEntries(Object.entries(EN_TRANSLATIONS).map(([key, value]) => [key, { en: value }])),
+  ...Object.fromEntries(Object.entries(ES_TRANSLATIONS).map(([key, value]) => [key, { ...ALL_TRANSLATIONS[key], es: value }])),
+  // This is where FR, DE, ZH_TRANSLATIONS would be expanded, etc.
+  // For brevity in this exercise, I'll primarily use English and Spanish for demonstration.
+};
+
+
+export const useTranslation = () => {
+  const { language } = useAppContext(); // Get language from context
+
+  const t = useCallback((key: string, variables?: { [key: string]: string | number }) => {
+    let translation = ALL_TRANSLATIONS[key]?.[language] || ALL_TRANSLATIONS[key]?.['en'] || key;
+    if (variables) {
+      for (const [varKey, varValue] of Object.entries(variables)) {
+        translation = translation.replace(`{${varKey}}`, String(varValue));
+      }
+    }
+    return translation;
+  }, [language]);
+
+  return { t };
+};
+
+// --- Theme Management ---
+type ThemeMode = 'light' | 'dark' | 'contrast';
+
+export const getThemeStyles = (theme: ThemeMode) => {
+  switch (theme) {
+    case 'dark':
+      return {
+        '--bg-color': '#1a202c',
+        '--text-color': '#e2e8f0',
+        '--primary-color': '#63b3ed',
+        '--secondary-color': '#a0aec0',
+        '--border-color': '#2d3748',
+        '--input-bg': '#2d3748',
+        '--input-text': '#e2e8f0',
+        '--card-bg': '#2d3748',
+        '--header-bg': '#2d3748',
+        '--nav-bg': '#1a202c',
+        '--nav-item-hover': '#4a5568',
+        '--table-header-bg': '#4a5568',
+        '--table-row-hover': '#2d3748',
+        '--button-bg': '#4299e1',
+        '--button-text': '#ffffff',
+        '--danger-color': '#e53e3e',
+        '--success-color': '#48bb78',
+        '--warning-color': '#f6ad55',
+        '--info-color': '#3182ce',
+      };
+    case 'contrast':
+      return {
+        '--bg-color': '#000000',
+        '--text-color': '#ffffff',
+        '--primary-color': '#ffff00',
+        '--secondary-color': '#cccccc',
+        '--border-color': '#ffffff',
+        '--input-bg': '#333333',
+        '--input-text': '#ffffff',
+        '--card-bg': '#111111',
+        '--header-bg': '#222222',
+        '--nav-bg': '#000000',
+        '--nav-item-hover': '#333333',
+        '--table-header-bg': '#444444',
+        '--table-row-hover': '#222222',
+        '--button-bg': '#ffff00',
+        '--button-text': '#000000',
+        '--danger-color': '#ff0000',
+        '--success-color': '#00ff00',
+        '--warning-color': '#ffa500',
+        '--info-color': '#00ffff',
+      };
+    case 'light':
+    default:
+      return {
+        '--bg-color': '#f7fafc',
+        '--text-color': '#2d3748',
+        '--primary-color': '#3182ce',
+        '--secondary-color': '#718096',
+        '--border-color': '#e2e8f0',
+        '--input-bg': '#ffffff',
+        '--input-text': '#2d3748',
+        '--card-bg': '#ffffff',
+        '--header-bg': '#ffffff',
+        '--nav-bg': '#edf2f7',
+        '--nav-item-hover': '#e2e8f0',
+        '--table-header-bg': '#edf2f7',
+        '--table-row-hover': '#f7fafc',
+        '--button-bg': '#4299e1',
+        '--button-text': '#ffffff',
+        '--danger-color': '#e53e3e',
+        '--success-color': '#48bb78',
+        '--warning-color': '#f6ad55',
+        '--info-color': '#3182ce',
+      };
+  }
+};
+
+// --- Data Models (based on GraphQL schema) ---
+export interface PageInfo {
+  startCursor: string;
+  endCursor: string;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+  __typename: 'PageInfo';
+}
+
+export interface InternalAccount {
+  typename: 'InternalAccount';
+  vendorId: string;
+  id: string;
+  bestName: string;
+  childrenCount: number;
+  prettyChildrenCount: string; // "3 sub-accounts"
+  bankName: string;
+  currency: string;
+  operationalStatus: (typeof APP_CONFIG.ACCOUNT_OPERATIONAL_STATUSES)[number];
+  parentAccountName?: string;
+  updatedAt: string; // ISO string date
+  path: string; // e.g., "Holding Company > Subsidiary Bank > Branch 1 > Account Group A"
+  // Expanded fields for a real app
+  accountType: (typeof APP_CONFIG.INTERNAL_ACCOUNT_TYPES)[number];
+  balance: number;
+  availableBalance: number;
+  iban?: string;
+  swiftCode?: string;
+  branchAddress?: string;
+  accountManagerId?: string;
+  accountManagerName?: string;
+  openedDate: string;
+  metadata?: Record<string, any>;
+  linkedAccountIds?: string[]; // e.g., for related accounts or credit lines
+  securityLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  kycStatus: 'COMPLETED' | 'PENDING' | 'REQUIRED' | 'FAILED';
+  lastActivityDate: string;
+  dailyTransactionLimit?: number;
+  monthlyTransactionLimit?: number;
+  dailyTransferLimit?: number;
+  riskScore: number; // 0-100
+  fraudStatus: 'CLEAN' | 'REVIEW' | 'FLAGGED' | 'RESOLVED';
+  interestRate?: number;
+  fees?: { type: string, amount: number }[];
+  creditLimit?: number; // For Credit Card accounts
+  nextReviewDate?: string;
+}
+
+export interface InternalAccountEdge {
+  node: InternalAccount;
+  __typename: 'InternalAccountEdge';
+}
+
+export interface InternalAccountConnection {
+  edges: InternalAccountEdge[];
+  pageInfo: PageInfo;
+  __typename: 'InternalAccountConnection';
+}
+
+export interface GraphQLResponse<T> {
+  data: T;
+  errors?: any[];
+}
+
+export interface AccountGroupAccountsQuery {
+  internalAccounts: InternalAccountConnection;
+}
+
+// Additional Data Models
+export interface Transaction {
+  id: string;
+  accountId: string;
+  date: string;
+  type: 'DEBIT' | 'CREDIT' | 'TRANSFER' | 'FEE' | 'INTEREST' | 'PAYMENT';
+  description: string;
+  amount: number;
+  currency: string;
+  currentBalance: number;
+  referenceNumber: string;
+  merchantName?: string;
+  category?: string;
+  status: 'COMPLETED' | 'PENDING' | 'REVERSED' | 'FAILED' | 'DECLINED';
+  source?: string; // e.g., "Online Banking", "ATM", "POS"
+  destination?: string;
+  tags?: string[];
+  attachments?: { url: string, name: string }[];
+}
+
+export interface Statement {
+  id: string;
+  accountId: string;
+  periodStart: string;
+  periodEnd: string;
+  downloadUrl: string;
+  balanceStart: number;
+  balanceEnd: number;
+  totalCredits: number;
+  totalDebits: number;
+  transactionsCount: number;
+  format: 'PDF' | 'CSV' | 'XML';
+  generatedDate: string;
+}
+
+export interface TransferRequest {
+  id: string;
+  fromAccountId: string;
+  toAccountIdentifier: string; // Can be an account ID, IBAN, SWIFT + Account Number
+  toAccountType: 'INTERNAL' | 'EXTERNAL_BANK_ACCOUNT' | 'EXTERNAL_DIGITAL_WALLET';
+  toAccountName: string; // Beneficiary name
+  amount: number;
+  currency: string;
+  description: string;
+  status: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'EXECUTED' | 'FAILED' | 'CANCELLED';
+  requestedBy: string;
+  requestedAt: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  rejectionReason?: string;
+  processingFee?: number;
+  exchangeRate?: number; // if cross-currency
+  priority: 'STANDARD' | 'EXPEDITED' | 'URGENT';
+  referenceCode: string;
+  paymentMethod: 'ACH' | 'WIRE' | 'SEPA' | 'INSTANT_PAYMENT';
+  scheduledDate?: string; // For future-dated transfers
+}
+
+export interface Alert {
+  id: string;
+  accountId?: string;
+  type: 'CRITICAL' | 'WARNING' | 'INFO' | 'SUCCESS' | 'SECURITY';
+  message: string;
+  timestamp: string;
+  isRead: boolean;
+  actionUrl?: string;
+  priority: 'HIGH' | 'MEDIUM' | 'LOW';
+  sourceSystem: string;
+}
+
+export interface AuditEntry {
+  id: string;
+  timestamp: string;
+  userId: string;
+  userName: string;
+  action: string; // e.g., 'UPDATE_ACCOUNT_STATUS', 'INITIATE_TRANSFER'
+  entityType: 'Account' | 'User' | 'Transfer' | 'Report' | 'System';
+  entityId: string;
+  details: Record<string, any>; // JSON diff or specific parameters
+  ipAddress: string;
+  clientInfo: string; // User agent, browser
+  success: boolean;
+  errorMessage?: string;
+}
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  role: 'ADMIN' | 'MANAGER' | 'VIEWER' | 'AUDITOR' | 'SUPPORT';
+  isActive: boolean;
+  lastLogin: string;
+  permissions: string[]; // e.g., 'canViewTransactions', 'canInitiateTransfers', 'canManageUsers'
+  department?: string;
+  employeeId?: string;
+  twoFactorEnabled: boolean;
+}
+
+export interface ReportConfig {
+  id: string;
+  name: string;
+  type: 'TRANSACTION_SUMMARY' | 'BALANCE_OVERVIEW' | 'ACTIVITY_HEATMAP' | 'FEE_ANALYSIS' | 'RISK_ASSESSMENT' | 'USER_ACTIVITY';
+  parameters: Record<string, any>;
+  lastGenerated?: string;
+  status?: 'PENDING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+  downloadUrl?: string;
+  generatedByUserId?: string;
+  creationDate: string;
+}
+
+export interface VirtualCard {
+  id: string;
+  accountId: string;
+  cardNumber: string; // Masked
+  expirationDate: string; // MM/YY
+  cvv: string; // Masked
+  limit: number;
+  spent: number;
+  status: 'ACTIVE' | 'INACTIVE' | 'BLOCKED' | 'EXPIRED';
+  purpose: string;
+  createdAt: string;
+  lastUsedAt?: string;
+}
+
+// --- API Service Layer (Mocked GraphQL and REST APIs) ---
+export const MOCK_ACCOUNTS: InternalAccount[] = Array.from({ length: 200 }).map((_, i) => ({
+  typename: 'InternalAccount',
+  vendorId: `VEND${String(i % 5).padStart(3, '0')}`,
+  id: `ACC${String(i + 1).padStart(5, '0')}`,
+  bestName: `Corporate Account ${i + 1}`,
+  childrenCount: Math.floor(Math.random() * 5),
+  prettyChildrenCount: `${Math.floor(Math.random() * 5)} sub-accounts`,
+  bankName: `Bank ${['Citibank', 'Chase', 'Wells Fargo', 'Bank of America', 'HSBC'][i % 5]}`,
+  currency: APP_CONFIG.SUPPORTED_CURRENCIES[i % APP_CONFIG.SUPPORTED_CURRENCIES.length],
+  operationalStatus: APP_CONFIG.ACCOUNT_OPERATIONAL_STATUSES[i % APP_CONFIG.ACCOUNT_OPERATIONAL_STATUSES.length],
+  parentAccountName: i % 10 === 0 ? `Holding Group ${i / 10}` : undefined,
+  updatedAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+  path: `Root > Region A > Bank ${i % 5} > Group ${i % 10}`,
+  accountType: APP_CONFIG.INTERNAL_ACCOUNT_TYPES[i % APP_CONFIG.INTERNAL_ACCOUNT_TYPES.length],
+  balance: parseFloat((Math.random() * 10000000).toFixed(2)),
+  availableBalance: parseFloat((Math.random() * 9000000).toFixed(2)),
+  iban: `IBAN${String(i + 1).padStart(20, '0')}`,
+  swiftCode: `SWIFT${String(i % 10).padStart(3, '0')}`,
+  branchAddress: `123 Main St, Anytown, ${i % 5}, USA`,
+  accountManagerId: `AM${String(i % 20).padStart(3, '0')}`,
+  accountManagerName: `Manager ${i % 20}`,
+  openedDate: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000 * 5).toISOString(),
+  securityLevel: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'][i % 4] as any,
+  kycStatus: ['COMPLETED', 'PENDING', 'REQUIRED'][i % 3] as any,
+  lastActivityDate: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
+  dailyTransactionLimit: 1000000 + i * 1000,
+  monthlyTransactionLimit: 50000000 + i * 5000,
+  dailyTransferLimit: 500000 + i * 500,
+  riskScore: Math.floor(Math.random() * 100),
+  fraudStatus: ['CLEAN', 'REVIEW', 'FLAGGED'][i % 3] as any,
+  interestRate: i % 3 === 0 ? parseFloat((Math.random() * 0.05).toFixed(4)) : undefined,
+  fees: i % 4 === 0 ? [{ type: 'Maintenance Fee', amount: 10 }, { type: 'Transfer Fee', amount: 5 }] : [],
+  creditLimit: i % 2 === 0 && APP_CONFIG.INTERNAL_ACCOUNT_TYPES[i % APP_CONFIG.INTERNAL_ACCOUNT_TYPES.length] === 'CREDIT_CARD' ? Math.random() * 50000 : undefined,
+  nextReviewDate: i % 5 === 0 ? new Date(Date.now() + Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString() : undefined,
+}));
+
+export const MOCK_TRANSACTIONS: Transaction[] = [];
+MOCK_ACCOUNTS.forEach(account => {
+  for (let i = 0; i < 50; i++) {
+    const amount = parseFloat((Math.random() * 10000).toFixed(2));
+    const type = i % 4 === 0 ? 'DEBIT' : i % 4 === 1 ? 'CREDIT' : i % 4 === 2 ? 'TRANSFER' : 'PAYMENT';
+    MOCK_TRANSACTIONS.push({
+      id: generateUniqueId('TRN'),
+      accountId: account.id,
+      date: new Date(new Date(account.openedDate).getTime() + Math.random() * (Date.now() - new Date(account.openedDate).getTime())).toISOString(),
+      type: type,
+      description: `${type === 'DEBIT' ? 'Payment to' : type === 'CREDIT' ? 'Deposit from' : type === 'TRANSFER' ? 'Funds Transfer' : 'Bill Payment'} ${['Vendor A', 'Client B', 'Payroll', 'ATM Withdrawal', 'Online Purchase'][i % 5]}`,
+      amount: amount,
+      currency: account.currency,
+      currentBalance: account.balance + (type === 'CREDIT' ? amount : -amount), // Simplified
+      referenceNumber: `REF${String(i + 1).padStart(8, '0')}`,
+      merchantName: ['Starbucks', 'Amazon', 'Local Store', 'Utility Company', 'Bank Fee'][i % 5],
+      category: ['Food', 'Shopping', 'Salary', 'Bills', 'Transfer', 'Fees'][i % 6],
+      status: i % 10 === 0 ? 'PENDING' : i % 10 === 1 ? 'FAILED' : 'COMPLETED',
+      source: ['Online Banking', 'Mobile App', 'Branch', 'ATM'][i % 4],
+      destination: i % 2 === 0 ? 'External Bank' : 'Internal Account',
+      tags: i % 3 === 0 ? ['important', 'recurring'] : [],
+    });
+  }
+});
+MOCK_TRANSACTIONS.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+export const MOCK_ALERTS: Alert[] = [
+  { id: 'ALT001', type: 'SECURITY', message: 'Unauthorized login attempt detected on your main account. Review recent activity.', timestamp: new Date(Date.now() - 3600000).toISOString(), isRead: false, actionUrl: '#/security', priority: 'HIGH', sourceSystem: 'AuthService' },
+  { id: 'ALT002', type: 'WARNING', message: 'Account ACC00005 balance is below threshold of 5000 USD.', timestamp: new Date(Date.now() - 7200000).toISOString(), isRead: false, accountId: 'ACC00005', priority: 'MEDIUM', sourceSystem: 'BalanceMonitoring' },
+  { id: 'ALT003', type: 'INFO', message: 'New statement available for ACC00010 for January 2024.', timestamp: new Date(Date.now() - 10800000).toISOString(), isRead: true, accountId: 'ACC00010', priority: 'LOW', sourceSystem: 'StatementGenerator' },
+  { id: 'ALT004', type: 'SUCCESS', message: 'Funds transfer TRN123456 to John Doe completed successfully.', timestamp: new Date(Date.now() - 14400000).toISOString(), isRead: true, priority: 'LOW', sourceSystem: 'TransferService' },
+  { id: 'ALT005', type: 'CRITICAL', message: 'Suspicious large transaction detected on ACC00002. Account temporarily frozen.', timestamp: new Date(Date.now() - 1800000).toISOString(), isRead: false, accountId: 'ACC00002', priority: 'HIGH', sourceSystem: 'FraudDetection' },
+  { id: 'ALT006', type: 'INFO', message: 'New feature: Virtual Cards are now available for corporate accounts.', timestamp: new Date(Date.now() - 86400000).toISOString(), isRead: true, priority: 'LOW', sourceSystem: 'ProductUpdate' },
+];
+
+export const MOCK_USERS: UserProfile[] = [
+  { id: 'USR001', name: 'Alice Admin', email: 'alice@citibank.com', role: 'ADMIN', isActive: true, lastLogin: new Date(Date.now() - 86400000).toISOString(), permissions: ['canViewAccounts', 'canEditAccountDetails', 'canInitiateTransfers', 'canManageUsers', 'canViewAuditLog', 'canGenerateReports'], department: 'IT', employeeId: 'E001', twoFactorEnabled: true },
+  { id: 'USR002', name: 'Bob Manager', email: 'bob@citibank.com', role: 'MANAGER', isActive: true, lastLogin: new Date(Date.now() - 3600000).toISOString(), permissions: ['canViewAccounts', 'canInitiateTransfers', 'canViewAuditLog'], department: 'Operations', employeeId: 'E002', twoFactorEnabled: false },
+  { id: 'USR003', name: 'Charlie Viewer', email: 'charlie@citibank.com', role: 'VIEWER', isActive: true, lastLogin: new Date(Date.now() - 10800000).toISOString(), permissions: ['canViewAccounts'], department: 'Finance', employeeId: 'E003', twoFactorEnabled: false },
+  { id: 'USR004', name: 'David Auditor', email: 'david@citibank.com', role: 'AUDITOR', isActive: true, lastLogin: new Date(Date.now() - 1200000).toISOString(), permissions: ['canViewAccounts', 'canViewAuditLog', 'canGenerateReports'], department: 'Audit', employeeId: 'E004', twoFactorEnabled: true },
+  { id: 'USR005', name: 'Eve Support', email: 'eve@citibank.com', role: 'SUPPORT', isActive: true, lastLogin: new Date(Date.now() - 600000).toISOString(), permissions: ['canViewAccounts', 'canViewTransactions', 'canViewStatements'], department: 'Customer Support', employeeId: 'E005', twoFactorEnabled: false },
+];
+
+export const MOCK_AUDIT_LOG: AuditEntry[] = [
+  { id: 'AUD001', timestamp: new Date(Date.now() - 120000).toISOString(), userId: 'USR001', userName: 'Alice Admin', action: 'LOGIN_SUCCESS', entityType: 'User', entityId: 'USR001', details: { method: 'password' }, ipAddress: '192.168.1.1', clientInfo: 'Chrome on Windows', success: true },
+  { id: 'AUD002', timestamp: new Date(Date.now() - 240000).toISOString(), userId: 'USR002', userName: 'Bob Manager', action: 'VIEW_ACCOUNT_DETAILS', entityType: 'Account', entityId: 'ACC00001', details: { view: 'full' }, ipAddress: '192.168.1.2', clientInfo: 'Firefox on Mac', success: true },
+  { id: 'AUD003', timestamp: new Date(Date.now() - 300000).toISOString(), userId: 'USR001', userName: 'Alice Admin', action: 'INITIATE_TRANSFER', entityType: 'Transfer', entityId: 'TRF00001', details: { from: 'ACC00001', to: 'EXT_JOHNDOE', amount: 1000, currency: 'USD' }, ipAddress: '192.168.1.1', clientInfo: 'Chrome on Windows', success: true },
+  { id: 'AUD004', timestamp: new Date(Date.now() - 600000).toISOString(), userId: 'USR003', userName: 'Charlie Viewer', action: 'LOGIN_FAILED', entityType: 'User', entityId: 'USR003', details: { reason: 'Incorrect Password' }, ipAddress: '192.168.1.3', clientInfo: 'Safari on iOS', success: false, errorMessage: 'Authentication failure' },
+];
+MOCK_AUDIT_LOG.sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+export const MOCK_VIRTUAL_CARDS: VirtualCard[] = Array.from({ length: 10 }).map((_,i) => ({
+  id: generateUniqueId('VCARD'),
+  accountId: MOCK_ACCOUNTS[i % MOCK_ACCOUNTS.length].id,
+  cardNumber: `**** **** **** ${String(1000 + i).padStart(4, '0')}`,
+  expirationDate: `12/${(new Date().getFullYear() % 100) + 2 + i}`,
+  cvv: '***',
+  limit: parseFloat((Math.random() * 5000).toFixed(2)),
+  spent: parseFloat((Math.random() * 2000).toFixed(2)),
+  status: ['ACTIVE', 'INACTIVE', 'BLOCKED'][i % 3] as any,
+  purpose: ['Online Marketing', 'Software Subscription', 'Travel Expenses', 'Petty Cash'][i % 4],
+  createdAt: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString(),
+  lastUsedAt: i % 2 === 0 ? new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString() : undefined,
+}));
+
+// Mock GraphQL Client for the original query
+export const mockGraphQLClient = {
+  query: async <T>(query: string, variables: Record<string, any>): Promise<GraphQLResponse<T>> => {
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, Math.random() * 500 + 300));
+
+    if (query.includes('query AccountGroupAccounts')) {
+      const { first, after, accountGroupIds, accountSearchName, currency, activeOnly, operationalStatuses } = variables;
+
+      let filteredAccounts = MOCK_ACCOUNTS;
+
+      if (accountGroupIds && accountGroupIds.length > 0) {
+        filteredAccounts = filteredAccounts.filter(acc =>
+          accountGroupIds.some((groupId: string) => acc.path.includes(groupId))
+        );
+      }
+      if (accountSearchName) {
+        const searchLower = accountSearchName.toLowerCase();
+        filteredAccounts = filteredAccounts.filter(acc =>
+          acc.bestName.toLowerCase().includes(searchLower) ||
+          acc.id.toLowerCase().includes(searchLower) ||
+          acc.bankName.toLowerCase().includes(searchLower)
+        );
+      }
+      if (currency) {
+        filteredAccounts = filteredAccounts.filter(acc => acc.currency === currency);
+      }
+      if (activeOnly) {
+        filteredAccounts = filteredAccounts.filter(acc => acc.operationalStatus === 'ACTIVE');
+      }
+      if (operationalStatuses && operationalStatuses.length > 0) {
+        filteredAccounts = filteredAccounts.filter(acc => operationalStatuses.includes(acc.operationalStatus));
+      }
+
+      // Pagination logic
+      const pageSize = first || APP_CONFIG.ACCOUNTS_PER_PAGE;
+      let startIndex = 0;
+      if (after) {
+        const lastId = Buffer.from(after, 'base64').toString('ascii');
+        const lastIndex = filteredAccounts.findIndex(acc => acc.id === lastId);
+        if (lastIndex !== -1) {
+          startIndex = lastIndex + 1;
+        }
+      }
+
+      const pagedAccounts = filteredAccounts.slice(startIndex, startIndex + pageSize);
+
+      const hasNextPage = filteredAccounts.length > startIndex + pageSize;
+      const hasPreviousPage = startIndex > 0; // Simplified
+      const startCursor = pagedAccounts.length > 0 ? Buffer.from(pagedAccounts[0].id).toString('base64') : '';
+      const endCursor = pagedAccounts.length > 0 ? Buffer.from(pagedAccounts[pagedAccounts.length - 1].id).toString('base64') : '';
+
+      return {
+        data: {
+          internalAccounts: {
+            edges: pagedAccounts.map(node => ({ node, __typename: 'InternalAccountEdge' })),
+            pageInfo: {
+              startCursor,
+              endCursor,
+              hasNextPage,
+              hasPreviousPage,
+              __typename: 'PageInfo',
+            },
+            __typename: 'InternalAccountConnection',
+          },
+        } as T,
+      };
+    } else if (query.includes('query AccountDetailsQuery')) { // Mock for fetching single account details
+      const accountId = variables.id;
+      const account = MOCK_ACCOUNTS.find(acc => acc.id === accountId);
+      if (account) {
+        return { data: { internalAccount: account } } as T;
+      } else {
+        return { data: { internalAccount: null }, errors: [{ message: 'Account not found' }] } as T;
+      }
+    }
+    // Add more mock queries as needed for transactions, etc.
+    return { data: {} as T, errors: [{ message: 'Unknown query' }] };
+  },
+};
+
+// Generic GraphQL Hook (simulating Apollo Client's useQuery)
+export const useGraphQLQuery = <T, V>(query: string, variables?: V) => {
+  const [data, setData] = useState<T | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<Error | null>(null);
+  const refetchTrigger = useState(0)[1]; // For manual refetch
+
+  const refetch = useCallback(() => refetchTrigger(prev => prev + 1), [refetchTrigger]);
+
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    mockGraphQLClient.query<T>(query, variables as Record<string, any>)
+      .then(response => {
+        if (response.errors) {
+          setError(new Error(response.errors.map(err => err.message).join(', ')));
+        } else {
+          setData(response.data);
+        }
+      })
+      .catch(err => {
+        setError(err);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [query, variables, refetchTrigger]);
+
+  return { data, loading, error, refetch };
+};
+
+// Services encapsulating API calls and business logic
+export class AccountService {
+  private static readonly ACCOUNT_GROUP_ACCOUNTS_QUERY = `
+    query AccountGroupAccounts($first: Int, $after: String, $last: Int, $before: String, $accountGroupIds: [ID!], $accountSearchName: String, $currency: String, $activeOnly: Boolean, $operationalStatuses: [String!]) {
+      internalAccounts(
+        first: $first
+        after: $after
+        last: $last
+        before: $before
+        accountGroupIds: $accountGroupIds
+        accountSearchName: $accountSearchName
+        currency: $currency
+        activeOnly: $activeOnly
+        operationalStatuses: $operationalStatuses
+      ) {
+        ...InternalAccountList
+        __typename
+      }
+    }
+
+    fragment InternalAccountList on InternalAccountConnection {
+      edges {
+        node {
+          typename: __typename
+          vendorId
+          id
+          bestName
+          childrenCount
+          prettyChildrenCount
+          bankName
+          currency
+          operationalStatus
+          parentAccountName
+          updatedAt
+          path
+          accountType
+          balance
+          availableBalance
+          iban
+          swiftCode
+          branchAddress
+          accountManagerId
+          accountManagerName
+          openedDate
+          securityLevel
+          kycStatus
+          lastActivityDate
+          dailyTransactionLimit
+          monthlyTransactionLimit
+          dailyTransferLimit
+          riskScore
+          fraudStatus
+          interestRate
+          fees { type amount }
+          creditLimit
+          nextReviewDate
+        }
+        __typename
+      }
+      pageInfo {
+        startCursor
+        endCursor
+        hasNextPage
+        hasPreviousPage
+        __typename
+      }
+      __typename
+    }
+  `;
+
+  private static readonly GET_ACCOUNT_DETAILS_QUERY = `
+    query AccountDetailsQuery($id: ID!) {
+      internalAccount(id: $id) {
+        typename: __typename
+        vendorId
+        id
+        bestName
+        childrenCount
+        prettyChildrenCount
+        bankName
+        currency
+        operationalStatus
+        parentAccountName
+        updatedAt
+        path
+        accountType
+        balance
+        availableBalance
+        iban
+        swiftCode
+        branchAddress
+        accountManagerId
+        accountManagerName
+        openedDate
+        securityLevel
+        kycStatus
+        lastActivityDate
+        dailyTransactionLimit
+        monthlyTransactionLimit
+        dailyTransferLimit
+        riskScore
+        fraudStatus
+        metadata
+        linkedAccountIds
+        interestRate
+        fees { type amount }
+        creditLimit
+        nextReviewDate
+      }
+    }
+  `;
+
+  static async fetchAccounts(variables: any): Promise<InternalAccountConnection> {
+    const response = await mockGraphQLClient.query<AccountGroupAccountsQuery>(
+      AccountService.ACCOUNT_GROUP_ACCOUNTS_QUERY,
+      variables
+    );
+    if (response.errors) {
+      AuditService.logAction('FETCH_ACCOUNTS_FAILED', 'System', 'N/A', { variables, error: response.errors[0].message }, false, response.errors[0].message);
+      throw new Error(response.errors.map(e => e.message).join(', '));
+    }
+    AuditService.logAction('FETCH_ACCOUNTS_SUCCESS', 'System', 'N/A', { variables }, true);
+    return response.data.internalAccounts;
+  }
+
+  static async getAccountDetails(accountId: string): Promise<InternalAccount | null> {
+    const response = await mockGraphQLClient.query<any>(
+      AccountService.GET_ACCOUNT_DETAILS_QUERY,
+      { id: accountId }
+    );
+    if (response.errors) {
+      AuditService.logAction('FETCH_ACCOUNT_DETAILS_FAILED', 'Account', accountId, { error: response.errors[0].message }, false, response.errors[0].message);
+      throw new Error(response.errors.map(e => e.message).join(', '));
+    }
+    if (response.data.internalAccount) {
+      AuditService.logAction('FETCH_ACCOUNT_DETAILS_SUCCESS', 'Account', accountId, {}, true);
+    } else {
+      AuditService.logAction('FETCH_ACCOUNT_DETAILS_NOT_FOUND', 'Account', accountId, {}, false, 'Account not found');
+    }
+    return response.data.internalAccount;
+  }
+
+  static async updateAccountStatus(accountId: string, newStatus: string): Promise<InternalAccount> {
+    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
+    const accountIndex = MOCK_ACCOUNTS.findIndex(acc => acc.id === accountId);
+    if (accountIndex !== -1) {
+      const oldStatus = MOCK_ACCOUNTS[accountIndex].operationalStatus;
+      MOCK_ACCOUNTS[accountIndex].operationalStatus = newStatus;
+      MOCK_ACCOUNTS[accountIndex].updatedAt = new Date().toISOString();
+      AuditService.logAction('UPDATE_ACCOUNT_STATUS', 'Account', accountId, { oldStatus, newStatus }, true);
+      NotificationService.addNotification({ id: generateUniqueId(), type: 'SUCCESS', message: `Account ${MOCK_ACCOUNTS[accountIndex].bestName} status updated to ${newStatus}.`, timestamp: new Date().toISOString(), isRead: false, accountId, priority: 'MEDIUM', sourceSystem: 'AccountService' });
+      return MOCK_ACCOUNTS[accountIndex];
+    }
+    const errorMessage = 'Account not found';
+    AuditService.logAction('UPDATE_ACCOUNT_STATUS_FAILED', 'Account', accountId, { newStatus }, false, errorMessage);
+    throw new Error(errorMessage);
+  }
+
+  static async updateAccountDetails(accountId: string, updates: Partial<InternalAccount>): Promise<InternalAccount> {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const accountIndex = MOCK_ACCOUNTS.findIndex(acc => acc.id === accountId);
+    if (accountIndex !== -1) {
+      const oldAccount = { ...MOCK_ACCOUNTS[accountIndex] };
+      MOCK_ACCOUNTS[accountIndex] = { ...MOCK_ACCOUNTS[accountIndex], ...updates, updatedAt: new Date().toISOString() };
+      AuditService.logAction('UPDATE_ACCOUNT_DETAILS', 'Account', accountId, { oldValues: oldAccount, newValues: updates }, true);
+      NotificationService.addNotification({ id: generateUniqueId(), type: 'SUCCESS', message: `Account ${MOCK_ACCOUNTS[accountIndex].bestName} details updated.`, timestamp: new Date().toISOString(), isRead: false, accountId, priority: 'LOW', sourceSystem: 'AccountService' });
+      return MOCK_ACCOUNTS[accountIndex];
+    }
+    const errorMessage = 'Account not found';
+    AuditService.logAction('UPDATE_ACCOUNT_DETAILS_FAILED', 'Account', accountId, { updates }, false, errorMessage);
+    throw new Error(errorMessage);
+  }
+
+  static async createVirtualCard(accountId: string, limit: number, purpose: string): Promise<VirtualCard> {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    const account = MOCK_ACCOUNTS.find(acc => acc.id === accountId);
+    if (!account) throw new Error('Account not found for virtual card creation.');
+
+    const newCard: VirtualCard = {
+      id: generateUniqueId('VCARD'),
+      accountId: accountId,
+      cardNumber: `**** **** **** ${Math.floor(1000 + Math.random() * 8999).toString()}`,
+      expirationDate: `12/${(new Date().getFullYear() % 100) + 3}`, // Valid for 3 years
+      cvv: '***',
+      limit: limit,
+      spent: 0,
+      status: 'ACTIVE',
+      purpose: purpose,
+      createdAt: new Date().toISOString(),
+    };
+    MOCK_VIRTUAL_CARDS.push(newCard);
+    AuditService.logAction('CREATE_VIRTUAL_CARD', 'Account', accountId, { cardId: newCard.id, limit, purpose }, true);
+    NotificationService.addNotification({ id: generateUniqueId(), type: 'SUCCESS', message: `Virtual card for ${account.bestName} (${newCard.purpose}) created.`, timestamp: new Date().toISOString(), isRead: false, accountId, priority: 'MEDIUM', sourceSystem: 'AccountService' });
+    return newCard;
+  }
+
+  static async fetchVirtualCards(accountId: string): Promise<VirtualCard[]> {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return MOCK_VIRTUAL_CARDS.filter(card => card.accountId === accountId);
+  }
+
+  static async updateVirtualCardStatus(cardId: string, status: 'ACTIVE' | 'INACTIVE' | 'BLOCKED'): Promise<VirtualCard> {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const cardIndex = MOCK_VIRTUAL_CARDS.findIndex(c => c.id === cardId);
+    if (cardIndex === -1) throw new Error('Virtual card not found.');
+    MOCK_VIRTUAL_CARDS[cardIndex].status = status;
+    AuditService.logAction('UPDATE_VIRTUAL_CARD_STATUS', 'Account', MOCK_VIRTUAL_CARDS[cardIndex].accountId, { cardId, newStatus: status }, true);
+    NotificationService.addNotification({ id: generateUniqueId(), type: 'INFO', message: `Virtual card ${cardId} status updated to ${status}.`, timestamp: new Date().toISOString(), isRead: false, accountId: MOCK_VIRTUAL_CARDS[cardIndex].accountId, priority: 'MEDIUM', sourceSystem: 'AccountService' });
+    return MOCK_VIRTUAL_CARDS[cardIndex];
+  }
+}
+
+export class TransactionService {
+  static async fetchTransactions(accountId: string, page: number = 1, pageSize: number = APP_CONFIG.ACCOUNTS_PER_PAGE, sortBy: keyof Transaction = 'date', sortOrder: 'asc' | 'desc' = 'desc'): Promise<{ transactions: Transaction[], total: number }> {
+    await new Promise(resolve => setTimeout(resolve, Math.random() * 300 + 200));
+    const accountTransactions = MOCK_TRANSACTIONS.filter(t => t.accountId === accountId);
+
+    // Sort transactions
+    const sortedTransactions = [...accountTransactions].sort((a, b) => {
+      const aValue = a[sortBy];
+      const bValue = b[sortBy];
+
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortOrder === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
+      }
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+      // Fallback for dates or mixed types
+      if (sortBy === 'date') {
+        return sortOrder === 'asc' ? new Date(a.date).getTime() - new Date(b.date).getTime() : new Date(b.date).getTime() - new Date(a.date).getTime();
+      }
+      return 0;
+    });
+
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    AuditService.logAction('FETCH_TRANSACTIONS_SUCCESS', 'Account', accountId, { page, pageSize, sortBy, sortOrder }, true);
+    return {
+      transactions: sortedTransactions.slice(startIndex, endIndex),
+      total: sortedTransactions.length,
+    };
+  }
+}
+
+export class StatementService {
+  static async fetchStatements(accountId: string, year?: number, month?: number): Promise<Statement[]> {
+    await new Promise(resolve => setTimeout(resolve, Math.random() * 300 + 200));
+    const mockStatements: Statement[] = [];
+    const currentYear = new Date().getFullYear();
+    // Generate some mock statements dynamically for the last 5 years
+    for (let y = 0; y < 5; y++) {
+      for (let m = 0; m < 12; m++) {
+        const statementDate = new Date(currentYear - y, m, 1);
+        if ((!year || statementDate.getFullYear() === year) && (!month || statementDate.getMonth() === month - 1)) {
+          const periodStart = new Date(statementDate.getFullYear(), statementDate.getMonth(), 1).toISOString();
+          const periodEnd = new Date(statementDate.getFullYear(), statementDate.getMonth() + 1, 0).toISOString();
+          mockStatements.push({
+            id: generateUniqueId('STM'),
+            accountId: accountId,
+            periodStart,
+            periodEnd,
+            downloadUrl: `/api/statements/${accountId}/${statementDate.getFullYear()}/${statementDate.getMonth() + 1}.pdf`,
+            balanceStart: parseFloat((Math.random() * 100000).toFixed(2)),
+            balanceEnd: parseFloat((Math.random() * 100000).toFixed(2)),
+            totalCredits: parseFloat((Math.random() * 10000).toFixed(2)),
+            totalDebits: parseFloat((Math.random() * 10000).toFixed(2)),
+            transactionsCount: Math.floor(Math.random() * 50) + 20,
+            format: 'PDF',
+            generatedDate: new Date(statementDate.getFullYear(), statementDate.getMonth() + 1, 5).toISOString(),
+          });
+        }
+      }
+    }
+    AuditService.logAction('FETCH_STATEMENTS_SUCCESS', 'Account', accountId, { year, month }, true);
+    return mockStatements.sort((a,b) => new Date(b.periodStart).getTime() - new Date(a.periodStart).getTime());
+  }
+
+  static async downloadStatement(url: string, format: 'PDF' | 'CSV' | 'XML' = 'PDF'): Promise<void> {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    console.log(`Simulating download for: ${url} (format: ${format})`);
+    NotificationService.addNotification({ id: generateUniqueId(), type: 'INFO', message: `Statement download for ${url.split('/').pop()} (${format}) started.`, timestamp: new Date().toISOString(), isRead: false, priority: 'LOW', sourceSystem: 'StatementService' });
+    AuditService.logAction('DOWNLOAD_STATEMENT', 'System', 'N/A', { url, format }, true);
+    // In a real app, this would trigger a file download.
+  }
+}
+
+export class TransferService {
+  static async initiateTransfer(transfer: Omit<TransferRequest, 'id' | 'status' | 'requestedAt' | 'requestedBy' | 'referenceCode' | 'paymentMethod' | 'priority'>, priority: 'STANDARD' | 'EXPEDITED' | 'URGENT' = 'STANDARD'): Promise<TransferRequest> {
+    await new Promise(resolve => setTimeout(resolve, Math.random() * 1000 + 500));
+
+    const fromAccount = MOCK_ACCOUNTS.find(acc => acc.id === transfer.fromAccountId);
+    if (!fromAccount) throw new Error('Source account not found.');
+    if (fromAccount.balance < transfer.amount) throw new Error('Insufficient funds.');
+
+    const newTransfer: TransferRequest = {
+      ...transfer,
+      id: generateUniqueId('TRF'),
+      status: 'PENDING_APPROVAL', // All transfers require approval in this mock
+      requestedAt: new Date().toISOString(),
+      requestedBy: MOCK_USERS[1].id, // Mock Bob Manager as current user for transfers
+      processingFee: transfer.currency === 'USD' ? 5.00 : 0, // Mock fee
+      priority: priority,
+      referenceCode: `TRF-${generateUniqueId('')}`,
+      paymentMethod: 'ACH', // Default mock
+    };
+
+    // Deduct from balance for PENDING transfers (or after approval)
+    fromAccount.balance -= newTransfer.amount + (newTransfer.processingFee || 0);
+
+    // In a real system, this would go to a queue for approval
+    NotificationService.addNotification({ id: generateUniqueId(), type: 'INFO', message: `Transfer request ${newTransfer.id} submitted for approval.`, timestamp: new Date().toISOString(), isRead: false, accountId: newTransfer.fromAccountId, priority: 'MEDIUM', sourceSystem: 'TransferService' });
+    AuditService.logAction('INITIATE_TRANSFER', 'Transfer', newTransfer.id, { ...newTransfer, fromAccountBalanceAfter: fromAccount.balance }, true);
+    return newTransfer;
+  }
+}
+
+export class AlertService {
+  static alerts: Alert[] = MOCK_ALERTS; // Use the mock data directly
+
+  static async fetchAlerts(readStatus?: boolean, priority?: Alert['priority']): Promise<Alert[]> {
+    await new Promise(resolve => setTimeout(resolve, Math.random() * 300 + 200));
+    return AlertService.alerts
+      .filter(alert => readStatus === undefined || alert.isRead === readStatus)
+      .filter(alert => priority === undefined || alert.priority === priority)
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }
+
+  static async markAlertAsRead(alertId: string): Promise<Alert> {
+    await new Promise(resolve => setTimeout(resolve, 200));
+    const alert = AlertService.alerts.find(a => a.id === alertId);
+    if (alert) {
+      alert.isRead = true;
+      NotificationService.addNotification({ id: generateUniqueId(), type: 'SUCCESS', message: `Alert ${alert.id} marked as read.`, timestamp: new Date().toISOString(), isRead: false, priority: 'LOW', sourceSystem: 'AlertService' });
+      AuditService.logAction('MARK_ALERT_READ', 'System', alertId, {}, true);
+      return { ...alert };
+    }
+    AuditService.logAction('MARK_ALERT_READ_FAILED', 'System', alertId, {}, false, 'Alert not found');
+    throw new Error('Alert not found');
+  }
+
+  static async markAllAlertsAsRead(): Promise<Alert[]> {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    AlertService.alerts.forEach(alert => (alert.isRead = true));
+    NotificationService.addNotification({ id: generateUniqueId(), type: 'SUCCESS', message: 'All alerts marked as read.', timestamp: new Date().toISOString(), isRead: false, priority: 'LOW', sourceSystem: 'AlertService' });
+    AuditService.logAction('MARK_ALL_ALERTS_READ', 'System', 'N/A', {}, true);
+    return AlertService.alerts.filter(alert => alert.isRead);
+  }
+}
+
+export class AuditService {
+  static auditLog: AuditEntry[] = MOCK_AUDIT_LOG;
+
+  static async fetchAuditLog(page: number = 1, pageSize: number = APP_CONFIG.ACCOUNTS_PER_PAGE): Promise<{ entries: AuditEntry[], total: number }> {
+    await new Promise(resolve => setTimeout(resolve, Math.random() * 300 + 200));
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return {
+      entries: AuditService.auditLog.slice(startIndex, endIndex),
+      total: AuditService.auditLog.length,
+    };
+  }
+
+  static logAction(action: string, entityType: AuditEntry['entityType'], entityId: string, details: Record<string, any>, success: boolean, errorMessage?: string) {
+    const currentUser = MOCK_USERS[0]; // Mock current user as Alice Admin for audit logging
+    const newEntry: AuditEntry = {
+      id: generateUniqueId('AUD'),
+      timestamp: new Date().toISOString(),
+      userId: currentUser.id,
+      userName: currentUser.name,
+      action: action,
+      entityType: entityType,
+      entityId: entityId,
+      details: details,
+      ipAddress: '127.0.0.1', // Mock
+      clientInfo: 'Mock Browser (User-Agent: Simulated)', // Mock
+      success,
+      errorMessage,
+    };
+    AuditService.auditLog.unshift(newEntry); // Add to the beginning
+    // console.log("Audit Logged:", newEntry); // For debugging
+  }
+}
+
+export class UserService {
+  static users: UserProfile[] = MOCK_USERS;
+
+  static async fetchUsers(page: number = 1, pageSize: number = APP_CONFIG.ACCOUNTS_PER_PAGE): Promise<{ users: UserProfile[], total: number }> {
+    await new Promise(resolve => setTimeout(resolve, Math.random() * 300 + 200));
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    AuditService.logAction('FETCH_USERS_SUCCESS', 'System', 'N/A', { page, pageSize }, true);
+    return {
+      users: UserService.users.slice(startIndex, endIndex),
+      total: UserService.users.length,
+    };
+  }
+
+  static async addUser(user: Omit<UserProfile, 'id' | 'lastLogin' | 'permissions'>): Promise<UserProfile> {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    if (UserService.users.some(u => u.email === user.email)) {
+      const errorMessage = `User with email ${user.email} already exists.`;
+      AuditService.logAction('ADD_USER_FAILED', 'User', 'N/A', { userDetails: user }, false, errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    const defaultPermissions = {
+      ADMIN: ['canViewAccounts', 'canEditAccountDetails', 'canInitiateTransfers', 'canManageUsers', 'canViewAuditLog', 'canGenerateReports'],
+      MANAGER: ['canViewAccounts', 'canInitiateTransfers', 'canViewAuditLog'],
+      VIEWER: ['canViewAccounts'],
+      AUDITOR: ['canViewAccounts', 'canViewAuditLog', 'canGenerateReports'],
+      SUPPORT: ['canViewAccounts', 'canViewTransactions', 'canViewStatements'],
+    };
+
+    const newUser: UserProfile = { ...user, id: generateUniqueId('USR'), lastLogin: new Date().toISOString(), permissions: defaultPermissions[user.role], twoFactorEnabled: false };
+    UserService.users.push(newUser);
+    AuditService.logAction('ADD_USER', 'User', newUser.id, { userDetails: newUser }, true);
+    NotificationService.addNotification({ id: generateUniqueId(), type: 'SUCCESS', message: `User ${newUser.name} added successfully.`, timestamp: new Date().toISOString(), isRead: false, priority: 'MEDIUM', sourceSystem: 'UserService' });
+    return newUser;
+  }
+
+  static async updateUser(userId: string, updates: Partial<Omit<UserProfile, 'id' | 'lastLogin' | 'permissions'>>): Promise<UserProfile> {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const userIndex = UserService.users.findIndex(u => u.id === userId);
+    if (userIndex !== -1) {
+      const oldUser = { ...UserService.users[userIndex] };
+      UserService.users[userIndex] = { ...UserService.users[userIndex], ...updates };
+      // If role changes, update permissions (simplified logic for mock)
+      if (updates.role && oldUser.role !== updates.role) {
+        const defaultPermissions = {
+          ADMIN: ['canViewAccounts', 'canEditAccountDetails', 'canInitiateTransfers', 'canManageUsers', 'canViewAuditLog', 'canGenerateReports'],
+          MANAGER: ['canViewAccounts', 'canInitiateTransfers', 'canViewAuditLog'],
+          VIEWER: ['canViewAccounts'],
+          AUDITOR: ['canViewAccounts', 'canViewAuditLog', 'canGenerateReports'],
+          SUPPORT: ['canViewAccounts', 'canViewTransactions', 'canViewStatements'],
+        };
+        UserService.users[userIndex].permissions = defaultPermissions[updates.role];
+      }
+      AuditService.logAction('UPDATE_USER', 'User', userId, { oldValues: oldUser, newValues: updates }, true);
+      NotificationService.addNotification({ id: generateUniqueId(), type: 'SUCCESS', message: `User ${UserService.users[userIndex].name} updated successfully.`, timestamp: new Date().toISOString(), isRead: false, priority: 'LOW', sourceSystem: 'UserService' });
+      return UserService.users[userIndex];
+    }
+    const errorMessage = 'User not found';
+    AuditService.logAction('UPDATE_USER_FAILED', 'User', userId, { updates }, false, errorMessage);
+    throw new Error(errorMessage);
+  }
+
+  static async deleteUser(userId: string): Promise<void> {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const initialLength = UserService.users.length;
+    UserService.users.splice(UserService.users.findIndex(u => u.id === userId), 1);
+    if (UserService.users.length === initialLength) {
+      const errorMessage = 'User not found';
+      AuditService.logAction('DELETE_USER_FAILED', 'User', userId, {}, false, errorMessage);
+      throw new Error(errorMessage);
+    }
+    AuditService.logAction('DELETE_USER', 'User', userId, {}, true);
+    NotificationService.addNotification({ id: generateUniqueId(), type: 'SUCCESS', message: `User ${userId} deleted.`, timestamp: new Date().toISOString(), isRead: false, priority: 'MEDIUM', sourceSystem: 'UserService' });
+  }
+
+  static async authenticateUser(email: string, passwordAttempt: string): Promise<UserProfile> {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    const user = UserService.users.find(u => u.email === email);
+    if (!user) {
+      AuditService.logAction('LOGIN_FAILED', 'User', 'N/A', { email, reason: 'User not found' }, false, 'Invalid credentials');
+      throw new Error('Invalid credentials');
+    }
+    // Simple password check (in real app, use hashing)
+    if (passwordAttempt === 'password123') { // Mock static password for all users
+      user.lastLogin = new Date().toISOString();
+      AuditService.logAction('LOGIN_SUCCESS', 'User', user.id, { email }, true);
+      NotificationService.addNotification({ id: generateUniqueId(), type: 'SUCCESS', message: `Welcome back, ${user.name}!`, timestamp: new Date().toISOString(), isRead: true, priority: 'LOW', sourceSystem: 'AuthService' });
+      return user;
+    } else {
+      AuditService.logAction('LOGIN_FAILED', 'User', user.id, { email, reason: 'Incorrect password' }, false, 'Invalid credentials');
+      throw new Error('Invalid credentials');
+    }
+  }
+
+  static async fetchCurrentUser(): Promise<UserProfile> {
+    await new Promise(resolve => setTimeout(resolve, 200));
+    return MOCK_USERS[0]; // Always return Alice Admin for mock
+  }
+}
+
+export class NotificationService {
+  static notifications: Alert[] = MOCK_ALERTS; // Keep a local copy
+
+  static getNotifications(unreadOnly: boolean = false): Alert[] {
+    return unreadOnly ? NotificationService.notifications.filter(n => !n.isRead) : NotificationService.notifications;
+  }
+
+  static addNotification(notification: Alert) {
+    NotificationService.notifications.unshift(notification); // Add to beginning
+    // In a real app, this would also trigger a UI update (e.g., via a global state store)
+  }
+
+  static markAsRead(notificationId: string) {
+    const notification = NotificationService.notifications.find(n => n.id === notificationId);
+    if (notification) {
+      notification.isRead = true;
+      AuditService.logAction('MARK_NOTIFICATION_READ', 'System', notificationId, {}, true);
+      return true;
+    }
+    return false;
+  }
+
+  // Simulates a subscription for real-time updates (e.g., WebSockets)
+  static subscribeToNotifications(callback: (notifications: Alert[]) => void) {
+    const interval = setInterval(() => {
+      // In a real app, this would push new alerts from the server.
+      // Here, we just check if any new mock alerts were added or modified
+      const currentAlerts = [...NotificationService.notifications]; // Create a copy
+      callback(currentAlerts);
+    }, 5000); // Poll every 5 seconds for changes
+
+    return () => clearInterval(interval);
+  }
+}
+
+
+// --- Global Application Context ---
+interface AppContextType {
+  theme: ThemeMode;
+  setTheme: (theme: ThemeMode) => void;
+  language: string;
+  setLanguage: (lang: string) => void;
+  currentUser: UserProfile | null;
+  setCurrentUser: (user: UserProfile | null) => void;
+  notifications: Alert[];
+  addNotification: (notification: Alert) => void;
+  markNotificationRead: (id: string) => void;
+  unreadNotificationCount: number;
+  isAuthenticated: boolean;
+  logout: () => void;
+}
+
+const AppContext = createContext<AppContextType | undefined>(undefined);
+
+export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [theme, setTheme] = useState<ThemeMode>(() => (localStorage.getItem('app-theme') as ThemeMode) || 'light');
+  const [language, setLanguage] = useState(() => localStorage.getItem('app-language') || APP_CONFIG.DEFAULT_LANGUAGE);
+  const [notifications, setNotifications] = useState<Alert[]>(NotificationService.getNotifications());
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Initial user fetch
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const user = await UserService.fetchCurrentUser(); // Mock fetching a logged-in user
+        setCurrentUser(user);
+        setIsAuthenticated(true);
+      } catch (e) {
+        console.error("No current user session:", e);
+        setIsAuthenticated(false);
+      }
+    };
+    checkAuth();
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('app-theme', theme);
+    const root = document.documentElement;
+    const styles = getThemeStyles(theme);
+    for (const [key, value] of Object.entries(styles)) {
+      root.style.setProperty(key, value);
+    }
+  }, [theme]);
+
+  useEffect(() => {
+    localStorage.setItem('app-language', language);
+  }, [language]);
+
+  useEffect(() => {
+    const unsubscribe = NotificationService.subscribeToNotifications((allNotifications) => {
+      setNotifications(allNotifications.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const addNotification = useCallback((notification: Alert) => {
+    NotificationService.addNotification(notification);
+    setNotifications(prev => [notification, ...prev].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+  }, []);
+
+  const markNotificationRead = useCallback((id: string) => {
+    if (NotificationService.markAsRead(id)) {
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+    }
+  }, []);
+
+  const unreadNotificationCount = useMemo(() => notifications.filter(n => !n.isRead).length, [notifications]);
+
+  const logout = useCallback(() => {
+    setCurrentUser(null);
+    setIsAuthenticated(false);
+    // In a real app, clear tokens, redirect to login
+    window.location.hash = '#/login';
+    NotificationService.addNotification({ id: generateUniqueId(), type: 'INFO', message: 'You have been logged out.', timestamp: new Date().toISOString(), isRead: true, priority: 'LOW', sourceSystem: 'AuthService' });
+  }, []);
+
+
+  const contextValue = useMemo(() => ({
+    theme, setTheme, language, setLanguage, currentUser, setCurrentUser, notifications, addNotification, markNotificationRead, unreadNotificationCount, isAuthenticated, logout
+  }), [theme, language, currentUser, setCurrentUser, notifications, addNotification, markNotificationRead, unreadNotificationCount, isAuthenticated, logout]);
+
+  return (
+    <AppContext.Provider value={contextValue}>
+      {children}
+    </AppContext.Provider>
+  );
+};
+
+export const useAppContext = () => {
+  const context = useContext(AppContext);
+  if (!context) {
+    throw new Error('useAppContext must be used within an AppProvider');
+  }
+  return context;
+};
+
+// --- Reusable UI Components ---
+
+export const LoadingSpinner: React.FC = () => (
+  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', minHeight: '150px' }}>
+    <div className="spinner"></div>
+    <style jsx>{`
+      .spinner {
+        border: 4px solid var(--border-color);
+        border-top: 4px solid var(--primary-color);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    `}</style>
+  </div>
+);
+
+export const ErrorMessage: React.FC<{ message: string }> = ({ message }) => (
+  <div style={{ color: 'var(--danger-color)', padding: '15px', border: '1px solid var(--danger-color)', borderRadius: '5px', backgroundColor: 'rgba(229, 62, 62, 0.1)', margin: '20px 0' }}>
+    <strong>Error:</strong> {message}
+  </div>
+);
+
+export const SuccessMessage: React.FC<{ message: string }> = ({ message }) => (
+  <div style={{ color: 'var(--success-color)', padding: '15px', border: '1px solid var(--success-color)', borderRadius: '5px', backgroundColor: 'rgba(72, 187, 120, 0.1)', margin: '20px 0' }}>
+    <strong>Success:</strong> {message}
+  </div>
+);
+
+export const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'danger' | 'ghost', size?: 'small' | 'medium' | 'large' }> = ({ children, variant = 'primary', size = 'medium', ...props }) => {
+  const getVariantStyles = () => {
+    switch (variant) {
+      case 'secondary': return `
+        background-color: var(--secondary-color);
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
+        &:hover { background-color: rgba(var(--secondary-color), 0.8); }
+      `;
+      case 'danger': return `
+        background-color: var(--danger-color);
+        color: #fff;
+        border: none;
+        &:hover { background-color: #c53030; }
+      `;
+      case 'ghost': return `
+        background: none;
+        color: var(--primary-color);
+        border: 1px solid transparent;
+        &:hover { background-color: rgba(var(--primary-color), 0.1); }
+      `;
+      case 'primary':
+      default: return `
+        background-color: var(--button-bg);
+        color: var(--button-text);
+        border: none;
+        &:hover { background-color: rgba(var(--button-bg), 0.8); }
+      `;
+    }
+  };
+
+  const getSizeStyles = () => {
+    switch (size) {
+      case 'small': return `padding: 6px 12px; font-size: 0.8em;`;
+      case 'large': return `padding: 12px 24px; font-size: 1.1em;`;
+      case 'medium':
+      default: return `padding: 8px 16px; font-size: 1em;`;
+    }
+  };
+
+  return (
+    <button {...props}>
+      {children}
+      <style jsx>{`
+        button {
+          border-radius: 4px;
+          cursor: pointer;
+          transition: all 0.2s ease-in-out;
+          ${getVariantStyles()}
+          ${getSizeStyles()}
+          outline: none;
+        }
+        button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+      `}</style>
+    </button>
+  );
+};
+
+export const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (props) => (
+  <input {...props} />
+);
+
+export const Select: React.FC<React.SelectHTMLAttributes<HTMLSelectElement>> = (props) => (
+  <select {...props} />
+);
+
+export const TextArea: React.FC<React.TextareaHTMLAttributes<HTMLTextAreaElement>> = (props) => (
+  <textarea {...props} />
+);
+
+export const Modal: React.FC<{ isOpen: boolean; onClose: () => void; title: string; children: React.ReactNode; width?: string }> = ({ isOpen, onClose, title, children, width = '600px' }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" style={{ maxWidth: width }} onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3>{title}</h3>
+          <Button onClick={onClose} variant="ghost" aria-label="Close modal">X</Button>
+        </div>
+        <div className="modal-body">
+          {children}
+        </div>
+      </div>
+      <style jsx>{`
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: rgba(0, 0, 0, 0.5);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          z-index: 1000;
+        }
+        .modal-content {
+          background-color: var(--bg-color);
+          padding: 20px;
+          border-radius: 8px;
+          min-width: 400px;
+          max-width: 90%;
+          max-height: 90%;
+          overflow-y: auto;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          border-bottom: 1px solid var(--border-color);
+          padding-bottom: 15px;
+          margin-bottom: 20px;
+        }
+        .modal-header h3 {
+          margin: 0;
+          color: var(--text-color);
+        }
+        .modal-body {
+          color: var(--text-color);
+        }
+      `}</style>
+    </div>
+  );
+};
+
+
+// --- App Views / Pages ---
+
+export const Dashboard: React.FC = () => {
+  const { t } = useTranslation();
+  const { currentUser, unreadNotificationCount } = useAppContext();
+  const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
+  const [loadingTransactions, setLoadingTransactions] = useState(true);
+  const [errorTransactions, setErrorTransactions] = useState<string | null>(null);
+
+  const totalActiveAccounts = MOCK_ACCOUNTS.filter(a => a.operationalStatus === 'ACTIVE').length;
+  const totalBalanceUSD = MOCK_ACCOUNTS.filter(a => a.currency === 'USD').reduce((sum, acc) => sum + acc.balance, 0);
+
+  useEffect(() => {
+    const fetchRecentTransactions = async () => {
+      setLoadingTransactions(true);
+      setErrorTransactions(null);
+      try {
+        const primaryAccount = MOCK_ACCOUNTS.find(acc => acc.accountType === 'CHECKING' && acc.operationalStatus === 'ACTIVE');
+        if (primaryAccount) {
+          const { transactions } = await TransactionService.fetchTransactions(primaryAccount.id, 1, 5);
+          setRecentTransactions(transactions);
+        } else {
+          setRecentTransactions([]);
+        }
+      } catch (err: any) {
+        setErrorTransactions(err.message || t('errors.general'));
+      } finally {
+        setLoadingTransactions(false);
+      }
+    };
+    fetchRecentTransactions();
+  }, [t]);
+
+  return (
+    <div style={{ padding: '20px' }}>
+      <h1>{t('dashboard.welcome', { userName: currentUser?.name || 'User' })}</h1>
+      <p style={{ color: 'var(--secondary-color)' }}>Your role: {currentUser?.role}</p>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginTop: '30px' }}>
+        {/* Quick Stats Card */}
+        <div className="dashboard-card">
+          <h2>{t('dashboard.accountsOverview')}</h2>
+          <p>{t('dashboard.totalActiveAccounts')}: {totalActiveAccounts}</p>
+          <p>{t('dashboard.totalBalanceUSD')}: {formatCurrency(totalBalanceUSD, 'USD')}</p>
+          <Button variant="ghost" onClick={() => window.location.hash = '#/accounts'}>{t('dashboard.viewAllAccounts')}</Button>
+        </div>
+
+        {/* Notifications Card */}
+        <div className="dashboard-card">
+          <h2>{t('dashboard.notifications')}</h2>
+          {unreadNotificationCount > 0 ? (
+            <p style={{ color: 'var(--danger-color)', fontWeight: 'bold' }}>{t('dashboard.unreadAlerts', { count: unreadNotificationCount })}</p>
+          ) : (
+            <p>{t('dashboard.noNewNotifications')}</p>
+          )}
+          <Button variant="ghost" onClick={() => window.location.hash = '#/alerts'}>{t('dashboard.goToAlertsCenter')}</Button>
+        </div>
+
+        {/* Recent Activity Card */}
+        <div className="dashboard-card">
+          <h2>{t('dashboard.recentTransactions')}</h2>
+          {loadingTransactions ? <LoadingSpinner /> : errorTransactions ? <ErrorMessage message={errorTransactions} /> : (
+            recentTransactions.length > 0 ? (
+              <ul style={{ listStyle: 'none', padding: 0 }}>
+                {recentTransactions.map(tx => (
+                  <li key={tx.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid var(--border-color)' }}>
+                    <span>{formatDate(tx.date, undefined, { month: 'short', day: 'numeric' })} - {tx.description}</span>
+                    <span style={{ color: tx.type === 'DEBIT' ? 'var(--danger-color)' : 'var(--success-color)' }}>
+                      {tx.type === 'DEBIT' ? '-' : '+'}{formatCurrency(tx.amount, tx.currency)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : <p>{t('dashboard.noRecentTransactions')}</p>
+          )}
+          <Button variant="ghost" onClick={() => window.location.hash = '#/transactions'}>{t('dashboard.viewAllTransactions')}</Button>
+        </div>
+      </div>
+      <style jsx>{`
+        .dashboard-card {
+          background-color: var(--card-bg);
+          padding: 20px;
+          border-radius: 8px;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+          color: var(--text-color);
+        }
+        .dashboard-card h2 {
+          color: var(--primary-color);
+          margin-top: 0;
+          margin-bottom: 15px;
+          font-size: 1.3em;
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export const AccountList: React.FC = () => {
+  const { t } = useTranslation();
+  const { currentUser } = useAppContext();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currencyFilter, setCurrencyFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [activeOnly, setActiveOnly] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [afterCursor, setAfterCursor] = useState<string | null>(null);
+  const [beforeCursor, setBeforeCursor] = useState<string | null>(null);
+  const [selectedAccount, setSelectedAccount] = useState<InternalAccount | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const variables = useMemo(() => ({
+    first: APP_CONFIG.ACCOUNTS_PER_PAGE,
+    after: currentPage > 1 ? afterCursor : null,
+    before: currentPage === 1 && beforeCursor ? beforeCursor : null,
+    accountSearchName: searchTerm || null,
+    currency: currencyFilter || null,
+    activeOnly: activeOnly || null,
+    operationalStatuses: statusFilter.length > 0 ? statusFilter : null,
+  }), [currentPage, afterCursor, beforeCursor, searchTerm, currencyFilter, activeOnly, statusFilter]);
+
+  const { data, loading, error, refetch } = useGraphQLQuery<AccountGroupAccountsQuery, typeof variables>(
+    AccountService.ACCOUNT_GROUP_ACCOUNTS_QUERY,
+    variables
+  );
+
+  const accounts = useMemo(() => data?.internalAccounts?.edges.map(edge => edge.node) || [], [data]);
+  const pageInfo = data?.internalAccounts?.pageInfo;
+
+  useEffect(() => {
+    // Reset page info when filters change
+    setCurrentPage(1);
+    setAfterCursor(null);
+    setBeforeCursor(null);
+  }, [searchTerm, currencyFilter, activeOnly, statusFilter]);
+
+
+  const handleSearchChange = useMemo(() => debounce((value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+    setAfterCursor(null);
+    setBeforeCursor(null);
+  }, 300), []);
+
+  const handleNextPage = () => {
+    if (pageInfo?.hasNextPage) {
+      setCurrentPage(prev => prev + 1);
+      setAfterCursor(pageInfo.endCursor);
+      setBeforeCursor(null);
+    }
+  };
+
+  const handlePreviousPage = () => {
+    if (pageInfo?.hasPreviousPage) {
+      if (currentPage > 1) {
+        setCurrentPage(prev => prev - 1);
+        setAfterCursor(null);
+        // For robust `before` cursor with `last`, actual implementation would be more complex
+      }
+    }
+  };
+
+  const handleAccountClick = async (account: InternalAccount) => {
+    setIsModalOpen(true);
+    try {
+      const details = await AccountService.getAccountDetails(account.id);
+      setSelectedAccount(details);
+    } catch (err) {
+      console.error("Failed to fetch account details:", err);
+      setSelectedAccount(null);
+    }
+  };
+
+  const handleSaveAccountDetails = async (updates: Partial<InternalAccount>) => {
+    if (!selectedAccount) return;
+    try {
+      await AccountService.updateAccountDetails(selectedAccount.id, updates);
+      setSelectedAccount(prev => prev ? { ...prev, ...updates } as InternalAccount : null);
+      refetch();
+      alert('Account details updated successfully!');
+    } catch (error: any) {
+      alert(`Error updating account details: ${error.message}`);
+    }
+  };
+
+  const hasPermissionToEdit = currentUser?.permissions.includes('canEditAccountDetails') || false;
+
+  return (
+    <div style={{ padding: '20px' }}>
+      <h1 style={{ color: 'var(--primary-color)' }} aria-label={t('accounts.title')}>{t('accounts.title')}</h1>
+
+      {/* Filters and Search */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', marginBottom: '20px', padding: '15px', border: '1px solid var(--border-color)', borderRadius: '8px', backgroundColor: 'var(--card-bg)' }}>
+        <Input
+          type="text"
+          placeholder={t('accounts.searchPlaceholder')}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          style={{ flex: '1 1 300px', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', backgroundColor: 'var(--input-bg)', color: 'var(--input-text)' }}
+          aria-label={t('accounts.searchPlaceholder')}
+        />
+        <Select
+          value={currencyFilter}
+          onChange={(e) => { setCurrencyFilter(e.target.value); setCurrentPage(1); setAfterCursor(null); }}
+          style={{ flex: '0 1 150px', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', backgroundColor: 'var(--input-bg)', color: 'var(--input-text)' }}
+          aria-label={t('accounts.filterByCurrency')}
+        >
+          <option value="">{t('accounts.filterByCurrency')}</option>
+          {APP_CONFIG.SUPPORTED_CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+        </Select>
+        <Select
+          multiple
+          value={statusFilter}
+          onChange={(e) => {
+            const options = Array.from(e.target.selectedOptions, option => option.value);
+            setStatusFilter(options);
+            setCurrentPage(1);
+            setAfterCursor(null);
+          }}
+          style={{ flex: '0 1 200px', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', backgroundColor: 'var(--input-bg)', color: 'var(--input-text)' }}
+          aria-label={t('accounts.filterByStatus')}
+        >
+          {APP_CONFIG.ACCOUNT_OPERATIONAL_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+        </Select>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <Input
+            type="checkbox"
+            id="activeOnly"
+            checked={activeOnly}
+            onChange={(e) => { setActiveOnly(e.target.checked); setCurrentPage(1); setAfterCursor(null); }}
+            style={{ width: '20px', height: '20px' }}
+            aria-label={t('accounts.filterByActiveOnly')}
+          />
+          <label htmlFor="activeOnly" style={{ color: 'var(--text-color)' }}>{t('accounts.filterByActiveOnly')}</label>
+        </div>
+      </div>
+
+      {loading && <LoadingSpinner aria-label={t('loading.accounts')} />}
+      {error && <ErrorMessage message={error.message || t('errors.fetchAccounts')} />}
+
+      {!loading && !error && accounts.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '50px', color: 'var(--secondary-color)' }}>
+          <p>{t('accounts.noAccountsFound')}</p>
+          <Button onClick={() => {
+            setSearchTerm('');
+            setCurrencyFilter('');
+            setStatusFilter([]);
+            setActiveOnly(false);
+            setCurrentPage(1);
+            setAfterCursor(null);
+          }}>{t('accounts.clearFilters')}</Button>
+        </div>
+      )}
+
+      {!loading && !error && accounts.length > 0 && (
+        <>
+          <div className="table-container">
+            <table style={{ width: '100%', borderCollapse: 'collapse' }} aria-label={t('accounts.title')}>
+              <thead>
+                <tr>
+                  <th scope="col">{t('account.id')}</th>
+                  <th scope="col">{t('account.name')}</th>
+                  <th scope="col">{t('account.bankName')}</th>
+                  <th scope="col">{t('account.currency')}</th>
+                  <th scope="col">{t('account.status')}</th>
+                  <th scope="col">{t('accounts.balance')}</th>
+                  <th scope="col">{t('account.lastUpdated')}</th>
+                  <th scope="col">{t('actions')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {accounts.map(account => (
+                  <tr key={account.id} onClick={() => handleAccountClick(account)} style={{ cursor: 'pointer' }} aria-label={`Details for ${account.bestName}`}>
+                    <td>{account.id}</td>
+                    <td>{account.bestName}</td>
+                    <td>{account.bankName}</td>
+                    <td>{account.currency}</td>
+                    <td>
+                      <span className={`status-badge status-${account.operationalStatus.toLowerCase().replace('_', '-')}`}>
+                        {account.operationalStatus}
+                      </span>
+                    </td>
+                    <td>{formatCurrency(account.balance, account.currency)}</td>
+                    <td>{formatDate(account.updatedAt, undefined, { dateStyle: 'short', timeStyle: 'short' })}</td>
+                    <td>
+                      <Button size="small" variant="secondary" onClick={(e) => { e.stopPropagation(); handleAccountClick(account); }} aria-label={`View details for ${account.bestName}`}>
+                        {t('account.details')}
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination Controls */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', padding: '10px', backgroundColor: 'var(--card-bg)', borderRadius: '8px' }}>
+            <Button onClick={handlePreviousPage} disabled={!pageInfo?.hasPreviousPage || loading} variant="secondary" aria-label={t('pagination.prev')}>
+              {t('pagination.prev')}
+            </Button>
+            <span style={{ color: 'var(--text-color)' }} aria-live="polite">
+              {t('pagination.pageInfo', { currentPage: currentPage, totalPages: Math.ceil(MOCK_ACCOUNTS.length / APP_CONFIG.ACCOUNTS_PER_PAGE) })}
+            </span>
+            <Button onClick={handleNextPage} disabled={!pageInfo?.hasNextPage || loading} variant="secondary" aria-label={t('pagination.next')}>
+              {t('pagination.next')}
+            </Button>
+          </div>
+        </>
+      )}
+
+      <Modal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setSelectedAccount(null); }} title={t('accounts.accountDetails')} width="800px">
+        {selectedAccount ? (
+          <AccountDetailsPanel account={selectedAccount} onSave={handleSaveAccountDetails} hasEditPermission={hasPermissionToEdit} />
+        ) : (
+          <p aria-label={t('loading.details')}>{t('loading.details')}</p>
+        )}
+      </Modal>
+
+      <style jsx>{`
+        .table-container {
+          overflow-x: auto;
+          margin-bottom: 20px;
+          border-radius: 8px;
+          border: 1px solid var(--border-color);
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          color: var(--text-color);
+        }
+        th, td {
+          padding: 12px 15px;
+          text-align: left;
+          border-bottom: 1px solid var(--border-color);
+        }
+        th {
+          background-color: var(--table-header-bg);
+          font-weight: bold;
+          color: var(--primary-color);
+          position: sticky;
+          top: 0;
+        }
+        tr:hover {
+          background-color: var(--table-row-hover);
+        }
+        .status-badge {
+          display: inline-block;
+          padding: 4px 8px;
+          border-radius: 12px;
+          font-size: 0.8em;
+          font-weight: bold;
+          color: white;
+        }
+        .status-active { background-color: var(--success-color); }
+        .status-inactive { background-color: var(--secondary-color); }
+        .status-blocked { background-color: var(--danger-color); }
+        .status-pending-activation { background-color: var(--warning-color); }
+        .status-frozen { background-color: #805ad5; }
+        .status-closed { background-color: #718096; }
+        .status-suspended { background-color: #e53e3e; }
+      `}</style>
+    </div>
+  );
+};
+
+export const AccountDetailsPanel: React.FC<{ account: InternalAccount; onSave: (updates: Partial<InternalAccount>) => void; hasEditPermission: boolean }> = ({ account, onSave, hasEditPermission }) => {
+  const { t } = useTranslation();
+  const [editMode, setEditMode] = useState(false);
+  const [editedAccount, setEditedAccount] = useState<Partial<InternalAccount>>(account);
+  const [virtualCards, setVirtualCards] = useState<VirtualCard[]>([]);
+  const [loadingCards, setLoadingCards] = useState(false);
+  const [cardError, setCardError] = useState<string | null>(null);
+  const [isCardModalOpen, setIsCardModalOpen] = useState(false);
+  const [newCardLimit, setNewCardLimit] = useState('');
+  const [newCardPurpose, setNewCardPurpose] = useState('');
+
+  useEffect(() => {
+    setEditedAccount(account);
+    fetchVirtualCards();
+  }, [account]);
+
+  const fetchVirtualCards = async () => {
+    setLoadingCards(true);
+    setCardError(null);
+    try {
+      const cards = await AccountService.fetchVirtualCards(account.id);
+      setVirtualCards(cards);
+    } catch (err: any) {
+      setCardError(err.message || 'Failed to load virtual cards.');
+    } finally {
+      setLoadingCards(false);
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value, type, checked } = e.target as HTMLInputElement;
+    setEditedAccount(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
+  };
+
+  const handleSave = () => {
+    onSave(editedAccount);
+    setEditMode(false);
+  };
+
+  const handleUpdateAccountStatus = async (newStatus: string) => {
+    try {
+      await AccountService.updateAccountStatus(account.id, newStatus);
+      setEditedAccount(prev => prev ? { ...prev, operationalStatus: newStatus } as InternalAccount : null);
+      alert('Account status updated successfully!');
+    } catch (error: any) {
+      alert(`Error updating account status: ${error.message}`);
+    }
+  };
+
+  const handleCreateVirtualCard = async

@@ -1,0 +1,480 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. RPTMTH.
+       AUTHOR. AUTOMATED-SYSTEMS.
+       DATE-WRITTEN. 1994-01-02.
+       DATE-COMPILED. <TODAY>.
+      ******************************************************************
+      * FINANCIAL INSTITUTION - GENERATE MONTHLY CUSTOMER STATEMENTS
+      *
+      * THIS IS A MASTER BATCH PROGRAM THAT DRIVES THE GENERATION
+      * OF ALL CUSTOMER STATEMENTS FOR A GIVEN BILLING CYCLE.
+      * It now incorporates advanced analytical capabilities for
+      * personalized customer insights, aiming to enhance financial
+      * wellness and provide proactive advice.
+      * PROCESSES 100,000+ ACCOUNTS.
+      ******************************************************************
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT CUSTOMER-MASTER-FILE ASSIGN TO CUSTMAST
+               ORGANIZATION IS INDEXED
+               ACCESS MODE IS SEQUENTIAL
+               RECORD KEY IS CM-CUSTOMER-ID.
+
+           SELECT STATEMENT-DETAIL-FILE ASSIGN TO STMTDETL
+               ORGANIZATION IS SEQUENTIAL.
+
+           SELECT JOB-LOG-FILE           ASSIGN TO JOBLOG
+               ORGANIZATION IS SEQUENTIAL.
+
+           SELECT AI-AUDIT-LOG-FILE     ASSIGN TO AIAUDIT
+               ORGANIZATION IS SEQUENTIAL.
+
+           SELECT SYSTEM-CONFIG-FILE    ASSIGN TO SYSCONF
+               ORGANIZATION IS SEQUENTIAL
+               FILE STATUS IS WS-SYSCONF-FILE-STATUS.
+
+       DATA DIVISION.
+       FILE SECTION.
+       FD CUSTOMER-MASTER-FILE.
+       01 CUSTOMER-FILE-RECORD.
+          05 CM-CUSTOMER-ID            PIC 9(10).
+          05 CM-CUSTOMER-NAME          PIC X(50).
+          05 CM-ADDRESS-LINE1          PIC X(50).
+          05 CM-ADDRESS-LINE2          PIC X(50).
+          05 CM-CITY                   PIC X(30).
+          05 CM-STATE                  PIC X(02).
+          05 CM-POSTAL-CODE            PIC 9(05).
+          05 CM-ACCOUNT-NUMBER         PIC 9(12).
+          05 CM-ACCOUNT-TYPE           PIC X(01).
+             88 ACCOUNT-TYPE-CHECKING  VALUE 'C'.
+             88 ACCOUNT-TYPE-SAVINGS   VALUE 'S'.
+             88 ACCOUNT-TYPE-LOAN      VALUE 'L'.
+             88 ACCOUNT-TYPE-CREDIT    VALUE 'R'.
+          05 CM-CURRENT-BALANCE        PIC S9(13)V99 COMP-3.
+          05 CM-PREVIOUS-BALANCE       PIC S9(13)V99 COMP-3.
+          05 CM-STATEMENT-DATE         PIC 9(08).
+          05 CM-LAST-ACTIVITY-DATE     PIC 9(08).
+          05 CM-STATEMENT-PREF         PIC X(01).
+             88 PREF-PRINT             VALUE 'P'.
+             88 PREF-EMAIL             VALUE 'E'.
+             88 PREF-MOBILE-APP        VALUE 'M'.
+          05 CM-AI-INSIGHT-OPT-IN      PIC X(01).
+             88 AI-OPT-IN-YES          VALUE 'Y'.
+             88 AI-OPT-IN-NO           VALUE 'N'.
+          05 CM-FILLER                 PIC X(190).
+      *    Total length of CUSTOMER-FILE-RECORD (10 + 50*3 + 30 + 2 + 5 + 12 + 1 + 8+8 for COMP-3 + 1 + 1 + 190) = 434 bytes.
+
+       FD STATEMENT-DETAIL-FILE.
+       01 STATEMENT-DETAIL-RECORD.
+          05 SDR-CUSTOMER-ID        PIC 9(10).
+          05 SDR-ACCOUNT-NUMBER     PIC 9(12).
+          05 SDR-STATEMENT-DATE     PIC 9(08).
+          05 SDR-TOTAL-DEBITS       PIC S9(11)V99 COMP-3.
+          05 SDR-TOTAL-CREDITS      PIC S9(11)V99 COMP-3.
+          05 SDR-ENDING-BALANCE     PIC S9(13)V99 COMP-3.
+          05 SDR-AI-INSIGHT-CODE-1  PIC X(04).
+          05 SDR-AI-INSIGHT-TEXT-1  PIC X(80).
+          05 SDR-AI-INSIGHT-CODE-2  PIC X(04).
+          05 SDR-AI-INSIGHT-TEXT-2  PIC X(80).
+          05 SDR-FILLER             PIC X(50).
+
+       FD JOB-LOG-FILE.
+       01 JOB-LOG-RECORD.
+          05 JLR-TIMESTAMP          PIC X(19).  *> YYYY-MM-DD-HH.MM.SS
+          05 JLR-PROGRAM-ID         PIC X(08).
+          05 JLR-EVENT-TYPE         PIC X(10).  *> START, END, INFO, WARN, ERROR
+          05 JLR-MESSAGE            PIC X(180).
+
+       FD AI-AUDIT-LOG-FILE.
+       01 AI-AUDIT-RECORD.
+          05 AAR-TIMESTAMP          PIC X(19).
+          05 AAR-CUSTOMER-ID        PIC 9(10).
+          05 AAR-ACCOUNT-NUMBER     PIC 9(12).
+          05 AAR-REQUEST-STATUS     PIC X(01).  *> S=Sent, R=Received, E=Error, N=No-request
+          05 AAR-AI-SERVICE-STATUS  PIC X(02).  *> '00'=OK, 'XX'=Error Code
+          05 AAR-AI-RESPONSE-TEXT   PIC X(150).
+
+       FD SYSTEM-CONFIG-FILE.
+       01 SYSTEM-CONFIG-RECORD.
+          05 SCR-BILLING-CYCLE-DATE     PIC 9(08).
+          05 SCR-STATEMENT-OUTPUT-PATH  PIC X(100).
+          05 SCR-AI-SERVICE-ENDPOINT    PIC X(50).
+          05 SCR-AI-TIMEOUT-SECS        PIC 9(03).
+          05 SCR-LOG-LEVEL              PIC X(01).
+             88 LOG-LEVEL-DEBUG         VALUE 'D'.
+             88 LOG-LEVEL-INFO          VALUE 'I'.
+             88 LOG-LEVEL-WARN          VALUE 'W'.
+             88 LOG-LEVEL-ERROR         VALUE 'E'.
+          05 SCR-AI-ENABLED-FLAG        PIC X(01).
+             88 AI-GLOBAL-ENABLED       VALUE 'Y'.
+             88 AI-GLOBAL-DISABLED      VALUE 'N'.
+
+       WORKING-STORAGE SECTION.
+       01 WS-PROGRAM-SWITCHES.
+          05 WS-EOF-FLAG                PIC X(01) VALUE 'N'.
+             88 END-OF-FILE              VALUE 'Y'.
+          05 WS-SYSCONF-EOF-FLAG        PIC X(01) VALUE 'N'.
+             88 END-OF-SYSCONF-FILE      VALUE 'Y'.
+          05 WS-AI-ELIGIBLE-FLAG        PIC X(01) VALUE 'N'.
+             88 AI-ELIGIBLE              VALUE 'Y'.
+          05 WS-AI-SERVICE-SUCCESS      PIC X(01) VALUE 'N'.
+             88 AI-SERVICE-OK            VALUE 'Y'.
+          05 WS-CONFIG-LOADED-FLAG      PIC X(01) VALUE 'N'.
+             88 CONFIG-LOADED            VALUE 'Y'.
+
+       01 WS-FILE-STATUSES.
+          05 WS-SYSCONF-FILE-STATUS     PIC X(02).
+
+       01 WS-COUNTERS.
+          05 WS-RECORDS-PROCESSED       PIC 9(09) VALUE 0.
+          05 WS-STATEMENTS-GENERATED    PIC 9(09) VALUE 0.
+          05 WS-AI-REQUESTS-SENT        PIC 9(09) VALUE 0.
+          05 WS-AI-INSIGHTS-ISSUED      PIC 9(09) VALUE 0.
+          05 WS-ERRORS-ENCOUNTERED      PIC 9(09) VALUE 0.
+
+       01 WS-SYSTEM-CONFIG-PARAMS.
+          05 WSC-BILLING-CYCLE-DATE     PIC 9(08).
+          05 WSC-STATEMENT-OUTPUT-PATH  PIC X(100).
+          05 WSC-AI-SERVICE-ENDPOINT    PIC X(50).
+          05 WSC-AI-TIMEOUT-SECS        PIC 9(03).
+          05 WSC-LOG-LEVEL              PIC X(01).
+          05 WSC-AI-ENABLED-FLAG        PIC X(01).
+
+       01 WS-DATE-TIME.
+          05 WS-CURRENT-DATE-TIME.
+             10 WS-CURRENT-DATE.
+                15 WS-CURRENT-YEAR      PIC 9(04).
+                15 WS-CURRENT-MONTH     PIC 9(02).
+                15 WS-CURRENT-DAY       PIC 9(02).
+             10 WS-CURRENT-TIME.
+                15 WS-CURRENT-HOUR      PIC 9(02).
+                15 WS-CURRENT-MINUTE    PIC 9(02).
+                15 WS-CURRENT-SECOND    PIC 9(02).
+                15 WS-CURRENT-HUNDREDTH PIC 9(02).
+          05 WS-TIMESTAMP-FORMATTED.
+             10 WS-TS-DATE-PART        PIC 9(08).
+             10 FILLER                 PIC X VALUE '-'.
+             10 WS-TS-TIME-PART        PIC 9(06).
+
+       01 WS-AI-REQUEST-DATA.
+          05 WSR-CUSTOMER-ID           PIC 9(10).
+          05 WSR-ACCOUNT-NUMBER        PIC 9(12).
+          05 WSR-ACCOUNT-TYPE          PIC X(01).
+          05 WSR-CURRENT-BALANCE       PIC S9(13)V99 COMP-3.
+          05 WSR-LAST-ACTIVITY-DATE    PIC 9(08).
+          05 WSR-CUSTOMER-PREF         PIC X(01).
+          05 WSR-TRANSACTION-SUMMARY-ID PIC X(20). *> Placeholder for complex data reference
+          05 WSR-FILLER                PIC X(50).
+
+       01 WS-AI-RESPONSE-DATA.
+          05 WSP-CUSTOMER-ID           PIC 9(10).
+          05 WSP-ACCOUNT-NUMBER        PIC 9(12).
+          05 WSP-AI-STATUS-CODE        PIC X(02).  *> '00'=Success, '01'=No Insight, '02'=Error
+          05 WSP-AI-INSIGHT-CODE-1     PIC X(04).  *> E.g., 'SAVE', 'BUDG', 'ANOM'
+          05 WSP-AI-INSIGHT-TEXT-1     PIC X(80).  *> Short, actionable text
+          05 WSP-AI-INSIGHT-CODE-2     PIC X(04).  *> For potential secondary insight
+          05 WSP-AI-INSIGHT-TEXT-2     PIC X(80).
+          05 WSP-FILLER                PIC X(20).
+
+       01 WS-STATEMENT-DATA-FOR-CRSTMT.
+          05 WSD-CUSTOMER-ID           PIC 9(10).
+          05 WSD-CUSTOMER-NAME         PIC X(50).
+          05 WSD-ACCOUNT-NUMBER        PIC 9(12).
+          05 WSD-CURRENT-BALANCE       PIC S9(13)V99 COMP-3.
+          05 WSD-STATEMENT-DATE        PIC 9(08).
+          05 WSD-AI-INSIGHT-CODE-1     PIC X(04).
+          05 WSD-AI-INSIGHT-TEXT-1     PIC X(80).
+          05 WSD-AI-INSIGHT-CODE-2     PIC X(04).
+          05 WSD-AI-INSIGHT-TEXT-2     PIC X(80).
+          05 WSD-FILLER                PIC X(100).
+
+       PROCEDURE DIVISION.
+       0000-MAIN-LOGIC.
+           MOVE FUNCTION CURRENT-DATE (1:8) TO WS-TS-DATE-PART.
+           MOVE FUNCTION CURRENT-DATE (9:6) TO WS-TS-TIME-PART.
+           DISPLAY " "
+           DISPLAY "RPTMTH - MONTHLY STATEMENT BATCH JOB - STARTED "
+                   WS-TS-DATE-PART " " WS-TS-TIME-PART.
+
+           PERFORM 1000-INITIALIZATION.
+           IF NOT CONFIG-LOADED
+               PERFORM 9000-ABEND-JOB
+           END-IF.
+
+           PERFORM 2000-PROCESS-CUSTOMERS UNTIL END-OF-FILE.
+           PERFORM 3000-FINALIZE-JOB.
+           STOP RUN.
+
+       1000-INITIALIZATION.
+           PERFORM 1100-LOAD-SYSTEM-CONFIG.
+           IF NOT CONFIG-LOADED
+               PERFORM 9100-LOG-EVENT USING 'E' 'SYSTEM CONFIG NOT LOADED - ABORTING'
+               EXIT PARAGRAPH
+           END-IF.
+
+           OPEN INPUT CUSTOMER-MASTER-FILE.
+           OPEN OUTPUT STATEMENT-DETAIL-FILE
+                       JOB-LOG-FILE
+                       AI-AUDIT-LOG-FILE.
+
+           IF FILE STATUS OF CUSTOMER-MASTER-FILE NOT = '00'
+              PERFORM 9100-LOG-EVENT USING 'E' 'Failed to open CUSTOMER-MASTER-FILE. Status: '
+                                     FILE STATUS OF CUSTOMER-MASTER-FILE
+              PERFORM 9000-ABEND-JOB
+           END-IF.
+
+           PERFORM 1200-INITIALIZE-LOGGING.
+
+           READ CUSTOMER-MASTER-FILE
+               AT END SET END-OF-FILE TO TRUE
+           END-READ.
+
+           IF NOT END-OF-FILE
+               PERFORM 9100-LOG-EVENT USING 'I' 'Customer Master file opened and first record read.'
+           ELSE
+               PERFORM 9100-LOG-EVENT USING 'W' 'Customer Master file is empty.'
+           END-IF.
+
+       1100-LOAD-SYSTEM-CONFIG.
+           OPEN INPUT SYSTEM-CONFIG-FILE.
+           IF WS-SYSCONF-FILE-STATUS NOT = '00'
+               PERFORM 9100-LOG-EVENT USING 'E' 'Failed to open SYSTEM-CONFIG-FILE. Status: '
+                                        WS-SYSCONF-FILE-STATUS
+               MOVE 'N' TO WS-CONFIG-LOADED-FLAG
+               CLOSE SYSTEM-CONFIG-FILE
+               EXIT PARAGRAPH
+           END-IF.
+
+           READ SYSTEM-CONFIG-FILE
+               AT END SET END-OF-SYSCONF-FILE TO TRUE
+           END-READ.
+
+           IF NOT END-OF-SYSCONF-FILE
+               MOVE SCR-BILLING-CYCLE-DATE   TO WSC-BILLING-CYCLE-DATE
+               MOVE SCR-STATEMENT-OUTPUT-PATH TO WSC-STATEMENT-OUTPUT-PATH
+               MOVE SCR-AI-SERVICE-ENDPOINT  TO WSC-AI-SERVICE-ENDPOINT
+               MOVE SCR-AI-TIMEOUT-SECS      TO WSC-AI-TIMEOUT-SECS
+               MOVE SCR-LOG-LEVEL            TO WSC-LOG-LEVEL
+               MOVE SCR-AI-ENABLED-FLAG      TO WSC-AI-ENABLED-FLAG
+               SET CONFIG-LOADED TO TRUE
+               PERFORM 9100-LOG-EVENT USING 'I' 'System configuration loaded successfully.'
+           ELSE
+               PERFORM 9100-LOG-EVENT USING 'E' 'SYSTEM-CONFIG-FILE is empty.'
+               MOVE 'N' TO WS-CONFIG-LOADED-FLAG
+           END-IF.
+           CLOSE SYSTEM-CONFIG-FILE.
+
+       1200-INITIALIZE-LOGGING.
+           PERFORM 9100-LOG-EVENT USING 'I' 'Monthly Statement Generation Job Started.'.
+           PERFORM 9100-LOG-EVENT USING 'I' 'Billing Cycle Date: ' WSC-BILLING-CYCLE-DATE.
+           IF AI-GLOBAL-ENABLED OF WSC-AI-ENABLED-FLAG
+               PERFORM 9100-LOG-EVENT USING 'I' 'AI Insights Service is ENABLED.'
+           ELSE
+               PERFORM 9100-LOG-EVENT USING 'I' 'AI Insights Service is DISABLED globally.'
+           END-IF.
+
+       2000-PROCESS-CUSTOMERS.
+           ADD 1 TO WS-RECORDS-PROCESSED.
+           IF (FUNCTION MOD(WS-RECORDS-PROCESSED, 100)) = 0
+              PERFORM 9100-LOG-EVENT USING 'I' 'Processing record ' WS-RECORDS-PROCESSED ' for customer ' CM-CUSTOMER-ID
+           END-IF.
+
+           PERFORM 2100-PROCESS-SINGLE-CUSTOMER.
+
+           READ CUSTOMER-MASTER-FILE
+               AT END SET END-OF-FILE TO TRUE
+           END-READ.
+
+       2100-PROCESS-SINGLE-CUSTOMER.
+           PERFORM 2110-PREPARE-STATEMENT-DATA.
+           SET AI-SERVICE-OK TO FALSE.
+           SET AI-ELIGIBLE TO FALSE.
+
+           IF AI-GLOBAL-ENABLED OF WSC-AI-ENABLED-FLAG AND
+              AI-OPT-IN-YES OF CM-AI-INSIGHT-OPT-IN
+               SET AI-ELIGIBLE TO TRUE
+               PERFORM 2120-EVALUATE-AI-ELIGIBILITY
+           END-IF.
+
+           IF AI-ELIGIBLE
+               PERFORM 2130-INVOKE-AI-SERVICE
+               IF AI-SERVICE-OK
+                   PERFORM 2140-PROCESS-AI-INSIGHTS
+               ELSE
+                   PERFORM 9100-LOG-EVENT USING 'W' 'AI Service failed or returned no insights for ' CM-CUSTOMER-ID
+                   ADD 1 TO WS-ERRORS-ENCOUNTERED
+               END-IF
+           ELSE
+               MOVE SPACES TO WSD-AI-INSIGHT-CODE-1
+               MOVE SPACES TO WSD-AI-INSIGHT-TEXT-1
+               MOVE SPACES TO WSD-AI-INSIGHT-CODE-2
+               MOVE SPACES TO WSD-AI-INSIGHT-TEXT-2
+           END-IF.
+
+           PERFORM 2150-CALL-STATEMENT-GENERATOR.
+           PERFORM 2160-LOG-CUSTOMER-STATEMENT.
+           ADD 1 TO WS-STATEMENTS-GENERATED.
+
+       2110-PREPARE-STATEMENT-DATA.
+           MOVE CM-CUSTOMER-ID      TO WSD-CUSTOMER-ID.
+           MOVE CM-CUSTOMER-NAME    TO WSD-CUSTOMER-NAME.
+           MOVE CM-ACCOUNT-NUMBER   TO WSD-ACCOUNT-NUMBER.
+           MOVE CM-CURRENT-BALANCE  TO WSD-CURRENT-BALANCE.
+           MOVE CM-STATEMENT-DATE   TO WSD-STATEMENT-DATE.
+           MOVE SPACES              TO WSD-AI-INSIGHT-CODE-1.
+           MOVE SPACES              TO WSD-AI-INSIGHT-TEXT-1.
+           MOVE SPACES              TO WSD-AI-INSIGHT-CODE-2.
+           MOVE SPACES              TO WSD-AI-INSIGHT-TEXT-2.
+           MOVE SPACES              TO WSD-FILLER.
+
+       2120-EVALUATE-AI-ELIGIBILITY.
+           *> This paragraph could contain complex business rules
+           *> beyond simple opt-in, e.g., minimum balance, activity level,
+           *> specific account types, etc., to determine if AI insights
+           *> are relevant or necessary for this customer.
+           IF CM-CURRENT-BALANCE < 1000
+              SET AI-ELIGIBLE TO FALSE
+              PERFORM 9100-LOG-EVENT USING 'I' 'AI not eligible (low balance) for ' CM-CUSTOMER-ID
+           END-IF.
+           *> Additional business rules can be added here.
+           *> E.g., IF CM-ACCOUNT-TYPE = 'L' AND CM-LAST-ACTIVITY-DATE < (FUNCTION CURRENT-DATE - 30 DAYS) ...
+
+       2130-INVOKE-AI-SERVICE.
+           MOVE CM-CUSTOMER-ID         TO WSR-CUSTOMER-ID.
+           MOVE CM-ACCOUNT-NUMBER      TO WSR-ACCOUNT-NUMBER.
+           MOVE CM-ACCOUNT-TYPE        TO WSR-ACCOUNT-TYPE.
+           MOVE CM-CURRENT-BALANCE     TO WSR-CURRENT-BALANCE.
+           MOVE CM-LAST-ACTIVITY-DATE  TO WSR-LAST-ACTIVITY-DATE.
+           MOVE CM-STATEMENT-PREF      TO WSR-CUSTOMER-PREF.
+           *> For simplification, WSR-TRANSACTION-SUMMARY-ID is a placeholder.
+           *> In a real system, this would point to a dataset or
+           *> trigger an API call with detailed transaction history via an
+           *> external interface program.
+           MOVE 'TXN_SUMMARY_'          TO WSR-TRANSACTION-SUMMARY-ID(1:12).
+           MOVE CM-CUSTOMER-ID         TO WSR-TRANSACTION-SUMMARY-ID(13:8).
+
+           PERFORM 9100-LOG-EVENT USING 'D' 'Invoking AI for ' CM-CUSTOMER-ID ' at endpoint ' WSC-AI-SERVICE-ENDPOINT.
+           MOVE 'S' TO AAR-REQUEST-STATUS OF AI-AUDIT-RECORD.
+           MOVE ' ' TO AAR-AI-SERVICE-STATUS.
+           MOVE 'Request sent.' TO AAR-AI-RESPONSE-TEXT.
+           PERFORM 9110-WRITE-AI-AUDIT-LOG.
+           ADD 1 TO WS-AI-REQUESTS-SENT.
+
+           *> Simulate AI service call to a hypothetical external COBOL program.
+           *> This program (AIPROC) would take WS-AI-REQUEST-DATA
+           *> and populate WS-AI-RESPONSE-DATA based on its intelligence.
+           CALL "AIPROC" USING WS-AI-REQUEST-DATA, WS-AI-RESPONSE-DATA.
+
+           MOVE WSP-AI-STATUS-CODE TO AAR-AI-SERVICE-STATUS.
+           MOVE WSP-AI-INSIGHT-TEXT-1 TO AAR-AI-RESPONSE-TEXT.
+           MOVE 'R' TO AAR-REQUEST-STATUS OF AI-AUDIT-RECORD.
+           PERFORM 9110-WRITE-AI-AUDIT-LOG.
+
+           IF WSP-AI-STATUS-CODE = '00'
+               SET AI-SERVICE-OK TO TRUE
+               PERFORM 9100-LOG-EVENT USING 'I' 'AI Insight generated for ' CM-CUSTOMER-ID
+           ELSE IF WSP-AI-STATUS-CODE = '01'
+               PERFORM 9100-LOG-EVENT USING 'I' 'No AI Insight available for ' CM-CUSTOMER-ID
+           ELSE
+               PERFORM 9100-LOG-EVENT USING 'E' 'AI Service Error for ' CM-CUSTOMER-ID ' Status: ' WSP-AI-STATUS-CODE
+           END-IF.
+
+       2140-PROCESS-AI-INSIGHTS.
+           *> AI returned insights, now integrate them into statement data.
+           MOVE WSP-AI-INSIGHT-CODE-1 TO WSD-AI-INSIGHT-CODE-1.
+           MOVE WSP-AI-INSIGHT-TEXT-1 TO WSD-AI-INSIGHT-TEXT-1.
+           MOVE WSP-AI-INSIGHT-CODE-2 TO WSD-AI-INSIGHT-CODE-2.
+           MOVE WSP-AI-INSIGHT-TEXT-2 TO WSD-AI-INSIGHT-TEXT-2.
+           ADD 1 TO WS-AI-INSIGHTS-ISSUED.
+
+       2150-CALL-STATEMENT-GENERATOR.
+      *    The CRSTMT program would take the enriched statement data
+      *    and format the actual statement for print, email, or mobile app.
+           CALL "CRSTMT" USING WSD-CUSTOMER-ID,
+                               WSD-CUSTOMER-NAME,
+                               WSD-ACCOUNT-NUMBER,
+                               WSD-CURRENT-BALANCE,
+                               WSD-STATEMENT-DATE,
+                               WSD-AI-INSIGHT-CODE-1,
+                               WSD-AI-INSIGHT-TEXT-1,
+                               WSD-AI-INSIGHT-CODE-2,
+                               WSD-AI-INSIGHT-TEXT-2.
+           PERFORM 9100-LOG-EVENT USING 'D' 'Called CRSTMT for ' WSD-CUSTOMER-ID.
+
+       2160-LOG-CUSTOMER-STATEMENT.
+           MOVE WSD-CUSTOMER-ID      TO SDR-CUSTOMER-ID.
+           MOVE WSD-ACCOUNT-NUMBER   TO SDR-ACCOUNT-NUMBER.
+           MOVE WSD-STATEMENT-DATE   TO SDR-STATEMENT-DATE.
+           *> Placeholder for actual debit/credit calculation which CRSTMT would do
+           MOVE 0                    TO SDR-TOTAL-DEBITS.
+           MOVE 0                    TO SDR-TOTAL-CREDITS.
+           MOVE WSD-CURRENT-BALANCE  TO SDR-ENDING-BALANCE.
+           MOVE WSD-AI-INSIGHT-CODE-1 TO SDR-AI-INSIGHT-CODE-1.
+           MOVE WSD-AI-INSIGHT-TEXT-1 TO SDR-AI-INSIGHT-TEXT-1.
+           MOVE WSD-AI-INSIGHT-CODE-2 TO SDR-AI-INSIGHT-CODE-2.
+           MOVE WSD-AI-INSIGHT-TEXT-2 TO SDR-AI-INSIGHT-TEXT-2.
+           WRITE STATEMENT-DETAIL-RECORD.
+           PERFORM 9100-LOG-EVENT USING 'I' 'Statement details logged for ' SDR-CUSTOMER-ID.
+
+       3000-FINALIZE-JOB.
+           CLOSE CUSTOMER-MASTER-FILE
+                 STATEMENT-DETAIL-FILE
+                 JOB-LOG-FILE
+                 AI-AUDIT-LOG-FILE.
+
+           PERFORM 9100-LOG-EVENT USING 'I' 'Month-End Statement Generation Complete.'.
+           PERFORM 9100-LOG-EVENT USING 'I' 'Total Customers Processed: ' WS-RECORDS-PROCESSED.
+           PERFORM 9100-LOG-EVENT USING 'I' 'Total Statements Generated: ' WS-STATEMENTS-GENERATED.
+           PERFORM 9100-LOG-EVENT USING 'I' 'AI Service Requests Sent: ' WS-AI-REQUESTS-SENT.
+           PERFORM 9100-LOG-EVENT USING 'I' 'AI Insights Included: ' WS-AI-INSIGHTS-ISSUED.
+           IF WS-ERRORS-ENCOUNTERED > 0
+               PERFORM 9100-LOG-EVENT USING 'W' 'Errors encountered during processing: ' WS-ERRORS-ENCOUNTERED
+           END-IF.
+
+           MOVE FUNCTION CURRENT-DATE (1:8) TO WS-TS-DATE-PART.
+           MOVE FUNCTION CURRENT-DATE (9:6) TO WS-TS-TIME-PART.
+           DISPLAY " ".
+           DISPLAY "RPTMTH - BATCH JOB - FINISHED " WS-TS-DATE-PART " " WS-TS-TIME-PART.
+           DISPLAY " ".
+
+       9000-ABEND-JOB.
+           PERFORM 9100-LOG-EVENT USING 'E' 'Job Aborted due to critical error.'.
+           CLOSE CUSTOMER-MASTER-FILE
+                 STATEMENT-DETAIL-FILE
+                 JOB-LOG-FILE
+                 AI-AUDIT-LOG-FILE
+                 SYSTEM-CONFIG-FILE.
+           STOP RUN.
+
+       9100-LOG-EVENT USING LOG-LEVEL-IN, LOG-MESSAGE-IN.
+           01 LOG-PARAMS.
+              05 LOG-LEVEL-IN         PIC X(01).
+              05 LOG-MESSAGE-IN       PIC X(180).
+
+           MOVE FUNCTION CURRENT-DATE(1:19) TO JLR-TIMESTAMP.
+           MOVE PROGRAM-ID               TO JLR-PROGRAM-ID.
+           MOVE LOG-LEVEL-IN             TO JLR-EVENT-TYPE.
+           MOVE LOG-MESSAGE-IN           TO JLR-MESSAGE.
+
+           EVALUATE TRUE
+               WHEN LOG-LEVEL-IN = 'D' AND LOG-LEVEL-DEBUG OF WSC-LOG-LEVEL
+               WHEN LOG-LEVEL-IN = 'I' AND (LOG-LEVEL-INFO OF WSC-LOG-LEVEL OR LOG-LEVEL-DEBUG OF WSC-LOG-LEVEL)
+               WHEN LOG-LEVEL-IN = 'W' AND (LOG-LEVEL-WARN OF WSC-LOG-LEVEL OR LOG-LEVEL-INFO OF WSC-LOG-LEVEL OR LOG-LEVEL-DEBUG OF WSC-LOG-LEVEL)
+               WHEN LOG-LEVEL-IN = 'E'
+                   WRITE JOB-LOG-RECORD
+                   IF LOG-LEVEL-IN = 'E' OR LOG-LEVEL-IN = 'W'
+                       DISPLAY '*** RPTMTH WARNING/ERROR: ' JLR-MESSAGE
+                   END-IF
+           END-EVALUATE.
+
+           EXIT PARAGRAPH.
+
+       9110-WRITE-AI-AUDIT-LOG.
+           MOVE FUNCTION CURRENT-DATE(1:19) TO AAR-TIMESTAMP.
+           MOVE CM-CUSTOMER-ID       TO AAR-CUSTOMER-ID.
+           MOVE CM-ACCOUNT-NUMBER    TO AAR-ACCOUNT-NUMBER.
+           *> AAR-REQUEST-STATUS, AAR-AI-SERVICE-STATUS, AAR-AI-RESPONSE-TEXT
+           *> are set in 2130-INVOKE-AI-SERVICE before calling this paragraph.
+           WRITE AI-AUDIT-RECORD.
+           EXIT PARAGRAPH.

@@ -1,0 +1,210 @@
+openapi: 3.0.3
+info:
+  title: "QuantumSecure Biometric Authentication API: The Aether Guard"
+  description: |
+    Welcome to the **Aether Guard 1.0**, the groundbreaking security platform designed to safeguard the digital identities and financial transactions of Demo Bank's users. This API introduces a paradigm shift in authentication and authorization, moving beyond traditional methods to embrace **multi-modal biometrics**, **quantum-secure cryptography**, and **advanced AI-driven threat detection powered by Google Gemini**.
+
+    The Aether Guard is engineered from the ground up to offer unparalleled assurance. It meticulously integrates:
+    - **Hyper-Accurate Biometric Verification**: Utilizing facial recognition (Veo 2.0-enhanced), fingerprint, voiceprint, and even gait analysis, underpinned by robust liveness detection to thwart sophisticated spoofing attempts.
+    - **Post-Quantum Cryptography (PQC)**: Establishing secure channels and digital signatures resilient against future quantum computing threats, ensuring long-term data confidentiality and integrity.
+    - **Adaptive AI-Powered Security (Gemini-infused)**: Our proprietary AI, deeply integrated with Google Gemini's advanced analytical capabilities, continuously learns user behavioral patterns, detects anomalies in real-time, and dynamically adapts authentication challenges to neutralize evolving threats. This extends beyond Gemini's core capabilities, offering predictive threat modeling and proactive mitigation strategies specifically tailored for financial systems.
+    - **Decentralized Identity (DID) & Zero-Knowledge Proofs (ZKP)**: Empowering users with sovereign control over their identity attributes, enabling selective disclosure and privacy-preserving verification through verifiable credentials.
+    - **Hardware-Backed Secure Enclaves**: Ensuring cryptographic keys and biometric templates are stored and processed within tamper-resistant environments.
+
+    This specification details the secure, high-performance interfaces required to build applications that operate with the highest level of trust. Empower your solutions with security that is not just reactive, but predictive, not just strong, but quantum-resilient, and always, intelligently adaptive. This is the future of financial security, safeguarded by the Aether Guard and augmented by AI.
+servers:
+  - url: "/"
+tags:
+  - name: "Biometric Identity Verification (Core)"
+    description: "Enrollment, management, and verification of multi-modal biometric templates with advanced liveness detection."
+  - name: "Quantum Cryptography & Key Management"
+    description: "Generation, rotation, and secure management of quantum-safe cryptographic keys, and post-quantum digital signatures."
+  - name: "High-Assurance Transaction Authorization"
+    description: "Multi-factor and adaptive authentication for critical financial transactions, leveraging behavioral biometrics and AI risk assessment."
+  - name: "AI-Powered Threat & Anomaly Detection (Gemini-Enhanced)"
+    description: "Real-time behavioral profiling, anomaly detection, and predictive threat intelligence using advanced AI models, with Google Gemini backend analysis."
+  - name: "Secure Enclave & Hardware Security Module (HSM)"
+    description: "Management and interaction with hardware-backed secure elements for critical key storage and cryptographic operations."
+  - name: "Decentralized & Verifiable Identity (DID/ZKP)"
+    description: "Issuance, presentation, and verification of privacy-preserving verifiable credentials and zero-knowledge proofs for sovereign identity."
+  - name: "Biometric Data Consent & Privacy"
+    description: "Granular user control over biometric data storage, processing, and sharing consents, ensuring compliance with global privacy regulations."
+  - name: "Quantum Key Distribution (QKD) & Secure Channels"
+    description: "Endpoints for establishing and managing ultra-secure communication channels leveraging Quantum Key Distribution principles."
+  - name: "Behavioral Biometrics & Risk Scoring"
+    description: "Collection, analysis, and application of continuous behavioral biometric data for passive authentication and real-time risk scoring, powered by Gemini."
+  - name: "Security Policy & Compliance Automation"
+    description: "Automated enforcement and auditing of security policies, compliance with biometric data regulations, and integration with regulatory reporting."
+paths:
+  # --- Biometric Identity Verification (Core) ---
+  /biometrics/enroll/face:
+    post:
+      tags:
+        - "Biometric Identity Verification (Core)"
+      summary: "Initiate Facial Biometric Enrollment"
+      description: "Begins the secure enrollment process for facial biometrics. Requires a live photo/video stream and liveness detection. The AI (Gemini-enhanced Veo 2.0) processes the data for template generation."
+      operationId: "enrollFaceBiometric"
+      security:
+        - oAuth2Auth: [write:biometrics, write:identity]
+        - biometricAuth: [] # Potentially for re-enrollment or strong initial auth
+      requestBody:
+        required: true
+        description: "Request payload containing the initial facial scan data and liveness proof."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FacialEnrollmentRequest"
+      responses:
+        "202":
+          description: "Facial biometric enrollment initiated. Await `biometric.enrollment_status_updated` webhook or poll for status."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnrollmentStatusResponse"
+        "400": { $ref: "#/components/responses/BadRequestError" }
+        "401": { $ref: "#/components/responses/UnauthorizedError" }
+        "409":
+          description: "User already has facial biometrics enrolled or pending."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500": { $ref: "#/components/schemas/Error" }
+
+  /biometrics/enroll/fingerprint:
+    post:
+      tags:
+        - "Biometric Identity Verification (Core)"
+      summary: "Initiate Fingerprint Biometric Enrollment"
+      description: "Begins the secure enrollment process for fingerprint biometrics. Requires multiple scans and liveness detection for template generation."
+      operationId: "enrollFingerprintBiometric"
+      security:
+        - oAuth2Auth: [write:biometrics, write:identity]
+      requestBody:
+        required: true
+        description: "Request payload containing fingerprint scan data and liveness proof."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FingerprintEnrollmentRequest"
+      responses:
+        "202":
+          description: "Fingerprint biometric enrollment initiated."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnrollmentStatusResponse"
+        "400": { $ref: "#/components/responses/BadRequestError" }
+        "401": { $ref: "#/components/responses/UnauthorizedError" }
+        "409":
+          description: "User already has fingerprint biometrics enrolled or pending."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500": { $ref: "#/components/schemas/Error" }
+
+  /biometrics/enroll/voice:
+    post:
+      tags:
+        - "Biometric Identity Verification (Core)"
+      summary: "Initiate Voiceprint Biometric Enrollment"
+      description: "Begins the secure enrollment process for voiceprint biometrics. Requires the user to speak specific phrases, analyzed by Gemini AI for unique vocal characteristics."
+      operationId: "enrollVoiceBiometric"
+      security:
+        - oAuth2Auth: [write:biometrics, write:identity]
+      requestBody:
+        required: true
+        description: "Request payload containing voice recording samples and liveness proof."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VoiceEnrollmentRequest"
+      responses:
+        "202":
+          description: "Voiceprint biometric enrollment initiated."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnrollmentStatusResponse"
+        "400": { $ref: "#/components/responses/BadRequestError" }
+        "401": { $ref: "#/components/responses/UnauthorizedError" }
+        "409":
+          description: "User already has voiceprint biometrics enrolled or pending."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500": { $ref: "#/components/schemas/Error" }
+
+  /biometrics/enroll/gait:
+    post:
+      tags:
+        - "Biometric Identity Verification (Core)"
+      summary: "Initiate Gait Biometric Enrollment"
+      description: "Begins passive enrollment for gait biometrics, leveraging accelerometer/gyroscope data from user's device. Gemini AI analyzes walking patterns over time to build a unique profile."
+      operationId: "enrollGaitBiometric"
+      security:
+        - oAuth2Auth: [write:biometrics, write:identity]
+      requestBody:
+        required: true
+        description: "Request payload containing initial gait data samples."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GaitEnrollmentRequest"
+      responses:
+        "202":
+          description: "Gait biometric enrollment initiated. Data collection will continue passively."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnrollmentStatusResponse"
+        "400": { $ref: "#/components/responses/BadRequestError" }
+        "401": { $ref: "#/components/responses/UnauthorizedError" }
+        "409":
+          description: "User already has gait biometrics enrolled or pending."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500": { $ref: "#/components/schemas/Error" }
+
+  /biometrics/verify/face:
+    post:
+      tags:
+        - "Biometric Identity Verification (Core)"
+      summary: "Verify Identity using Facial Biometric"
+      description: "Performs a real-time facial biometric verification against the enrolled template, incorporating advanced liveness detection and Gemini AI for spoofing detection."
+      operationId: "verifyFaceBiometric"
+      security:
+        - oAuth2Auth: [read:biometrics]
+      requestBody:
+        required: true
+        description: "Request payload containing live facial scan data and liveness proof."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FacialVerificationRequest"
+      responses:
+        "200":
+          description: "Facial biometric verification successful."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BiometricVerificationResponse"
+        "400": { $ref: "#/components/responses/BadRequestError" }
+        "401": { $ref: "#/components/responses/UnauthorizedError" }
+        "403":
+          description: "Verification failed (e.g., mismatch, spoofing detected by AI)."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: "No facial biometric enrolled for this user."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500": { $ref: "#/components/schemas/Error"

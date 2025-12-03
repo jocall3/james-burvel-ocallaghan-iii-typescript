@@ -1,0 +1,139 @@
+name: Reusable Stale Process
+
+on:
+  workflow_call:
+    inputs:
+      # Required inputs
+      repo-token:
+        description: 'GitHub token for authentication'
+        required: true
+        type: string
+
+      # General timing parameters (apply to both PRs and Issues if specific ones not provided)
+      days-before-stale:
+        description: 'Number of days of inactivity before an item is marked stale.'
+        required: false
+        type: string
+        default: '60' # Default from seed file
+      days-before-close:
+        description: 'Number of days of inactivity before a stale item is closed.'
+        required: false
+        type: string
+        default: '7' # Default from seed file
+
+      # Messages for Pull Requests
+      stale-pr-message:
+        description: 'Message to add when a pull request is marked stale.'
+        required: false
+        type: string
+      close-pr-message:
+        description: 'Message to add when a pull request is closed due to staleness.'
+        required: false
+        type: string
+
+      # Messages for Issues
+      stale-issue-message:
+        description: 'Message to add when an issue is marked stale.'
+        required: false
+        type: string
+      close-issue-message:
+        description: 'Message to add when an issue is closed due to staleness.'
+        required: false
+        type: string
+
+      # Labels for Pull Requests
+      stale-pr-label:
+        description: 'Label to apply when a pull request is marked stale.'
+        required: false
+        type: string
+        default: 'stale' # Default from seed file
+      exempt-pr-labels:
+        description: 'Comma-separated list of labels to exempt pull requests from staleness.'
+        required: false
+        type: string
+        default: 'work-in-progress,keep-open,awaiting-review' # Default from seed file
+      pr-unlabel-stale:
+        description: 'Remove stale label from PR if activity occurs.'
+        required: false
+        type: boolean
+        default: false
+
+      # Labels for Issues
+      stale-issue-label:
+        description: 'Label to apply when an issue is marked stale.'
+        required: false
+        type: string
+        default: 'stale'
+      exempt-issue-labels:
+        description: 'Comma-separated list of labels to exempt issues from staleness.'
+        required: false
+        type: string
+        default: 'work-in-progress,keep-open,awaiting-review'
+      issue-unlabel-stale:
+        description: 'Remove stale label from issue if activity occurs.'
+        required: false
+        type: boolean
+        default: false
+
+      # Actions for Pull Requests
+      pr-unassign-stale:
+        description: 'Unassign stale pull requests.'
+        required: false
+        type: boolean
+        default: false
+      pr-unassign-closed:
+        description: 'Unassign closed pull requests.'
+        required: false
+        type: boolean
+        default: false
+      pr-delete-branch:
+        description: 'Delete branches for closed pull requests.'
+        required: false
+        type: boolean
+        default: false
+
+      # Actions for Issues
+      issue-unassign-stale:
+        description: 'Unassign stale issues.'
+        required: false
+        type: boolean
+        default: false
+      issue-unassign-closed:
+        description: 'Unassign closed issues.'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  stale-processor:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Process Stale Items
+        uses: actions/stale@v9
+        with:
+          repo-token: ${{ inputs.repo-token }}
+          days-before-stale: ${{ inputs.days-before-stale }}
+          days-before-close: ${{ inputs.days-before-close }}
+
+          # Pull Request specific configurations
+          stale-pr-message: ${{ inputs.stale-pr-message }}
+          close-pr-message: ${{ inputs.close-pr-message }}
+          stale-pr-label: ${{ inputs.stale-pr-label }}
+          exempt-pr-labels: ${{ inputs.exempt-pr-labels }}
+          pr-unlabel-stale: ${{ inputs.pr-unlabel-stale }}
+          pr-unassign-stale: ${{ inputs.pr-unassign-stale }}
+          pr-unassign-closed: ${{ inputs.pr-unassign-closed }}
+          pr-delete-branch: ${{ inputs.pr-delete-branch }}
+
+          # Issue specific configurations
+          stale-issue-message: ${{ inputs.stale-issue-message }}
+          close-issue-message: ${{ inputs.close-issue-message }}
+          stale-issue-label: ${{ inputs.stale-issue-label }}
+          exempt-issue-labels: ${{ inputs.exempt-issue-labels }}
+          issue-unlabel-stale: ${{ inputs.issue-unlabel-stale }}
+          issue-unassign-stale: ${{ inputs.issue-unassign-stale }}
+          issue-unassign-closed: ${{ inputs.issue-unassign-closed }}

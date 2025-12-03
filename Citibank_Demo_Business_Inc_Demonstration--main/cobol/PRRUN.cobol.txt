@@ -1,0 +1,295 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. PRRUN.
+       AUTHOR. JAMES BURVEL OCALLAGHAN III.
+      ******************************************************************
+      * PROCESS PAYROLL RUN - INTEGRATED WITH AI COMPLIANCE ASSISTANT
+      ******************************************************************
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT EMPLOYEE-FILE ASSIGN TO 'EMPFILE.DAT'
+               ORGANIZATION IS LINE SEQUENTIAL
+               FILE STATUS IS WS-EMPLOYEE-FILE-STATUS.
+           SELECT PAYROLL-OUTPUT-FILE ASSIGN TO 'PAYOUT.DAT'
+               ORGANIZATION IS LINE SEQUENTIAL
+               FILE STATUS IS WS-PAYROLL-FILE-STATUS.
+           SELECT AI-LOG-FILE ASSIGN TO 'AILOG.DAT'
+               ORGANIZATION IS LINE SEQUENTIAL
+               FILE STATUS IS WS-AI-LOG-FILE-STATUS.
+
+       DATA DIVISION.
+       FILE SECTION.
+       FD  EMPLOYEE-FILE.
+       01  EMPLOYEE-RECORD.
+           05  EMP-ID                  PIC X(10).
+           05  EMP-NAME                PIC X(30).
+           05  EMP-HOURS-WORKED        PIC 999V99.
+           05  EMP-PAY-RATE            PIC 999V99.
+           05  EMP-FEDERAL-TAX-RATE    PIC V99.
+           05  EMP-STATE-TAX-RATE      PIC V99.
+           05  EMP-HEALTH-DEDUCTION    PIC 9(5)V99.
+           05  EMP-RETIREMENT-DEDUCTION PIC 9(5)V99.
+           05  EMP-MISC-DEDUCTION      PIC 9(5)V99.
+
+       FD  PAYROLL-OUTPUT-FILE.
+       01  PAYROLL-RECORD-OUT.
+           05  PR-EMP-ID               PIC X(10).
+           05  PR-EMP-NAME             PIC X(30).
+           05  PR-GROSS-PAY            PIC $$,$$$,$$9.99.
+           05  PR-FEDERAL-TAX          PIC $$,$$$,$$9.99.
+           05  PR-STATE-TAX            PIC $$,$$$,$$9.99.
+           05  PR-HEALTH-DEDUCTION     PIC $$,$$$,$$9.99.
+           05  PR-RETIREMENT-DEDUCTION PIC $$,$$$,$$9.99.
+           05  PR-MISC-DEDUCTION       PIC $$,$$$,$$9.99.
+           05  PR-TOTAL-DEDUCTIONS     PIC $$,$$$,$$9.99.
+           05  PR-NET-PAY              PIC $$,$$$,$$9.99.
+           05  PR-AI-COMPLIANCE-FLAG   PIC X(01).
+           05  PR-AI-MESSAGE           PIC X(80).
+
+       FD  AI-LOG-FILE.
+       01  AI-LOG-RECORD.
+           05  AI-LOG-TIMESTAMP        PIC X(19).
+           05  AI-LOG-EMP-ID           PIC X(10).
+           05  AI-LOG-MESSAGE          PIC X(100).
+
+       WORKING-STORAGE SECTION.
+       01  WS-FILE-STATUS.
+           05  WS-EMPLOYEE-FILE-STATUS PIC X(02) VALUE '00'.
+           05  WS-PAYROLL-FILE-STATUS  PIC X(02) VALUE '00'.
+           05  WS-AI-LOG-FILE-STATUS   PIC X(02) VALUE '00'.
+           05  WS-END-OF-EMPLOYEE-FILE PIC X(01) VALUE 'N'.
+               88 END-OF-FILE                  VALUE 'Y'.
+
+       01  WS-PAYROLL-CALCULATIONS.
+           05  WS-GROSS-PAY            PIC 9(7)V99.
+           05  WS-FEDERAL-TAX          PIC 9(7)V99.
+           05  WS-STATE-TAX            PIC 9(7)V99.
+           05  WS-TOTAL-DEDUCTIONS     PIC 9(7)V99.
+           05  WS-NET-PAY              PIC 9(7)V99.
+           05  WS-TOTAL-STATUTORY-DED  PIC 9(7)V99.
+           05  WS-TOTAL-VOLUNTARY-DED  PIC 9(7)V99.
+
+       01  WS-AI-INTERACTION.
+           05  WS-AI-INPUT.
+               10  AI-INPUT-EMP-ID     PIC X(10).
+               10  AI-INPUT-GROSS-PAY  PIC 9(7)V99.
+               10  AI-INPUT-HOURS      PIC 999V99.
+               10  AI-INPUT-PAY-RATE   PIC 999V99.
+               10  AI-INPUT-TAX-RATES.
+                   15  AI-INPUT-FED-RATE PIC V99.
+                   15  AI-INPUT-STATE-RATE PIC V99.
+               10  AI-INPUT-DEDUCTIONS.
+                   15  AI-INPUT-HEALTH   PIC 9(5)V99.
+                   15  AI-INPUT-RETIREMENT PIC 9(5)V99.
+                   15  AI-INPUT-MISC     PIC 9(5)V99.
+           05  WS-AI-OUTPUT.
+               10  AI-OUTPUT-COMPLIANCE-FLAG PIC X(01).
+               10  AI-OUTPUT-MESSAGE   PIC X(80).
+
+       01  WS-CURRENT-DATE-TIME.
+           05  WS-CURRENT-DATE.
+               10  WS-CURRENT-YEAR     PIC 9(04).
+               10  WS-CURRENT-MONTH    PIC 9(02).
+               10  WS-CURRENT-DAY      PIC 9(02).
+           05  WS-CURRENT-TIME.
+               10  WS-CURRENT-HOUR     PIC 9(02).
+               10  WS-CURRENT-MINUTE   PIC 9(02).
+               10  WS-CURRENT-SECOND   PIC 9(02).
+               10  WS-CURRENT-HUNDREDTHS PIC 9(02).
+
+       PROCEDURE DIVISION.
+       MAIN-LOGIC.
+           PERFORM 1000-INITIALIZE-PROGRAM
+           PERFORM 2000-PROCESS-PAYROLL-RECORDS
+               UNTIL END-OF-FILE
+           PERFORM 3000-FINALIZE-PROGRAM
+           STOP RUN.
+
+       1000-INITIALIZE-PROGRAM.
+           DISPLAY "PRRUN: Initiating Payroll Run System..."
+
+           OPEN INPUT EMPLOYEE-FILE
+               OUTPUT PAYROLL-OUTPUT-FILE
+               OUTPUT AI-LOG-FILE
+
+           IF WS-EMPLOYEE-FILE-STATUS NOT = '00'
+               DISPLAY "PRRUN: Error opening EMPLOYEE-FILE. Status: "
+                       WS-EMPLOYEE-FILE-STATUS
+               PERFORM 3000-FINALIZE-PROGRAM
+               STOP RUN
+           END-IF.
+           IF WS-PAYROLL-FILE-STATUS NOT = '00'
+               DISPLAY "PRRUN: Error opening PAYROLL-OUTPUT-FILE. Status: "
+                       WS-PAYROLL-FILE-STATUS
+               PERFORM 3000-FINALIZE-PROGRAM
+               STOP RUN
+           END-IF.
+           IF WS-AI-LOG-FILE-STATUS NOT = '00'
+               DISPLAY "PRRUN: Error opening AI-LOG-FILE. Status: "
+                       WS-AI-LOG-FILE-STATUS
+               PERFORM 3000-FINALIZE-PROGRAM
+               STOP RUN
+           END-IF.
+
+           DISPLAY "PRRUN: All files opened successfully. Ready to process."
+           PERFORM 1100-READ-EMPLOYEE-RECORD.
+
+       1100-READ-EMPLOYEE-RECORD.
+           READ EMPLOYEE-FILE
+               AT END SET END-OF-FILE TO TRUE
+                   DISPLAY "PRRUN: End of Employee File reached."
+               NOT AT END
+                   CONTINUE
+           END-READ.
+           IF WS-EMPLOYEE-FILE-STATUS NOT = '00' AND
+              WS-EMPLOYEE-FILE-STATUS NOT = '10'  *> '10' for AT END
+               DISPLAY "PRRUN: Critical error reading Employee File. Status: "
+                       WS-EMPLOYEE-FILE-STATUS
+               SET END-OF-FILE TO TRUE             *> Force termination
+           END-IF.
+
+       2000-PROCESS-PAYROLL-RECORDS.
+           IF NOT END-OF-FILE
+               DISPLAY "PRRUN: Processing employee: " EMP-ID " - " EMP-NAME
+               PERFORM 2100-CALCULATE-GROSS-PAY
+               PERFORM 2200-CALCULATE-TAXES-DEDUCTIONS
+               PERFORM 2300-CALL-AI-COMPLIANCE-ASSISTANT
+               PERFORM 2400-WRITE-PAYROLL-RECORD
+               PERFORM 1100-READ-EMPLOYEE-RECORD
+           END-IF.
+
+       2100-CALCULATE-GROSS-PAY.
+           COMPUTE WS-GROSS-PAY = EMP-HOURS-WORKED * EMP-PAY-RATE.
+           DISPLAY "PRRUN: Gross pay calculated for " EMP-ID ": "
+                   WS-GROSS-PAY.
+
+       2200-CALCULATE-TAXES-DEDUCTIONS.
+           COMPUTE WS-FEDERAL-TAX = WS-GROSS-PAY * EMP-FEDERAL-TAX-RATE.
+           COMPUTE WS-STATE-TAX   = WS-GROSS-PAY * EMP-STATE-TAX-RATE.
+
+           COMPUTE WS-TOTAL-STATUTORY-DED = WS-FEDERAL-TAX + WS-STATE-TAX.
+           COMPUTE WS-TOTAL-VOLUNTARY-DED = EMP-HEALTH-DEDUCTION +
+                                            EMP-RETIREMENT-DEDUCTION +
+                                            EMP-MISC-DEDUCTION.
+
+           COMPUTE WS-TOTAL-DEDUCTIONS = WS-TOTAL-STATUTORY-DED +
+                                         WS-TOTAL-VOLUNTARY-DED.
+
+           COMPUTE WS-NET-PAY = WS-GROSS-PAY - WS-TOTAL-DEDUCTIONS.
+
+           DISPLAY "PRRUN: Taxes & Deductions for " EMP-ID
+                   ", Net Pay: " WS-NET-PAY.
+
+       2300-CALL-AI-COMPLIANCE-ASSISTANT.
+           DISPLAY "PRRUN: Engaging AI Payroll Compliance Assistant for "
+                   EMP-ID "...".
+
+           MOVE EMP-ID TO AI-INPUT-EMP-ID.
+           MOVE WS-GROSS-PAY TO AI-INPUT-GROSS-PAY.
+           MOVE EMP-HOURS-WORKED TO AI-INPUT-HOURS.
+           MOVE EMP-PAY-RATE TO AI-INPUT-PAY-RATE.
+           MOVE EMP-FEDERAL-TAX-RATE TO AI-INPUT-FED-RATE.
+           MOVE EMP-STATE-TAX-RATE TO AI-INPUT-STATE-RATE.
+           MOVE EMP-HEALTH-DEDUCTION TO AI-INPUT-HEALTH.
+           MOVE EMP-RETIREMENT-DEDUCTION TO AI-INPUT-RETIREMENT.
+           MOVE EMP-MISC-DEDUCTION TO AI-INPUT-MISC.
+
+           *> This section simulates an interaction with an AI subsystem.
+           *> In a real-world, expanded system, this would involve a CALL to a
+           *> specialized AI module, an API gateway for a cloud AI service,
+           *> or a more complex COBOL subprogram performing pattern recognition.
+           *> For this demonstration, we use conditional logic to simulate AI assessment.
+
+           INITIALIZE AI-OUTPUT-COMPLIANCE-FLAG
+           INITIALIZE AI-OUTPUT-MESSAGE
+
+           IF WS-GROSS-PAY > 12000.00 AND EMP-HOURS-WORKED > 80
+               MOVE 'N' TO AI-OUTPUT-COMPLIANCE-FLAG
+               MOVE "AI Noted: High pay, high hours. Check overtime regs & salary status."
+                   TO AI-OUTPUT-MESSAGE
+               DISPLAY "PRRUN: AI flagged potential anomaly for " EMP-ID
+                       ": " AI-OUTPUT-MESSAGE
+           ELSE IF WS-NET-PAY < 0
+               MOVE 'N' TO AI-OUTPUT-COMPLIANCE-FLAG
+               MOVE "AI Alert: Negative net pay. Urgent review of deductions/earnings needed."
+                   TO AI-OUTPUT-MESSAGE
+               DISPLAY "PRRUN: AI flagged critical error for " EMP-ID
+                       ": " AI-OUTPUT-MESSAGE
+           ELSE IF WS-FEDERAL-TAX + WS-STATE-TAX = ZERO AND WS-GROSS-PAY > ZERO
+               MOVE 'N' TO AI-OUTPUT-COMPLIANCE-FLAG
+               MOVE "AI Alert: No taxes withheld for non-zero gross pay. Verify tax exemptions."
+                   TO AI-OUTPUT-MESSAGE
+               DISPLAY "PRRUN: AI flagged tax anomaly for " EMP-ID
+                       ": " AI-OUTPUT-MESSAGE
+           ELSE
+               MOVE 'Y' TO AI-OUTPUT-COMPLIANCE-FLAG
+               MOVE "AI Verified: Calculations align with standard payroll parameters. Compliance assumed."
+                   TO AI-OUTPUT-MESSAGE
+               DISPLAY "PRRUN: AI confirmed compliance for " EMP-ID
+                       ": " AI-OUTPUT-MESSAGE
+           END-IF.
+
+           PERFORM 2310-WRITE-AI-LOG.
+
+       2310-WRITE-AI-LOG.
+           ACCEPT WS-CURRENT-DATE-TIME FROM DATE YYYYMMDD TIME HHMMSSFF.
+           STRING WS-CURRENT-YEAR DELIMITED BY SIZE
+                  WS-CURRENT-MONTH DELIMITED BY SIZE
+                  WS-CURRENT-DAY DELIMITED BY SIZE
+                  '-' DELIMITED BY SIZE
+                  WS-CURRENT-HOUR DELIMITED BY SIZE
+                  ':' DELIMITED BY SIZE
+                  WS-CURRENT-MINUTE DELIMITED BY SIZE
+                  ':' DELIMITED BY SIZE
+                  WS-CURRENT-SECOND DELIMITED BY SIZE
+                  INTO AI-LOG-TIMESTAMP.
+           MOVE EMP-ID TO AI-LOG-EMP-ID.
+           MOVE AI-OUTPUT-MESSAGE TO AI-LOG-MESSAGE.
+
+           WRITE AI-LOG-RECORD.
+           IF WS-AI-LOG-FILE-STATUS NOT = '00'
+               DISPLAY "PRRUN: Error writing to AI Log File for " EMP-ID
+                       ". Status: " WS-AI-LOG-FILE-STATUS
+           END-IF.
+
+       2400-WRITE-PAYROLL-RECORD.
+           MOVE EMP-ID TO PR-EMP-ID.
+           MOVE EMP-NAME TO PR-EMP-NAME.
+           MOVE WS-GROSS-PAY TO PR-GROSS-PAY.
+           MOVE WS-FEDERAL-TAX TO PR-FEDERAL-TAX.
+           MOVE WS-STATE-TAX TO PR-STATE-TAX.
+           MOVE EMP-HEALTH-DEDUCTION TO PR-HEALTH-DEDUCTION.
+           MOVE EMP-RETIREMENT-DEDUCTION TO PR-RETIREMENT-DEDUCTION.
+           MOVE EMP-MISC-DEDUCTION TO PR-MISC-DEDUCTION.
+           MOVE WS-TOTAL-DEDUCTIONS TO PR-TOTAL-DEDUCTIONS.
+           MOVE WS-NET-PAY TO PR-NET-PAY.
+           MOVE AI-OUTPUT-COMPLIANCE-FLAG TO PR-AI-COMPLIANCE-FLAG.
+           MOVE AI-OUTPUT-MESSAGE TO PR-AI-MESSAGE.
+
+           WRITE PAYROLL-RECORD-OUT.
+           IF WS-PAYROLL-FILE-STATUS NOT = '00'
+               DISPLAY "PRRUN: Error writing Payroll Record for " EMP-ID
+                       ". Status: " WS-PAYROLL-FILE-STATUS
+           END-IF.
+           DISPLAY "PRRUN: Payroll record written for " PR-EMP-ID
+                   " with AI compliance flag: " PR-AI-COMPLIANCE-FLAG.
+
+       3000-FINALIZE-PROGRAM.
+           CLOSE EMPLOYEE-FILE
+                 PAYROLL-OUTPUT-FILE
+                 AI-LOG-FILE.
+
+           IF WS-EMPLOYEE-FILE-STATUS NOT = '00' OR
+              WS-PAYROLL-FILE-STATUS NOT = '00' OR
+              WS-AI-LOG-FILE-STATUS NOT = '00'
+               DISPLAY "PRRUN: Warning: Errors occurred during file closing."
+               DISPLAY "PRRUN: Employee File Status: " WS-EMPLOYEE-FILE-STATUS
+               DISPLAY "PRRUN: Payroll File Status: " WS-PAYROLL-FILE-STATUS
+               DISPLAY "PRRUN: AI Log File Status: " WS-AI-LOG-FILE-STATUS
+           ELSE
+               DISPLAY "PRRUN: All files closed successfully."
+           END-IF.
+           DISPLAY "PRRUN: Payroll processing complete for all eligible employees."
+           DISPLAY "PRRUN: Final funds distribution pending approval based on AI assessments."
+           DISPLAY "PRRUN: Exiting program."
+           .

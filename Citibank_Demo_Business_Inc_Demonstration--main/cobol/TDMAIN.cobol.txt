@@ -1,0 +1,326 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. TDMAIN.
+       AUTHOR. PROGRAMMER-AI.
+      ******************************************************************
+      * TIME DEPOSIT SYSTEM (TDS) MAIN CONTROL PROGRAM
+      * This program serves as the central hub for managing Time Deposits,
+      * including Certificates of Deposit (CDs). It offers various
+      * functionalities such as opening new accounts, inquiries,
+      * maturity processing, and integrates with advanced analytical
+      * and AI-driven services to provide enhanced capabilities and
+      * improved operational efficiency. The system is designed to be
+      * robust, user-friendly, and adaptable to future financial needs.
+      ******************************************************************
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+      *----------------------------------------------------------------*
+      * Menu and User Interaction Variables
+      *----------------------------------------------------------------*
+       01 WS-MENU-SWITCHES.
+          05 WS-USER-CHOICE       PIC X(01).
+             88 EXIT-TD-MENU      VALUE 'X'.
+             88 VALID-MENU-CHOICE VALUES ARE '1', '2', '3', '4', '5', '6', 'X'.
+          05 WS-RETURN-CODE       PIC S9(04) COMP VALUE ZEROS.
+             88 RC-SUCCESS        VALUE ZEROS.
+             88 RC-WARNING        VALUE 100.
+             88 RC-ERROR          VALUE 9999.
+          05 WS-MESSAGE-TEXT      PIC X(80) VALUE SPACES.
+
+      *----------------------------------------------------------------*
+      * AI Integration Variables (Simulated Interface)
+      * This section defines data structures used to communicate with
+      * hypothetical AI modules. In a real mainframe environment, these
+      * might involve inter-program communication, shared memory, or
+      * external API calls via middleware. Here, we simulate the data
+      * exchange for narrative purposes, showcasing how a COBOL system
+      * might leverage intelligent services.
+      *----------------------------------------------------------------*
+       01 WS-AI-COMMUNICATION-AREA.
+          05 WS-AI-REQUEST-TYPE   PIC X(15).
+             88 AI-REQUEST-OPTIMIZE-RATES VALUE 'OPTIMIZE-RATES'.
+             88 AI-REQUEST-CRM-INSIGHTS   VALUE 'CRM-INSIGHTS'.
+             88 AI-REQUEST-PREDICT-TRENDS VALUE 'PREDICT-TRENDS'.
+          05 WS-AI-INPUT-DATA     PIC X(250) VALUE SPACES.
+          05 WS-AI-OUTPUT-DATA    PIC X(700) VALUE SPACES.
+          05 WS-AI-STATUS         PIC X(10) VALUE SPACES.
+             88 AI-STATUS-READY    VALUE 'READY'.
+             88 AI-STATUS-BUSY     VALUE 'BUSY'.
+             88 AI-STATUS-COMPLETE VALUE 'COMPLETE'.
+             88 AI-STATUS-FAILED   VALUE 'FAILED'.
+          05 WS-AI-ADVICE-DETAIL  PIC X(350) VALUE SPACES.
+          05 WS-AI-CONFIDENCE     PIC 9(03) VALUE ZEROS.
+             88 AI-HIGH-CONFIDENCE VALUES ARE 80 THRU 100.
+             88 AI-MEDIUM-CONFIDENCE VALUES ARE 50 THRU 79.
+             88 AI-LOW-CONFIDENCE  VALUES ARE 0 THRU 49.
+
+      *----------------------------------------------------------------*
+      * Data for CD Processing (Simplified for TDMAIN)
+      * In a real system, these would be passed to subprograms or read
+      * from files/databases. Here, we use placeholders to demonstrate
+      * the types of data that might be involved.
+      *----------------------------------------------------------------*
+       01 WS-CD-ACCOUNT-DATA.
+          05 WS-CD-ACCOUNT-NUMBER PIC X(10).
+          05 WS-CD-AMOUNT         PIC S9(13)V99 COMP-3.
+          05 WS-CD-TERM-MONTHS    PIC 9(03).
+          05 WS-CD-INTEREST-RATE  PIC S9(01)V9(04) COMP-3.
+          05 WS-CD-OPEN-DATE      PIC 9(08).
+          05 WS-CD-MATURITY-DATE  PIC 9(08).
+             88 CD-IS-MATURE      VALUE IS LESS THAN OR EQUAL TO CURRENT-DATE.
+          05 WS-CD-CUSTOMER-ID    PIC X(10).
+
+       01 WS-CURRENT-DATE-FIELDS.
+          05 WS-CURRENT-DATE      PIC 9(08).
+          05 WS-CURRENT-YEAR      PIC 9(04).
+          05 WS-CURRENT-MONTH     PIC 9(02).
+          05 WS-CURRENT-DAY       PIC 9(02).
+
+       PROCEDURE DIVISION.
+       MAIN-LOGIC.
+           PERFORM 0010-INITIALIZE-PROGRAM.
+           PERFORM 1000-CONTROL-LOOP UNTIL EXIT-TD-MENU.
+           PERFORM 9000-TERMINATE-PROGRAM.
+           GOBACK.
+
+      ******************************************************************
+      * 0010-INITIALIZE-PROGRAM: Sets up initial program state. This
+      * includes fetching the current date and clearing any previous
+      * status messages, ensuring a clean start for each session.
+      ******************************************************************
+       0010-INITIALIZE-PROGRAM.
+           MOVE SPACES TO WS-USER-CHOICE.
+           MOVE ZEROS TO WS-RETURN-CODE.
+           MOVE SPACES TO WS-MESSAGE-TEXT.
+           ACCEPT WS-CURRENT-DATE FROM DATE YYYYMMDD.
+           MOVE WS-CURRENT-DATE(1:4) TO WS-CURRENT-YEAR.
+           MOVE WS-CURRENT-DATE(5:2) TO WS-CURRENT-MONTH.
+           MOVE WS-CURRENT-DATE(7:2) TO WS-CURRENT-DAY.
+           DISPLAY "TIME DEPOSIT SYSTEM Initialized. Current Date: "
+                   WS-CURRENT-DATE.
+
+      ******************************************************************
+      * 1000-CONTROL-LOOP: Displays the main menu and processes user
+      * selections. This is the heart of the user interaction, directing
+      * control to various sub-functions or AI-enhanced modules.
+      ******************************************************************
+       1000-CONTROL-LOOP.
+           PERFORM 1100-DISPLAY-MENU.
+           PERFORM 1200-ACCEPT-CHOICE.
+           PERFORM 1300-PROCESS-CHOICE.
+           PERFORM 1400-DISPLAY-STATUS-MESSAGE.
+
+      ******************************************************************
+      * 1100-DISPLAY-MENU: Presents the available options to the user.
+      * This menu has been expanded to include AI-driven features,
+      * offering more advanced financial tools and insights.
+      ******************************************************************
+       1100-DISPLAY-MENU.
+           DISPLAY " ".
+           DISPLAY "*************************************************".
+           DISPLAY "*        TIME DEPOSIT SYSTEM (TDS) MAIN         *".
+           DISPLAY "*************************************************".
+           DISPLAY "*   1. OPEN NEW CERTIFICATE OF DEPOSIT          *".
+           DISPLAY "*   2. INQUIRE CD DETAILS                       *".
+           DISPLAY "*   3. PROCESS MATURITIES                       *".
+           DISPLAY "*   4. AI-ASSISTED CD RATE OPTIMIZATION         *".
+           DISPLAY "*   5. AI-DRIVEN CUSTOMER INSIGHTS              *".
+           DISPLAY "*   6. REGULATORY COMPLIANCE CHECK              *".
+           DISPLAY "*   X. EXIT TO MAIN MENU                        *".
+           DISPLAY "*************************************************".
+
+      ******************************************************************
+      * 1200-ACCEPT-CHOICE: Reads and validates user input. Provides
+      * immediate feedback if an invalid option is selected.
+      ******************************************************************
+       1200-ACCEPT-CHOICE.
+           DISPLAY "ENTER YOUR CHOICE: " WITH NO ADVANCING.
+           ACCEPT WS-USER-CHOICE.
+           MOVE FUNCTION UPPER-CASE(WS-USER-CHOICE) TO WS-USER-CHOICE.
+           IF NOT VALID-MENU-CHOICE
+               MOVE 'Invalid selection. Please try again.' TO WS-MESSAGE-TEXT
+               MOVE 100 TO WS-RETURN-CODE
+           ELSE
+               MOVE SPACES TO WS-MESSAGE-TEXT
+               MOVE ZEROS TO WS-RETURN-CODE
+           END-IF.
+
+      ******************************************************************
+      * 1300-PROCESS-CHOICE: Dispatches control based on user input.
+      * This section now includes calls to new subprograms for AI
+      * functionality, demonstrating integration points for advanced
+      * analytical capabilities within the traditional mainframe flow.
+      ******************************************************************
+       1300-PROCESS-CHOICE.
+           EVALUATE WS-USER-CHOICE
+               WHEN "1"
+                   DISPLAY "Initiating New CD Opening Process..."
+                   CALL "TDOPEN" USING WS-CD-ACCOUNT-DATA WS-RETURN-CODE
+                   IF RC-SUCCESS
+                       MOVE 'CD Account Opened Successfully.' TO WS-MESSAGE-TEXT
+                   ELSE
+                       MOVE 'Error opening CD account. Check logs.' TO WS-MESSAGE-TEXT
+                   END-IF
+               WHEN "2"
+                   DISPLAY "Retrieving CD Details..."
+                   CALL "TDINQ" USING WS-CD-ACCOUNT-DATA WS-RETURN-CODE
+                   IF RC-SUCCESS
+                       MOVE 'CD Inquiry Complete. Details displayed.' TO WS-MESSAGE-TEXT
+                   ELSE
+                       MOVE 'Error during CD inquiry or CD not found.' TO WS-MESSAGE-TEXT
+                   END-IF
+               WHEN "3"
+                   DISPLAY "Processing CD Maturities..."
+                   CALL "TDMATR" USING WS-RETURN-CODE
+                   IF RC-SUCCESS
+                       MOVE 'Maturity processing initiated.' TO WS-MESSAGE-TEXT
+                   ELSE
+                       MOVE 'Error during maturity processing.' TO WS-MESSAGE-TEXT
+                   END-IF
+               WHEN "4"
+                   DISPLAY "--- ACTIVATING AI RATE OPTIMIZER ---"
+                   PERFORM 5000-AI-OPTIMIZE-RATES
+               WHEN "5"
+                   DISPLAY "--- ENGAGING AI CUSTOMER INSIGHTS ---"
+                   PERFORM 6000-AI-CUSTOMER-INSIGHTS
+               WHEN "6"
+                   DISPLAY "--- PERFORMING REGULATORY COMPLIANCE CHECK ---"
+                   PERFORM 7000-REGULATORY-COMPLIANCE
+               WHEN "X"
+                   MOVE 'Returning to Main Menu...' TO WS-MESSAGE-TEXT
+               WHEN OTHER
+                   IF RC-ERROR THEN
+                       MOVE 'System error detected during choice processing.' TO WS-MESSAGE-TEXT
+                   ELSE
+                       MOVE 'Unknown error occurred.' TO WS-MESSAGE-TEXT
+                   END-IF
+           END-EVALUATE.
+
+      ******************************************************************
+      * 1400-DISPLAY-STATUS-MESSAGE: Shows feedback to the user after
+      * each operation, indicating success, warnings, or errors.
+      ******************************************************************
+       1400-DISPLAY-STATUS-MESSAGE.
+           IF WS-MESSAGE-TEXT NOT EQUAL SPACES
+               DISPLAY "MESSAGE: " WS-MESSAGE-TEXT
+           END-IF.
+
+      ******************************************************************
+      * 5000-AI-OPTIMIZE-RATES: Orchestrates the call to an AI module
+      * for recommending optimal CD rates based on market conditions,
+      * internal policies, and predictive analytics. This is a narrative
+      * example of how an intelligent advisor might integrate, offering
+      * data-driven suggestions without direct automation of decisions.
+      ******************************************************************
+       5000-AI-OPTIMIZE-RATES.
+           DISPLAY " ".
+           DISPLAY "AI ADVISOR: Initiating intelligent rate optimization strategy.".
+           DISPLAY "            Analyzing current market trends, economic forecasts,".
+           DISPLAY "            and the institution's risk appetite.".
+           MOVE 'OPTIMIZE-RATES' TO WS-AI-REQUEST-TYPE.
+           MOVE 'MARKET-DATA|ECON-FORECASTS|PORTFOLIO-STATS|COMPETITOR-RATES'
+                TO WS-AI-INPUT-DATA.
+           MOVE 'BUSY' TO WS-AI-STATUS.
+           CALL "TDAIOPT" USING WS-AI-COMMUNICATION-AREA WS-RETURN-CODE.
+           IF RC-SUCCESS
+               MOVE 'COMPLETE' TO WS-AI-STATUS
+               DISPLAY "AI ADVISOR: Optimization analysis complete."
+               DISPLAY "            Recommended CD Rate Adjustments: "
+               DISPLAY "            " WS-AI-OUTPUT-DATA
+               DISPLAY "AI INSIGHTS: " WS-AI-ADVICE-DETAIL
+               IF AI-HIGH-CONFIDENCE
+                   DISPLAY "AI CONFIDENCE LEVEL: HIGH (Strong data correlation)"
+               ELSE IF AI-MEDIUM-CONFIDENCE
+                   DISPLAY "AI CONFIDENCE LEVEL: MEDIUM (Consider manual review)"
+               ELSE
+                   DISPLAY "AI CONFIDENCE LEVEL: LOW (Further human expertise recommended)"
+               END-IF
+               MOVE 'AI Rate Optimization advice provided.' TO WS-MESSAGE-TEXT
+           ELSE
+               MOVE 'FAILED' TO WS-AI-STATUS
+               DISPLAY "AI ADVISOR: Rate optimization process encountered an issue. "
+               DISPLAY "            Error Code: " WS-RETURN-CODE
+               MOVE 'AI Rate Optimization failed.' TO WS-MESSAGE-TEXT
+           END-IF.
+           MOVE ZEROS TO WS-RETURN-CODE. *> Reset RC for next operation
+           DISPLAY " ".
+
+      ******************************************************************
+      * 6000-AI-CUSTOMER-INSIGHTS: Engages an AI module to provide
+      * insights into customer behavior, preferences, and potential
+      * opportunities for personalized offers, enhancing customer
+      * relationship management by identifying trends and needs.
+      ******************************************************************
+       6000-AI-CUSTOMER-INSIGHTS.
+           DISPLAY " ".
+           DISPLAY "AI ADVISOR: Activating customer intelligence engine.".
+           DISPLAY "            Analyzing customer profiles, transaction histories,".
+           DISPLAY "            and product interactions to identify key insights.".
+           MOVE 'CRM-INSIGHTS' TO WS-AI-REQUEST-TYPE.
+           MOVE 'CUSTOMER-DEMOGRAPHICS|TRANSACTION-HISTORY|PRODUCT-INTERESTS|FEEDBACK'
+                TO WS-AI-INPUT-DATA.
+           MOVE 'BUSY' TO WS-AI-STATUS.
+           CALL "TDAICRM" USING WS-AI-COMMUNICATION-AREA WS-RETURN-CODE.
+           IF RC-SUCCESS
+               MOVE 'COMPLETE' TO WS-AI-STATUS
+               DISPLAY "AI ADVISOR: Customer insights report generated."
+               DISPLAY "AI SUMMARY: " WS-AI-OUTPUT-DATA
+               DISPLAY "AI RECOMMENDATION: " WS-AI-ADVICE-DETAIL
+               IF AI-HIGH-CONFIDENCE
+                   DISPLAY "AI CONFIDENCE LEVEL: HIGH (Strong predictive power)"
+               ELSE IF AI-MEDIUM-CONFIDENCE
+                   DISPLAY "AI CONFIDENCE LEVEL: MEDIUM (Actionable, but monitor)"
+               ELSE
+                   DISPLAY "AI CONFIDENCE LEVEL: LOW (Proceed with caution)"
+               END-IF
+               MOVE 'AI Customer Insights report available.' TO WS-MESSAGE-TEXT
+           ELSE
+               MOVE 'FAILED' TO WS-AI-STATUS
+               DISPLAY "AI ADVISOR: Customer insights generation failed. "
+               DISPLAY "            Error Code: " WS-RETURN-CODE
+               MOVE 'AI Customer Insights failed.' TO WS-MESSAGE-TEXT
+           END-IF.
+           MOVE ZEROS TO WS-RETURN-CODE. *> Reset RC for next operation
+           DISPLAY " ".
+
+      ******************************************************************
+      * 7000-REGULATORY-COMPLIANCE: Performs checks against current
+      * regulatory standards. While the core check is rule-based, an AI
+      * could potentially assist in interpreting complex regulations,
+      * predicting future compliance risks, or flagging anomalies.
+      * This simulates a call to a dedicated compliance module.
+      ******************************************************************
+       7000-REGULATORY-COMPLIANCE.
+           DISPLAY " ".
+           DISPLAY "SYSTEM: Initiating comprehensive regulatory compliance scan...".
+           DISPLAY "        Cross-referencing current operations against latest ".
+           DISPLAY "        financial regulations and internal policies.".
+           CALL "TDREG" USING WS-RETURN-CODE.
+           IF RC-SUCCESS
+               DISPLAY "SYSTEM: Compliance check completed successfully. "
+               DISPLAY "        All current regulations appear to be met. Report generated."
+               MOVE 'Regulatory compliance checked successfully.' TO WS-MESSAGE-TEXT
+           ELSE IF RC-WARNING
+               DISPLAY "SYSTEM: Compliance check completed with warnings. "
+               DISPLAY "        Potential areas for review identified. "
+               DISPLAY "        Please consult the detailed compliance report for action."
+               MOVE 'Compliance check warnings detected.' TO WS-MESSAGE-TEXT
+           ELSE
+               DISPLAY "SYSTEM: Compliance check failed. Immediate attention required "
+               DISPLAY "        to address critical non-compliance issues."
+               MOVE 'Regulatory compliance check failed.' TO WS-MESSAGE-TEXT
+           END-IF.
+           MOVE ZEROS TO WS-RETURN-CODE. *> Reset RC for next operation
+           DISPLAY " ".
+
+      ******************************************************************
+      * 9000-TERMINATE-PROGRAM: Performs cleanup before exiting.
+      * Ensures a graceful shutdown and provides a final message.
+      ******************************************************************
+       9000-TERMINATE-PROGRAM.
+           DISPLAY " ".
+           DISPLAY "TIME DEPOSIT SYSTEM Main System Shutting Down.".
+           DISPLAY "Thank you for using the Time Deposit System. Goodbye!".
+           MOVE SPACES TO WS-MESSAGE-TEXT.
+           MOVE ZEROS TO WS-RETURN-CODE.
+           DISPLAY " ".
+```

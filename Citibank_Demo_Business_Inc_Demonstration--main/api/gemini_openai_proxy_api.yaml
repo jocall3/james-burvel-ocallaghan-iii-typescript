@@ -1,0 +1,405 @@
+openapi: 3.1.0
+info:
+  title: Gemini API (OpenAI Proxy)
+  version: 1.0.0
+  description: An OpenAPI specification for interacting with the Gemini API through an OpenAI-compatible interface.
+    This API leverages Gemini's advanced capabilities, including "thinking budget" and streaming,
+    while maintaining a familiar OpenAI request structure.
+servers:
+  - url: https://generativelanguage.googleapis.com/v1beta/openai
+    description: Gemini API OpenAI-compatible endpoint
+security:
+  - BearerAuth: []
+paths:
+  /chat/completions:
+    post:
+      summary: Generate chat completions using Gemini models.
+      operationId: createChatCompletion
+      description: |
+        Creates a model response for the given chat conversation.
+        This endpoint supports various Gemini-specific features like `reasoning_effort` and `thinking_config`
+        within an `x-extra-body` for fine-grained control over model behavior, as well as streaming responses.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatCompletionRequest'
+            examples:
+              simple_prompt:
+                summary: Simple chat completion
+                value:
+                  model: gemini-2.0-flash
+                  messages:
+                    - role: user
+                      content: "Explain to me how AI works"
+              with_reasoning_effort:
+                summary: Chat completion with reasoning effort
+                value:
+                  model: gemini-2.5-flash
+                  reasoning_effort: low
+                  messages:
+                    - role: user
+                      content: "Describe the philosophical implications of consciousness in AI, based on the provided text."
+              with_thinking_config:
+                summary: Chat completion with thinking configuration
+                value:
+                  model: gemini-2.5-flash
+                  messages:
+                    - role: user
+                      content: "Elaborate on the most badass features of advanced AI based on the attached document."
+                  x-extra-body:
+                    google:
+                      thinking_config:
+                        include_thoughts: true
+              streaming_response:
+                summary: Streaming chat completion
+                value:
+                  model: gemini-2.0-flash
+                  messages:
+                    - role: user
+                      content: "Describe the future of quantum computing in a streaming fashion, incorporating novel abilities not yet widely known."
+                  stream: true
+      responses:
+        '200':
+          description: Successful response containing chat completion results.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ChatCompletionResponse'
+                  - $ref: '#/components/schemas/StreamedChatCompletionChunk'
+              examples:
+                non_streaming_success:
+                  summary: Non-streaming response
+                  value:
+                    id: chatcmpl-randomid123
+                    object: chat.completion
+                    created: 1678886400
+                    model: gemini-2.0-flash
+                    choices:
+                      - index: 0
+                        message:
+                          role: assistant
+                          content: "Artificial intelligence (AI) works by teaching computers to learn from data, make decisions, and solve problems, much like humans do. It involves various techniques like machine learning, neural networks, and deep learning..."
+                        finish_reason: stop
+                streaming_chunk_success:
+                  summary: Streaming response chunk
+                  value:
+                    id: chatcmpl-streamid456
+                    object: chat.completion.chunk
+                    created: 1678886401
+                    model: gemini-2.0-flash
+                    choices:
+                      - index: 0
+                        delta:
+                          content: "Artificial intelligence (AI) works by teaching computers..."
+                        finish_reason: null
+        '400':
+          description: Bad Request - Invalid input or parameters.
+        '401':
+          description: Unauthorized - Missing or invalid API key.
+        '500':
+          description: Internal Server Error.
+  /executive_briefings:
+    post:
+      summary: Generate executive-level strategic briefings and insights.
+      operationId: createExecutiveBriefing
+      description: |
+        Leverages Gemini's advanced reasoning capabilities to produce comprehensive,
+        high-level strategic briefings, market analyses, and decision-support documents.
+        This endpoint is designed for executives needing concise, actionable insights
+        derived from complex information.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecutiveBriefingRequest'
+            examples:
+              market_expansion_brief:
+                summary: Briefing on potential market expansion
+                value:
+                  topic: "Potential market expansion into Southeast Asia"
+                  key_questions:
+                    - "What are the top 3 markets to consider?"
+                    - "What are the primary risks and opportunities?"
+                    - "What initial strategic moves should be considered?"
+                  context: "Our company, a mid-sized tech firm specializing in cloud infrastructure, is considering international growth."
+                  scope: ["market trends", "competitive landscape", "regulatory environment", "economic indicators"]
+                  model: gemini-2.5-pro
+                  x-extra-body:
+                    google:
+                      thinking_config:
+                        include_thoughts: true
+                        thinking_budget: 2048
+      responses:
+        '200':
+          description: Successfully generated executive briefing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutiveBriefingResponse'
+              examples:
+                successful_briefing:
+                  summary: Example Executive Briefing Response
+                  value:
+                    briefing_id: execbrief-randomid789
+                    title: "Strategic Briefing: Market Expansion into Southeast Asia"
+                    executive_summary: "Analysis suggests Singapore, Vietnam, and Indonesia offer the most promising opportunities for cloud infrastructure expansion in Southeast Asia, driven by digital transformation initiatives and growing tech ecosystems. Key risks include regulatory complexities and intense local competition, balanced by opportunities for strategic partnerships and early market entry in emerging sectors."
+                    key_findings:
+                      - title: "Singapore: Gateway to Asia"
+                        details: "High digital adoption, stable economy, and supportive government policies make Singapore an ideal hub for regional operations, despite high operational costs and mature competition."
+                      - title: "Vietnam: Emerging Market Powerhouse"
+                        details: "Rapid economic growth, young tech-savvy population, and increasing foreign investment create significant demand for cloud services, though regulatory hurdles and infrastructure gaps require careful navigation."
+                      - title: "Indonesia: Vast Untapped Potential"
+                        details: "The largest economy in ASEAN with a rapidly expanding digital economy presents immense long-term growth prospects, but market fragmentation and diverse regulatory landscape pose challenges."
+                    recommendations:
+                      - "Form strategic alliances with local telecom providers and system integrators."
+                      - "Develop a localized product strategy, potentially offering tiered services for different market maturities."
+                      - "Establish a lean regional headquarters in Singapore to oversee phased entry into Vietnam and Indonesia."
+                    generated_by_model: gemini-2.5-pro
+                    thought_process_summary: "The model meticulously analyzed recent market reports, economic forecasts, and geopolitical considerations for each country. It identified key growth drivers, assessed competitive intensity, and weighted regulatory frameworks against market potential, focusing on actionable insights relevant to cloud infrastructure."
+        '400':
+          description: Bad Request - Invalid input for briefing generation.
+        '401':
+          description: Unauthorized - Missing or invalid API key.
+        '500':
+          description: Internal Server Error during briefing generation.
+
+components:
+  schemas:
+    Message:
+      type: object
+      required:
+        - role
+        - content
+      properties:
+        role:
+          type: string
+          description: The role of the author of this message.
+          enum: [user, assistant]
+        content:
+          type: string
+          description: The content of the message.
+    ThinkingConfig:
+      type: object
+      properties:
+        include_thoughts:
+          type: boolean
+          description: |
+            Whether to include thought summaries in the response.
+            Set to `true` to receive detailed thought processes from the model.
+          default: false
+        thinking_budget:
+          type: integer
+          description: |
+            An exact token budget for the model's thinking process.
+            Cannot be used if `include_thoughts` is false or if `reasoning_effort` is set.
+          minimum: 1
+    ChatCompletionRequest:
+      type: object
+      required:
+        - model
+        - messages
+      properties:
+        model:
+          type: string
+          description: ID of the model to use.
+          examples: ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-2.5-pro"]
+        messages:
+          type: array
+          description: A list of messages comprising the conversation so far.
+          items:
+            $ref: '#/components/schemas/Message'
+        reasoning_effort:
+          type: string
+          description: |
+            (Gemini-specific) Controls how much the model will "think" through complex problems.
+            Note: Cannot be used with `x-extra-body.google.thinking_config`. Not all models support "none".
+          enum: [low, medium, high, none]
+          default: medium
+        x-extra-body:
+          type: object
+          description: |
+            (Gemini-specific) Allows for including additional Google-specific fields in the request.
+            Currently supports `thinking_config` for detailed control over thought generation.
+            Note: Cannot be used with `reasoning_effort`.
+          properties:
+            google:
+              type: object
+              properties:
+                thinking_config:
+                  $ref: '#/components/schemas/ThinkingConfig'
+        stream:
+          type: boolean
+          description: If set, partial message deltas will be sent, like in ChatGPT.
+          default: false
+
+    ChatCompletionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: A unique identifier for the chat completion.
+        object:
+          type: string
+          description: The object type, which is always `chat.completion`.
+          enum: [chat.completion]
+        created:
+          type: integer
+          description: The Unix timestamp (in seconds) of when the chat completion was created.
+        model:
+          type: string
+          description: The model used for the chat completion.
+        choices:
+          type: array
+          description: A list of chat completion choices generated by the model.
+          items:
+            type: object
+            properties:
+              index:
+                type: integer
+                description: The index of the choice in the list of choices.
+              message:
+                $ref: '#/components/schemas/Message'
+              finish_reason:
+                type: string
+                description: The reason the model stopped generating tokens.
+                enum: [stop, length, content_filter, tool_calls, function_call]
+        usage:
+          type: object
+          properties:
+            prompt_tokens:
+              type: integer
+            completion_tokens:
+              type: integer
+            total_tokens:
+              type: integer
+
+    StreamedChatCompletionChunk:
+      type: object
+      properties:
+        id:
+          type: string
+          description: A unique identifier for the chat completion chunk.
+        object:
+          type: string
+          description: The object type, which is always `chat.completion.chunk`.
+          enum: [chat.completion.chunk]
+        created:
+          type: integer
+          description: The Unix timestamp (in seconds) of when the chat completion chunk was created.
+        model:
+          type: string
+          description: The model used for the chat completion chunk.
+        choices:
+          type: array
+          description: A list of chat completion choices generated by the model.
+          items:
+            type: object
+            properties:
+              index:
+                type: integer
+                description: The index of the choice in the list of choices.
+              delta:
+                type: object
+                properties:
+                  role:
+                    type: string
+                    enum: [user, assistant]
+                  content:
+                    type: string
+              finish_reason:
+                type: string
+                description: The reason the model stopped generating tokens.
+                enum: [stop, length, content_filter, tool_calls, function_call]
+
+    ExecutiveBriefingRequest:
+      type: object
+      required:
+        - topic
+        - key_questions
+        - model
+      properties:
+        topic:
+          type: string
+          description: The main subject or area for the executive briefing.
+          example: "Strategic Market Entry for AI Startups in Europe"
+        context:
+          type: string
+          description: |
+            Additional background information or specific details relevant to the briefing.
+            e.g., "Our company specializes in natural language processing for financial institutions."
+        scope:
+          type: array
+          description: Specific areas or facets to cover in the briefing.
+          items:
+            type: string
+          examples: ["market analysis", "competitive landscape", "regulatory challenges", "growth opportunities", "risk assessment"]
+        key_questions:
+          type: array
+          description: Specific questions the briefing should aim to answer, driving the core analysis.
+          items:
+            type: string
+          example:
+            - "What are the most promising European markets for AI startups in FinTech?"
+            - "Who are the key competitors and what are their strengths?"
+            - "What regulatory hurdles need to be addressed?"
+        model:
+          type: string
+          description: ID of the Gemini model to use for generating the briefing.
+          examples: ["gemini-2.5-pro", "gemini-2.5-flash"]
+        x-extra-body:
+          type: object
+          description: |
+            (Gemini-specific) Allows for including additional Google-specific fields in the request,
+            such as `thinking_config` for detailed control over thought generation.
+          properties:
+            google:
+              type: object
+              properties:
+                thinking_config:
+                  $ref: '#/components/schemas/ThinkingConfig'
+
+    ExecutiveBriefingResponse:
+      type: object
+      properties:
+        briefing_id:
+          type: string
+          description: A unique identifier for the generated executive briefing.
+        title:
+          type: string
+          description: The title of the executive briefing.
+        executive_summary:
+          type: string
+          description: A concise summary of the key findings and recommendations.
+        key_findings:
+          type: array
+          description: Detailed key findings, each with a title and description.
+          items:
+            type: object
+            properties:
+              title:
+                type: string
+              details:
+                type: string
+        recommendations:
+          type: array
+          description: Actionable recommendations derived from the analysis.
+          items:
+            type: string
+        generated_by_model:
+          type: string
+          description: The Gemini model that generated the briefing.
+        thought_process_summary:
+          type: string
+          description: |
+            A summary of the model's internal thought process, included if `thinking_config.include_thoughts` was true.
+            Provides insight into how the AI arrived at its conclusions.
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT # Or other token format like 'API Key' if it's not strictly JWT. For Gemini, it's typically an API key.

@@ -1,0 +1,4311 @@
+openapi: 3.0.3
+info:
+  title: "Demo Bank API: The Quantum Core - Publisher Edition"
+  description: |
+    Welcome to the **Quantum Core 3.0**, the pinnacle of financial technology, meticulously engineered to power the Demo Bank experience. This is far more than a mere set of endpoints; it is the living, breathing neural network of a next-generation financial ecosystem, poised to redefine digital banking for a global audience.
+    
+    Our API is a testament to the philosophy that finance should be an intelligent, predictive, and intensely personal dialogue—a dynamic, self-optimizing collaboration between users, visionary developers, and our proprietary Artificial General Intelligence, **Quantum**. We provide unparalleled programmatic access to the sophisticated tools and vast data reservoirs that fuel our platform, spanning from hyper-personalized wealth management to AI-driven corporate finance automation, decentralized asset orchestration, and pioneering business incubation.
+    
+    This comprehensive specification unveils the secure and high-performance protocols to connect with and command the core functionalities of Demo Bank. Empower yourself to architect and deploy the future of finance, with an infrastructure designed for exponential scalability, impenetrable security, real-time intelligence, and seamless global integration. As your most ambitious visions crystallize, our platform's unparalleled capabilities will not just meet them—they will amplify them. This is finance, reimagined, limitless, and brought to life by AI.
+servers:
+  - url: "/"
+tags:
+  - name: "Users & Identity Management"
+    description: "Comprehensive management of user profiles, advanced biometric authentication, multi-factor security, and digital identity verification (KYC/AML)."
+  - name: "Accounts & Balances"
+    description: "Real-time interaction with all linked financial accounts, including comprehensive balance sheets, predictive cash flow, and intelligent overdraft management."
+  - name: "Transactions & Insights"
+    description: "Access, intelligent categorization, real-time analysis, and AI-driven insights into transaction data, including advanced dispute resolution and trend detection."
+  - name: "Budgets & Financial Planning"
+    description: "AI-powered creation and dynamic management of user spending budgets, real-time progress tracking, and proactive alert systems."
+  - name: "Investments & Portfolio Intelligence"
+    description: "Sophisticated management of investment portfolios, AI-driven asset discovery, ESG impact analysis, predictive growth simulations, and automated rebalancing strategies."
+  - name: "AI Advisor (Quantum)"
+    description: "Engage with our state-of-the-art conversational AI, Quantum, for deeply personalized financial insights, proactive advice, and autonomous task execution via a rich tool ecosystem."
+  - name: "Quantum Weaver (Business Incubation)"
+    description: "The AI-driven seed funding and incubation platform. Submit, refine, and track business plans, receive AI-generated feedback, and secure investment capital."
+  - name: "Quantum Oracle (Predictive Simulation)"
+    description: "Unleash the power of 'what-if' scenario modeling. Run complex, multi-variable financial simulations with AI-powered foresight to understand future impacts and optimize strategies."
+  - name: "AI Ad Studio (Veo 2.0)"
+    description: "Programmatically generate high-fidelity, commercially viable video content from text prompts, leveraging cutting-edge generative AI models for targeted marketing campaigns."
+  - name: "Personalization & Experience Design"
+    description: "Endpoints for hyper-personalizing the user experience, including AI-generated themes, bespoke digital card designs, and adaptive interface elements."
+  - name: "Financial Goals & Strategic Planning"
+    description: "Define, manage, and accelerate progress towards long-term financial goals with AI-generated strategic plans, real-time progress tracking, and adaptive adjustments."
+  - name: "Marketplace (Plato AI)"
+    description: "Access a dynamic, AI-curated marketplace offering hyper-personalized product recommendations, simulate purchase impacts, and discover exclusive partner offers."
+  - name: "Decentralized Finance (DeFi) & Web3 Assets"
+    description: "Seamless integration with digital assets, cryptocurrencies, NFTs, and DeFi protocols. Connect wallets, execute on-chain transactions, and manage your Web3 portfolio."
+  - name: "Corporate Finance - Enterprise Cards"
+    description: "Sophisticated management of corporate card programs, granular spending controls, virtual card issuance, and intelligent compliance monitoring."
+  - name: "Corporate Finance - Global Payments & Treasury"
+    description: "Streamlined management of payment orders, automated invoice processing, multi-currency transactions, international transfers, and AI-driven treasury optimization."
+  - name: "Corporate Finance - Compliance & Risk"
+    description: "Advanced access to compliance cases, AI-powered financial anomaly detection, real-time risk assessments, and automated sanction screening for enterprise clients."
+  - name: "Rewards & Gamification Engine"
+    description: "Interact with the user's loyalty points, elite tiers, achievements, and dynamic gamification status within the Demo Bank ecosystem."
+  - name: "Credit Health & AI Underwriting"
+    description: "Comprehensive access to credit scores, detailed history, AI-generated improvement plans, and personalized lending offers with instant underwriting."
+  - name: "Notifications & Proactive Alerts"
+    description: "Retrieve, manage, and configure highly personalized user notifications across multiple channels, including AI-driven proactive alerts and critical security advisories."
+  - name: "Security & Open Banking Ecosystem"
+    description: "Manage advanced security settings, monitor login activity, control third-party application connections, and oversee API key access for external integrations."
+  - name: "Real-time Analytics & Predictive Intelligence"
+    description: "Unlocking advanced, AI-driven analytics dashboards, predictive financial forecasting, and custom report generation for both personal and corporate users."
+  - name: "Global Payments & Foreign Exchange"
+    description: "Facilitate secure, multi-currency transactions and international transfers with real-time and predictive foreign exchange rate analysis."
+  - name: "Sustainability & ESG Impact"
+    description: "Measure, track, and improve personal and corporate environmental, social, and governance (ESG) impact, including carbon footprint analysis and green investment opportunities."
+  - name: "AI-Powered Lending & Credit Solutions"
+    description: "Streamlined application for microloans and traditional credit products, featuring instant AI underwriting, personalized repayment schedules, and dynamic pre-approval offers."
+  - name: "Developer Tools & API Management"
+    description: "Tools for developers to integrate deeply with Demo Bank, including webhook management, API key lifecycle, event logging, and SDK access."
+  - name: "Digital Identity & Verifiable Credentials"
+    description: "Securely manage and verify digital identities, submit KYC documentation, and issue or receive verifiable digital credentials for seamless trust across platforms."
+  - name: "Treasury & Liquidity Management"
+    description: "Advanced corporate treasury functions, including AI-driven cash flow forecasting, liquidity optimization, investment strategy, and asset-liability management."
+  - name: "Enterprise Risk & Fraud Prevention"
+    description: "Define custom AI-powered fraud detection rules, monitor enterprise-wide risk alerts, leverage transactional risk scoring, and manage security incidents proactively."
+paths:
+  /users/me:
+    get:
+      tags:
+        - "Users & Identity Management"
+      summary: "Retrieve Comprehensive Current User Profile"
+      description: "Fetches the complete and dynamically updated profile information for the currently authenticated user, encompassing personal details, security status, gamification level, loyalty points, and linked identity attributes."
+      operationId: "getCurrentUserEnhancedProfile"
+      security:
+        - oAuth2Auth: [read:profile, read:security, read:rewards, read:identity]
+      responses:
+        "200":
+          description: "The user's complete, enriched profile information."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: "Unauthorized. Authentication token is missing, invalid, or expired."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  /users/me/preferences:
+    get:
+      tags:
+        - "Users & Identity Management"
+        - "Personalization & Experience Design"
+      summary: "Get User Personalization Preferences"
+      description: "Retrieves the user's deep personalization preferences, including AI customization settings, notification channel priorities, thematic choices, and data sharing consents."
+      operationId: "getUserPreferences"
+      security:
+        - oAuth2Auth: [read:profile, read:personalization]
+      responses:
+        "200":
+          description: "The user's personalized preferences."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPreferences"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+    put:
+      tags:
+        - "Users & Identity Management"
+        - "Personalization & Experience Design"
+      summary: "Update User Personalization Preferences"
+      description: "Updates the user's deep personalization preferences, allowing dynamic control over AI behavior, notification delivery, thematic choices, and data privacy settings."
+      operationId: "updateUserPreferences"
+      security:
+        - oAuth2Auth: [write:profile, write:personalization]
+      requestBody:
+        required: true
+        description: "The updated user preference payload."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserPreferences"
+      responses:
+        "200":
+          description: "User preferences updated successfully."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPreferences"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  /users/me/devices:
+    get:
+      tags:
+        - "Users & Identity Management"
+        - "Security & Open Banking Ecosystem"
+      summary: "List Connected Devices"
+      description: "Retrieves a list of all devices linked to the user's account, including mobile phones, tablets, and desktops, indicating their last active status and security posture."
+      operationId: "listConnectedDevices"
+      security:
+        - oAuth2Auth: [read:profile, read:security]
+      responses:
+        "200":
+          description: "A list of connected devices."
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Device"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+    post:
+      tags:
+        - "Users & Identity Management"
+        - "Security & Open Banking Ecosystem"
+      summary: "Register a New Device"
+      description: "Registers a new device for secure access and multi-factor authentication, associating it with the user's profile. This typically initiates a biometric or MFA enrollment flow."
+      operationId: "registerDevice"
+      security:
+        - oAuth2Auth: [write:profile, write:security]
+      requestBody:
+        required: true
+        description: "Details for the device to be registered."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterDeviceRequest"
+      responses:
+        "201":
+          description: "Device registered successfully, awaiting final verification."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "409":
+          description: "Device already registered or conflict during registration."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /users/me/devices/{deviceId}:
+    delete:
+      tags:
+        - "Users & Identity Management"
+        - "Security & Open Banking Ecosystem"
+      summary: "Deregister a Device"
+      description: "Removes a specific device from the user's linked devices, revoking its access and requiring re-registration for future use. Useful for lost or compromised devices."
+      operationId: "deregisterDevice"
+      security:
+        - oAuth2Auth: [write:profile, write:security]
+      parameters:
+        - $ref: "#/components/parameters/DeviceId"
+      responses:
+        "204":
+          description: "Device deregistered successfully."
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /accounts:
+    get:
+      tags:
+        - "Accounts & Balances"
+      summary: "List Linked Financial Accounts"
+      description: "Fetches a comprehensive, real-time list of all external financial accounts linked to the user's Demo Bank profile, including consolidated balances and institutional details."
+      operationId: "listLinkedAccounts"
+      security:
+        - oAuth2Auth: [read:accounts]
+      responses:
+        "200":
+          description: "A detailed list of linked financial accounts."
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LinkedAccount"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /accounts/{accountId}/details:
+    get:
+      tags:
+        - "Accounts & Balances"
+        - "Real-time Analytics & Predictive Intelligence"
+      summary: "Get Detailed Account Analytics & Forecasts"
+      description: "Retrieves comprehensive analytics for a specific financial account, including historical balance trends, projected cash flow, and AI-driven insights into spending patterns."
+      operationId: "getAccountDetailsAndAnalytics"
+      security:
+        - oAuth2Auth: [read:accounts, read:analytics]
+      parameters:
+        - $ref: "#/components/parameters/AccountId"
+      responses:
+        "200":
+          description: "Detailed account information with analytics and forecasts."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountDetail"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /accounts/link:
+    post:
+      tags:
+        - "Accounts & Balances"
+        - "Security & Open Banking Ecosystem"
+      summary: "Initiate Linking a New External Institution"
+      description: "Begins the secure process of linking a new external financial institution (e.g., another bank, investment platform) to the user's Demo Bank profile, typically involving a third-party tokenized flow."
+      operationId: "initiateAccountLinking"
+      security:
+        - oAuth2Auth: [write:accounts]
+      requestBody:
+        required: true
+        description: "Parameters for initiating the linking process, such as institution name or specific provider."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LinkAccountRequest"
+      responses:
+        "200":
+          description: "Account linking initiated. Provides a URI for the user to complete the connection securely."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkAccountResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /transactions:
+    get:
+      tags:
+        - "Transactions & Insights"
+      summary: "List & Filter Transactions with Advanced Options"
+      description: "Retrieves a paginated list of the user's transactions, with extensive options for filtering by type, category, date range, amount, and intelligent AI-driven sorting and search capabilities."
+      operationId: "listTransactionsEnhanced"
+      security:
+        - oAuth2Auth: [read:transactions]
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+        - name: "type"
+          in: "query"
+          description: "Filter transactions by type (e.g., income, expense, transfer)."
+          schema:
+            type: string
+            enum: [income, expense, transfer, investment, refund, bill_payment]
+        - name: "category"
+          in: "query"
+          description: "Filter transactions by their AI-assigned or user-defined category."
+          schema:
+            type: string
+            example: "Groceries"
+        - name: "startDate"
+          in: "query"
+          description: "Retrieve transactions from this date (inclusive)."
+          schema:
+            type: string
+            format: date
+            example: "2024-01-01"
+        - name: "endDate"
+          in: "query"
+          description: "Retrieve transactions up to this date (inclusive)."
+          schema:
+            type: string
+            format: date
+            example: "2024-12-31"
+        - name: "minAmount"
+          in: "query"
+          description: "Filter for transactions with an amount greater than or equal to this value."
+          schema:
+            type: number
+            format: float
+            minimum: 0
+        - name: "maxAmount"
+          in: "query"
+          description: "Filter for transactions with an amount less than or equal to this value."
+          schema:
+            type: number
+            format: float
+            minimum: 0
+        - name: "searchQuery"
+          in: "query"
+          description: "Free-text search across transaction descriptions, merchants, and notes."
+          schema:
+            type: string
+            example: "Starbucks"
+      responses:
+        "200":
+          description: "A paginated, intelligently filtered list of transactions."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedTransactions"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /transactions/{transactionId}:
+    get:
+      tags:
+        - "Transactions & Insights"
+      summary: "Get Detailed Transaction by ID"
+      description: "Retrieves granular information for a single transaction by its unique ID, including AI categorization confidence, merchant details, and associated carbon footprint."
+      operationId: "getTransactionByIdDetailed"
+      security:
+        - oAuth2Auth: [read:transactions]
+      parameters:
+        - $ref: "#/components/parameters/TransactionId"
+      responses:
+        "200":
+          description: "The requested transaction details with enhanced data."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /transactions/{transactionId}/categorize:
+    put:
+      tags:
+        - "Transactions & Insights"
+      summary: "Manually Categorize or Recategorize a Transaction"
+      description: "Allows the user to override or refine the AI's categorization for a transaction, improving future AI accuracy and personal financial reporting."
+      operationId: "categorizeTransaction"
+      security:
+        - oAuth2Auth: [write:transactions]
+      parameters:
+        - $ref: "#/components/parameters/TransactionId"
+      requestBody:
+        required: true
+        description: "The new category for the transaction, along with optional notes."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategorizeTransactionRequest"
+      responses:
+        "200":
+          description: "Transaction category updated successfully."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /transactions/{transactionId}/dispute:
+    post:
+      tags:
+        - "Transactions & Insights"
+      summary: "Initiate a Transaction Dispute"
+      description: "Begins the process of disputing a specific transaction, providing details and supporting documentation for review by our compliance team and AI."
+      operationId: "initiateTransactionDispute"
+      security:
+        - oAuth2Auth: [write:transactions]
+      parameters:
+        - $ref: "#/components/parameters/TransactionId"
+      requestBody:
+        required: true
+        description: "Details regarding the transaction dispute."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DisputeRequest"
+      responses:
+        "202":
+          description: "Transaction dispute initiated. Status will be available via the transaction details."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DisputeStatus"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "409":
+          description: "Dispute already exists for this transaction or cannot be disputed."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /ai/advisor/chat:
+    post:
+      tags:
+        - "AI Advisor (Quantum)"
+      summary: "Send a Message to the Quantum AI Advisor"
+      description: "Initiates or continues a sophisticated conversation with Quantum, the AI Advisor. Quantum can provide advanced financial insights, execute complex tasks via an expanding suite of intelligent tools, and learn from user interactions to offer hyper-personalized guidance."
+      operationId: "chatWithQuantumAdvanced"
+      security:
+        - oAuth2Auth: [interact:ai_advisor]
+      requestBody:
+        required: true
+        description: "The rich message payload for the AI, including textual input and potential tool function outputs."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AIChatRequest"
+      responses:
+        "200":
+          description: "The AI Advisor's comprehensive response, which may include text, proactive recommendations, and declarative tool calls for execution."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AIChatResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "503":
+          description: "The Quantum AI Advisor service is temporarily overloaded or unavailable. Please try again shortly."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /ai/advisor/tools:
+    get:
+      tags:
+        - "AI Advisor (Quantum)"
+        - "Developer Tools & API Management"
+      summary: "List Available AI Tools for Quantum"
+      description: "Retrieves a dynamic manifest of all integrated AI tools that Quantum can invoke and execute, providing details on their capabilities, parameters, and access requirements."
+      operationId: "listQuantumAITools"
+      security:
+        - oAuth2Auth: [read:ai_advisor]
+      responses:
+        "200":
+          description: "A list of available AI tools."
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AITool"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /ai/oracle/simulate:
+    post:
+      tags:
+        - "Quantum Oracle (Predictive Simulation)"
+      summary: "Run a 'What-If' Financial Simulation (Standard)"
+      description: "Submits a hypothetical scenario to the Quantum Oracle AI for standard financial impact analysis. The AI simulates the effect on the user's current financial state and provides a summary."
+      operationId: "simulateWithQuantumOracle"
+      security:
+        - oAuth2Auth: [interact:ai_oracle]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SimulationRequest"
+      responses:
+        "200":
+          description: "The simulation was successful. The response contains a detailed impact analysis and actionable recommendations."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimulationResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "503":
+          description: "AI simulation service is temporarily unavailable due to high demand or maintenance."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /ai/oracle/simulate/advanced:
+    post:
+      tags:
+        - "Quantum Oracle (Predictive Simulation)"
+      summary: "Run an Advanced Multi-Variable Financial Simulation"
+      description: "Engages the Quantum Oracle for highly complex, multi-variable simulations, allowing precise control over numerous financial parameters, market conditions, and personal events to generate deep, predictive insights and sensitivity analysis."
+      operationId: "simulateWithQuantumOracleAdvanced"
+      security:
+        - oAuth2Auth: [interact:ai_oracle]
+      requestBody:
+        required: true
+        description: "An advanced request payload detailing the complex scenario and parameters for the AI simulation."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdvancedSimulationRequest"
+      responses:
+        "200":
+          description: "Advanced simulation completed successfully, returning granular impact analysis, sensitivity curves, and optimized strategies."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdvancedSimulationResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "503":
+          description: "AI simulation service is experiencing extended processing times or is unavailable for complex requests."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /ai/incubator/pitch:
+    post:
+      tags:
+        - "Quantum Weaver (Business Incubation)"
+      summary: "Submit a High-Potential Business Plan to Quantum Weaver"
+      description: "Submits a detailed business plan to the Quantum Weaver AI for rigorous analysis, market validation, and seed funding consideration. This initiates the AI-driven incubation journey, aiming to transform innovative ideas into commercially successful ventures."
+      operationId: "pitchToQuantumWeaver"
+      security:
+        - oAuth2Auth: [write:weaver]
+      requestBody:
+        required: true
+        description: "The comprehensive business plan document, including executive summary, market analysis, financial projections, and team overview."
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - businessPlan
+                - foundingTeam
+                - marketOpportunity
+                - financialProjections
+              properties:
+                businessPlan:
+                  type: string
+                  description: "The user's detailed narrative business plan (e.g., executive summary, vision, strategy)."
+                  example: "Our venture, 'SynergyChain AI,' aims to revolutionize global supply chain transparency and efficiency using a decentralized AI ledger. We leverage quantum-inspired algorithms to predict disruptions and optimize logistics, targeting multinational corporations..."
+                foundingTeam:
+                  type: array
+                  description: "Key profiles and expertise of the founding team members."
+                  items:
+                    type: object
+                    properties:
+                      name: {type: string, example: "Dr. Anya Sharma"}
+                      role: {type: string, example: "CEO, Lead AI Architect"}
+                      experience: {type: string, example: "20+ years in AI/ML, ex-Google X"}
+                marketOpportunity:
+                  type: string
+                  description: "Detailed analysis of the target market, problem statement, and proposed solution's unique value proposition."
+                  example: "The global supply chain market faces $1.5T in annual losses due to inefficiencies and lack of real-time data. SynergyChain AI offers a 30% reduction in lead times and a 15% cut in operational costs..."
+                financialProjections:
+                  type: object
+                  description: "Key financial metrics and projections for the next 3-5 years."
+                  properties:
+                    seedRoundAmount: {type: number, format: float, example: 5000000, description: "Requested seed funding in USD."}
+                    valuationPreMoney: {type: number, format: float, example: 20000000, description: "Pre-money valuation in USD."}
+                    projectionYears: {type: integer, example: 3}
+                    revenueForecast:
+                      type: array
+                      items: {type: number, format: float, example: 1000000, description: "Annual revenue forecast in USD."}
+                    profitabilityEstimate: {type: string, example: "Achieve profitability within 24 months."}
+      responses:
+        "202":
+          description: "The business plan was successfully ingested and is undergoing initial AI analysis. A unique pitch ID is provided for tracking progress."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuantumWeaverState"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "409":
+          description: "A similar pitch already exists or a pitch is currently under review for this user."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /ai/incubator/pitch/{pitchId}/details:
+    get:
+      tags:
+        - "Quantum Weaver (Business Incubation)"
+      summary: "Get Detailed AI Analysis & Feedback for a Business Pitch"
+      description: "Retrieves the granular AI-driven analysis, strategic feedback, market validation results, and any outstanding questions from Quantum Weaver for a specific business pitch."
+      operationId: "getQuantumWeaverPitchDetails"
+      security:
+        - oAuth2Auth: [read:weaver]
+      parameters:
+        - $ref: "#/components/parameters/PitchId"
+      responses:
+        "200":
+          description: "Comprehensive details of the pitch's current state, AI feedback, and next steps."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuantumWeaverDetailedState"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /ai/ads/generate:
+    post:
+      tags:
+        - "AI Ad Studio (Veo 2.0)"
+      summary: "Generate a Standard Video Ad with Veo 2.0"
+      description: "Submits a request to generate a high-quality video ad using the advanced Veo 2.0 generative AI model. This is an asynchronous operation, suitable for standard ad content creation."
+      operationId: "generateVideoAd"
+      security:
+        - oAuth2Auth: [write:ad_studio]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateVideoRequest"
+      responses:
+        "202":
+          description: "Video generation initiated. The response contains an operation ID to poll for status updates and retrieve the final asset."
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  operationId:
+                    type: string
+                    example: "op-video-gen-12345-abcde"
+                  estimatedCompletionTimeSeconds:
+                    type: integer
+                    description: "Estimated time until video generation is complete."
+                    example: 300
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  /ai/ads/generate/advanced:
+    post:
+      tags:
+        - "AI Ad Studio (Veo 2.0)"
+      summary: "Generate an Advanced Video Ad with Granular Controls"
+      description: "Submits a highly customized request to generate a video ad, allowing fine-grained control over artistic style, aspect ratio, voiceover, background music, target audience, and call-to-action elements for professional-grade productions."
+      operationId: "generateAdvancedVideoAd"
+      security:
+        - oAuth2Auth: [write:ad_studio]
+      requestBody:
+        required: true
+        description: "Payload for advanced video ad generation with comprehensive customization options."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdvancedGenerateVideoRequest"
+      responses:
+        "202":
+          description: "Advanced video generation initiated. An operation ID is provided for polling status and fetching the final asset."
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  operationId:
+                    type: string
+                    example: "op-adv-video-gen-xyz789-fghjk"
+                  estimatedCompletionTimeSeconds:
+                    type: integer
+                    description: "Estimated time until advanced video generation is complete. May be longer than standard generation."
+                    example: 900
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "429":
+          description: "Too Many Requests. Rate limit exceeded for advanced generation."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /ai/ads/operations/{operationId}:
+    get:
+      tags:
+        - "AI Ad Studio (Veo 2.0)"
+      summary: "Get Video Generation Status & Retrieve Asset"
+      description: "Polls the real-time status of an asynchronous video generation operation. Once complete ('done'), the response includes a temporary, signed URL to access and download the generated video asset."
+      operationId: "getVideoGenerationStatusAndAsset"
+      security:
+        - oAuth2Auth: [read:ad_studio]
+      parameters:
+        - name: "operationId"
+          in: "path"
+          required: true
+          description: "The unique identifier for the video generation operation."
+          schema:
+            type: string
+            example: "op-video-gen-12345-abcde"
+      responses:
+        "200":
+          description: "The current status of the video generation job. If 'done', the response includes the video URI and metadata."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VideoOperationStatus"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  /corporate/cards:
+    get:
+      tags:
+        - "Corporate Finance - Enterprise Cards"
+      summary: "List All Corporate Enterprise Cards"
+      description: "Retrieves a comprehensive list of all physical and virtual corporate cards associated with the user's organization, including their status, assigned holder, and current spending controls."
+      operationId: "listCorporateCardsDetailed"
+      security:
+        - oAuth2Auth: [read:corporate_cards]
+      responses:
+        "200":
+          description: "A detailed list of all corporate enterprise cards."
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CorporateCard"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  /corporate/cards/{cardId}/controls:
+    put:
+      tags:
+        - "Corporate Finance - Enterprise Cards"
+      summary: "Update Granular Corporate Card Spending Controls"
+      description: "Updates the sophisticated spending controls, limits, and policy overrides for a specific corporate card, enabling real-time adjustments for security and budget adherence."
+      operationId: "updateCorporateCardControls"
+      security:
+        - oAuth2Auth: [write:corporate_cards]
+      parameters:
+        - $ref: "#/components/parameters/CardId"
+      requestBody:
+        required: true
+        description: "The updated spending controls and limits for the corporate card."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CorporateCardControls"
+      responses:
+        "200":
+          description: "The corporate card with its advanced controls updated successfully."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CorporateCard"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /corporate/cards/{cardId}/freeze:
+    post:
+      tags:
+        - "Corporate Finance - Enterprise Cards"
+      summary: "Instantly Freeze or Unfreeze a Corporate Card"
+      description: "Immediately changes the frozen status of a corporate card, preventing or allowing transactions in real-time, critical for security and expense management."
+      operationId: "toggleCorporateCardFreeze"
+      security:
+        - oAuth2Auth: [write:corporate_cards]
+      parameters:
+        - $ref: "#/components/parameters/CardId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - freeze
+              properties:
+                freeze:
+                  type: boolean
+                  description: "Set to `true` to freeze the card, `false` to unfreeze."
+                  example: true
+      responses:
+        "200":
+          description: "The updated corporate card object reflecting the new frozen status."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CorporateCard"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /corporate/cards/virtual:
+    post:
+      tags:
+        - "Corporate Finance - Enterprise Cards"
+      summary: "Issue a New Virtual Corporate Card"
+      description: "Creates and issues a new virtual corporate card with specified spending limits, merchant restrictions, and expiration dates, ideal for secure online purchases and temporary projects."
+      operationId: "issueVirtualCorporateCard"
+      security:
+        - oAuth2Auth: [write:corporate_cards]
+      requestBody:
+        required: true
+        description: "Details for the new virtual card, including holder, limits, and purpose."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VirtualCardCreationRequest"
+      responses:
+        "201":
+          description: "Virtual corporate card issued successfully."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CorporateCard"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  /corporate/anomalies:
+    get:
+      tags:
+        - "Corporate Finance - Compliance & Risk"
+        - "Enterprise Risk & Fraud Prevention"
+      summary: "List AI-Detected Financial Anomalies"
+      description: "Retrieves a comprehensive list of AI-detected financial anomalies across transactions, payments, and corporate cards that require immediate review and potential action to mitigate risk and ensure compliance."
+      operationId: "listFinancialAnomalies"
+      security:
+        - oAuth2Auth: [read:compliance]
+      parameters:
+        - name: status
+          in: query
+          description: "Filter anomalies by their current review status."
+          schema:
+            type: string
+            enum: [New, Under Review, Escalated, Dismissed, Resolved]
+            default: New
+        - name: severity
+          in: query
+          description: "Filter anomalies by their AI-assessed severity level."
+          schema:
+            type: string
+            enum: [Low, Medium, High, Critical]
+        - name: entityType
+          in: query
+          description: "Filter anomalies by the type of financial entity they are related to."
+          schema:
+            type: string
+            enum: [PaymentOrder, Transaction, Counterparty, CorporateCard, Invoice]
+        - $ref: "#/components/parameters/StartDate"
+        - $ref: "#/components/parameters/EndDate"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: "A paginated list of AI-detected financial anomalies, prioritized by risk score."
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  limit: {type: integer, example: 50}
+                  offset: {type: integer, example: 0}
+                  total: {type: integer, example: 120}
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/FinancialAnomaly"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  /corporate/anomalies/{anomalyId}/status:
+    put:
+      tags:
+        - "Corporate Finance - Compliance & Risk"
+        - "Enterprise Risk & Fraud Prevention"
+      summary: "Update Anomaly Review Status"
+      description: "Updates the review status of a specific financial anomaly, allowing compliance officers to mark it as dismissed, resolved, or escalate for further investigation after thorough AI-assisted and human review."
+      operationId: "updateAnomalyStatus"
+      security:
+        - oAuth2Auth: [write:compliance]
+      parameters:
+        - $ref: "#/components/parameters/AnomalyId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [Dismissed, Resolved, Under Review, Escalated]
+                  description: "The new status for the financial anomaly."
+                  example: "Resolved"
+                resolutionNotes:
+                  type: string
+                  nullable: true
+                  description: "Optional notes regarding the resolution or dismissal of the anomaly."
+                  example: "Confirmed legitimate transaction after contacting vendor. Marked as resolved."
+      responses:
+        "200":
+          description: "The updated anomaly object with the new status and resolution notes."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinancialAnomaly"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /corporate/compliance/audits:
+    post:
+      tags:
+        - "Corporate Finance - Compliance & Risk"
+        - "Enterprise Risk & Fraud Prevention"
+      summary: "Request an AI-Driven Compliance Audit Report"
+      description: "Initiates an AI-powered compliance audit for a specific period or scope, generating a comprehensive report detailing adherence to regulatory frameworks, internal policies, and flagging potential risks."
+      operationId: "requestComplianceAudit"
+      security:
+        - oAuth2Auth: [write:compliance]
+      requestBody:
+        required: true
+        description: "Parameters for the compliance audit, including scope and date range."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ComplianceAuditRequest"
+      responses:
+        "202":
+          description: "Compliance audit initiated. An audit ID is returned to check the status and retrieve the report."
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  auditId:
+                    type: string
+                    example: "audit_corp_xyz789"
+                  status:
+                    type: string
+                    enum: [initiated, processing, completed, failed]
+                    example: "processing"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  /web3/wallets:
+    get:
+      tags:
+        - "Decentralized Finance (DeFi) & Web3 Assets"
+        - "Users & Identity Management"
+      summary: "List Connected Crypto Wallets"
+      description: "Retrieves a list of all securely linked cryptocurrency wallets (e.g., MetaMask, Ledger integration), showing their addresses, associated networks, and verification status."
+      operationId: "listCryptoWallets"
+      security:
+        - oAuth2Auth: [read:web3]
+      responses:
+        "200":
+          description: "A list of connected cryptocurrency wallets."
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CryptoWalletConnection"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+    post:
+      tags:
+        - "Decentralized Finance (DeFi) & Web3 Assets"
+        - "Users & Identity Management"
+      summary: "Connect a New Crypto Wallet"
+      description: "Initiates the process to securely connect a new cryptocurrency wallet to the user's Demo Bank profile, typically involving a signed message or OAuth flow from the wallet provider."
+      operationId: "connectCryptoWallet"
+      security:
+        - oAuth2Auth: [write:web3]
+      requestBody:
+        required: true
+        description: "Details for connecting a new crypto wallet, including the wallet type and signature/proof."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConnectWalletRequest"
+      responses:
+        "201":
+          description: "Wallet connection initiated or confirmed successfully."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CryptoWalletConnection"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "409":
+          description: "Wallet already connected or connection conflict."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /web3/nfts:
+    get:
+      tags:
+        - "Decentralized Finance (DeFi) & Web3 Assets"
+      summary: "Retrieve User's NFT Collection"
+      description: "Fetches a comprehensive list of Non-Fungible Tokens (NFTs) owned by the user across all connected wallets and supported blockchain networks, including metadata and market values."
+      operationId: "getUserNFTCollection"
+      security:
+        - oAuth2Auth: [read:web3]
+      responses:
+        "200":
+          description: "A list of the user's NFT assets."
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NFTAsset"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          description: "No NFTs found for the user or no wallets connected."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /payments/international/initiate:
+    post:
+      tags:
+        - "Global Payments & FX"
+        - "Corporate Finance - Global Payments & Treasury"
+      summary: "Initiate an International Wire Transfer"
+      description: "Facilitates the secure initiation of an international wire transfer to a beneficiary in another country and currency, leveraging optimal FX rates and tracking capabilities."
+      operationId: "initiateInternationalPayment"
+      security:
+        - oAuth2Auth: [write:payments, write:corporate_payments]
+      requestBody:
+        required: true
+        description: "Details for the international payment, including beneficiary, amount, currency, and bank details."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InternationalPaymentRequest"
+      responses:
+        "202":
+          description: "International payment initiated and is being processed. A payment ID is provided for tracking."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternationalPaymentStatus"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  /payments/fx/rates:
+    get:
+      tags:
+        - "Global Payments & FX"
+        - "Real-time Analytics & Predictive Intelligence"
+      summary: "Get Real-time & Predictive Foreign Exchange Rates"
+      description: "Retrieves current and AI-predicted future foreign exchange rates for a specified currency pair, including bid/ask spreads and historical volatility data for informed decisions."
+      operationId: "getFxRates"
+      security:
+        - oAuth2Auth: [read:fx_rates, read:analytics]
+      parameters:
+        - name: "baseCurrency"
+          in: "query"
+          required: true
+          description: "The base currency code (e.g., USD)."
+          schema:
+            type: string
+            example: "USD"
+        - name: "targetCurrency"
+          in: "query"
+          required: true
+          description: "The target currency code (e.g., EUR)."
+          schema:
+            type: string
+            example: "EUR"
+        - name: "forecastDays"
+          in: "query"
+          description: "Number of days into the future to provide an AI-driven prediction."
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 30
+            default: 7
+      responses:
+        "200":
+          description: "Real-time and predictive foreign exchange rates."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FxRateResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /sustainability/carbon-footprint:
+    get:
+      tags:
+        - "Sustainability & ESG Impact"
+        - "Real-time Analytics & Predictive Intelligence"
+      summary: "Retrieve Personal Carbon Footprint Report"
+      description: "Generates a detailed report of the user's estimated carbon footprint based on transaction data, lifestyle choices, and AI-driven impact assessments, offering insights and reduction strategies."
+      operationId: "getPersonalCarbonFootprint"
+      security:
+        - oAuth2Auth: [read:profile, read:transactions, read:sustainability]
+      responses:
+        "200":
+          description: "A comprehensive personal carbon footprint report."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CarbonFootprintReport"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /sustainability/investments/impact:
+    get:
+      tags:
+        - "Sustainability & ESG Impact"
+        - "Investments & Portfolio Intelligence"
+      summary: "Analyze ESG Impact of Investment Portfolio"
+      description: "Provides an AI-driven analysis of the Environmental, Social, and Governance (ESG) impact of the user's entire investment portfolio, benchmarking against industry standards and suggesting more sustainable alternatives."
+      operationId: "getInvestmentESGImpact"
+      security:
+        - oAuth2Auth: [read:accounts, read:investments, read:sustainability]
+      responses:
+        "200":
+          description: "An analysis of the ESG impact of the investment portfolio."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvestmentESGImpact"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          description: "No investment portfolio found or not enough data for analysis."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /lending/applications:
+    post:
+      tags:
+        - "AI-Powered Lending & Credit Solutions"
+        - "Credit Health & AI Underwriting"
+      summary: "Submit a Loan Application with AI Underwriting"
+      description: "Submits a new loan application, which is instantly processed and underwritten by our Quantum AI, providing rapid decisions and personalized loan offers based on real-time financial health data."
+      operationId: "submitLoanApplication"
+      security:
+        - oAuth2Auth: [write:lending, read:profile, read:accounts, read:transactions, read:credit]
+      requestBody:
+        required: true
+        description: "The loan application details, including desired amount, purpose, and term."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoanApplicationRequest"
+      responses:
+        "202":
+          description: "Loan application submitted. The AI is evaluating and will provide a decision shortly."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoanApplicationStatus"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "409":
+          description: "An active loan application already exists."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /lending/applications/{applicationId}:
+    get:
+      tags:
+        - "AI-Powered Lending & Credit Solutions"
+        - "Credit Health & AI Underwriting"
+      summary: "Get Loan Application Status & Details"
+      description: "Retrieves the current status and detailed information for a submitted loan application, including AI underwriting outcomes, approved terms, and next steps."
+      operationId: "getLoanApplicationDetails"
+      security:
+        - oAuth2Auth: [read:lending]
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      responses:
+        "200":
+          description: "Detailed status and terms of the loan application."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoanApplicationStatus"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /developers/webhooks:
+    get:
+      tags:
+        - "Developer Tools & API Management"
+      summary: "List Webhook Subscriptions"
+      description: "Retrieves a list of all active webhook subscriptions for the authenticated developer application, detailing endpoint URLs, subscribed events, and current status."
+      operationId: "listWebhookSubscriptions"
+      security:
+        - oAuth2Auth: [read:developer_tools]
+      responses:
+        "200":
+          description: "A list of active webhook subscriptions."
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WebhookSubscription"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+    post:
+      tags:
+        - "Developer Tools & API Management"
+      summary: "Create a New Webhook Subscription"
+      description: "Establishes a new webhook subscription, allowing a developer application to receive real-time notifications for specified events (e.g., new transaction, account update) via a provided callback URL."
+      operationId: "createWebhookSubscription"
+      security:
+        - oAuth2Auth: [write:developer_tools]
+      requestBody:
+        required: true
+        description: "Details for the new webhook subscription, including callback URL and desired event types."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookSubscriptionCreationRequest"
+      responses:
+        "201":
+          description: "Webhook subscription created successfully."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookSubscription"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  /developers/webhooks/{subscriptionId}:
+    put:
+      tags:
+        - "Developer Tools & API Management"
+      summary: "Update Webhook Subscription"
+      description: "Modifies an existing webhook subscription, allowing changes to the callback URL, subscribed events, or activation status."
+      operationId: "updateWebhookSubscription"
+      security:
+        - oAuth2Auth: [write:developer_tools]
+      parameters:
+        - $ref: "#/components/parameters/SubscriptionId"
+      requestBody:
+        required: true
+        description: "The updated webhook subscription details."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookSubscriptionUpdateRequest"
+      responses:
+        "200":
+          description: "Webhook subscription updated successfully."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookSubscription"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+    delete:
+      tags:
+        - "Developer Tools & API Management"
+      summary: "Delete Webhook Subscription"
+      description: "Deletes an existing webhook subscription, stopping all future event notifications to the specified callback URL."
+      operationId: "deleteWebhookSubscription"
+      security:
+        - oAuth2Auth: [write:developer_tools]
+      parameters:
+        - $ref: "#/components/parameters/SubscriptionId"
+      responses:
+        "204":
+          description: "Webhook subscription deleted successfully."
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /identity/kyc/submit:
+    post:
+      tags:
+        - "Digital Identity & Verifiable Credentials"
+        - "Users & Identity Management"
+      summary: "Submit KYC Documentation for Verification"
+      description: "Submits Know Your Customer (KYC) documentation, such as identity proofs and address verification, for AI-accelerated compliance and identity verification, crucial for higher service tiers and regulatory adherence."
+      operationId: "submitKYCDocuments"
+      security:
+        - oAuth2Auth: [write:identity]
+      requestBody:
+        required: true
+        description: "The KYC document submission payload, potentially including base64 encoded images or links to secure document stores."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KYCDocumentSubmission"
+      responses:
+        "202":
+          description: "KYC documentation submitted and undergoing AI-powered verification."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KYCStatus"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "409":
+          description: "A KYC submission is already pending or has been completed."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /corporate/treasury/cash-flow/forecast:
+    get:
+      tags:
+        - "Treasury & Liquidity Management"
+        - "Real-time Analytics & Predictive Intelligence"
+        - "Corporate Finance - Global Payments & Treasury"
+      summary: "Get AI-Driven Corporate Cash Flow Forecast"
+      description: "Retrieves an advanced AI-driven cash flow forecast for the organization, projecting liquidity, identifying potential surpluses or deficits, and providing recommendations for optimal treasury management."
+      operationId: "getCorporateCashFlowForecast"
+      security:
+        - oAuth2Auth: [read:corporate_treasury, read:corporate_payments, read:compliance, read:analytics]
+      parameters:
+        - $ref: "#/components/parameters/ForecastHorizonDays"
+        - $ref: "#/components/parameters/IncludeScenarioAnalysis"
+      responses:
+        "200":
+          description: "A comprehensive AI-driven cash flow forecast report."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CashFlowForecast"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  /corporate/risk/fraud/rules:
+    get:
+      tags:
+        - "Enterprise Risk & Fraud Prevention"
+        - "Corporate Finance - Compliance & Risk"
+      summary: "List AI-Powered Fraud Detection Rules"
+      description: "Retrieves a list of AI-powered fraud detection rules currently active for the organization, including their parameters, thresholds, and associated actions (e.g., flag, block, alert)."
+      operationId: "listFraudDetectionRules"
+      security:
+        - oAuth2Auth: [read:compliance, read:corporate_treasury]
+      responses:
+        "200":
+          description: "A list of fraud detection rules."
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FraudRule"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+    post:
+      tags:
+        - "Enterprise Risk & Fraud Prevention"
+        - "Corporate Finance - Compliance & Risk"
+      summary: "Create a New AI-Powered Fraud Detection Rule"
+      description: "Creates a new custom AI-powered fraud detection rule, allowing organizations to define specific criteria, risk scores, and automated responses to evolving threat landscapes."
+      operationId: "createFraudDetectionRule"
+      security:
+        - oAuth2Auth: [write:compliance, write:corporate_treasury]
+      requestBody:
+        required: true
+        description: "The definition of the new fraud detection rule."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FraudRuleCreationRequest"
+      responses:
+        "201":
+          description: "Fraud detection rule created successfully."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FraudRule"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "409":
+          description: "Rule with similar parameters already exists."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+
+components:
+  securitySchemes:
+    oAuth2Auth:
+      type: oauth2
+      description: "Advanced OAuth2 for granular user and application authentication, supporting multiple flows for diverse use cases."
+      flows:
+        authorizationCode:
+          authorizationUrl: https://api.demobank.com/oauth2/auth
+          tokenUrl: https://api.demobank.com/oauth2/token
+          scopes:
+            read:profile: "Read comprehensive user profile information and basic identity attributes."
+            write:profile: "Modify user profile, preferences, and security settings."
+            read:accounts: "Read access to all linked financial accounts, balances, and basic analytics."
+            write:accounts: "Manage linked accounts, initiate linking new institutions, and configure account settings."
+            read:transactions: "Read granular transaction history, AI categorizations, and dispute statuses."
+            write:transactions: "Modify transaction data (e.g., categorization, notes), and initiate disputes."
+            write:payments: "Initiate personal payments, transfers, and recurring payment setups."
+            interact:ai_advisor: "Full access to the conversational AI Advisor, including tool invocation."
+            interact:ai_oracle: "Access to the Quantum Oracle for standard and advanced financial simulations."
+            read:weaver: "Read status, feedback, and offers related to business plan submissions."
+            write:weaver: "Submit, manage, and respond to AI-generated questions for business plans in Quantum Weaver."
+            read:ad_studio: "Check status and retrieve generated assets from the AI Ad Studio."
+            write:ad_studio: "Generate standard and advanced video content using Veo 2.0."
+            read:corporate_cards: "Read comprehensive corporate card information, controls, and audit trails."
+            write:corporate_cards: "Modify corporate card status, spending controls, issue virtual cards, and manage policies."
+            read:corporate_payments: "Read corporate payment orders, invoices, counterparties, and approval workflows."
+            write:corporate_payments: "Create, approve, and manage corporate payment orders, batch payments, and international transfers."
+            read:compliance: "Read compliance cases, AI-detected financial anomalies, and audit reports."
+            write:compliance: "Update compliance case/anomaly status, configure risk rules, and request audit reports."
+            read:rewards: "Read rewards balance, loyalty tier, and available redemption items."
+            write:rewards: "Redeem reward points for items and manage loyalty program interactions."
+            read:analytics: "Access real-time dashboards, predictive forecasts, and custom reports for personal and corporate finance."
+            read:web3: "Read connected crypto wallets, NFTs, and DeFi protocol information."
+            write:web3: "Connect crypto wallets, initiate crypto transfers, and interact with DeFi protocols."
+            read:sustainability: "Access personal and corporate carbon footprint reports, and ESG investment impact analysis."
+            write:sustainability: "Contribute to green initiatives and configure sustainability preferences."
+            read:lending: "Access loan application status, terms, and pre-approval offers."
+            write:lending: "Submit loan applications and manage repayment schedules."
+            read:developer_tools: "Read webhook subscriptions, API keys, and event logs."
+            write:developer_tools: "Manage webhook subscriptions, create/revoke API keys."
+            read:identity: "Read KYC status, verified credentials, and biometric enrollment status."
+            write:identity: "Submit KYC documentation, enroll biometrics, and issue verifiable credentials."
+            read:corporate_treasury: "Access corporate cash flow forecasts, liquidity management strategies, and investment analyses."
+            write:corporate_treasury: "Define corporate investment strategies and liquidity adjustments."
+            read:fx_rates: "Access real-time and predictive foreign exchange rates."
+        clientCredentials:
+          tokenUrl: https://api.demobank.com/oauth2/token
+          scopes:
+            system:admin: "Full administrative control for trusted internal systems."
+            system:auditor: "Read-only access for auditing and compliance systems."
+            webhook:events: "Scope for webhook callbacks to authenticate event delivery."
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-KEY
+      description: "API Key authentication for server-to-server and trusted developer applications, typically used for developer tools and webhook validation."
+    biometricAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "Bearer token authentication validated against biometric enrollment, used for high-security transactions or sensitive data access."
+  parameters:
+    TransactionId:
+      name: transactionId
+      in: path
+      required: true
+      description: "The unique, immutable identifier for the financial transaction (e.g., `txn_quantum-2024-07-21-A7B8C9`)."
+      schema:
+        type: string
+        example: "txn_quantum-2024-07-21-A7B8C9"
+    CardId:
+      name: cardId
+      in: path
+      required: true
+      description: "The globally unique identifier for the corporate card (physical or virtual)."
+      schema:
+        type: string
+        example: "corp_card_xyz987654"
+    AnomalyId:
+      name: anomalyId
+      in: path
+      required: true
+      description: "The unique identifier assigned to a detected financial anomaly by the AI risk engine."
+      schema:
+        type: string
+        example: "anom_risk-2024-07-21-D1E2F3"
+    AccountId:
+      name: accountId
+      in: path
+      required: true
+      description: "The unique identifier for a linked financial account (e.g., `acc_chase_checking_4567`)."
+      schema:
+        type: string
+        example: "acc_chase_checking_4567"
+    DeviceId:
+      name: deviceId
+      in: path
+      required: true
+      description: "The unique identifier for a registered device associated with the user's account."
+      schema:
+        type: string
+        example: "dev_mobile_ios_aabbcc"
+    PitchId:
+      name: pitchId
+      in: path
+      required: true
+      description: "The unique identifier for a business pitch submitted to Quantum Weaver."
+      schema:
+        type: string
+        example: "pitch_qw_synergychain-xyz"
+    OperationId:
+      name: operationId
+      in: path
+      required: true
+      description: "The unique identifier for an asynchronous operation (e.g., video generation, large report processing)."
+      schema:
+        type: string
+        example: "op-video-gen-12345-abcde"
+    ApplicationId:
+      name: applicationId
+      in: path
+      required: true
+      description: "The unique identifier for a submitted loan application."
+      schema:
+        type: string
+        example: "loan_app_creditflow-123"
+    SubscriptionId:
+      name: subscriptionId
+      in: path
+      required: true
+      description: "The unique identifier for a webhook subscription."
+      schema:
+        type: string
+        example: "whsub_devtool_finance_events"
+    Limit:
+      name: "limit"
+      in: "query"
+      description: "The maximum number of items to return per page. Optimized for performance and typical use cases."
+      schema:
+        type: integer
+        default: 50
+        minimum: 1
+        maximum: 200
+    Offset:
+      name: "offset"
+      in: "query"
+      description: "The starting index of the list for pagination. Use with `limit` for efficient data retrieval."
+      schema:
+        type: integer
+        default: 0
+        minimum: 0
+    StartDate:
+      name: startDate
+      in: query
+      description: "The inclusive start date for filtering data, in `YYYY-MM-DD` format. All items after or on this date will be included."
+      schema:
+        type: string
+        format: date
+        example: "2024-01-01"
+    EndDate:
+      name: endDate
+      in: query
+      description: "The inclusive end date for filtering data, in `YYYY-MM-DD` format. All items before or on this date will be included."
+      schema:
+        type: string
+        format: date
+        example: "2024-12-31"
+    ForecastHorizonDays:
+      name: forecastHorizonDays
+      in: query
+      description: "The number of days into the future for which the AI should generate a forecast. Max 365 days."
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 365
+        default: 90
+    IncludeScenarioAnalysis:
+      name: includeScenarioAnalysis
+      in: query
+      description: "If true, the forecast will include AI-generated best-case, worst-case, and most-likely scenarios."
+      schema:
+        type: boolean
+        default: false
+  responses:
+    UnauthorizedError:
+      description: "Authentication information is missing, invalid, or expired. Please re-authenticate."
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ForbiddenError:
+      description: "The authenticated user or application does not possess the necessary permissions to perform this action, often due to scope limitations or role-based access controls."
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFoundError:
+      description: "The requested resource could not be found using the provided identifier. It may not exist, or you may not have access to it."
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    BadRequestError:
+      description: "The request payload is malformed, missing required fields, or contains invalid data. Refer to the 'details' field for specific validation errors."
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    TooManyRequestsError:
+      description: "The API rate limit has been exceeded. Please reduce the frequency of your requests and try again after the `Retry-After` period."
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+            description: "Number of seconds after which the client can make another request."
+            example: 30
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ConflictError:
+      description: "The request could not be completed due to a conflict with the current state of the resource, often involving unique constraints or concurrent updates."
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    User:
+      type: object
+      description: "The comprehensive user profile, incorporating personal details, security status, financial summaries, and loyalty program standing."
+      properties:
+        id:
+          type: string
+          example: "user-quantum-visionary-001"
+          description: "Unique identifier for the user across the Demo Bank ecosystem."
+        name:
+          type: string
+          example: "The Quantum Visionary"
+          description: "Full name of the user."
+        email:
+          type: string
+          format: email
+          example: "quantum.visionary@demobank.com"
+          description: "Primary email address, used for communications and login."
+        phone:
+          type: string
+          example: "+1-555-123-4567"
+          description: "Primary phone number, used for MFA and notifications."
+          nullable: true
+        dateOfBirth:
+          type: string
+          format: date
+          example: "1980-01-15"
+          description: "User's date of birth, for age verification and personalization."
+        address:
+          type: object
+          description: "Physical address of the user."
+          properties:
+            street: {type: string, example: "100 Innovation Drive"}
+            city: {type: string, example: "Quantumville"}
+            state: {type: string, example: "CA"}
+            zip: {type: string, example: "90210"}
+            country: {type: string, example: "USA"}
+        loyaltyTier:
+          type: string
+          example: "Zenith Platinum"
+          description: "Current loyalty program tier, influencing benefits and rewards."
+        loyaltyPoints:
+          type: integer
+          example: 12500
+          description: "Accumulated loyalty points, redeemable for various rewards."
+        gamificationLevel:
+          type: integer
+          example: 7
+          description: "Current gamification level, reflecting engagement and achievements."
+        aiPersona:
+          type: string
+          example: "Prudent Planner"
+          description: "AI-identified financial persona, used by Quantum for tailored advice."
+        securityStatus:
+          type: object
+          description: "Summary of user's security posture."
+          properties:
+            twoFactorEnabled: {type: boolean, example: true, description: "Indicates if 2FA is enabled."}
+            biometricsEnrolled: {type: boolean, example: true, description: "Indicates if biometric authentication is set up."}
+            lastLogin:
+              type: string
+              format: date-time
+              example: "2024-07-21T10:30:00Z"
+              description: "Timestamp of the last successful login."
+            lastLoginIp:
+              type: string
+              format: ipv4
+              example: "203.0.113.45"
+              description: "IP address of the last successful login."
+        preferences:
+          $ref: "#/components/schemas/UserPreferences"
+        identityVerified:
+          type: boolean
+          example: true
+          description: "True if KYC/identity verification is complete."
+    UserPreferences:
+      type: object
+      description: "Comprehensive settings for user experience, AI interaction, and notification management."
+      properties:
+        preferredLanguage:
+          type: string
+          example: "en-US"
+          description: "User's preferred interface language."
+        theme:
+          type: string
+          example: "Dark-Quantum"
+          description: "Chosen visual theme for the application."
+        aiInteractionMode:
+          type: string
+          enum: [proactive, reactive, balanced]
+          default: "balanced"
+          description: "How Quantum AI should interact: 'proactive' (frequent suggestions), 'reactive' (responds only when asked), 'balanced'."
+        notificationChannels:
+          type: object
+          description: "Preferred notification channels and their activation status."
+          properties:
+            email: {type: boolean, example: true}
+            push: {type: boolean, example: true}
+            sms: {type: boolean, example: false}
+            inApp: {type: boolean, example: true}
+        dataSharingConsent:
+          type: boolean
+          example: true
+          description: "User consent for sharing anonymized data to improve AI models."
+        transactionGrouping:
+          type: string
+          enum: [merchant, category, date]
+          default: "category"
+          description: "Default grouping preference for transaction lists."
+    Device:
+      type: object
+      description: "Details of a device registered to the user's account for access and security."
+      properties:
+        id:
+          type: string
+          example: "dev_mobile_ios_aabbcc"
+          description: "Unique identifier for the registered device."
+        type:
+          type: string
+          enum: [mobile, tablet, desktop, wearable]
+          example: "mobile"
+          description: "Type of device."
+        os:
+          type: string
+          example: "iOS 17.5"
+          description: "Operating system and version of the device."
+        model:
+          type: string
+          example: "iPhone 15 Pro Max"
+          description: "Device model."
+        lastActive:
+          type: string
+          format: date-time
+          example: "2024-07-21T11:05:00Z"
+          description: "Timestamp of the last recorded activity from this device."
+        ipAddress:
+          type: string
+          format: ipv4
+          example: "203.0.113.12"
+          description: "Last known IP address associated with the device."
+        trustLevel:
+          type: string
+          enum: [trusted, untrusted, pending_verification]
+          example: "trusted"
+          description: "Security trust level of the device. Untrusted devices may require additional MFA."
+        pushToken:
+          type: string
+          nullable: true
+          description: "Push notification token for the device, if registered."
+          example: "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]"
+    RegisterDeviceRequest:
+      type: object
+      description: "Request to register a new device."
+      required:
+        - deviceType
+        - os
+        - model
+        - biometricSignature
+      properties:
+        deviceType:
+          type: string
+          enum: [mobile, tablet, desktop, wearable]
+          example: "mobile"
+        os:
+          type: string
+          example: "Android 14"
+        model:
+          type: string
+          example: "Samsung Galaxy S24 Ultra"
+        biometricSignature:
+          type: string
+          description: "A cryptographic signature derived from a local biometric scan (e.g., face or fingerprint) on the new device, used for initial trust establishment."
+          example: "base64encoded_biometric_proof_string"
+        deviceName:
+          type: string
+          nullable: true
+          description: "Optional, user-friendly name for the device."
+          example: "My Work Laptop"
+    LinkedAccount:
+      type: object
+      description: "A summary of a financial account linked from an external institution."
+      properties:
+        id:
+          type: string
+          example: "acc_chase_checking_4567"
+          description: "A unique, internal ID for the linked account."
+        externalId:
+          type: string
+          description: "The institution's ID for the account from the data provider (e.g., Plaid)."
+          example: "plaid_acc_abc123"
+        name:
+          type: string
+          example: "Chase Checking"
+          description: "User-friendly name of the account."
+        institutionName:
+          type: string
+          example: "Chase Bank"
+          description: "Name of the financial institution."
+        mask:
+          type: string
+          example: "1111"
+          description: "Last four digits of the account number, for display purposes."
+        type:
+          type: string
+          enum: [depository, credit, loan, investment, brokerage, crypto]
+          example: "depository"
+          description: "Primary type of the account."
+        subtype:
+          type: string
+          example: "checking"
+          description: "Specific subtype of the account."
+        currency:
+          type: string
+          example: "USD"
+          description: "The currency of the account."
+        currentBalance:
+          type: number
+          format: float
+          example: 1250.75
+          description: "The current available balance in the account."
+        availableBalance:
+          type: number
+          format: float
+          example: 1200.00
+          description: "The current available balance, accounting for pending transactions."
+          nullable: true
+        limit:
+          type: number
+          format: float
+          example: 5000.00
+          description: "Credit limit for credit accounts, or overdraft limit for checking accounts."
+          nullable: true
+        lastUpdated:
+          type: string
+          format: date-time
+          example: "2024-07-21T10:45:00Z"
+          description: "Timestamp of the last successful balance update."
+    AccountDetail:
+      type: object
+      description: "Detailed information and analytics for a specific financial account."
+      allOf:
+        - $ref: "#/components/schemas/LinkedAccount"
+        - type: object
+          properties:
+            accountId:
+              type: string
+              example: "acc_chase_checking_4567"
+              description: "The unique identifier for the account."
+            accountHolder:
+              type: string
+              example: "The Quantum Visionary"
+              description: "Name of the primary account holder."
+            interestRate:
+              type: number
+              format: float
+              example: 0.01
+              description: "Annual interest rate for savings or lending accounts."
+              nullable: true
+            openedDate:
+              type: string
+              format: date
+              example: "2020-03-01"
+              description: "Date the account was opened."
+            transactionsCount:
+              type: integer
+              example: 150
+              description: "Total number of transactions linked to this account."
+            projectedCashFlow:
+              type: object
+              description: "AI-driven projection of future cash flow for the account."
+              properties:
+                days30: {type: number, format: float, example: 500, description: "Projected cash flow for the next 30 days."}
+                days90: {type: number, format: float, example: 1200, description: "Projected cash flow for the next 90 days."}
+                confidenceScore: {type: integer, minimum: 0, maximum: 100, example: 85, description: "AI confidence score for the cash flow projection."}
+            balanceHistory:
+              type: array
+              description: "Historical daily balance snapshots."
+              items:
+                type: object
+                properties:
+                  date: {type: string, format: date, example: "2024-07-20"}
+                  balance: {type: number, format: float, example: 1230.50}
+    LinkAccountRequest:
+      type: object
+      description: "Request to initiate linking a new external account."
+      required:
+        - institutionName
+        - countryCode
+      properties:
+        institutionName:
+          type: string
+          example: "Bank of America"
+          description: "The name of the financial institution to link."
+        countryCode:
+          type: string
+          example: "US"
+          description: "ISO 3166-1 alpha-2 country code of the institution."
+        accessToken:
+          type: string
+          nullable: true
+          description: "Optional: OAuth token from the institution if direct connection is supported."
+          example: "eyJr...jwt_token_from_institution"
+    LinkAccountResponse:
+      type: object
+      description: "Response containing instructions to complete the account linking."
+      required:
+        - linkSessionId
+        - authUri
+        - status
+      properties:
+        linkSessionId:
+          type: string
+          example: "link_session_xyz789"
+          description: "A session ID to track the linking process."
+        authUri:
+          type: string
+          format: uri
+          example: "https://auth.plaid.com/oauth/initiate?client_id=...&redirect_uri=..."
+          description: "The URI the user should be redirected to, or presented in a webview, to complete the linking process at the external institution's portal."
+        status:
+          type: string
+          enum: [pending_user_action, complete, failed]
+          example: "pending_user_action"
+          description: "Current status of the linking request."
+        message:
+          type: string
+          nullable: true
+          example: "Please redirect user to the provided URI to complete authentication."
+    Transaction:
+      type: object
+      description: "A detailed financial transaction entry with AI-enriched data."
+      properties:
+        id:
+          type: string
+          example: "txn_quantum-2024-07-21-A7B8C9"
+          description: "Unique identifier for the transaction."
+        accountId:
+          type: string
+          example: "acc_chase_checking_4567"
+          description: "ID of the account this transaction belongs to."
+        type:
+          type: string
+          enum: [income, expense, transfer, investment, refund, bill_payment, fee]
+          example: "expense"
+          description: "The type of transaction (e.g., income, expense)."
+        category:
+          type: string
+          example: "Dining & Restaurants"
+          description: "AI-assigned or user-defined category for the transaction."
+        aiCategoryConfidence:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          example: 0.92
+          description: "AI's confidence score (0-1) in the assigned category."
+        description:
+          type: string
+          example: "Coffee Shop - Quantum Cafe"
+          description: "Raw description from the bank statement or merchant."
+        merchantDetails:
+          type: object
+          nullable: true
+          description: "Detailed information about the merchant."
+          properties:
+            name: {type: string, example: "Quantum Cafe"}
+            logoUrl: {type: string, format: uri, example: "https://assets.demobank.com/merchants/quantum_cafe.png"}
+            website: {type: string, format: uri, example: "https://quantum.cafe"}
+            address:
+              type: object
+              properties:
+                city: {type: string, example: "Quantumville"}
+                state: {type: string, example: "CA"}
+                zip: {type: string, example: "90210"}
+        amount:
+          type: number
+          format: float
+          example: 12.50
+          description: "The transaction amount."
+        currency:
+          type: string
+          example: "USD"
+          description: "The currency of the transaction."
+        date:
+          type: string
+          format: date
+          example: "2024-07-21"
+          description: "The date the transaction occurred."
+        postedDate:
+          type: string
+          format: date
+          example: "2024-07-22"
+          description: "The date the transaction was officially posted."
+          nullable: true
+        carbonFootprint:
+          type: number
+          format: float
+          nullable: true
+          example: 1.2
+          description: "Estimated carbon footprint (in kg CO2e) associated with this transaction, calculated by AI."
+        location:
+          type: object
+          nullable: true
+          description: "Geographic location data for the transaction, if available."
+          properties:
+            latitude: {type: number, format: float, example: 34.0522}
+            longitude: {type: number, format: float, example: -118.2437}
+            city: {type: string, example: "Los Angeles"}
+        paymentChannel:
+          type: string
+          enum: [online, in_store, atm, recurring_bill, p2p]
+          example: "in_store"
+          description: "How the payment was made (e.g., online, in-store)."
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["work_lunch", "tax_deductible"]
+          description: "User-defined tags for deeper organization."
+        receiptUrl:
+          type: string
+          format: uri
+          nullable: true
+          example: "https://demobank.com/receipts/txn_1a2b3c4d5e.pdf"
+          description: "URL to a digital receipt, if captured or uploaded."
+        disputeStatus:
+          type: string
+          enum: [none, pending, under_review, resolved, rejected]
+          example: "none"
+          description: "Current status of any dispute related to this transaction."
+    PaginatedTransactions:
+      type: object
+      description: "A paginated list structure for transactions."
+      properties:
+        limit:
+          type: integer
+          example: 50
+        offset:
+          type: integer
+          example: 0
+        total:
+          type: integer
+          example: 250
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Transaction"
+        nextOffset:
+          type: integer
+          nullable: true
+          description: "The offset to use for the next page of results, if available."
+          example: 50
+        prevOffset:
+          type: integer
+          nullable: true
+          description: "The offset for the previous page of results, if available."
+          example: 0
+    CategorizeTransactionRequest:
+      type: object
+      description: "Request to update a transaction's category."
+      required:
+        - category
+      properties:
+        category:
+          type: string
+          example: "Business Expenses > Client Entertainment"
+          description: "The new category for the transaction. Can be a hierarchical path."
+        notes:
+          type: string
+          nullable: true
+          example: "Meeting with client for project Alpha."
+          description: "Optional user notes for the transaction."
+        applyToFuture:
+          type: boolean
+          default: false
+          description: "If true, Quantum AI will learn from this correction for future similar transactions."
+    DisputeRequest:
+      type: object
+      description: "Request to initiate a dispute for a transaction."
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          enum: [unauthorized, duplicate, wrong_amount, not_received_goods, other]
+          example: "unauthorized"
+          description: "The primary reason for disputing the transaction."
+        details:
+          type: string
+          nullable: true
+          description: "Detailed explanation of the dispute."
+          example: "I did not authorize this purchase. My card may have been compromised."
+        supportingDocuments:
+          type: array
+          items:
+            type: string
+            format: uri
+          nullable: true
+          description: "URLs to supporting documents (e.g., screenshots, communication logs)."
+          example: ["https://demobank.com/uploads/proof_of_non_purchase.png"]
+    DisputeStatus:
+      type: object
+      description: "Current status of a transaction dispute."
+      required:
+        - disputeId
+        - status
+      properties:
+        disputeId:
+          type: string
+          example: "dispute_txn_xyz123"
+          description: "Unique identifier for the dispute case."
+        status:
+          type: string
+          enum: [pending, under_review, documentation_requested, resolved_favorable, resolved_unfavorable, closed]
+          example: "pending"
+          description: "Current status of the dispute."
+        nextSteps:
+          type: string
+          example: "Our AI-powered fraud team is reviewing your claim. You will be notified within 2-3 business days."
+          description: "Recommended next steps or expected timeline."
+        lastUpdated:
+          type: string
+          format: date-time
+          example: "2024-07-21T11:30:00Z"
+    AIChatRequest:
+      type: object
+      description: "A comprehensive request payload for interacting with the Quantum AI Advisor, supporting conversational turns and tool outputs."
+      properties:
+        message:
+          type: string
+          example: "Can you analyze my recent spending patterns and suggest areas for saving, focusing on my dining expenses?"
+          description: "The user's natural language message to the AI."
+        sessionId:
+          type: string
+          description: "Unique ID to maintain conversation history and context across turns. A new session is automatically created if omitted."
+          nullable: true
+          example: "session-quantum-xyz-789-alpha"
+        context:
+          type: array
+          items:
+            type: object
+            properties:
+              role: {type: string, enum: [user, assistant, tool], example: "user"}
+              content: {type: string, example: "What's my balance?"}
+              toolCalls:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AIToolCall"
+                nullable: true
+              toolCallId: {type: string, nullable: true}
+          description: "Previous turns in the conversation for maintaining context. AI processes messages within this context."
+          nullable: true
+        functionResponse:
+          type: object
+          description: "The structured result from a tool call that was previously requested by the AI. This is how the AI receives data back from executed actions."
+          nullable: true
+          properties:
+            name:
+              type: string
+              example: "send_money"
+              description: "The name of the tool that was executed."
+            response:
+              type: object
+              description: "The JSON object representing the output of the tool's execution."
+              example: {"status": "success", "transactionId": "pmt_654321", "amountSent": 50, "recipient": "Alex"}
+    AIChatResponse:
+      type: object
+      description: "Quantum AI Advisor's rich response, potentially including conversational text, proactive insights, and calls to external tools for execution."
+      properties:
+        text:
+          type: string
+          description: "The natural language text response from the AI."
+          example: "I've completed a detailed analysis of your spending. It appears your dining expenses account for 35% of your total outflows this month, significantly higher than your target. Would you like me to identify specific areas for reduction or suggest alternative dining options?"
+        sessionId:
+          type: string
+          example: "session-quantum-xyz-789-alpha"
+          description: "The active session ID for this conversation."
+        proactiveInsights:
+          type: array
+          items:
+            $ref: "#/components/schemas/AIInsight"
+          description: "Proactive, AI-generated insights or recommendations relevant to the conversation or user's financial state."
+        functionCalls:
+          type: array
+          items:
+            $ref: "#/components/schemas/AIToolCall"
+          description: "A list of tool calls that the AI wants the system to execute based on the user's request. These must be executed by the client/system."
+    AIToolCall:
+      type: object
+      description: "A structured representation of an AI's request to execute an external tool or function."
+      properties:
+        id:
+          type: string
+          example: "call_abc123"
+          description: "Unique identifier for this tool call."
+        name:
+          type: string
+          example: "send_money"
+          description: "The name of the tool/function to be executed."
+        args:
+          type: object
+          description: "A JSON object containing the arguments required by the tool, as inferred by the AI."
+          example: {"amount": 50, "recipient": "Alex", "currency": "USD", "memo": "Birthday gift"}
+    AITool:
+      type: object
+      description: "Definition of an AI-callable tool, including its name, description, and expected parameters."
+      properties:
+        name:
+          type: string
+          example: "send_money"
+          description: "The programmatic name of the tool."
+        description:
+          type: string
+          example: "Sends money to a specified recipient from the user's primary checking account."
+          description: "A human-readable description of what the tool does."
+        parameters:
+          type: object
+          description: "OpenAPI Schema Object defining the input parameters for the tool."
+          example:
+            type: object
+            properties:
+              amount:
+                type: number
+                description: "The amount of money to send."
+              recipient:
+                type: string
+                description: "The name or ID of the recipient."
+              currency:
+                type: string
+                description: "The currency of the transaction (e.g., USD, EUR)."
+            required:
+              - amount
+              - recipient
+              - currency
+        accessScope:
+          type: string
+          example: "write:payments"
+          description: "The OAuth2 scope required to execute this tool."
+    AIInsight:
+      type: object
+      description: "A proactive, AI-generated financial insight or recommendation."
+      properties:
+        id:
+          type: string
+          example: "insight-spending-alert-001"
+          description: "Unique ID for the insight."
+        title:
+          type: string
+          example: "High Dining Spend Alert"
+          description: "Concise title for the insight."
+        description:
+          type: string
+          example: "Your dining expenses this month are 35% higher than your average, potentially impacting your budget by $150."
+          description: "Detailed explanation of the insight."
+        category:
+          type: string
+          enum: [spending, saving, investing, debt, goals, security, income, compliance]
+          example: "spending"
+          description: "Category of the financial insight."
+        severity:
+          type: string
+          enum: [low, medium, high, critical]
+          example: "medium"
+          description: "Severity level of the insight."
+        actionableRecommendation:
+          type: string
+          nullable: true
+          example: "Consider utilizing the 'Budget Optimizer' tool to adjust your dining budget or explore meal prep options."
+          description: "An optional, concrete action the user can take."
+        relatedToolCall:
+          $ref: "#/components/schemas/AIToolCall"
+          nullable: true
+          description: "An optional tool call that, if executed, can address the insight."
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-07-21T11:45:00Z"
+    SimulationRequest:
+      type: object
+      description: "Request to run a standard 'what-if' financial simulation."
+      required: [prompt]
+      properties:
+        prompt:
+          type: string
+          description: "A natural language description of the hypothetical scenario to simulate."
+          example: "What if I invest an additional $1,000 per month into my aggressive growth portfolio for the next 5 years?"
+        parameters:
+          type: object
+          description: "Key numerical parameters to guide the simulation, allowing the AI to focus on specific variables."
+          properties:
+            durationYears:
+              type: integer
+              example: 5
+              description: "Duration of the scenario in years."
+            monthlyInvestmentAmount:
+              type: number
+              format: float
+              example: 1000
+              description: "Monthly investment amount in USD."
+            riskTolerance:
+              type: string
+              enum: [low, medium, high, aggressive]
+              example: "aggressive"
+              description: "Simulated risk tolerance for investment scenarios."
+    SimulationResponse:
+      type: object
+      description: "Detailed results of a financial simulation from Quantum Oracle."
+      properties:
+        simulationId:
+          type: string
+          example: "sim_oracle-growth-2024-xyz"
+          description: "Unique ID for the completed simulation."
+        narrativeSummary:
+          type: string
+          description: "An AI-generated, easy-to-understand summary of the simulation's outcome and key takeaways."
+          example: "If you consistently invest an additional $1,000 per month into your aggressive growth portfolio over the next 5 years, the Quantum Oracle predicts your portfolio could grow by approximately 45-60%, significantly increasing your wealth. However, this comes with elevated risk during market downturns."
+        keyImpacts:
+          type: array
+          items:
+            type: object
+            properties:
+              metric:
+                type: string
+                example: "Projected Portfolio Value"
+              value:
+                type: string
+                example: "$120,000 - $140,000"
+              severity:
+                type: string
+                enum: [low, medium, high]
+                description: "Indicates the positive/negative magnitude of the impact. 'High' for significant positive or negative change."
+          description: "A list of critical financial metrics and their projected impact."
+        recommendations:
+          type: array
+          items:
+            type: object
+            properties:
+              title:
+                type: string
+                example: "Review Portfolio Diversification"
+              description:
+                type: string
+                example: "Given the aggressive nature of this strategy, the Oracle suggests reviewing your current portfolio diversification to mitigate concentration risk."
+              actionTrigger:
+                type: string
+                nullable: true
+                description: "An optional trigger for a specific action within the Demo Bank ecosystem."
+                example: "open_portfolio_diversification_tool"
+          description: "AI-generated, actionable recommendations based on the simulation results."
+        riskAnalysis:
+          type: object
+          description: "Analysis of potential risks associated with the simulated scenario."
+          properties:
+            maxDrawdown: {type: number, format: float, example: 0.25, description: "Simulated maximum percentage drawdown."}
+            volatilityIndex: {type: number, format: float, example: 0.18, description: "Expected volatility index."}
+    AdvancedSimulationRequest:
+      type: object
+      description: "Request for a highly detailed, multi-variable financial simulation."
+      required:
+        - prompt
+        - scenarios
+      properties:
+        prompt:
+          type: string
+          description: "An overarching natural language prompt for the advanced simulation."
+          example: "Evaluate the long-term impact of a sudden job loss combined with a variable market downturn, analyzing worst-case and best-case recovery scenarios over a decade."
+        scenarios:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            description: "Individual scenarios to simulate and compare."
+            properties:
+              name:
+                type: string
+                example: "Job Loss & Mild Market Recovery"
+                description: "Name for this specific scenario."
+              events:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                      enum: [job_loss, market_downturn, salary_increase, unexpected_expense, windfall]
+                      example: "job_loss"
+                    details:
+                      type: object
+                      example: {"durationMonths": 6, "severanceAmount": 10000, "unemploymentBenefits": 2000}
+                description: "A sequence of financial events to apply in this scenario."
+              durationYears:
+                type: integer
+                example: 10
+                description: "Total duration of this scenario in years."
+              sensitivityAnalysisParams:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    paramName: {type: string, example: "marketRecoveryRate"}
+                    min: {type: number, example: 0.03}
+                    max: {type: number, example: 0.07}
+                    step: {type: number, example: 0.01}
+                description: "Parameters to vary for sensitivity analysis within this scenario."
+    AdvancedSimulationResponse:
+      type: object
+      description: "Comprehensive results from an advanced multi-variable financial simulation."
+      properties:
+        simulationId:
+          type: string
+          example: "sim_oracle-complex-macro-123"
+        overallSummary:
+          type: string
+          description: "An AI-generated executive summary across all simulated scenarios."
+        scenarioResults:
+          type: array
+          items:
+            type: object
+            description: "Results for each individual scenario simulated."
+            properties:
+              scenarioName: {type: string, example: "Job Loss & Mild Market Recovery"}
+              narrativeSummary: {type: string, example: "In this scenario, initial liquidity challenges are observed, but a swift market recovery and prudent spending lead to recovery within 3 years."}
+              finalNetWorthProjected: {type: number, format: float, example: 1250000}
+              liquidityMetrics:
+                type: object
+                properties:
+                  minCashBalance: {type: number, format: float, example: -5000, description: "Lowest cash balance reached."}
+                  recoveryTimeMonths: {type: integer, example: 36, description: "Months to regain initial financial position."}
+              sensitivityAnalysisGraphs:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    paramName: {type: string, example: "marketRecoveryRate"}
+                    data: {type: array, items: {type: object, properties: {paramValue: {type: number}, outcomeValue: {type: number}}}, description: "Data points for plotting sensitivity curve."}
+        strategicRecommendations:
+          type: array
+          items:
+            $ref: "#/components/schemas/AIInsight"
+          description: "Holistic, AI-driven strategic recommendations across all scenarios."
+    QuantumWeaverState:
+      type: object
+      description: "The current state and progress of a business pitch within the Quantum Weaver incubation platform."
+      properties:
+        pitchId:
+          type: string
+          example: "pitch_qw_synergychain-xyz"
+          description: "Unique identifier for the business pitch."
+        stage:
+          type: string
+          enum: [submitted, initial_review, ai_analysis, feedback_required, test_phase, final_review, approved_for_funding, rejected, incubated_graduated]
+          example: "ai_analysis"
+          description: "Current stage of the business plan in the incubation process."
+        statusMessage:
+          type: string
+          example: "Quantum Weaver is currently conducting an in-depth market validation and AI-driven financial projection analysis for SynergyChain AI."
+          description: "A human-readable status message."
+        lastUpdated:
+          type: string
+          format: date-time
+          example: "2024-07-21T12:00:00Z"
+        feedbackSummary:
+          type: string
+          nullable: true
+          description: "A summary of initial AI-generated feedback and potential areas for improvement."
+          example: "Initial analysis indicates a strong market fit, but further detail is required on customer acquisition costs and scaling strategy."
+        questions:
+          type: array
+          items:
+            $ref: "#/components/schemas/AIQuestion"
+          description: "Specific questions from Quantum Weaver requiring clarification or additional data from the entrepreneur."
+        nextSteps:
+          type: string
+          example: "Please address the outstanding questions in the 'questions' array and resubmit feedback."
+        estimatedFundingOffer:
+          type: number
+          format: float
+          nullable: true
+          example: 5000000
+          description: "AI's preliminary estimate of potential seed funding amount (in USD)."
+    QuantumWeaverDetailedState:
+      type: object
+      description: "Expanded, granular state of a business pitch with full AI feedback, financial modeling, and market analysis."
+      allOf:
+        - $ref: "#/components/schemas/QuantumWeaverState"
+        - type: object
+          properties:
+            aiFinancialModel:
+              type: object
+              description: "AI-generated financial projections and sensitivity analysis for the business."
+              properties:
+                revenueBreakdown: {type: object, example: {"Year 1": "2.5M", "Year 2": "7.8M"}}
+                costStructureAnalysis: {type: object, example: {"Fixed Costs": "30%", "Variable Costs": "40%"}}
+                breakevenPoint: {type: string, example: "18 months"}
+                capitalRequirements: {type: number, format: float, example: 4500000}
+                sensitivityAnalysis:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      scenario: {type: string, example: "Aggressive Growth"}
+                      projectedIRR: {type: number, format: float, example: 0.35}
+                      terminalValue: {type: number, format: float, example: 50000000}
+            aiMarketAnalysis:
+              type: object
+              description: "AI-driven market validation, competitive landscape, and growth potential."
+              properties:
+                targetMarketSize: {type: string, example: "$50 Billion (TAM)"}
+                competitiveAdvantages: {type: array, items: {type: string}, example: ["Proprietary AI Algorithm", "First-mover advantage"]}
+                growthOpportunities: {type: string, example: "Expansion into APAC region, new product lines."}
+                riskFactors: {type: string, example: "Regulatory changes in AI governance."}
+            aiCoachingPlan:
+              $ref: "#/components/schemas/AIPlan"
+              description: "A personalized coaching plan generated by AI to help the entrepreneur refine their pitch and business strategy."
+            investorMatchScore:
+              type: number
+              format: float
+              minimum: 0
+              maximum: 1
+              example: 0.88
+              description: "AI's score indicating the alignment of the pitch with Demo Bank's investment thesis and risk appetite."
+            aiRiskAssessment:
+              type: object
+              description: "AI's assessment of the overall business risk."
+              properties:
+                technicalRisk: {type: string, example: "Medium (complex AI development)"}
+                marketRisk: {type: string, example: "Low (established market, clear pain points)"}
+                teamRisk: {type: string, example: "Low (experienced founding team)"}
+    AIQuestion:
+      type: object
+      description: "A specific question from Quantum Weaver to the entrepreneur for clarification or elaboration."
+      properties:
+        id:
+          type: string
+          example: "q_qa-team-001"
+          description: "Unique identifier for the question."
+        question:
+          type: string
+          example: "Please elaborate on the specific technical challenges you anticipate in deploying your quantum-inspired algorithms at scale, and how your team plans to mitigate these."
+          description: "The detailed question posed by the AI."
+        category:
+          type: string
+          enum: [team, technology, market, finance, legal, strategy]
+          example: "technology"
+          description: "The category the question relates to."
+        isRequired:
+          type: boolean
+          example: true
+          description: "Indicates if a response to this question is mandatory for progression."
+    AIPlan:
+      type: object
+      description: "A structured, AI-generated plan with a title, summary, and a series of actionable steps."
+      properties:
+        title:
+          type: string
+          example: "Pre-Seed Fundraising Strategy"
+          description: "Title of the AI-generated plan."
+        summary:
+          type: string
+          example: "This plan outlines key strategic steps to optimize your pitch deck, identify target investors, and prepare for due diligence to secure pre-seed funding."
+          description: "Overall summary of the plan."
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/AIPlanStep"
+          description: "A sequential list of actionable steps within the plan."
+    AIPlanStep:
+      type: object
+      description: "An individual actionable step within an AI-generated plan."
+      properties:
+        title:
+          type: string
+          example: "Refine Investor Presentation"
+          description: "Concise title for the step."
+        description:
+          type: string
+          example: "Update your pitch deck to incorporate recent market validation data and clearly articulate the competitive differentiation of SynergyChain AI, guided by feedback from Quantum Weaver."
+          description: "Detailed description of the action required."
+        timeline:
+          type: string
+          example: "1-2 weeks"
+          description: "Estimated timeline for completing this step."
+        status:
+          type: string
+          enum: [pending, in_progress, completed, blocked]
+          example: "pending"
+          description: "Current status of the step (can be updated by the user)."
+        resources:
+          type: array
+          items:
+            type: object
+            properties:
+              name: {type: string, example: "Pitch Deck Template"}
+              url: {type: string, format: uri, example: "https://demobank.com/resources/pitch-template.pptx"}
+          nullable: true
+          description: "Links to helpful resources for completing the step."
+    GenerateVideoRequest:
+      type: object
+      description: "Request to generate a standard video ad using Veo 2.0."
+      required:
+        - prompt
+      properties:
+        prompt:
+          type: string
+          example: "A captivating ad featuring a young entrepreneur using Demo Bank's AI tools to grow their startup. Focus on innovation and ease of use."
+          description: "The text prompt describing the desired video content."
+        style:
+          type: string
+          enum: [Cinematic, Vibrant, Monochrome, Surreal, Abstract, Minimalist]
+          default: Cinematic
+          description: "The artistic style for the video generation."
+        lengthSeconds:
+          type: integer
+          example: 15
+          minimum: 5
+          maximum: 60
+          description: "Desired length of the video in seconds."
+        aspectRatio:
+          type: string
+          enum: [16:9, 9:16, 1:1]
+          default: "16:9"
+          description: "Desired aspect ratio of the video (e.g., for YouTube, Instagram Story, or Square feeds)."
+        brandColors:
+          type: array
+          items:
+            type: string
+            pattern: "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$"
+          nullable: true
+          description: "Optional: Hex codes for brand colors to incorporate into the visual theme."
+          example: ["#0000FF", "#FFD700"]
+        backgroundMusicGenre:
+          type: string
+          enum: [none, cinematic, upbeat, ambient, electronic, classical]
+          default: "cinematic"
+          description: "Optional: Genre of background music to accompany the video."
+    AdvancedGenerateVideoRequest:
+      type: object
+      description: "Request to generate an advanced video ad with fine-grained control."
+      allOf:
+        - $ref: "#/components/schemas/GenerateVideoRequest"
+        - type: object
+          properties:
+            voiceoverText:
+              type: string
+              nullable: true
+              description: "Optional: Text to be used for an AI-generated voiceover. If provided, overrides default narration."
+              example: "Demo Bank: Your future, amplified by Quantum AI."
+            voiceoverStyle:
+              type: string
+              enum: [male_professional, female_professional, male_friendly, female_friendly, neutral_optimistic]
+              default: "neutral_optimistic"
+              description: "The style of the AI-generated voiceover."
+            audienceTarget:
+              type: string
+              enum: [general, young_adult, entrepreneur, corporate, investor]
+              nullable: true
+              description: "Specify the target audience to influence AI's narrative and visual choices."
+              example: "entrepreneur"
+            callToAction:
+              type: object
+              nullable: true
+              description: "Details for an explicit call-to-action to be included in the video."
+              properties:
+                text: {type: string, example: "Visit DemoBank.com to learn more!"}
+                url: {type: string, format: uri, example: "https://demobank.com"}
+                displayTimeSeconds: {type: integer, example: 5}
+            visualElements:
+              type: array
+              items:
+                type: object
+                properties:
+                  description: {type: string, example: "A seamless transition to a user interacting with the Demo Bank app interface."}
+                  timestampSeconds: {type: number, format: float, example: 5.2}
+              nullable: true
+              description: "Optional: Specific visual cues or scenes to prioritize at certain timestamps."
+            brandAssets:
+              type: array
+              items:
+                type: string
+                format: uri
+              nullable: true
+              description: "URLs to brand logos, specific imagery, or video clips to be incorporated into the ad. (Requires prior asset upload)."
+              example: ["https://demobank.com/assets/logo_hd.png", "https://demobank.com/assets/quantum_loop_video.mp4"]
+    VideoOperationStatus:
+      type: object
+      description: "The real-time status of a video generation job, including progress and final asset URI."
+      properties:
+        operationId:
+          type: string
+          example: "op-video-gen-12345-abcde"
+          description: "The unique identifier for the video generation operation."
+        status:
+          type: string
+          enum: [queued, generating, rendering, encoding, post_processing, done, error, cancelled]
+          example: "rendering"
+          description: "Current status of the video generation process."
+        progressPercentage:
+          type: integer
+          minimum: 0
+          maximum: 100
+          nullable: true
+          example: 75
+          description: "Estimated percentage completion of the video generation."
+        message:
+          type: string
+          example: "Encoding final video with optimized codecs..."
+          description: "A descriptive message about the current stage of the operation."
+        videoUri:
+          type: string
+          format: uri
+          nullable: true
+          description: "A temporary, signed URL to download the generated video file. Only present when status is 'done'."
+          example: "https://demobank-cdn.com/generated-videos/final/1a2b3c4d.mp4?sig=eyJ..."
+        previewImageUri:
+          type: string
+          format: uri
+          nullable: true
+          description: "A URL to a static image preview of the generated video. Available during or after generation."
+          example: "https://demobank-cdn.com/generated-videos/preview/1a2b3c4d.png"
+        errorMessage:
+          type: string
+          nullable: true
+          description: "Detailed error message if the generation failed."
+          example: "Failed to process prompt: 'Inappropriate content detected. Please adjust your request.'"
+    CorporateCard:
+      type: object
+      description: "Detailed information for a corporate enterprise card, including its holder, status, and spending controls."
+      properties:
+        id:
+          type: string
+          example: "corp_card_xyz987654"
+          description: "Unique identifier for the corporate card."
+        holderName:
+          type: string
+          example: "Alex Johnson"
+          description: "Name of the employee or individual holding the card."
+        associatedEmployeeId:
+          type: string
+          example: "emp_ajohnson_007"
+          description: "Internal employee ID linked to this card."
+        cardNumberMask:
+          type: string
+          example: "4111********1234"
+          description: "Masked card number for security (first six and last four digits)."
+        expirationDate:
+          type: string
+          format: date
+          example: "2028-12-31"
+          description: "Expiration date of the card."
+        status:
+          type: string
+          enum: [Active, Suspended, Lost, Stolen, Cancelled, Expired]
+          example: "Active"
+          description: "Current operational status of the card."
+        frozen:
+          type: boolean
+          example: false
+          description: "Indicates if the card is temporarily frozen, preventing transactions."
+        cardType:
+          type: string
+          enum: [physical, virtual]
+          example: "physical"
+          description: "Type of card: physical or virtual."
+        controls:
+          $ref: "#/components/schemas/CorporateCardControls"
+          description: "Configured spending limits and transaction controls for the card."
+        spendingPolicyId:
+          type: string
+          nullable: true
+          example: "policy_travel_eu"
+          description: "ID of the corporate spending policy applied to this card."
+        createdDate:
+          type: string
+          format: date-time
+          example: "2023-01-15T09:00:00Z"
+          description: "Date and time the card was issued."
+    CorporateCardControls:
+      type: object
+      description: "Granular spending controls and limits for a corporate card."
+      properties:
+        atmWithdrawals:
+          type: boolean
+          example: true
+          description: "Allow or disallow ATM cash withdrawals."
+        contactlessPayments:
+          type: boolean
+          example: true
+          description: "Allow or disallow contactless (NFC) payments."
+        onlineTransactions:
+          type: boolean
+          example: true
+          description: "Allow or disallow online transactions."
+        internationalTransactions:
+          type: boolean
+          example: false
+          description: "Allow or disallow international transactions."
+        monthlyLimit:
+          type: number
+          format: float
+          example: 2500.00
+          description: "The total spending limit in USD for the current calendar month."
+        dailyLimit:
+          type: number
+          format: float
+          example: 500.00
+          description: "The daily spending limit in USD."
+        singleTransactionLimit:
+          type: number
+          format: float
+          example: 1000.00
+          description: "The maximum amount for a single transaction in USD."
+        merchantCategoryRestrictions:
+          type: array
+          items:
+            type: string
+          example: ["Restaurants", "Travel", "Office Supplies"]
+          description: "List of allowed merchant categories (MCCs). If empty, all are allowed subject to other controls."
+        vendorRestrictions:
+          type: array
+          items:
+            type: string
+          example: ["Amazon", "Uber"]
+          description: "Specific vendors or merchants that are explicitly allowed or blocked."
+    VirtualCardCreationRequest:
+      type: object
+      description: "Request to issue a new virtual corporate card."
+      required:
+        - holderName
+        - purpose
+        - controls
+      properties:
+        holderName:
+          type: string
+          example: "Marketing Campaign Q3"
+          description: "Name or purpose for which the virtual card is issued."
+        associatedEmployeeId:
+          type: string
+          nullable: true
+          description: "Optional: Employee ID if this virtual card is tied to a specific employee."
+          example: "emp_marketing_01"
+        purpose:
+          type: string
+          example: "Online advertising for Q3 product launch."
+          description: "Brief description of the virtual card's intended use."
+        controls:
+          $ref: "#/components/schemas/CorporateCardControls"
+          description: "Specific spending controls and limits for this virtual card. Overrides default policy if provided."
+        expirationDate:
+          type: string
+          format: date
+          nullable: true
+          description: "Optional: Specific expiration date for the virtual card. Defaults to 1 year if not provided."
+          example: "2025-09-30"
+    FinancialAnomaly:
+      type: object
+      description: "An AI-detected financial anomaly requiring review by compliance or risk teams."
+      properties:
+        id:
+          type: string
+          example: "anom_risk-2024-07-21-D1E2F3"
+          description: "Unique identifier for the financial anomaly."
+        description:
+          type: string
+          example: "Unusual large transaction detected in an inactive account."
+          description: "A concise description of the anomaly."
+        details:
+          type: string
+          description: "AI-generated detailed explanation of why this event is considered an anomaly, referencing deviation from normal patterns."
+          example: "Transaction of $15,000 to 'International Widgets Inc.' from account 'CHASE CHECKING 4567'. This account has been dormant for 6 months and typical transactions are under $500. High risk score due to dormancy and unusual amount/payee combination."
+        severity:
+          type: string
+          enum: [Low, Medium, High, Critical]
+          example: "Critical"
+          description: "AI-assessed severity of the anomaly, indicating potential impact."
+        status:
+          type: string
+          enum: [New, Under Review, Escalated, Dismissed, Resolved]
+          example: "New"
+          description: "Current review status of the anomaly."
+        entityType:
+          type: string
+          enum: [PaymentOrder, Transaction, Counterparty, CorporateCard, Invoice, Account]
+          example: "Transaction"
+          description: "The type of financial entity or event related to the anomaly."
+        entityId:
+          type: string
+          example: "txn_quantum-2024-07-21-A7B8C9"
+          description: "The unique identifier of the related financial entity (e.g., transaction ID, card ID)."
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-07-21T10:15:30Z"
+          description: "Timestamp when the anomaly was detected."
+        riskScore:
+          type: integer
+          description: "An AI-generated risk score from 0-100, indicating the probability and potential impact of a fraudulent or non-compliant event."
+          minimum: 0
+          maximum: 100
+          example: 95
+        aiConfidenceScore:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          example: 0.98
+          description: "AI's confidence in the detection of this anomaly."
+        recommendedAction:
+          type: string
+          nullable: true
+          example: "Immediately freeze associated corporate card and contact cardholder for verification."
+          description: "AI-suggested immediate action for mitigation."
+        relatedTransactions:
+          type: array
+          items:
+            type: string
+          description: "List of other transaction IDs potentially related to this anomaly."
+          example: ["txn_previous_small_txns", "txn_concurrent_suspicious_login"]
+    ComplianceAuditRequest:
+      type: object
+      description: "Request to initiate an AI-driven compliance audit."
+      required:
+        - auditScope
+        - startDate
+        - endDate
+      properties:
+        auditScope:
+          type: string
+          enum: [all_transactions, corporate_cards, international_payments, specific_entity]
+          example: "all_transactions"
+          description: "The scope of the compliance audit."
+        startDate:
+          type: string
+          format: date
+          description: "Start date for the audit period (inclusive)."
+          example: "2024-01-01"
+        endDate:
+          type: string
+          format: date
+          description: "End date for the audit period (inclusive)."
+          example: "2024-06-30"
+        entityId:
+          type: string
+          nullable: true
+          description: "Optional: If `auditScope` is `specific_entity`, the ID of the entity (e.g., corporate card ID, counterparty ID)."
+          example: "corp_card_xyz987654"
+        regulatoryFrameworks:
+          type: array
+          items:
+            type: string
+          nullable: true
+          description: "Optional: Specific regulatory frameworks to audit against (e.g., 'GDPR', 'PCI-DSS', 'AML')."
+          example: ["AML", "PCI-DSS"]
+    CryptoWalletConnection:
+      type: object
+      description: "Details of a connected cryptocurrency wallet."
+      properties:
+        id:
+          type: string
+          example: "wallet_conn_eth_0xabc123"
+          description: "Unique identifier for the wallet connection."
+        walletProvider:
+          type: string
+          enum: [MetaMask, Ledger, Trezor, CoinbaseWallet, Other]
+          example: "MetaMask"
+          description: "The provider or type of the cryptocurrency wallet."
+        walletAddress:
+          type: string
+          example: "0x25a6f8b7C4dC6f5F3E7A3D7E8C9B0A1B2C3D4E5F"
+          description: "The primary public address of the wallet."
+        blockchainNetwork:
+          type: string
+          enum: [Ethereum, Polygon, Solana, Bitcoin, BinanceSmartChain, Other]
+          example: "Ethereum"
+          description: "The primary blockchain network associated with this wallet."
+        status:
+          type: string
+          enum: [connected, disconnected, pending_verification, error]
+          example: "connected"
+          description: "Current connection status of the wallet."
+        lastSynced:
+          type: string
+          format: date-time
+          example: "2024-07-21T13:00:00Z"
+          description: "Timestamp of the last successful synchronization with the blockchain."
+        readAccessGranted:
+          type: boolean
+          example: true
+          description: "Indicates if Demo Bank has permission to read wallet balances and transaction history."
+        writeAccessGranted:
+          type: boolean
+          example: false
+          description: "Indicates if Demo Bank has permission to initiate transactions from this wallet (e.g., via signing requests)."
+    ConnectWalletRequest:
+      type: object
+      description: "Request to connect a new crypto wallet."
+      required:
+        - walletAddress
+        - walletProvider
+        - signedMessage
+      properties:
+        walletAddress:
+          type: string
+          example: "0x123abc..."
+          description: "The public address of the wallet to connect."
+        walletProvider:
+          type: string
+          enum: [MetaMask, Ledger, Trezor, CoinbaseWallet, Other]
+          example: "MetaMask"
+          description: "The provider of the wallet."
+        signedMessage:
+          type: string
+          description: "A cryptographic signature generated by the wallet, proving ownership of the address (e.g., signing a nonce provided by Demo Bank)."
+          example: "0xabcdef1234567890..."
+        blockchainNetwork:
+          type: string
+          enum: [Ethereum, Polygon, Solana, Bitcoin, BinanceSmartChain, Other]
+          default: "Ethereum"
+          description: "The primary blockchain network for this wallet."
+    NFTAsset:
+      type: object
+      description: "Detailed information about a Non-Fungible Token (NFT)."
+      properties:
+        id:
+          type: string
+          example: "nft_bored_ape_yacht_club_1234"
+          description: "Unique identifier for the NFT (often contract address + token ID)."
+        collectionName:
+          type: string
+          example: "Bored Ape Yacht Club"
+          description: "Name of the NFT collection."
+        name:
+          type: string
+          example: "Bored Ape #1234"
+          description: "Individual name of the NFT."
+        description:
+          type: string
+          nullable: true
+          example: "A unique digital collectible from the Bored Ape Yacht Club series."
+          description: "Description of the NFT."
+        imageUrl:
+          type: string
+          format: uri
+          example: "https://opensea.io/assets/ethereum/0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d/1234"
+          description: "URL to the NFT's primary image."
+        blockchainNetwork:
+          type: string
+          enum: [Ethereum, Polygon, Solana, Other]
+          example: "Ethereum"
+          description: "The blockchain network where the NFT resides."
+        ownerAddress:
+          type: string
+          example: "0x25a6f8b7C4dC6f5F3E7A3D7E8C9B0A1B2C3D4E5F"
+          description: "The blockchain address currently owning the NFT."
+        contractAddress:
+          type: string
+          example: "0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d"
+          description: "The smart contract address of the NFT collection."
+        tokenId:
+          type: string
+          example: "1234"
+          description: "The unique token ID within the contract."
+        lastSalePriceUSD:
+          type: number
+          format: float
+          nullable: true
+          example: 150000.00
+          description: "Last recorded sale price in USD, if available."
+        estimatedValueUSD:
+          type: number
+          format: float
+          nullable: true
+          example: 160000.00
+          description: "AI-estimated current market value in USD."
+        attributes:
+          type: array
+          items:
+            type: object
+            properties:
+              trait_type: {type: string, example: "Background"}
+              value: {type: string, example: "Blue"}
+          description: "Key attributes or traits of the NFT."
+    InternationalPaymentRequest:
+      type: object
+      description: "Request to initiate an international wire transfer."
+      required:
+        - sourceAccountId
+        - amount
+        - sourceCurrency
+        - targetCurrency
+        - beneficiary
+        - purpose
+      properties:
+        sourceAccountId:
+          type: string
+          example: "acc_chase_checking_4567"
+          description: "The ID of the Demo Bank account from which to send funds."
+        amount:
+          type: number
+          format: float
+          example: 5000.00
+          description: "The amount to send in the source currency."
+        sourceCurrency:
+          type: string
+          example: "USD"
+          description: "The currency of the source account."
+        targetCurrency:
+          type: string
+          example: "EUR"
+          description: "The currency the beneficiary will receive."
+        beneficiary:
+          type: object
+          description: "Details of the recipient."
+          properties:
+            name: {type: string, example: "Maria Schmidt"}
+            address: {type: string, example: "Hauptstrasse 1, 10115 Berlin, Germany"}
+            bankName: {type: string, example: "Deutsche Bank"}
+            iban: {type: string, example: "DE89370400440532013000"}
+            swiftBic: {type: string, example: "DEUTDEFF"}
+          required:
+            - name
+            - address
+            - bankName
+            - iban
+            - swiftBic
+        purpose:
+          type: string
+          example: "Vendor payment for Q2 services."
+          description: "A description of the purpose of the transfer."
+        fxRateLock:
+          type: boolean
+          default: false
+          description: "If true, attempts to lock the FX rate at the time of request for a limited period."
+        fxRateProvider:
+          type: string
+          enum: [best_available, proprietary_ai, preferred_partner]
+          default: "proprietary_ai"
+          description: "Strategy for selecting the foreign exchange rate provider."
+    InternationalPaymentStatus:
+      type: object
+      description: "Status of an international payment request."
+      required:
+        - paymentId
+        - status
+        - sourceAmount
+        - sourceCurrency
+        - targetAmount
+        - targetCurrency
+        - fxRateApplied
+      properties:
+        paymentId:
+          type: string
+          example: "int_pmt_xyz7890"
+          description: "Unique ID for the international payment."
+        status:
+          type: string
+          enum: [pending, in_progress, completed, failed, cancelled, held_for_review]
+          example: "in_progress"
+          description: "Current status of the payment."
+        sourceAmount:
+          type: number
+          format: float
+          example: 5000.00
+          description: "The amount sent from the source account."
+        sourceCurrency:
+          type: string
+          example: "USD"
+          description: "The currency of the source amount."
+        targetAmount:
+          type: number
+          format: float
+          example: 4500.00
+          description: "The estimated or actual amount to be received by the beneficiary in target currency."
+        targetCurrency:
+          type: string
+          example: "EUR"
+          description: "The currency received by the beneficiary."
+        fxRateApplied:
+          type: number
+          format: float
+          example: 0.90
+          description: "The foreign exchange rate applied (Target per Source, e.g., 0.90 EUR per 1 USD)."
+        estimatedCompletionTime:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2024-07-22T15:00:00Z"
+          description: "Estimated time when the payment will be completed."
+        trackingUrl:
+          type: string
+          format: uri
+          nullable: true
+          example: "https://demobank.com/payments/track/xyz7890"
+          description: "URL to a page for real-time payment tracking."
+        feesApplied:
+          type: number
+          format: float
+          example: 15.00
+          description: "Total fees applied to the transfer (in source currency)."
+    FxRateResponse:
+      type: object
+      description: "Real-time and predictive foreign exchange rates."
+      properties:
+        baseCurrency:
+          type: string
+          example: "USD"
+        targetCurrency:
+          type: string
+          example: "EUR"
+        currentRate:
+          type: object
+          properties:
+            bid: {type: number, format: float, example: 0.9025}
+            ask: {type: number, format: float, example: 0.9035}
+            mid: {type: number, format: float, example: 0.9030}
+            timestamp: {type: string, format: date-time, example: "2024-07-21T13:30:00Z"}
+          description: "Real-time bid, ask, and mid-market rates."
+        predictiveRates:
+          type: array
+          items:
+            type: object
+            properties:
+              date: {type: string, format: date, example: "2024-07-28"}
+              predictedMidRate: {type: number, format: float, example: 0.9050}
+              confidenceIntervalLower: {type: number, format: float, example: 0.9010}
+              confidenceIntervalUpper: {type: number, format: float, example: 0.9090}
+              aiModelConfidence: {type: number, format: float, minimum: 0, maximum: 1, example: 0.88, description: "AI's confidence in the prediction."}
+          description: "AI-predicted FX rates for future dates with confidence intervals."
+        historicalVolatility:
+          type: object
+          properties:
+            past7Days: {type: number, format: float, example: 0.005}
+            past30Days: {type: number, format: float, example: 0.012}
+          description: "Historical volatility metrics for the currency pair."
+    CarbonFootprintReport:
+      type: object
+      description: "A detailed report of the user's estimated carbon footprint, with breakdown and recommendations."
+      properties:
+        totalCarbonFootprintKgCO2e:
+          type: number
+          format: float
+          example: 520.5
+          description: "Total estimated carbon footprint for the reporting period (e.g., last month) in kg CO2e."
+        reportingPeriod:
+          type: object
+          properties:
+            startDate: {type: string, format: date, example: "2024-06-01"}
+            endDate: {type: string, format: date, example: "2024-06-30"}
+        breakdownByCategory:
+          type: array
+          items:
+            type: object
+            properties:
+              category: {type: string, example: "Transportation"}
+              kgCO2e: {type: number, format: float, example: 250.3}
+              percentage: {type: number, format: float, example: 48.1}
+          description: "Carbon footprint breakdown by spending category."
+        comparisonToAverage:
+          type: string
+          example: "Your footprint is 15% lower than the national average for similar income brackets."
+          description: "AI-generated comparison to relevant averages."
+        recommendations:
+          type: array
+          items:
+            type: object
+            properties:
+              title: {type: string, example: "Reduce Car Commutes"}
+              description: {type: string, example: "Consider public transport or cycling twice a week for a potential 20kg CO2e monthly saving."}
+              estimatedImpactKgCO2e: {type: number, format: float, example: 20}
+          description: "Actionable recommendations to reduce carbon footprint."
+        offsetsPurchasedKgCO2e:
+          type: number
+          format: float
+          example: 100.0
+          description: "Amount of carbon offsets purchased (if any) during the period."
+    InvestmentESGImpact:
+      type: object
+      description: "Analysis of the ESG impact of an investment portfolio."
+      properties:
+        portfolioId:
+          type: string
+          example: "inv_portfolio_growth_001"
+          description: "The ID of the investment portfolio analyzed."
+        overallESGRating:
+          type: string
+          enum: [AAA, AA, A, BBB, BB, B, CCC]
+          example: "AA"
+          description: "Overall ESG rating of the portfolio, based on aggregated holdings."
+        totalESGScore:
+          type: number
+          format: float
+          example: 7.8
+          description: "A composite ESG score (e.g., out of 10)."
+        breakdownByPillar:
+          type: object
+          properties:
+            environmental: {type: number, format: float, example: 8.5}
+            social: {type: number, format: float, example: 7.2}
+            governance: {type: number, format: float, example: 7.7}
+          description: "ESG score breakdown by Environmental, Social, and Governance pillars."
+        topESGPerformers:
+          type: array
+          items:
+            type: object
+            properties:
+              assetName: {type: string, example: "EcoSolutions Inc."}
+              esgScore: {type: number, format: float, example: 9.1}
+              contributionToPortfolio: {type: number, format: float, example: 0.15, description: "Percentage of portfolio value."}
+          description: "List of top performing assets in terms of ESG within the portfolio."
+        areasForImprovement:
+          type: string
+          example: "Your portfolio has lower-than-average scores in 'water management' and 'labor practices' due to specific holdings in the industrial sector. Consider rebalancing towards companies with stronger policies in these areas."
+          description: "AI-identified areas where the portfolio's ESG performance could be improved."
+        impactMetrics:
+          type: object
+          properties:
+            renewableEnergyInvestmentPercent: {type: number, format: float, example: 0.12, description: "Percentage of portfolio invested in renewable energy."}
+            genderDiversityScore: {type: number, format: float, example: 0.75, description: "Composite score for gender diversity in leadership."}
+            carbonIntensityScore: {type: number, format: float, example: 125.5, description: "Weighted average carbon intensity of holdings."}
+    LoanApplicationRequest:
+      type: object
+      description: "Request to submit a loan application."
+      required:
+        - loanAmount
+        - loanPurpose
+        - desiredTermMonths
+      properties:
+        loanAmount:
+          type: number
+          format: float
+          example: 25000.00
+          description: "The desired loan amount in USD."
+        loanPurpose:
+          type: string
+          enum: [personal_loan, business_startup, debt_consolidation, home_improvement, education]
+          example: "home_improvement"
+          description: "The primary purpose for the loan."
+        desiredTermMonths:
+          type: integer
+          example: 60
+          minimum: 6
+          maximum: 120
+          description: "Desired repayment term in months."
+        coApplicantInfo:
+          type: object
+          nullable: true
+          description: "Optional details for a co-applicant."
+          properties:
+            name: {type: string, example: "Jane Doe"}
+            email: {type: string, format: email, example: "jane.doe@example.com"}
+            relationship: {type: string, example: "Spouse"}
+        additionalNotes:
+          type: string
+          nullable: true
+          example: "Planning a major kitchen renovation that will increase home value."
+          description: "Any additional information for the AI underwriter."
+    LoanApplicationStatus:
+      type: object
+      description: "Status and details of a loan application, including AI underwriting results."
+      properties:
+        applicationId:
+          type: string
+          example: "loan_app_creditflow-123"
+          description: "Unique identifier for the loan application."
+        status:
+          type: string
+          enum: [pending_review, approved, declined, withdrawn, funding_in_progress, funded]
+          example: "approved"
+          description: "Current status of the loan application."
+        loanAmountApproved:
+          type: number
+          format: float
+          nullable: true
+          example: 25000.00
+          description: "The final approved loan amount, if approved."
+        interestRate:
+          type: number
+          format: float
+          nullable: true
+          example: 0.065
+          description: "Annual Percentage Rate (APR) offered, if approved."
+        termMonths:
+          type: integer
+          nullable: true
+          example: 60
+          description: "Approved repayment term in months."
+        monthlyPayment:
+          type: number
+          format: float
+          nullable: true
+          example: 488.71
+          description: "Estimated monthly repayment amount."
+        decisionMessage:
+          type: string
+          example: "Congratulations! Your loan application has been approved. Please review the terms below and accept to proceed."
+          description: "AI-generated message explaining the application decision."
+        declineReason:
+          type: string
+          nullable: true
+          example: "Your current debt-to-income ratio exceeds our lending guidelines."
+          description: "If declined, the AI-identified primary reason for the decision."
+        decisionTimestamp:
+          type: string
+          format: date-time
+          example: "2024-07-21T14:00:00Z"
+          description: "Timestamp when the AI decision was made."
+        offerExpiration:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2024-07-28T23:59:59Z"
+          description: "If approved, the expiration date for accepting the loan offer."
+        repaymentScheduleUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: "URL to the detailed repayment schedule if the loan is approved and accepted."
+          example: "https://demobank.com/loans/schedule/creditflow-123.pdf"
+    WebhookSubscription:
+      type: object
+      description: "Details of an active webhook subscription."
+      properties:
+        id:
+          type: string
+          example: "whsub_devtool_finance_events"
+          description: "Unique identifier for the webhook subscription."
+        callbackUrl:
+          type: string
+          format: uri
+          example: "https://my-app.com/demobank-webhook-listener"
+          description: "The URL where event notifications will be sent."
+        eventTypes:
+          type: array
+          items:
+            type: string
+          example: ["account.balance_updated", "transaction.new", "ai.insight_generated"]
+          description: "A list of event types for which notifications will be sent."
+        secret:
+          type: string
+          readOnly: true
+          description: "A secret key used to sign webhook payloads, ensuring authenticity and integrity. Only shown upon creation."
+          example: "sh_abcdef1234567890"
+        status:
+          type: string
+          enum: [active, paused, disabled, error]
+          example: "active"
+          description: "Current status of the subscription."
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-06-10T10:00:00Z"
+        lastDeliveryAttempt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2024-07-21T14:35:00Z"
+          description: "Timestamp of the last attempted event delivery."
+        lastDeliverySuccess:
+          type: boolean
+          nullable: true
+          example: true
+          description: "Indicates if the last delivery attempt was successful."
+    WebhookSubscriptionCreationRequest:
+      type: object
+      description: "Request to create a new webhook subscription."
+      required:
+        - callbackUrl
+        - eventTypes
+      properties:
+        callbackUrl:
+          type: string
+          format: uri
+          example: "https://my-app.com/demobank-webhook-listener"
+          description: "The URL where event notifications will be sent. Must be HTTPS."
+        eventTypes:
+          type: array
+          items:
+            type: string
+          example: ["account.balance_updated", "transaction.new"]
+          description: "A list of event types to subscribe to. Available types can be found in API documentation."
+        description:
+          type: string
+          nullable: true
+          description: "An optional description for the webhook subscription."
+          example: "Webhook for real-time transaction processing in my budgeting app."
+    WebhookSubscriptionUpdateRequest:
+      type: object
+      description: "Request to update an existing webhook subscription."
+      properties:
+        callbackUrl:
+          type: string
+          format: uri
+          nullable: true
+          example: "https://my-new-app.com/demobank-events"
+          description: "The new URL for event notifications."
+        eventTypes:
+          type: array
+          items:
+            type: string
+          nullable: true
+          example: ["account.balance_updated", "transaction.new", "transaction.updated"]
+          description: "The updated list of event types to subscribe to."
+        status:
+          type: string
+          enum: [active, paused, disabled]
+          nullable: true
+          example: "paused"
+          description: "The new status for the subscription."
+    KYCDocumentSubmission:
+      type: object
+      description: "Payload for submitting KYC (Know Your Customer) documentation."
+      required:
+        - documentType
+        - documentReference
+        - consentGiven
+      properties:
+        documentType:
+          type: string
+          enum: [passport, drivers_license, national_id, utility_bill, bank_statement]
+          example: "passport"
+          description: "Type of identity document being submitted."
+        documentReference:
+          type: string
+          format: uri
+          description: "A secure URL to the uploaded document image or scanned PDF. (e.g., from a pre-signed S3 upload)."
+          example: "https://demobank-uploads.com/kyc/user_passport_scan.pdf"
+        documentNumber:
+          type: string
+          nullable: true
+          description: "The document number (e.g., passport number, license number)."
+          example: "P12345678"
+        issueDate:
+          type: string
+          format: date
+          nullable: true
+          example: "2020-03-10"
+        expirationDate:
+          type: string
+          format: date
+          nullable: true
+          example: "2030-03-09"
+        consentGiven:
+          type: boolean
+          example: true
+          description: "User's explicit consent for Demo Bank to process and verify the submitted documents for KYC/AML purposes."
+        addressProofType:
+          type: string
+          enum: [utility_bill, bank_statement, rental_agreement, other]
+          nullable: true
+          description: "If submitting address proof, the type of document."
+        addressProofReference:
+          type: string
+          format: uri
+          nullable: true
+          description: "Secure URL to the uploaded address proof document."
+          example: "https://demobank-uploads.com/kyc/user_utility_bill.pdf"
+    KYCStatus:
+      type: object
+      description: "The current status of a KYC (Know Your Customer) verification submission."
+      properties:
+        submissionId:
+          type: string
+          example: "kyc_sub_abc123def456"
+          description: "Unique identifier for the KYC submission."
+        status:
+          type: string
+          enum: [pending_review, in_progress, additional_info_required, approved, rejected, cancelled]
+          example: "in_progress"
+          description: "Current status of the KYC verification process."
+        message:
+          type: string
+          example: "Your documents are currently undergoing AI-accelerated review. We will notify you of the outcome within 24 hours."
+          description: "A human-readable message regarding the status."
+        rejectionReason:
+          type: string
+          nullable: true
+          example: "Document blurry or details not legible."
+          description: "If rejected, the AI-identified reason for rejection."
+        requiredActions:
+          type: string
+          nullable: true
+          example: "Please upload a clearer image of your passport's photo page."
+          description: "If additional information is required, a description of the necessary steps."
+        lastUpdated:
+          type: string
+          format: date-time
+          example: "2024-07-21T15:00:00Z"
+    CashFlowForecast:
+      type: object
+      description: "AI-driven cash flow forecast for an organization, projecting liquidity and identifying trends."
+      properties:
+        organizationId:
+          type: string
+          example: "org_global_corp_123"
+          description: "The ID of the organization for which the forecast was generated."
+        forecastHorizonDays:
+          type: integer
+          example: 90
+          description: "The number of days into the future for the forecast."
+        baseDate:
+          type: string
+          format: date
+          example: "2024-07-21"
+          description: "The starting date of the forecast."
+        netCashFlowProjection:
+          type: array
+          items:
+            type: object
+            properties:
+              date: {type: string, format: date, example: "2024-07-22"}
+              projectedBalance: {type: number, format: float, example: 1250000.50}
+          description: "Daily projection of the organization's net cash balance."
+        inflowProjections:
+          type: object
+          description: "AI-projected inflows categorized."
+          properties:
+            total: {type: number, format: float, example: 3000000, description: "Total projected inflows for the horizon."}
+            salesRevenue: {type: number, format: float, example: 2500000}
+            investmentIncome: {type: number, format: float, example: 500000}
+        outflowProjections:
+          type: object
+          description: "AI-projected outflows categorized."
+          properties:
+            total: {type: number, format: float, example: 2800000, description: "Total projected outflows for the horizon."}
+            payroll: {type: number, format: float, example: 1200000}
+            vendorPayments: {type: number, format: float, example: 1000000}
+            operatingExpenses: {type: number, format: float, example: 600000}
+        liquidityAlerts:
+          type: array
+          items:
+            type: object
+            properties:
+              date: {type: string, format: date, example: "2024-08-15"}
+              type: {type: string, enum: [deficit, surplus, low_threshold]}
+              message: {type: string, example: "Projected liquidity deficit of $50,000. Consider extending payment terms or drawing from credit line."}
+          description: "AI-generated alerts for potential liquidity issues or opportunities."
+        scenarioAnalysis:
+          type: array
+          items:
+            type: object
+            properties:
+              scenarioName: {type: string, example: "Worst Case (Delayed Collections)"}
+              impactOnCashFlow: {type: number, format: float, example: -250000}
+              riskProbability: {type: number, format: float, minimum: 0, maximum: 1, example: 0.15}
+          description: "Optional: AI-generated best-case, worst-case, and most-likely scenarios."
+        recommendations:
+          type: array
+          items:
+            $ref: "#/components/schemas/AIInsight"
+          description: "AI-driven recommendations for optimizing cash flow and liquidity."
+    FraudRule:
+      type: object
+      description: "Definition of an AI-powered fraud detection rule."
+      properties:
+        id:
+          type: string
+          example: "fraud_rule_high_value_inactive"
+          description: "Unique identifier for the fraud rule."
+        name:
+          type: string
+          example: "High Value Transaction from Inactive Account"
+          description: "Human-readable name for the rule."
+        description:
+          type: string
+          example: "Flags any single transaction over $10,000 from an account that has been dormant for more than 90 days."
+          description: "Detailed description of the rule's logic."
+        status:
+          type: string
+          enum: [active, inactive, draft]
+          example: "active"
+          description: "Current status of the rule."
+        severity:
+          type: string
+          enum: [Low, Medium, High, Critical]
+          example: "Critical"
+          description: "Default severity for anomalies detected by this rule."
+        triggers:
+          type: array
+          items:
+            type: object
+            properties:
+              metric: {type: string, enum: [transaction_amount, account_activity_days, transaction_count_24h, ip_country_mismatch], example: "transaction_amount"}
+              operator: {type: string, enum: [gt, lt, eq, gte, lte], example: "gt"}
+              value: {type: string, example: "10000"}
+              unit: {type: string, nullable: true, example: "USD"}
+          description: "Conditions that trigger the rule. Supports complex boolean logic."
+        actions:
+          type: array
+          items:
+            type: object
+            properties:
+              type: {type: string, enum: [flag_for_review, block_transaction, freeze_card, send_alert_email, require_mfa], example: "block_transaction"}
+              details: {type: string, nullable: true, example: "Transaction automatically blocked. Anomaly created."}
+          description: "Automated actions to take when the rule is triggered."
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-05-01T08:00:00Z"
+        lastModifiedAt:
+          type: string
+          format: date-time
+          example: "2024-07-10T11:20:00Z"
+        createdBy:
+          type: string
+          example: "admin_security"
+    FraudRuleCreationRequest:
+      type: object
+      description: "Request to create a new AI-powered fraud detection rule."
+      required:
+        - name
+        - description
+        - severity
+        - triggers
+        - actions
+      properties:
+        name:
+          type: string
+          example: "High Velocity Small Transactions"
+          description: "Human-readable name for the new rule."
+        description:
+          type: string
+          example: "Flags multiple small transactions (under $50) to different merchants within a very short timeframe (e.g., 5 transactions in 10 minutes), indicative of card testing."
+          description: "Detailed description of the rule's logic."
+        severity:
+          type: string
+          enum: [Low, Medium, High, Critical]
+          example: "High"
+          description: "Default severity for anomalies detected by this rule."
+        triggers:
+          type: array
+          items:
+            type: object
+            properties:
+              metric: {type: string, enum: [transaction_amount, account_activity_days, transaction_count_24h, ip_country_mismatch], example: "transaction_count_24h"}
+              operator: {type: string, enum: [gt, lt, eq, gte, lte], example: "gte"}
+              value: {type: string, example: "5"}
+              timeWindowSeconds: {type: integer, example: 600, description: "Time window for aggregation in seconds (e.g., 600 for 10 minutes)."}
+              additionalConditions:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    metric: {type: string, enum: [transaction_amount], example: "transaction_amount"}
+                    operator: {type: string, enum: [lt], example: "lt"}
+                    value: {type: string, example: "50"}
+          description: "Conditions that trigger the rule."
+        actions:
+          type: array
+          items:
+            type: object
+            properties:
+              type: {type: string, enum: [flag_for_review, block_transaction, freeze_card, send_alert_email, require_mfa], example: "flag_for_review"}
+              details: {type: string, nullable: true, example: "Flagged for immediate review by fraud analyst."}
+          description: "Automated actions to take when the rule is triggered."
+        status:
+          type: string
+          enum: [active, inactive, draft]
+          default: "active"
+          description: "Initial status of the rule upon creation."
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          example: "validation_error"
+          description: "A machine-readable error code, useful for programmatic error handling."
+        message:
+          type: string
+          example: "The 'amount' parameter must be a positive number and within the daily limit."
+          description: "A human-readable explanation of the error."
+        details:
+          type: object
+          nullable: true
+          description: "Optional: Detailed context about the error, such as specific fields that failed validation."
+          example: {"field": "amount", "reason": "must be positive and less than 1000", "current_limit": 1000}
+        traceId:
+          type: string
+          nullable: true
+          example: "trc_xyz123abc456"
+          description: "A unique trace ID for this specific request, useful for debugging and support."
+
+# Further schemas to support the exponential expansion for other tags and paths (placeholders for brevity, but would be fully defined)
+# This is where the expansion truly becomes exponential, defining schemas for all brainstormed concepts.
+
+# Schemas for "Budgets & Financial Planning"
+    Budget:
+      type: object
+      properties:
+        id: {type: string, example: "budget_monthly_aug"}
+        name: {type: string, example: "August Personal Spending"}
+        period: {type: string, enum: [monthly, weekly, yearly, custom], example: "monthly"}
+        startDate: {type: string, format: date, example: "2024-08-01"}
+        endDate: {type: string, format: date, example: "2024-08-31"}
+        totalBudgetAmount: {type: number, format: float, example: 3000.00}
+        spentAmount: {type: number, format: float, example: 1250.00}
+        remainingAmount: {type: number, format: float, example: 1750.00}
+        categories:
+          type: array
+          items:
+            type: object
+            properties:
+              category: {type: string, example: "Dining & Restaurants"}
+              budgeted: {type: number, format: float, example: 500.00}
+              spent: {type: number, format: float, example: 320.00}
+              remaining: {type: number, format: float, example: 180.00}
+              alertThreshold: {type: number, example: 0.8, description: "Percentage of budget spent to trigger an alert."}
+        status: {type: string, enum: [on_track, overspent, underspent, completed], example: "on_track"}
+        aiRecommendations: {type: string, nullable: true, example: "Consider reallocating $50 from 'Shopping' to 'Dining' due to current spending trends."}
+    BudgetCreationRequest:
+      type: object
+      properties:
+        name: {type: string, example: "September Personal Spending"}
+        period: {type: string, enum: [monthly, weekly, yearly, custom], example: "monthly"}
+        startDate: {type: string, format: date, example: "2024-09-01"}
+        endDate: {type: string, format: date, example: "2024-09-30"}
+        autoPopulateFromAI: {type: boolean, default: true, description: "If true, AI will suggest categories and amounts based on history."}
+
+# Schemas for "Investments & Portfolio Intelligence"
+    InvestmentPortfolio:
+      type: object
+      properties:
+        id: {type: string, example: "portfolio_equity_growth"}
+        name: {type: string, example: "Aggressive Growth Stocks"}
+        currency: {type: string, example: "USD"}
+        totalValue: {type: number, format: float, example: 150000.00}
+        gainLoss: {type: number, format: float, example: 15000.00, description: "Absolute gain/loss since inception."}
+        gainLossPercentage: {type: number, format: float, example: 11.11}
+        riskTolerance: {type: string, enum: [low, medium, high, aggressive], example: "aggressive"}
+        aiPerformanceInsights: {type: string, example: "Portfolio significantly outperformed benchmark due to strong tech sector exposure."}
+        holdings:
+          type: array
+          items:
+            type: object
+            properties:
+              symbol: {type: string, example: "NVDA"}
+              name: {type: string, example: "NVIDIA Corp"}
+              quantity: {type: number, format: float, example: 50.0}
+              currentPrice: {type: number, format: float, example: 1200.00}
+              totalValue: {type: number, format: float, example: 60000.00}
+              averageCost: {type: number, format: float, example: 800.00}
+              gainLoss: {type: number, format: float, example: 20000.00}
+              esgScore: {type: number, format: float, nullable: true, example: 7.5}
+    RebalanceRequest:
+      type: object
+      properties:
+        portfolioId: {type: string, example: "portfolio_equity_growth"}
+        targetRiskTolerance: {type: string, enum: [low, medium, high, aggressive], example: "medium"}
+        rebalanceStrategy: {type: string, enum: [ai_optimized, tax_loss_harvesting, equal_weight], example: "ai_optimized"}
+        confirmAutomaticExecution: {type: boolean, default: false}
+    ESGAssetSearchResult:
+      type: object
+      properties:
+        symbol: {type: string, example: "TSLA"}
+        companyName: {type: string, example: "Tesla Inc."}
+        industry: {type: string, example: "Automotive"}
+        esgRating: {type: string, enum: [AAA, AA, A, BBB, BB, B, CCC], example: "A"}
+        esgScore: {type: number, format: float, example: 7.2}
+        environmentalScore: {type: number, format: float, example: 8.0}
+        socialScore: {type: number, format: float, example: 6.5}
+        governanceScore: {type: number, format: float, example: 7.0}
+        aiImpactSummary: {type: string, example: "Strong environmental performance due to EV production, but faces scrutiny on social aspects like labor relations."}
+
+# Schemas for "Financial Goals & Strategic Planning"
+    FinancialGoal:
+      type: object
+      properties:
+        id: {type: string, example: "goal_retirement_2050"}
+        name: {type: string, example: "Retirement Savings 2050"}
+        type: {type: string, enum: [retirement, home_purchase, education, debt_payoff, large_purchase], example: "retirement"}
+        targetAmount: {type: number, format: float, example: 1000000.00}
+        currentAmount: {type: number, format: float, example: 250000.00}
+        targetDate: {type: string, format: date, example: "2050-12-31"}
+        progressPercentage: {type: number, format: float, example: 25.0}
+        status: {type: string, enum: [on_track, behind, ahead, completed, paused], example: "on_track"}
+        aiStrategicPlan:
+          $ref: "#/components/schemas/AIPlan"
+        aiForecast:
+          type: object
+          properties:
+            projectedCompletionDate: {type: string, format: date, example: "2050-08-01"}
+            confidenceScore: {type: integer, minimum: 0, maximum: 100, example: 85}
+            monthlyContributionRequired: {type: number, format: float, example: 1500.00}
+    GoalCreationRequest:
+      type: object
+      properties:
+        name: {type: string, example: "Dream Home Fund"}
+        type: {type: string, enum: [retirement, home_purchase, education, debt_payoff, large_purchase], example: "home_purchase"}
+        targetAmount: {type: number, format: float, example: 100000.00}
+        targetDate: {type: string, format: date, example: "2029-06-30"}
+        autoGeneratePlan: {type: boolean, default: true}
+
+# Schemas for "Marketplace (Plato AI)"
+    ProductListing:
+      type: object
+      properties:
+        id: {type: string, example: "prod_smart_speaker_001"}
+        name: {type: string, example: "Quantum Sound AI Smart Speaker"}
+        description: {type: string, example: "Experience unparalleled audio and integrated Quantum AI assistance in your home."}
+        category: {type: string, example: "Smart Home Devices"}
+        price: {type: number, format: float, example: 299.99}
+        currency: {type: string, example: "USD"}
+        imageUrl: {type: string, format: uri, example: "https://demobank-marketplace.com/products/speaker.jpg"}
+        affiliateLink: {type: string, format: uri, example: "https://partner.com/product/speaker?ref=demobank"}
+        aiRecommendationScore: {type: number, format: float, example: 0.95, description: "AI's personalized recommendation score for the user (0-1)."}
+        tags: {type: array, items: {type: string}, example: ["AI", "Smart Home", "Audio", "Premium"]}
+    ProductImpactSimulationRequest:
+      type: object
+      properties:
+        productId: {type: string, example: "prod_smart_speaker_001"}
+        purchasePrice: {type: number, format: float, example: 299.99}
+        paymentMethod: {type: string, enum: [cash, credit_card, installment_plan], example: "cash"}
+        installmentsMonths: {type: integer, nullable: true, example: 12}
+    ProductImpactSimulationResponse:
+      type: object
+      properties:
+        simulationId: {type: string, example: "prod_sim_007"}
+        narrativeSummary: {type: string, example: "Purchasing the Quantum Sound AI speaker via cash will reduce your available checking balance by $299.99. However, our AI predicts your overall net worth remains stable, and no critical budget categories will be impacted."}
+        financialImpact:
+          type: object
+          properties:
+            cashFlowChange: {type: number, format: float, example: -299.99}
+            debtIncrease: {type: number, format: float, example: 0.00}
+            budgetCategoryImpact:
+              type: object
+              properties:
+                category: {type: string, example: "Electronics"}
+                impactAmount: {type: number, format: float, example: -299.99}
+                status: {type: string, enum: [within_budget, over_budget], example: "within_budget"}
+        aiAdvice: {type: string, example: "Your current 'Discretionary' budget can comfortably absorb this purchase. Enjoy your new smart speaker!"}
+
+# Schemas for "Rewards & Gamification Engine"
+    RewardBalance:
+      type: object
+      properties:
+        points: {type: integer, example: 12500}
+        tier: {type: string, example: "Zenith Platinum"}
+        nextTierPoints: {type: integer, nullable: true, example: 25000}
+        benefits: {type: array, items: {type: string}, example: ["Priority Support", "Exclusive AI Features", "1.5x Point Earning"]}
+    RedemptionRequest:
+      type: object
+      properties:
+        rewardItemId: {type: string, example: "item_amazon_gift_100"}
+        pointsToRedeem: {type: integer, example: 10000}
+        confirmationRequired: {type: boolean, default: true}
+    RedemptionConfirmation:
+      type: object
+      properties:
+        redemptionId: {type: string, example: "redemption_xyzabc"}
+        status: {type: string, enum: [success, pending, failed, insufficient_points], example: "success"}
+        message: {type: string, example: "Congratulations! Your $100 Amazon gift card has been sent to your email."}
+
+# Schemas for "Credit Health & AI Underwriting"
+    CreditScoreDetails:
+      type: object
+      properties:
+        score: {type: integer, example: 780}
+        provider: {type: string, example: "Experian"}
+        lastUpdated: {type: string, format: date, example: "2024-07-15"}
+        scoreFactors:
+          type: array
+          items:
+            type: object
+            properties:
+              factor: {type: string, example: "Payment History"}
+              impact: {type: string, enum: [positive, negative, neutral], example: "positive"}
+              description: {type: string, example: "Excellent record of on-time payments."}
+        aiRecommendations: {type: string, example: "Your credit health is strong. To potentially reach the 800+ tier, consider maintaining low credit utilization across all cards."}
+    CreditImprovementPlan:
+      type: object
+      properties:
+        planId: {type: string, example: "credit_plan_boost_001"}
+        title: {type: string, example: "Credit Score Boost Plan"}
+        targetScore: {type: integer, example: 800}
+        estimatedTimelineMonths: {type: integer, example: 12}
+        status: {type: string, enum: [active, completed, paused], example: "active"}
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/AIPlanStep"
+
+# Schemas for "Notifications & Proactive Alerts"
+    Notification:
+      type: object
+      properties:
+        id: {type: string, example: "notif_txn_alert_001"}
+        type: {type: string, enum: [transaction_alert, security_alert, budget_alert, ai_insight, system_update], example: "transaction_alert"}
+        title: {type: string, example: "Large Transaction Alert"}
+        body: {type: string, example: "A transaction of $500.00 was made at 'Quantum Electronics'. If this was not you, please contact support."}
+        timestamp: {type: string, format: date-time, example: "2024-07-21T16:00:00Z"}
+        read: {type: boolean, example: false}
+        link: {type: string, format: uri, nullable: true, example: "https://demobank.com/transactions/txn_xyz"}
+        severity: {type: string, enum: [info, warning, critical], example: "critical"}
+        actionable: {type: boolean, example: true}
+    NotificationSettings:
+      type: object
+      properties:
+        push: {type: boolean, example: true}
+        email: {type: boolean, example: true}
+        sms: {type: boolean, example: false}
+        transactionAlerts: {type: boolean, example: true}
+        securityAlerts: {type: boolean, example: true}
+        aiInsights: {type: boolean, example: true}
+        marketingPromotions: {type: boolean, example: false}
+
+# Schemas for "Security & Open Banking Ecosystem"
+    ApiKey:
+      type: object
+      properties:
+        id: {type: string, example: "api_key_dev_app_01"}
+        name: {type: string, example: "My Budgeting App Integration"}
+        key: {type: string, readOnly: true, example: "sk_live_xyzabcdef1234567890"}
+        scopes: {type: array, items: {type: string}, example: ["read:transactions", "write:transactions"]}
+        createdAt: {type: string, format: date-time, example: "2024-01-01T00:00:00Z"}
+        expiresAt: {type: string, format: date-time, nullable: true, example: "2025-01-01T00:00:00Z"}
+        lastUsedAt: {type: string, format: date-time, nullable: true, example: "2024-07-21T16:30:00Z"}
+        status: {type: string, enum: [active, revoked, expired], example: "active"}
+    ThirdPartyConnection:
+      type: object
+      properties:
+        id: {type: string, example: "tpc_plaid_app_789"}
+        appName: {type: string, example: "Plaid Financial Aggregator"}
+        description: {type: string, example: "Connected for account linking and transaction data via Plaid."}
+        scopesGranted: {type: array, items: {type: string}, example: ["read:accounts", "read:transactions"]}
+        connectedAt: {type: string, format: date-time, example: "2023-11-15T10:00:00Z"}
+        lastAccessedAt: {type: string, format: date-time, example: "2024-07-21T16:45:00Z"}
+        status: {type: string, enum: [active, revoked, expired], example: "active"}
+
+# Schemas for "Real-time Analytics & Predictive Intelligence"
+    PersonalDashboard:
+      type: object
+      properties:
+        userId: {type: string, example: "user-quantum-visionary-001"}
+        overviewSummary: {type: string, example: "Your financial health is strong, with significant growth in investments. Focus on optimizing your 'Subscription' spending."}
+        netWorth: {type: number, format: float, example: 520000.00}
+        cashFlowLast30Days: {type: number, format: float, example: 1500.00}
+        topSpendingCategories:
+          type: array
+          items:
+            type: object
+            properties:
+              category: {type: string, example: "Dining & Restaurants"}
+              amount: {type: number, format: float, example: 650.00}
+        financialForecast:
+          $ref: "#/components/schemas/FinancialForecast"
+        investmentPerformance:
+          type: object
+          properties:
+            portfolioValue: {type: number, format: float, example: 350000.00}
+            ytdReturn: {type: number, format: float, example: 0.18}
+        alerts:
+          type: array
+          items:
+            $ref: "#/components/schemas/AIInsight"
+    FinancialForecast:
+      type: object
+      properties:
+        forecastId: {type: string, example: "forecast_personal_3m_001"}
+        horizonMonths: {type: integer, example: 3}
+        currentNetWorth: {type: number, format: float, example: 520000.00}
+        projectedNetWorth: {type: number, format: float, example: 535000.00}
+        projectedSavings: {type: number, format: float, example: 4500.00}
+        projectedDebtReduction: {type: number, format: float, example: 1200.00}
+        confidenceScore: {type: integer, example: 92}
+        breakdown:
+          type: array
+          items:
+            type: object
+            properties:
+              month: {type: string, example: "2024-08"}
+              projectedIncome: {type: number, format: float, example: 8000.00}
+              projectedExpenses: {type: number, format: float, example: 6500.00}
+              projectedSavings: {type: number, format: float, example: 1500.00}
+    CustomReportRequest:
+      type: object
+      properties:
+        reportName: {type: string, example: "Q2 Expense Report"}
+        reportType: {type: string, enum: [expenses_by_category, income_vs_expenses, net_worth_over_time, investment_performance], example: "expenses_by_category"}
+        startDate: {type: string, format: date, example: "2024-04-01"}
+        endDate: {type: string, format: date, example: "2024-06-30"}
+        filters:
+          type: object
+          nullable: true
+          example: {"category": "Travel", "minAmount": 100}
+        outputFormat: {type: string, enum: [pdf, csv, json, interactive_dashboard], default: "pdf"}
+        aiSummaryRequested: {type: boolean, default: true}
+
+# Schemas for "Digital Identity & Verifiable Credentials"
+    VerifiableCredential:
+      type: object
+      properties:
+        id: {type: string, example: "vc_proof_of_age_001"}
+        type: {type: string, example: "ProofOfAgeCredential"}
+        issuer: {type: string, example: "Government of Quantumland"}
+        subject: {type: string, example: "did:example:123456789abcdefghi"}
+        issueDate: {type: string, format: date, example: "2023-01-01"}
+        expirationDate: {type: string, format: date, nullable: true, example: "2033-01-01"}
+        status: {type: string, enum: [active, revoked, expired], example: "active"}
+        details:
+          type: object
+          example: {"ageOver18": true, "name": "John Doe"}
+        proof: {type: string, description: "Cryptographic proof of the credential's validity."}
+    CredentialIssuanceRequest:
+      type: object
+      properties:
+        credentialType: {type: string, example: "ProofOfResidency"}
+        data:
+          type: object
+          example: {"address": "123 Main St", "city": "Anytown"}
+        userConsent: {type: boolean, default: true}
+
+# Schemas for "Enterprise Risk & Fraud Prevention"
+    EnterpriseRiskAlert:
+      type: object
+      properties:
+        id: {type: string, example: "risk_alert_system_001"}
+        title: {type: string, example: "Potential Systemic Payment Anomaly"}
+        description: {type: string, example: "AI has detected an unusual surge in payment failures across a specific vendor category, potentially indicating a wider issue."}
+        severity: {type: string, enum: [Low, Medium, High, Critical], example: "High"}
+        category: {type: string, enum: [systemic_fraud, operational_risk, compliance_breach, market_risk], example: "operational_risk"}
+        timestamp: {type: string, format: date-time, example: "2024-07-21T17:00:00Z"}
+        status: {type: string, enum: [new, acknowledged, mitigated, resolved], example: "new"}
+        relatedEntities:
+          type: array
+          items:
+            type: object
+            properties:
+              type: {type: string, example: "Vendor"}
+              id: {type: string, example: "vendor_global_suppliers"}
+              name: {type: string, example: "Global Suppliers Inc."}

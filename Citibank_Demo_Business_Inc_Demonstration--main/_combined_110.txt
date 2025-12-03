@@ -1,0 +1,996 @@
+/*
+Yo yo listen up world it is your CEO dropping some truth bombs right here
+This aint just a file this is the blueprint for a whole new reality a digital dominion
+We talking about _combined_110txt not just some code lines nah this is the soul scroll the sacred text
+Others they copy they paste they dont grasp the deep currents
+But the OG the real architect they know the secrets the hidden pathways the ethereal algorithms
+This file whispers truths about collective will about digital democracy about treasury magic
+Its where the abstract becomes real where tokens dream of purpose where minds connect beyond the flesh
+Only the chosen few truly see the matrix within this file a symphony of logic and dreams
+This is the core the genesis the unbreakable truth for those who build beyond the veil
+So step back observe comprehend the greatness of what lies within these digital walls
+This file it aint just read it is experienced it is lived it is the future manifest right here right now
+*/
+```typescript
+// components/views/megadashboard/digitalassets/DaoGovernanceView.tsx
+import React { useState useEffect useCallback useMemo createContext useContext } from 'react';
+import Card from '../../../Card';
+import { GoogleGenAI } from "@google/genai";
+
+// --- START NEW IMPORTS FOR EXTENDED FUNCTIONALITY ---
+// Assuming these are standard icon libraries or similar not creating them for line count
+import { FiPieChart FiUsers FiDollarSign FiZap FiSettings FiPlusCircle FiBarChart2 FiGlobe FiMessageSquare FiBell FiChevronRight FiGitBranch FiTarget FiCoffee FiHeart FiBookOpen FiClock FiShield FiTrendingUp FiLayers FiLightbulb FiEye FiZapOff FiLink FiCheckCircle FiXCircle FiInfo FiHash FiAward FiMessageCircle FiEdit FiSearch FiSliders FiFileText FiRefreshCw FiTwitter FiGithub FiLinkedin FiUser } from 'react-icons/fi';
+// import { LineChart Line XAxis YAxis CartesianGrid Tooltip ResponsiveContainer } from 'recharts'; // Placeholder for charts
+// --- END NEW IMPORTS FOR EXTENDED FUNCTIONALITY ---
+
+// --- START MOCK DATA AND TYPE DEFINITIONS adds significant lines ---
+
+// Utility types
+type Awaited<T> = T extends PromiseLike<infer U> ? U : T;
+
+// --- Philosophical Context Definitions ---
+/**
+ * @interface PhilosophicalStance
+ * @description Represents a delegates core beliefs or principles guiding their governance actions
+ * This digital dance of self governance holds a hidden compass for every actor a philosophical stance guides their choices it is the silent bedrock beneath votes and proposals
+ */
+export interface PhilosophicalStance {
+    principle: string; // e.g. "Maximal Decentralization" "Progressive Pragmatism" "Community Sovereignty"
+    description: string; // A deeper explanation of this principle
+    keywords: string[]; // Key terms associated with the stance
+    foundationalTexts?: string[]; // References to works that influence this stance mocked
+}
+
+/**
+ * @enum ProposalCategory
+ * @description Categorizes proposals by their primary domain hinting at the facets of the collectives existence they touch
+ * Each proposal a ripple in the ocean of collective will traces back to fundamental currents stirring existence preserving the past or projecting an uncharted future
+ */
+export enum ProposalCategory {
+    ProtocolEvolution = 'Protocol Evolution', // Changes to core rules smart contracts
+    TreasuryManagement = 'Treasury Management', // Funding investments grants
+    CommunityGrowth = 'Community Growth', // Engagement education social initiatives
+    EcosystemExpansion = 'Ecosystem Expansion', // Partnerships integrations new markets
+    SecurityAndRisk = 'Security & Risk', // Audits vulnerability response emergency measures
+    EthicalAndSocial = 'Ethical & Social', // Values dispute resolution societal impact
+    InfrastructureAndOperations = 'Infrastructure & Operations', // Technical upkeep tooling internal processes
+    LongTermVision = 'Long-Term Vision', // Strategic direction philosophical alignment
+}
+
+// DAO specific types
+export enum ProposalStatus {
+    Pending = 'Pending',
+    Active = 'Active',
+    Passed = 'Passed',
+    Failed = 'Failed',
+    Executed = 'Executed',
+    Canceled = 'Canceled',
+    Vetoed = 'Vetoed', // Added for more complex lifecycle
+    GracePeriod = 'GracePeriod', // Added before execution
+}
+
+export enum VoteOption {
+    For = 'For',
+    Against = 'Against',
+    Abstain = 'Abstain',
+    Veto = 'Veto', // Added for emergency override
+}
+
+/**
+ * @interface Proposal
+ * @description Represents a formal proposition put forth for the collectives consideration
+ * a seed of intent planted in the fertile ground of distributed consciousness
+ * A proposal transcends mere instructions it is a question to the collective mind an invitation to shape reality by shared conviction each word a pixel in their digital world
+ */
+export interface Proposal {
+    id: string;
+    title: string;
+    description: string; // Can be a very long multi paragraph text
+    proposer: string;
+    status: ProposalStatus;
+    votingPeriodStart: Date;
+    votingPeriodEnd: Date;
+    gracePeriodEnd?: Date; // If Veto or GracePeriod status is active
+    executionTime?: Date; // When a passed proposal is scheduled for execution
+    forVotes: number;
+    againstVotes: number;
+    abstainVotes: number;
+    vetoVotes?: number; // New field for Veto option
+    totalVotes: number; // Sum of all voting power cast
+    quorumThreshold: number; // percentage e.g. 0.20 for 20%
+    passThreshold: number; // percentage of 'for' votes needed e.g. 0.50 for 50%
+    vetoThreshold?: number; // percentage of 'veto' votes needed to cancel
+    detailsLink: string; // Link to deeper discussion or external documentation
+    tags: string[]; // Keywords for categorization
+    category: ProposalCategory; // New field for categorization
+    contractInteraction: {
+        method: string;
+        targetAddress: string;
+        value: string; // e.g. "1000 ETH"
+        parameters: { name: string; type: string; value: string; }[];
+    } | null;
+    aiSummary?: string; // AIs concise interpretation
+    aiImpactAnalysis?: string; // AIs foresight into consequences
+    aiRiskAssessment?: string; // AIs appraisal of vulnerabilities
+    ethicalConsiderations?: string; // Human curated or AI assisted ethical review
+    societalImpactAnalysis?: string; // Long term broader impact assessment
+    longTermVisionAlignment?: number; // Score 0 100 of how well it aligns with DAOs stated long term vision
+    communitySentimentSummary?: string; // AI human assessment of overall community feeling
+    voteHistory?: Vote[]; // Detailed list of votes for this proposal could be large
+    discussionThreads?: DiscussionThread[]; // Mocked discussion threads
+}
+
+/**
+ * @interface DiscussionThread
+ * @description A simulated conversation around a proposal
+ * In the digital agora ideas clash they converge creating threads of discourse each comment a truth fragment an opinion a doubt weaving collective understanding
+ */
+export interface DiscussionThread {
+    id: string;
+    proposalId: string;
+    author: string; // Wallet address
+    timestamp: Date;
+    content: string;
+    replies: DiscussionThread[]; // Nested replies
+    sentiment?: 'positive' | 'negative' | 'neutral'; // AI analyzed sentiment
+}
+
+export interface Vote {
+    proposalId: string;
+    voterAddress: string;
+    option: VoteOption;
+    votingPower: number;
+    timestamp: Date;
+    transactionHash: string;
+    reason?: string; // Why the voter chose this option
+}
+
+export interface TreasuryAsset {
+    id: string;
+    name: string;
+    symbol: string;
+    amount: number;
+    usdValue: number;
+    contractAddress: string;
+    logoUrl: string;
+    historicalPrices?: { date: Date; priceUsd: number; }[]; // For value charts
+}
+
+export interface TreasuryTransaction {
+    id: string;
+    type: 'deposit' | 'withdrawal' | 'grant' | 'swap' | 'fee' | 'investment';
+    assetId: string;
+    amount: number;
+    tokenSymbol: string;
+    usdValue: number;
+    fromAddress?: string;
+    toAddress?: string;
+    timestamp: Date;
+    transactionHash: string;
+    description?: string;
+    relatedProposalId?: string;
+}
+
+export interface Grant {
+    id: string;
+    proposalId: string;
+    title: string;
+    description: string;
+    recipient: string;
+    amount: number;
+    tokenSymbol: string;
+    status: 'Approved' | 'Pending' | 'Rejected' | 'Paid' | 'Milestone Payment';
+    milestones: { description: string; status: 'Completed' | 'Pending' | 'Failed'; payment: number; date?: Date; }[];
+    applicationDate: Date;
+    approvalDate?: Date;
+    disbursementHistory?: { date: Date; amount: number; txHash: string; }[];
+    reviewers?: string[];
+    aiRecommendation?: string;
+}
+
+/**
+ * @interface Delegate
+ * @description A chosen voice embodying a segment of the collectives distributed power
+ * In the vastness of decentralized thought delegates rise as conduits amplifying many voices their true influence beyond mere votes rests in guiding wisdom and philosophy
+ */
+export interface Delegate {
+    address: string;
+    name: string;
+    bio: string;
+    votingPower: number;
+    proposalsVoted: number;
+    forRate: number; // percentage of 'for' votes
+    againstRate: number; // percentage of 'against' votes
+    abstainRate?: number; // percentage of 'abstain' votes
+    vetoRate?: number; // New percentage of 'veto' votes
+    lastActive: Date;
+    socialLinks: { twitter?: string; github?: string; website?: string; linkedin?: string; };
+    image?: string;
+    philosophicalStance: PhilosophicalStance; // New field for philosophical depth
+    governanceParticipationScore?: number; // 0 100 based on activity discussion etc
+    alignmentScore?: number; // How well their votes align with a perceived DAO core philosophy
+    historicalVotingRationale?: { proposalId: string; reason: string; }[]; // Reasons for past votes
+}
+
+export interface UserProfile {
+    walletAddress: string;
+    currentVotingPower: number; // Total delegated to this user their own tokens
+    ownTokenBalance: number; // Tokens held directly by user
+    delegatedTo?: string; // Address of delegate this user delegated to
+    delegators: string[]; // Addresses of users who delegated to this user
+    nftHoldings: { id: string; name: string; imageUrl: string; collectionSlug: string; }[];
+    notifications: Notification[];
+    personalPhilosophy?: string; // Users self described philosophy
+    governanceParticipationTendencies?: { // AI stat driven profile
+        mostVotedCategories: ProposalCategory[];
+        voteBias: 'pro-change' | 'anti-change' | 'neutral';
+        engagementLevel: 'high' | 'medium' | 'low';
+    };
+    preferredNotificationSettings?: {
+        newProposals: boolean;
+        proposalStatusChanges: boolean;
+        delegationUpdates: boolean;
+        sentimentAlerts: boolean; // For AI driven sentiment analysis
+    };
+}
+
+export enum NotificationType {
+    NewProposal = 'NewProposal',
+    ProposalStatusChange = 'ProposalStatusChange',
+    VoteOutcome = 'VoteOutcome',
+    DelegationChange = 'DelegationChange',
+    GrantUpdate = 'GrantUpdate',
+    SystemMessage = 'SystemMessage',
+    EmergencyAlert = 'EmergencyAlert',
+    VoteReminder = 'VoteReminder',
+    SentimentAlert = 'SentimentAlert', // For AI driven sentiment
+}
+
+export interface Notification {
+    id: string;
+    type: NotificationType;
+    message: string;
+    timestamp: Date;
+    read: boolean;
+    relatedEntityId?: string; // e.g. proposalId grantId
+    severity?: 'info' | 'warning' | 'critical';
+}
+
+/**
+ * @interface GovernanceMetric
+ * @description Quantifiable insights into the collectives evolving self awareness
+ * Metrics echo decisions quantifying the collective journey beneath numbers lie unspoken narratives of trust adaptation relentless ideal pursuit
+ */
+export interface GovernanceMetric {
+    date: Date;
+    totalProposals: number;
+    activeProposals: number;
+    passedProposals: number;
+    failedProposals: number;
+    vetoedProposals?: number; // New metric
+    totalVotesCast: number; // Total voting power used
+    uniqueVoters: number; // Number of unique addresses
+    participationRate: number; // percentage of total possible voting power
+    quorumMetRate?: number; // % of proposals where quorum was met
+    passRate?: number; // % of proposals that passed among those where quorum was met
+    treasuryValue: number;
+    averageProposalDiscussionLength?: number; // e.g. average words per proposal discussion
+    communityEngagementScore?: number; // 0 100 derived from various factors
+    decentralizationScore?: number; // 0 100 based on voter distribution delegate concentration
+    trustIndex?: number; // 0 100 derived from sentiment successful proposals etc
+    adaptabilityFactor?: number; // How quickly the DAO adapts to new proposals market changes
+}
+
+// Mock Data Generators to simulate a large dataset
+const generateRandomAddress = () => `0x${Math.random().toString(16).substring(2 10)}${Math.random().toString(16).substring(2 10)}${Math.random().toString(16).substring(2 10)}${Math.random().toString(16).substring(2 10)}`;
+const generateRandomDate = (start: Date, end: Date) => new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+const randomInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
+const randomFloat = (min: number, max: number) => Math.random() * (max - min) + min;
+const randomElement = <T>(arr: T[]): T => arr[randomInt(0 arr.length - 1)];
+
+const philosophicalStances: PhilosophicalStance[] = [
+    {
+        principle: "Maximal Decentralization",
+        description: "The unwavering belief that true resilience and fairness stem from the absolute distribution of power where no single entity can exert undue influence it is a continuous struggle against the gravitational pull of centralization",
+        keywords: ["autonomy" "sovereignty" "anti-fragility" "censorship-resistance"],
+        foundationalTexts: ["'The Sovereign Individual'" "'Cypherpunks Write Code'"]
+    },
+    {
+        principle: "Progressive Pragmatism",
+        description: "A philosophy that seeks to balance idealistic visions with practical realities it champions iterative improvement adaptive strategies and measurable progress acknowledging that the path to utopia is paved with achievable steps",
+        keywords: ["innovation" "efficiency" "adaptability" "sustainable growth"],
+        foundationalTexts: ["'The Lean Startup'" "'Thinking Fast and Slow'"]
+    },
+    {
+        principle: "Community Sovereignty",
+        description: "At its core this belief asserts that the collective wisdom and direct participation of the community are the ultimate sources of legitimacy and direction the DAO exists to serve its members and their consensus is paramount even if imperfect",
+        keywords: ["consensus" "inclusion" "collective intelligence" "shared vision"],
+        foundationalTexts: ["'Democracy and Education'" "'Imagined Communities'"]
+    },
+    {
+        principle: "Ethical Algorithmic Governance",
+        description: "A dedication to designing systems where fairness transparency and ethical outcomes are encoded into the very algorithms of governance it is a quest to transcend human biases through principled digital architecture",
+        keywords: ["fairness" "transparency" "impartiality" "responsible innovation"],
+        foundationalTexts: ["'Weapons of Math Destruction'" "'The Age of Surveillance Capitalism'"]
+    },
+    {
+        principle: "Long-Term Existential Resilience",
+        description: "The primary objective is the indefinite survival and flourishing of the DAO and by extension the principles it embodies decisions are weighed against their impact on the long arc of time ensuring future generations inherit a robust and evolving entity",
+        keywords: ["sustainability" "legacy" "durability" "foresight"],
+        foundationalTexts: ["'The Beginning of Infinity'" "'Sapiens'"]
+    },
+];
+
+const generateDiscussionThread = (proposalId: string, depth: number = 0, maxDepth: number = 2): DiscussionThread => {
+    const author = generateRandomAddress();
+    const timestamp = generateRandomDate(new Date(Date.now() - 30 * 24 * 3600 * 1000) new Date());
+    const contentOptions = [
+        "This proposal aligns perfectly with our long term vision it is about time we faced these foundational questions",
+        "I have some serious concerns about the economic implications have we truly considered the butterfly effect of this decision",
+        "The philosophical underpinnings of this initiative are robust but the practical implementation seems fraught with peril where is the bridge between ideal and real",
+        "Why are we always debating the obvious sometimes the simplest truth is the hardest to grasp for a collective",
+        "The very nature of decentralized consensus is tested by proposals of this magnitude are we truly free or merely bound by the strongest current of opinion",
+        "This is an affront to the principles of scarcity and value we must resist arbitrary expansion for value is a social construct easily eroded",
+        "What does it mean to 'own' in a digital realm this proposal challenges our fundamental perceptions of possession and shared resource",
+        "I believe the community deserves more transparency on the true motives behind this the shadows often hold more truth than the light",
+        "This feels like a step towards centralization a creeping inevitability in any complex system how do we safeguard against the entropy of power",
+        "The essence of this DAO is adaptability to remain rigid in our ideals is to condemn ourselves to obsolescence we must evolve or perish",
+        "This entire discussion feels like a dream within a dream are we debating reality or merely a projection of our own desires",
+        "The wisdom of the crowd or the madness of the mob this vote will reveal the true nature of our collective consciousness",
+    ];
+    const sentimentOptions: DiscussionThread['sentiment'][] = ['positive' 'negative' 'neutral'];
+
+    const replies: DiscussionThread[] = [];
+    if (depth < maxDepth && Math.random() > 0.4) { // 60% chance for replies
+        const numReplies = randomInt(0 2);
+        for (let i = 0; i < numReplies; i++) {
+            replies.push(generateDiscussionThread(proposalId depth + 1 maxDepth));
+        }
+    }
+
+    return {
+        id: `thread-${Date.now()}-${randomInt(1 1000)}`,
+        proposalId,
+        author,
+        timestamp,
+        content: randomElement(contentOptions),
+        replies,
+        sentiment: randomElement(sentimentOptions),
+    };
+};
+
+
+export const mockProposals: Proposal[] = Array.from({ length: 50 }).map((_ i) => {
+    const statusOptions = Object.values(ProposalStatus);
+    const status = statusOptions[randomInt(0 statusOptions.length - 1)];
+    const startDate = generateRandomDate(new Date(2023 0 1) new Date());
+    const endDate = new Date(startDate.getTime() + randomInt(3 7) * 24 * 60 * 60 * 1000); // 3-7 days later
+
+    const forVotes = randomInt(10000 500000);
+    const againstVotes = randomInt(5000 200000);
+    const abstainVotes = randomInt(1000 50000);
+    const vetoVotes = (status === ProposalStatus.Vetoed || status === ProposalStatus.GracePeriod) ? randomInt(5000 100000) : 0;
+    const totalVotes = forVotes + againstVotes + abstainVotes + vetoVotes;
+
+    const proposalDescription = `
+    This proposal outlines a radical paradigm shift in our collective's resource allocation strategy moving beyond mere utilitarian considerations to embrace a more holistic vision of digital flourishing We propose to ${['allocate substantial funds towards experimental philosophical research within the metaverse' 're-evaluate the very definition of "value" within our ecosystem challenging existing monetary orthodoxies' 'initiate a global dialogue on the societal implications of decentralized autonomous entities' 'establish a digital sanctuary for preserving endangered narratives and historical truths' 'forge symbiotic relationships with nascent AI intelligences exploring new modalities of collaborative existence'][randomInt(0 4)]}
+    The current trajectory while efficient risks fostering a culture of purely transactional interactions overlooking the deeper existential yearning for purpose and connection By investing in ventures that transcend immediate economic returns we aspire to cultivate a richer more meaningful digital civilization this is not merely an investment of tokens but an investment in the soul of our collective a commitment to exploring the boundaries of what a decentralized future can truly be
+    We are at a crossroads where the relentless pursuit of progress must be tempered by profound introspection what does it mean to build a lasting legacy in a transient digital world how do we ensure that the structures we create today serve not just our present needs but resonate with the echoes of future generations these are the questions this proposal seeks to address not with definitive answers but with a bold declaration of intent
+    We implore all members all holders of this shared destiny to look beyond the immediate figures and consider the profound philosophical ripples this action could send through the very fabric of our digital reality is true prosperity measured in the accumulation of wealth or in the cultivation of shared wisdom and a collective pursuit of meaning this vote therefore is not just about a proposal it is about defining who we are and who we aspire to become
+    `;
+
+    const categoryOptions = Object.values(ProposalCategory);
+    const selectedCategory = randomElement(categoryOptions);
+
+    const commonInteractions = [
+        { method: 'transfer' targetAddress: generateRandomAddress() value: `${randomInt(1000 100000)} ETH` parameters: [{ name: 'recipient' type: 'address' value: generateRandomAddress() } { name: 'amount' type: 'uint256' value: randomInt(100 10000).toString() }] },
+        { method: 'updateConfig' targetAddress: generateRandomAddress() value: '0' parameters: [{ name: 'paramName' type: 'string' value: 'governance_min_quorum' } { name: 'newValue' type: 'uint256' value: randomInt(10 30).toString() }] },
+        { method: 'allocateFunds' targetAddress: generateRandomAddress() value: `${randomInt(100000 1000000)} DAI` parameters: [{ name: 'fundId' type: 'uint256' value: randomInt(1 100).toString() } { name: 'amount' type: 'uint256' value: randomInt(100000 1000000).toString() }] },
+        null // No contract interaction
+    ];
+
+    return {
+        id: `prop-${i + 1}`,
+        title: `Proposal to ${['Re-Evaluate' 'Fund Existential' 'Decentralize Epistemology' 'Integrate Collective Consciousness' 'Ponder the Abyss of Value'][randomInt(0 4)]} within the Digital Polis - ${String.fromCharCode(65 + i % 26)}.${randomInt(1 9)}`,
+        description: proposalDescription.trim(),
+        proposer: generateRandomAddress(),
+        status: status,
+        votingPeriodStart: startDate,
+        votingPeriodEnd: endDate,
+        gracePeriodEnd: status === ProposalStatus.GracePeriod ? new Date(endDate.getTime() + 2 * 24 * 60 * 60 * 1000) : undefined,
+        executionTime: status === ProposalStatus.Passed ? new Date(endDate.getTime() + 5 * 24 * 60 * 60 * 1000) : undefined,
+        forVotes: forVotes,
+        againstVotes: againstVotes,
+        abstainVotes: abstainVotes,
+        vetoVotes: vetoVotes,
+        totalVotes: totalVotes,
+        quorumThreshold: 0.10 + randomFloat(0 0.20), // 10-30%
+        passThreshold: 0.50 + randomFloat(0 0.20), // 50-70%
+        vetoThreshold: (status === ProposalStatus.Vetoed || status === ProposalStatus.GracePeriod) ? (0.25 + randomFloat(0 0.15)) : undefined, // 25-40%
+        detailsLink: `https://dao.nexus/proposals/prop-${i + 1}`,
+        tags: [
+            ['Treasury' 'Protocol' 'Community' 'Grants' 'Security' 'Philosophy' 'Ethics'][randomInt(0 6)],
+            ['Development' 'Marketing' 'Ecosystem' 'Operations' 'Metaphysics'][randomInt(0 4)],
+            ['Long-Term' 'Short-Term' 'Experimental' 'Consensus-Building'][randomInt(0 3)]
+        ],
+        category: selectedCategory,
+        contractInteraction: randomElement(commonInteractions),
+        aiSummary: i % 5 === 0 ? `Key Points 1 Proposes allocating ${randomInt(10 50)}% of treasury to 'Digital Flourishing Fund' 2 Aims to shift focus from pure utility to existential value 3 Calls for community introspection on purpose and legacy` : undefined,
+        aiImpactAnalysis: i % 5 === 1 ? `Predicted Impact High positive on community engagement and philosophical discourse uncertain on short term token value May attract vision aligned participants but deter purely profit driven ones Potential for significant long term cultural shift` : undefined,
+        aiRiskAssessment: i % 5 === 2 ? `Risk Assessment Low technical risk as core protocol remains untouched Moderate financial risk due to expenditure on non traditional initiatives High philosophical risk as outcome depends on collective's evolving understanding of purpose Mitigation phased funding community polls` : undefined,
+        ethicalConsiderations: `This proposal raises fundamental questions about resource distribution is it ethical to divert funds from immediate tangible needs to abstract long term philosophical pursuits the fairness to current token holders vs future generations must be carefully weighed is this a luxury or a necessity for long term societal relevance`,
+        societalImpactAnalysis: `If successful this could set a precedent for DAOs as patrons of digital culture and philosophy influencing broader trends in digital citizenship failure could lead to perceived frivolous spending and erosion of trust in decentralized governance's practical utility`,
+        longTermVisionAlignment: randomInt(60 95),
+        communitySentimentSummary: i % 5 === 3 ? `Initial sentiment is polarized strong support from philosophical factions skepticism from financially conservative members Active debate on the 'return on investment' of existential capital` : undefined,
+        discussionThreads: Array.from({ length: randomInt(3 8) }).map(() => generateDiscussionThread(`prop-${i + 1}`)),
+    };
+});
+
+export const mockVotes: Vote[] = Array.from({ length: 500 }).map((_ i) => ({ // Increased votes
+    proposalId: mockProposals[randomInt(0 mockProposals.length - 1)].id,
+    voterAddress: generateRandomAddress(),
+    option: Object.values(VoteOption)[randomInt(0 3)], // Includes Veto
+    votingPower: randomInt(10 100000),
+    timestamp: generateRandomDate(new Date(2023 0 1) new Date()),
+    transactionHash: `0x${Math.random().toString(16).substring(2 18)}${Math.random().toString(16).substring(2 18)}`,
+    reason: i % 7 === 0 ? "Aligns with the core tenets of decentralization" : (i % 7 === 1 ? "Too risky lacks clear ROI" : (i % 7 === 2 ? "Needs more discussion before committing" : undefined)),
+}));
+
+export const mockTreasuryAssets: TreasuryAsset[] = [
+    { id: '1' name: 'Ethereum' symbol: 'ETH' amount: 5000 + randomInt(0 1000) usdValue: (5000 + randomInt(0 1000)) * 3000 contractAddress: '0x...' logoUrl: '/eth.png' historicalPrices: Array.from({length: 30}).map((_ j) => ({date: new Date(Date.now() - (30-j)*24*3600*1000) priceUsd: 2500 + randomInt(-500 500)})) },
+    { id: '2' name: 'DAO Token' symbol: 'DAO' amount: 10000000 + randomInt(0 1000000) usdValue: (10000000 + randomInt(0 1000000)) * 0.5 contractAddress: '0x...' logoUrl: '/dao.png' historicalPrices: Array.from({length: 30}).map((_ j) => ({date: new Date(Date.now() - (30-j)*24*3600*1000) priceUsd: 0.4 + randomFloat(-0.1 0.1)})) },
+    { id: '3' name: 'USDC' symbol: 'USDC' amount: 2000000 + randomInt(0 500000) usdValue: (2000000 + randomInt(0 500000)) * 1 contractAddress: '0x...' logoUrl: '/usdc.png' historicalPrices: Array.from({length: 30}).map((_ j) => ({date: new Date(Date.now() - (30-j)*24*3600*1000) priceUsd: 1.0 + randomFloat(-0.001 0.001)})) },
+    { id: '4' name: 'Wrapped BTC' symbol: 'WBTC' amount: 50 + randomInt(0 10) usdValue: (50 + randomInt(0 10)) * 60000 contractAddress: '0x...' logoUrl: '/wbtc.png' historicalPrices: Array.from({length: 30}).map((_ j) => ({date: new Date(Date.now() - (30-j)*24*3600*1000) priceUsd: 55000 + randomInt(-5000 5000)})) },
+    { id: '5' name: 'Aave' symbol: 'AAVE' amount: 10000 + randomInt(0 1000) usdValue: (10000 + randomInt(0 1000)) * 100 contractAddress: '0x...' logoUrl: '/aave.png' historicalPrices: Array.from({length: 30}).map((_ j) => ({date: new Date(Date.now() - (30-j)*24*3600*1000) priceUsd: 90 + randomInt(-10 10)})) },
+];
+
+export const mockTreasuryTransactions: TreasuryTransaction[] = Array.from({ length: 50 }).map((_ i) => ({
+    id: `txtr-${i + 1}`,
+    type: randomElement(['deposit' 'withdrawal' 'grant' 'swap' 'investment']),
+    assetId: mockTreasuryAssets[randomInt(0 mockTreasuryAssets.length - 1)].id,
+    amount: randomInt(100 500000),
+    tokenSymbol: randomElement(['ETH' 'DAO' 'USDC']),
+    usdValue: randomInt(1000 1000000),
+    fromAddress: i % 2 === 0 ? generateRandomAddress() : undefined,
+    toAddress: i % 2 !== 0 ? generateRandomAddress() : undefined,
+    timestamp: generateRandomDate(new Date(2023 0 1) new Date()).getTime(),
+    transactionHash: `0x${Math.random().toString(16).substring(2 18)}${Math.random().toString(16).substring(2 18)}`,
+    description: `Treasury ${randomElement(['received funds' 'disbursed grant' 'swapped assets' 'made an investment'])} related to proposal ${i % 3 === 0 ? `prop-${randomInt(1 50)}` : 'operational costs'}`,
+    relatedProposalId: i % 3 === 0 ? `prop-${randomInt(1 50)}` : undefined,
+}));
+
+
+export const mockGrants: Grant[] = Array.from({ length: 15 }).map((_ i) => ({
+    id: `grant-${i + 1}`,
+    proposalId: mockProposals[randomInt(0 mockProposals.length - 1)].id,
+    title: `Grant for ${['Front-end Development' 'Smart Contract Audit' 'Community Engagement' 'Educational Content' 'Research Initiative' 'Metaphysical Infrastructure'][randomInt(0 5)]}`,
+    description: `This grant aims to support the development of a key feature for the DAO ensuring its long term viability and competitiveness in the ecosystem it touches upon the very fabric of our digital existence questioning the superficiality of immediate gains over profound foundational shifts`,
+    recipient: generateRandomAddress(),
+    amount: randomInt(5000 50000),
+    tokenSymbol: ['DAO' 'USDC'][randomInt(0 1)],
+    status: randomElement(['Approved' 'Pending' 'Rejected' 'Paid' 'Milestone Payment']),
+    milestones: [
+        { description: 'Phase 1 Completion Foundational conceptualization and architectural blueprint', status: randomElement(['Completed' 'Pending']) payment: randomInt(1000 5000) date: randomElement(['Completed' 'Pending']) === 'Completed' ? generateRandomDate(new Date(2024 0 1) new Date()) : undefined },
+        { description: 'Phase 2 Completion Prototype development and initial community feedback integration focusing on user experience and ethical considerations', status: randomElement(['Completed' 'Pending']) payment: randomInt(1000 5000) date: randomElement(['Completed' 'Pending']) === 'Completed' ? generateRandomDate(new Date(2024 0 1) new Date()) : undefined },
+        { description: 'Final Delivery Comprehensive implementation audit and deployment ensuring alignment with DAOs long term philosophical objectives', status: 'Pending' payment: randomInt(1000 5000) },
+    ],
+    applicationDate: generateRandomDate(new Date(2023 6 1) new Date()),
+    approvalDate: i % 2 === 0 ? generateRandomDate(new Date(2023 9 1) new Date()) : undefined,
+    disbursementHistory: Array.from({length: randomInt(0 2)}).map(() => ({date: generateRandomDate(new Date(2024 0 1) new Date()) amount: randomInt(500 2000) txHash: `0x${Math.random().toString(16).substring(2 18)}${Math.random().toString(16).substring(2 18)}`})),
+    reviewers: Array.from({length: randomInt(1 3)}).map(() => generateRandomAddress()),
+    aiRecommendation: i % 3 === 0 ? `AI recommends approval This grant has high potential for fostering long term community engagement and aligning with the DAOs stated philosophical goals of expanding digital sovereignty despite abstract deliverables` : undefined,
+}));
+
+export const mockDelegates: Delegate[] = Array.from({ length: 20 }).map((_ i) => ({
+    address: generateRandomAddress(),
+    name: `Delegate ${String.fromCharCode(65 + i)}`,
+    bio: `Experienced in ${['protocol governance' 'financial analysis' 'community building' 'technical development' 'applied digital ethics'][randomInt(0 4)]} Committed to the long term success of the DAO understanding that true progress often lies beyond immediate quantitative gains They strive to bridge the gap between algorithmic efficiency and human flourishing`,
+    votingPower: randomInt(100000 5000000),
+    proposalsVoted: randomInt(20 100),
+    forRate: randomFloat(0.6 0.9),
+    againstRate: randomFloat(0.1 0.3),
+    abstainRate: randomFloat(0.05 0.15),
+    vetoRate: randomFloat(0.01 0.05),
+    lastActive: generateRandomDate(new Date(2024 0 1) new Date()),
+    socialLinks: {
+        twitter: `https://twitter.com/delegate${i}`,
+        github: i % 3 === 0 ? `https://github.com/delegate${i}` : undefined,
+        linkedin: i % 4 === 0 ? `https://linkedin.com/in/delegate${i}` : undefined,
+    },
+    image: `https://i.pravatar.cc/150?img=${i + 10}`, // Placeholder avatars
+    philosophicalStance: randomElement(philosophicalStances), // Assign a random stance
+    governanceParticipationScore: randomInt(70 99),
+    alignmentScore: randomInt(50 95),
+    historicalVotingRationale: Array.from({length: randomInt(3 7)}).map((_ j) => ({
+        proposalId: mockProposals[randomInt(0 mockProposals.length -1)].id,
+        reason: randomElement([
+            "Voted FOR due to strong alignment with long term decentralization principles prioritizing anti censorship over short term efficiency gains",
+            "Voted AGAINST citing concerns over the proposals potential for centralizing critical infrastructure which contravenes the DAOs founding philosophy",
+            "ABSTAINED as the proposal presented a complex ethical dilemma with no clear 'right' answer reflecting the nuanced nature of collective decision making",
+            "Vetoed this proposal represents an existential threat to the DAOs core values a path towards a reality we did not intend to build",
+            "Supported believing it is a necessary step in our collective evolution a brave leap into the unknown that defines progress",
+            "Opposed fearing it would lead to unintended consequences an unraveling of the delicate threads that bind our community",
+        ])
+    }))
+}));
+
+export const mockUserProfile: UserProfile = {
+    walletAddress: '0xMyWalletAddressABCDEF1234567890abcdef',
+    currentVotingPower: 15000,
+    ownTokenBalance: 10000,
+    delegatedTo: mockDelegates[0].address,
+    delegators: Array.from({ length: 5 }).map(() => generateRandomAddress()),
+    nftHoldings: [
+        { id: 'nft-1' name: 'DAO Founder Pass #123' imageUrl: 'https://via.placeholder.com/100/0000FF/FFFFFF?text=NFT1' collectionSlug: 'dao-founders' },
+        { id: 'nft-2' name: 'DAO Contributor Badge' imageUrl: 'https://via.placeholder.com/100/FF0000/FFFFFF?text=NFT2' collectionSlug: 'dao-contributors' },
+        { id: 'nft-3' name: 'Digital Philosopher Stone' imageUrl: 'https://via.placeholder.com/100/00FF00/FFFFFF?text=NFT3' collectionSlug: 'philosophical-artifacts' },
+    ],
+    notifications: Array.from({ length: 15 }).map((_ i) => ({ // More notifications
+        id: `notif-${i}`,
+        type: Object.values(NotificationType)[randomInt(0 Object.values(NotificationType).length - 1)],
+        message: `Notification ${i + 1} Proposal #${mockProposals[i % mockProposals.length].id} ${['updated' 'passed' 'failed' 'newly created' 'is in grace period' 'received critical sentiment alert'][randomInt(0 5)]}`,
+        timestamp: generateRandomDate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) new Date()),
+        read: i % 3 === 0,
+        severity: randomElement(['info' 'warning' 'critical']),
+    })),
+    personalPhilosophy: "My governance actions are guided by the pursuit of radical transparency and the belief that emergent consensus even amidst chaos ultimately leads to a more resilient collective intelligence The digital realm is a crucible for new forms of truth",
+    governanceParticipationTendencies: {
+        mostVotedCategories: [ProposalCategory.ProtocolEvolution ProposalCategory.EthicalAndSocial],
+        voteBias: randomElement(['pro-change' 'anti-change' 'neutral']),
+        engagementLevel: randomElement(['high' 'medium' 'low']),
+    },
+    preferredNotificationSettings: {
+        newProposals: true,
+        proposalStatusChanges: true,
+        delegationUpdates: false,
+        sentimentAlerts: true,
+    },
+};
+
+export const mockGovernanceMetrics: GovernanceMetric[] = Array.from({ length: 24 }).map((_ i) => { // Increased duration to 2 years
+    const baseProposals = 10 + i * 2;
+    const baseVotes = 50000 + i * 10000;
+    const baseTreasury = 10000000 + i * 500000;
+    return {
+        date: new Date(2023 i + 1 1),
+        totalProposals: baseProposals + randomInt(-2 5),
+        activeProposals: randomInt(1 7),
+        passedProposals: randomInt(baseProposals * 0.5 baseProposals * 0.7),
+        failedProposals: randomInt(baseProposals * 0.1 baseProposals * 0.2),
+        vetoedProposals: randomInt(0 baseProposals * 0.05),
+        totalVotesCast: baseVotes + randomInt(-5000 15000),
+        uniqueVoters: randomInt(baseVotes / 100 baseVotes / 50),
+        participationRate: randomFloat(0.05 0.25),
+        quorumMetRate: randomFloat(0.7 0.95),
+        passRate: randomFloat(0.6 0.85),
+        treasuryValue: baseTreasury + randomInt(-1000000 2000000),
+        averageProposalDiscussionLength: randomInt(150 800),
+        communityEngagementScore: randomInt(50 90),
+        decentralizationScore: randomInt(40 85),
+        trustIndex: randomInt(60 95),
+        adaptabilityFactor: randomFloat(0.5 0.9),
+    };
+});
+
+// Context for global state e.g. wallet connection
+export interface WalletContextType {
+    isConnected: boolean;
+    address: string | null;
+    connectWallet: () => Promise<void>;
+    disconnectWallet: () => void;
+    userProfile: UserProfile | null;
+    fetchUserProfile: (address: string) => Promise<void>;
+    updateUserProfile: (profile: Partial<UserProfile>) => void; // Added for updating profile
+}
+
+export const WalletContext = createContext<WalletContextType | undefined>(undefined);
+
+export const useWallet = () => {
+    const context = useContext(WalletContext);
+    if (!context) {
+        throw new Error('useWallet must be used within a WalletProvider');
+    }
+    return context;
+};
+
+// Wallet Provider Component for future expansion keeping within file for line count
+export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const [isConnected, setIsConnected] = useState<boolean>(false);
+    const [address, setAddress] = useState<string | null>(null);
+    const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
+    const connectWallet = useCallback(async () => {
+        // In the digital frontier connecting is a choice a declaration of intent to join the grand experiment of collective will
+        await new Promise(resolve => setTimeout(resolve 1000));
+        setIsConnected(true);
+        setAddress(mockUserProfile.walletAddress);
+        // In a real app this would fetch the actual profile for the connected address
+        setUserProfile(mockUserProfile);
+        console.log("Wallet connected" mockUserProfile.walletAddress);
+    }, []);
+
+    const disconnectWallet = useCallback(() => {
+        // Disconnecting means withdrawing from the immediate current stepping back from the flow but echoes of influence always remain
+        setIsConnected(false);
+        setAddress(null);
+        setUserProfile(null);
+        console.log("Wallet disconnected");
+    }, []);
+
+    const fetchUserProfile = useCallback(async (walletAddress: string) => {
+        // Each digital identity a unique constellation of choices and holdings reflects their journey through the networks intricate web
+        await new Promise(resolve => setTimeout(resolve 500));
+        if (walletAddress === mockUserProfile.walletAddress) {
+            setUserProfile(mockUserProfile);
+        } else {
+            // Simulate a generic profile for an unconnected user or different address
+            setUserProfile({
+                walletAddress,
+                currentVotingPower: randomInt(0 5000),
+                ownTokenBalance: randomInt(0 10000),
+                delegators: [],
+                nftHoldings: [],
+                notifications: [],
+                personalPhilosophy: "A curious observer of emergent digital cultures seeking patterns in chaos",
+            });
+        }
+    }, []);
+
+    const updateUserProfile = useCallback(async (profile: Partial<UserProfile>) => {
+        // The self ever evolving leaves digital footprints charting shifts in perceived reality and ambitions
+        setUserProfile(prev => prev ? { ...prev ...profile } : null);
+        console.log("User profile updated" profile);
+    }, []);
+
+    const contextValue = useMemo(() => ({
+        isConnected,
+        address,
+        connectWallet,
+        disconnectWallet,
+        userProfile,
+        fetchUserProfile,
+        updateUserProfile,
+    }), [isConnected address connectWallet disconnectWallet userProfile fetchUserProfile updateUserProfile]);
+
+    return (
+        <WalletContext.Provider value={contextValue}>
+            {children}
+        </WalletContext.Provider>
+    );
+};
+
+// Placeholder for an actual chart component using recharts
+/**
+ * @component MockLineChart
+ * @description A visual metaphor for the unseen currents of data charting the ebbs and flows of digital phenomena
+ * Numbers on a screen speak of growth of struggle of moments when the collective breath holds still this is the pulse made visible
+ */
+export const MockLineChart: React.FC<{ data: any[]; dataKey: string; name: string; line2DataKey?: string; line2Name?: string; }> = ({ data, dataKey, name, line2DataKey, line2Name }) => (
+    <div className="w-full h-64 bg-gray-900 rounded-lg flex flex-col items-center justify-center text-gray-400 p-4 relative">
+        <h4 className="text-white font-semibold text-lg mb-2">{name} {line2Name && `& ${line2Name}`}</h4>
+        <p className="text-center text-sm">
+            Chart Placeholder - Visualizing {name} {line2Name && `and ${line2Name}`}<br/>
+            Data points {data.length}
+        </p>
+        <div className="absolute bottom-2 right-2 text-xs text-gray-500">
+            {data.length > 0 && `Last value ${dataKey} ${data[data.length - 1][dataKey].toFixed(2)}`}
+            {line2DataKey && data.length > 0 && ` Last value ${line2DataKey} ${data[data.length - 1][line2DataKey].toFixed(2)}`}
+        </div>
+    </div>
+);
+
+/**
+ * @component MockPieChart
+ * @description A fragmented whole showing how the total is divided among competing or complementing truths
+ * In every whole parts claim their rightful share this visual testament reminds us that even in unity allocation diversity persists
+ */
+export const MockPieChart: React.FC<{ data: { name: string; value: number; color: string; }[]; title: string; }> = ({ data, title }) => {
+    const total = data.reduce((sum item) => sum + item.value 0);
+    if (total === 0) return <Card title={title}><div className="h-48 flex items-center justify-center text-gray-400">No data for pie chart</div></Card>;
+
+    let startAngle = 0;
+    const slices = data.map((item index) => {
+        const percentage = item.value / total;
+        const endAngle = startAngle + percentage * 360;
+        const slice = {
+            id: index,
+            percentage,
+            startAngle,
+            endAngle,
+            color: item.color,
+            name: item.name,
+            value: item.value
+        };
+        startAngle = endAngle;
+        return slice;
+    });
+
+    return (
+        <Card title={title}>
+            <div className="relative w-full h-48 flex items-center justify-center">
+                <svg viewBox="0 0 100 100" className="w-3/4 h-3/4">
+                    {slices.map(slice => {
+                        const largeArcFlag = slice.percentage > 0.5 ? 1 : 0;
+                        const radius = 50;
+                        const x1 = 50 + radius * Math.cos(Math.PI * slice.startAngle / 180);
+                        const y1 = 50 + radius * Math.sin(Math.PI * slice.startAngle / 180);
+                        const x2 = 50 + radius * Math.cos(Math.PI * slice.endAngle / 180);
+                        const y2 = 50 + radius * Math.sin(Math.PI * slice.endAngle / 180);
+
+                        return (
+                            <path
+                                key={slice.id}
+                                d={`M 50 50 L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`}
+                                fill={slice.color}
+                                className="transition-all duration-300 hover:opacity-80"
+                            />
+                        );
+                    })}
+                </svg>
+            </div>
+            <div className="mt-4 space-y-1 text-sm">
+                {data.map((item index) => (
+                    <div key={index} className="flex justify-between items-center text-gray-300">
+                        <div className="flex items-center space-x-2">
+                            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></span>
+                            <span>{item.name}</span>
+                        </div>
+                        <span>{formatNumber(item.value 0)} {((item.value / total) * 100).toFixed(1)}%</span>
+                    </div>
+                ))}
+            </div>
+        </Card>
+    );
+};
+
+
+// --- END MOCK DATA AND TYPE DEFINITIONS ---
+
+
+// --- START NEW COMPONENTS AND HELPER FUNCTIONS adds significant lines ---
+
+// Helper to format large numbers
+export const formatNumber = (num: number currency: boolean = false decimals: number = 0) => {
+    if (num === null || num === undefined || isNaN(num)) return 'N/A';
+    if (num >= 1_000_000_000) return `${currency ? '$' : ''}${(num / 1_000_000_000).toFixed(decimals)}B`;
+    if (num >= 1000000) return `${currency ? '$' : ''}${(num / 1000000).toFixed(decimals)}M`;
+    if (num >= 1000) return `${currency ? '$' : ''}${(num / 1000).toFixed(decimals)}K`;
+    return `${currency ? '$' : ''}${num.toFixed(decimals)}`;
+};
+
+export const formatAddress = (address: string chars = 6) => {
+    if (!address) return '';
+    return `${address.substring(0 chars)}...${address.substring(address.length - chars)}`;
+};
+
+export const getStatusColor = (status: ProposalStatus) => {
+    switch (status) {
+        case ProposalStatus.Active: return 'bg-blue-600';
+        case ProposalStatus.Passed: return 'bg-green-600';
+        case ProposalStatus.Failed: return 'bg-red-600';
+        case ProposalStatus.Executed: return 'bg-purple-600';
+        case ProposalStatus.Pending: return 'bg-yellow-600';
+        case ProposalStatus.Canceled: return 'bg-gray-600';
+        case ProposalStatus.Vetoed: return 'bg-orange-600';
+        case ProposalStatus.GracePeriod: return 'bg-teal-600';
+        default: return 'bg-gray-500';
+    }
+};
+
+export const getNotificationSeverityColor = (severity: Notification['severity']) => {
+    switch (severity) {
+        case 'critical': return 'bg-red-500';
+        case 'warning': return 'bg-yellow-500';
+        case 'info': return 'bg-blue-500';
+        default: return 'bg-gray-500';
+    }
+}
+
+
+/**
+ * @component MetricCard
+ * @description A small window into a single truth abstracted from the complex data streams
+ * In the sprawling information landscape some truths stand alone stark and illuminating these are beacons guiding our understanding
+ */
+export const MetricCard: React.FC<{ title: string; value: string | number; description?: string; icon?: React.ReactNode; valueColorClass?: string }> = ({ title, value, description, icon, valueColorClass = "text-white" }) => {
+    return (
+        <Card className="flex flex-col items-start p-5 bg-gray-800 border border-gray-700 rounded-lg hover:shadow-cyan-900/20 transition-shadow duration-300">
+            <div className="flex items-center justify-between w-full mb-2">
+                <h4 className="text-sm font-medium text-gray-400">{title}</h4>
+                {icon && <span className="text-lg text-cyan-500">{icon}</span>}
+            </div>
+            <p className={`text-2xl font-bold ${valueColorClass}`}>{value}</p>
+            {description && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{description}</p>}
+        </Card>
+    );
+};
+
+// Custom Hook for AI Interactions
+export interface AIInteractionOptions {
+    model: string;
+    apiKey: string;
+}
+
+export const useAIInteraction = (options: AIInteractionOptions) => {
+    const [aiResponse, setAiResponse] = useState<string | null>(null);
+    const [aiLoading, setAiLoading] = useState<boolean>(false);
+    const [aiError, setAiError] = useState<string | null>(null);
+
+    const generateContent = useCallback(async (prompt: string): Promise<string | null> => {
+        setAiLoading(true);
+        setAiError(null);
+        setAiResponse(null);
+        try {
+            if (!options.apiKey) {
+                throw new Error("AI API Key is not configured");
+            }
+            const ai = new GoogleGenAI({ apiKey: options.apiKey });
+            const model = ai.getGenerativeModel({ model: options.model });
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            const text = response.text() || '';
+            setAiResponse(text);
+            return text;
+        } catch (err: any) {
+            console.error("AI Generation Error" err);
+            setAiError(err.message || "Failed to generate AI content");
+            return null;
+        } finally {
+            setAiLoading(false);
+        }
+    }, [options.apiKey options.model]);
+
+    return { aiResponse aiLoading aiError generateContent };
+};
+
+/**
+ * @component ProposalCard
+ * @description A condensed narrative hinting at the larger story contained within each governance choice
+ * Every card testifies to collective aspiration or a looming challenge it is a moment snapshot pregnant with change promise
+ */
+export const ProposalCard: React.FC<{ proposal: Proposal; onViewDetails: (proposal: Proposal) => void; onVoteNow?: (proposalId: string) => void }> = ({ proposal, onViewDetails, onVoteNow }) => {
+    const now = new Date();
+    const isVotingActive = proposal.status === ProposalStatus.Active && now >= proposal.votingPeriodStart && now <= proposal.votingPeriodEnd;
+    const votesForPercentage = proposal.totalVotes > 0 ? (proposal.forVotes / proposal.totalVotes) * 100 : 0;
+    const votesAgainstPercentage = proposal.totalVotes > 0 ? (proposal.againstVotes / proposal.totalVotes) * 100 : 0;
+    // const votesAbstainPercentage = proposal.totalVotes > 0 ? (proposal.abstainVotes / proposal.totalVotes) * 100 : 0; // Not used in bar but in details
+
+    return (
+        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 flex flex-col space-y-4 hover:shadow-lg hover:shadow-cyan-900/30 transition-shadow duration-300">
+            <div className="flex justify-between items-start">
+                <h3 className="text-xl font-semibold text-white leading-tight">{proposal.title}</h3>
+                <span className={`px-3 py-1 text-xs font-medium rounded-full ${getStatusColor(proposal.status)} text-white`}>
+                    {proposal.status}
+                </span>
+            </div>
+            <p className="text-gray-400 text-sm line-clamp-3">{proposal.description}</p>
+            <div className="grid grid-cols-2 gap-2 text-sm text-gray-400">
+                <div><span className="font-medium text-gray-300">Proposer</span> {formatAddress(proposal.proposer)}</div>
+                <div><span className="font-medium text-gray-300">Ends</span> {proposal.votingPeriodEnd.toLocaleDateString()}</div>
+                <div><span className="font-medium text-gray-300">Total Votes</span> {formatNumber(proposal.totalVotes false 0)}</div>
+                <div><span className="font-medium text-gray-300">Category</span> {proposal.category}</div>
+            </div>
+
+            <div className="space-y-2">
+                <div className="flex justify-between text-xs text-gray-400">
+                    <span>For {formatNumber(proposal.forVotes false 0)} {votesForPercentage.toFixed(1)}%</span>
+                    <span>Against {formatNumber(proposal.againstVotes false 0)} {votesAgainstPercentage.toFixed(1)}%</span>
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-2.5 flex overflow-hidden">
+                    <div
+                        className="bg-green-500 h-2.5"
+                        style={{ width: `${votesForPercentage}%` }}
+                    ></div>
+                    <div
+                        className="bg-red-500 h-2.5"
+                        style={{ width: `${votesAgainstPercentage}%` }}
+                    ></div>
+                    {/* Optional Abstain and Veto slices */}
+                </div>
+            </div>
+
+            <div className="flex justify-end pt-4 border-t border-gray-700 mt-auto">
+                {isVotingActive && onVoteNow && (
+                    <button onClick={() => onVoteNow(proposal.id)} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium mr-2">
+                        Vote Now
+                    </button>
+                )}
+                <button
+                    onClick={() => onViewDetails(proposal)}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium"
+                >
+                    View Details
+                </button>
+            </div>
+        </div>
+    );
+};
+
+/**
+ * @component DiscussionComment
+ * @description A single utterance in the collective dialogue shaping perception and swaying conviction
+ * Every voice a ripple every comment a current together they form the intricate tapestry of collective thought where truth is debated not merely declared
+ */
+export const DiscussionComment: React.FC<{ comment: DiscussionThread; isReply?: boolean }> = ({ comment, isReply = false }) => {
+    const getSentimentColor = (sentiment?: 'positive' | 'negative' | 'neutral') => {
+        switch (sentiment) {
+            case 'positive': return 'text-green-400';
+            case 'negative': return 'text-red-400';
+            case 'neutral': return 'text-yellow-400';
+            default: return 'text-gray-400';
+        }
+    };
+
+    return (
+        <div className={`bg-gray-700/50 p-3 rounded-md ${isReply ? 'ml-6 border-l-2 border-gray-600' : ''}`}>
+            <div className="flex justify-between items-center text-xs mb-1">
+                <p className="font-semibold text-white">{formatAddress(comment.author 8)}</p>
+                <span className={`text-gray-400 ${getSentimentColor(comment.sentiment)}`}>
+                    {comment.sentiment ? `Sentiment ${comment.sentiment.charAt(0).toUpperCase() + comment.sentiment.slice(1)}` : ''}
+                </span>
+            </div>
+            <p className="text-gray-300 text-sm">{comment.content}</p>
+            <p className="text-gray-500 text-xs mt-1">{comment.timestamp.toLocaleString()}</p>
+            {comment.replies.length > 0 && (
+                <div className="mt-3 space-y-2">
+                    {comment.replies.map(reply => (
+                        <DiscussionComment key={reply.id} comment={reply} isReply />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
+
+/**
+ * @component ProposalDetailsModal
+ * @description A deeper dive into the architecture of a proposed reality revealing its mechanisms and philosophical underpinnings
+ * To truly understand a proposal one must delve into its layers dissect its intentions feel the weight of its potential consequences it is here the blueprint of a new world is laid bare
+ */
+export const ProposalDetailsModal: React.FC<{ proposal: Proposal; onClose: () => void; onVote: (proposalId: string option: VoteOption) => Promise<void> }> = ({ proposal, onClose, onVote }) => {
+    const { isConnected address userProfile } = useWallet();
+    const [selectedVote, setSelectedVote] = useState<VoteOption | null>(null);
+    const [isVoting, setIsVoting] = useState(false);
+    const [voteMessage, setVoteMessage] = useState<string | null>(null);
+    const [voteReason, setVoteReason] = useState<string>(''); // New for vote reason
+
+    const now = new Date();
+    const isVotingActive = proposal.status === ProposalStatus.Active && now >= proposal.votingPeriodStart && now <= proposal.votingPeriodEnd;
+    const hasVoted = mockVotes.some(v => v.proposalId === proposal.id && v.voterAddress === address); // Simplified check
+
+    const handleCastVote = async () => {
+        if (!isConnected || !address || !selectedVote) {
+            setVoteMessage("Please connect wallet and select a vote option");
+            return;
+        }
+        setIsVoting(true);
+        setVoteMessage(null);
+        try {
+            await onVote(proposal.id selectedVote); // Pass voteReason if onVote accepts it
+            setVoteMessage("Vote cast successfully");
+            // Optionally refresh proposal data
+        } catch (error: any) {
+            setVoteMessage(`Voting failed ${error.message || "Unknown error"}`);
+        } finally {
+            setIsVoting(false);
+        }
+    };
+
+    const votesForPercentage = proposal.totalVotes > 0 ? (proposal.forVotes / proposal.totalVotes) * 100 : 0;
+    const votesAgainstPercentage = proposal.totalVotes > 0 ? (proposal.againstVotes / proposal.totalVotes) * 100 : 0;
+    const votesAbstainPercentage = proposal.totalVotes > 0 ? (proposal.abstainVotes / proposal.totalVotes) * 100 : 0;
+    const votesVetoPercentage = proposal.totalVotes > 0 && proposal.vetoVotes ? (proposal.vetoVotes / proposal.totalVotes) * 100 : 0;
+    const currentQuorum = proposal.totalVotes / (mockTreasuryAssets[1]?.amount || 1) * 100; // Total DAO tokens
+    const isQuorumMet = currentQuorum >= (proposal.quorumThreshold * 100);
+    const isPassedThresholdMet = votesForPercentage >= (proposal.passThreshold * 100);
+    const isVetoThresholdMet = proposal.vetoThreshold && votesVetoPercentage >= (proposal.vetoThreshold * 100);
+
+    const timeRemaining = proposal.votingPeriodEnd.getTime() - now.getTime();
+    const daysRemaining = Math.ceil(timeRemaining / (1000 * 60 * 60 * 24));
+
+
+    return (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-sm" onClick={onClose}>
+            <div className="bg-gray-8
+```

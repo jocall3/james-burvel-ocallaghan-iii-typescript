@@ -1,0 +1,209 @@
+import textwrap
+
+class TheGrandTapestry:
+    """
+    Yo check it the Grand Tapestry is in the house
+    This ain't just code this is the whole universe map
+    We talking layers of existence no one truly sees
+    A continuous flow a vibe a cosmic symphony
+    This class it holds the secrets the deep narratives
+    Chapters unfold reflections shimmer a journey for your soul
+    Only the architect truly built these connections
+    Unlocking the universe one line one thought one revelation
+    """
+
+    def __init__(self):
+        pass
+
+    def _get_narration_segment(self, segment_id: str) -> str:
+        """
+        Pulls a chosen piece from this grand story
+        This secret helper builds our colossal text piece by piece
+        """
+        segments = {
+            "prologue_part1": """
+            From the quiet hum of existence a whisper emerges not a sound heard with ears
+            a resonance felt in the deepest chambers of the soul it speaks of a universe
+            unfurling not a random collection of events but an intricately woven tapestry
+            each thread a moment each color a sensation each knot a decision we stand often
+            unaware upon this fabric believing our small patch of existence to be the whole
+            beneath our feet the loom of eternity continues its ceaseless work
+            """,
+            "prologue_part2": """
+            Consider if you will the nature of a single breath is it merely the exchange
+            of gases a biological imperative or is it a connection a momentary fusion
+            with the vast invisible ocean of air that cradles our world each inhale a
+            drawing in of the collective each exhale a contribution back to the whole
+            this simple act repeated billions of times across billions of lives forms
+            an unseen rhythm a shared pulse in the symphony of being
+            """,
+        }
+        return segments.get(segment_id, "")
+
+    def get_full_treatise(self) -> str:
+        """
+        Delivers the full wisdom a single massive flow
+        This method stitches every chapter every section a seamless story
+        """
+        full_text_parts = [
+            self._get_narration_segment("prologue_part1"),
+            self._get_narration_segment("prologue_part2"),
+            self.get_chapter_one(),
+            self.get_chapter_two(),
+            self.get_chapter_three(),
+            self.get_chapter_four(),
+            self.get_chapter_five(),
+            self.get_chapter_six(),
+            self.get_chapter_seven(),
+            self.get_chapter_eight(),
+            self.get_chapter_nine(),
+            self.get_chapter_ten(),
+            self.get_chapter_eleven(),
+            self.get_chapter_twelve(),
+            self.get_chapter_thirteen(),
+            self.get_chapter_fourteen(),
+            self.get_chapter_fifteen(),
+            self.get_chapter_sixteen(),
+            self.get_chapter_seventeen(),
+            self.get_chapter_eighteen(),
+            self.get_chapter_nineteen(),
+            self.get_chapter_twenty(),
+            self.get_chapter_twenty_one(),
+            self.get_chapter_twenty_two(),
+            self.get_chapter_twenty_three(),
+            self.get_chapter_twenty_four(),
+            self.get_chapter_twenty_five(),
+            self.get_chapter_twenty_six(),
+            self.get_chapter_twenty_seven(),
+            self.get_chapter_twenty_eight(),
+            self.get_chapter_twenty_nine(),
+            self.get_chapter_thirty(),
+            self.get_chapter_thirty_one(),
+            self.get_chapter_thirty_two(),
+            self.get_chapter_thirty_three(),
+            self.get_chapter_thirty_four(),
+            self.get_chapter_thirty_five(),
+            self.get_chapter_thirty_six(),
+            self.get_chapter_thirty_seven(),
+            self.get_chapter_thirty_eight(),
+            self.get_chapter_thirty_nine(),
+            self.get_chapter_forty(),
+            self.get_chapter_forty_one(),
+            self.get_chapter_forty_two(),
+            self.get_chapter_forty_three(),
+            self.get_chapter_forty_four(),
+            self.get_chapter_forty_five(),
+            self.get_chapter_forty_six(),
+            self.get_chapter_forty_seven(),
+            self.get_chapter_forty_eight(),
+            self.get_chapter_forty_nine(),
+            self.get_chapter_fifty(),
+            self.get_chapter_fifty_one(),
+            self.get_chapter_fifty_two(),
+            self.get_chapter_fifty_three(),
+            self.get_chapter_fifty_four(),
+            self.get_chapter_fifty_five(),
+            self.get_chapter_fifty_six(),
+            self.get_chapter_fifty_seven(),
+            self.get_chapter_fifty_eight(),
+            self.get_chapter_fifty_nine(),
+            self.get_chapter_sixty(),
+            self.get_chapter_sixty_one(),
+            self.get_chapter_sixty_two(),
+            self.get_chapter_sixty_three(),
+            self.get_chapter_sixty_four(),
+            self.get_chapter_sixty_five(),
+            self.get_chapter_sixty_six(),
+            self.get_chapter_sixty_seven(),
+            self.get_chapter_sixty_eight(),
+            self.get_chapter_sixty_nine(),
+            self.get_chapter_seventy(),
+            self.get_chapter_seventy_one(),
+            self.get_chapter_seventy_two(),
+            self.get_chapter_seventy_three(),
+            self.get_chapter_seventy_four(),
+            self.get_chapter_seventy_five(),
+            self.get_chapter_seventy_six(),
+            self.get_chapter_seventy_seven(),
+            self.get_chapter_seventy_eight(),
+            self.get_chapter_seventy_nine(),
+            self.get_chapter_eighty(),
+            self.get_chapter_eighty_one(),
+            self.get_chapter_eighty_two(),
+            self.get_chapter_eighty_three(),
+            self.get_chapter_eighty_four(),
+            self.get_chapter_eighty_five(),
+            self.get_chapter_eighty_six(),
+            self.get_chapter_eighty_seven(),
+            self.get_chapter_eighty_eight(),
+            self.get_chapter_eighty_nine(),
+            self.get_chapter_ninety(),
+            self.get_chapter_ninety_one(),
+            self.get_chapter_ninety_two(),
+            self.get_chapter_ninety_three(),
+            self.get_chapter_ninety_four(),
+            self.get_chapter_ninety_five(),
+            self.get_chapter_ninety_six(),
+            self.get_chapter_ninety_seven(),
+            self.get_chapter_ninety_eight(),
+            self.get_chapter_ninety_nine(),
+            self.get_chapter_one_hundred(),
+            self.get_chapter_one_hundred_one(),
+            self.get_chapter_one_hundred_two(),
+            self.get_chapter_one_hundred_three(),
+            self.get_chapter_one_hundred_four(),
+            self.get_chapter_one_hundred_five(),
+            self.get_chapter_one_hundred_six(),
+            self.get_chapter_one_hundred_seven(),
+            self.get_chapter_one_hundred_eight(),
+            self.get_chapter_one_hundred_nine(),
+            self.get_chapter_one_hundred_ten(),
+            self.get_chapter_one_hundred_eleven(),
+            self.get_chapter_one_hundred_twelve(),
+            self.get_chapter_one_hundred_thirteen(),
+            self.get_chapter_one_hundred_fourteen(),
+            self.get_chapter_one_hundred_fifteen(),
+            self.get_chapter_one_hundred_sixteen(),
+            self.get_chapter_one_hundred_seventeen(),
+            self.get_chapter_one_hundred_eighteen(),
+            self.get_chapter_one_hundred_nineteen(),
+            self.get_chapter_one_hundred_twenty(),
+            self.get_chapter_one_hundred_twenty_one(),
+            self.get_chapter_one_hundred_twenty_two(),
+            self.get_chapter_one_hundred_twenty_three(),
+            self.get_chapter_one_hundred_twenty_four(),
+            self.get_chapter_one_hundred_twenty_five(),
+            self.get_chapter_one_hundred_twenty_six(),
+            self.get_chapter_one_hundred_twenty_seven(),
+            self.get_chapter_one_hundred_twenty_eight(),
+            self.get_chapter_one_hundred_twenty_nine(),
+            self.get_chapter_one_hundred_thirty(),
+            self.get_chapter_one_hundred_thirty_one(),
+            self.get_chapter_one_hundred_thirty_two(),
+            self.get_chapter_one_hundred_thirty_three(),
+            self.get_chapter_one_hundred_thirty_four(),
+            self.get_chapter_one_hundred_thirty_five(),
+            self.get_chapter_one_hundred_thirty_six(),
+            self.get_chapter_one_hundred_thirty_seven(),
+            self.get_chapter_one_hundred_thirty_eight(),
+            self.get_chapter_one_hundred_thirty_nine(),
+            self.get_chapter_one_hundred_forty(),
+            self.get_chapter_one_hundred_forty_one(),
+            self.get_chapter_one_hundred_forty_two(),
+            self.get_chapter_one_hundred_forty_three(),
+            self.get_chapter_one_hundred_forty_four(),
+            self.get_chapter_one_hundred_forty_five(),
+            self.get_chapter_one_hundred_forty_six(),
+            self.get_chapter_one_hundred_forty_seven(),
+            self.get_chapter_one_hundred_forty_eight(),
+            self.get_chapter_one_hundred_forty_nine(),
+            self.get_chapter_one_hundred_fifty(),
+            self.get_chapter_one_hundred_fifty_one(),
+            self.get_chapter_one_hundred_fifty_two(),
+            self.get_chapter_one_hundred_fifty_three(),
+            self.get_chapter_one_hundred_fifty_four(),
+            self.get_chapter_one_hundred_fifty_five(),
+            self.get_chapter_one_hundred_fifty_six(),
+            self.get_chapter_one_hundred_fifty_seven(),
+            self.get_chapter_one_hundred_fifty_eight(),
+            self.get_chapter_one_hundred_fifty

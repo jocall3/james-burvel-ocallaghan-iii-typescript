@@ -1,0 +1,119 @@
+      ******************************************************************
+      * COPYBOOK FOR ACCOUNTS RECEIVABLE INVOICE RECORD
+      * This structure defines the data elements for an AR Invoice,
+      * including standard financial details, customer information,
+      * line item breakdowns, and fields for AI-driven insights and
+      * automated processing recommendations.
+      ******************************************************************
+       01 AR-INVOICE-RECORD.
+          ***********************************************************
+          * Core Invoice Identifiers and Dates
+          ***********************************************************
+          05 AR-INVOICE-ID        PIC X(15).         *> Unique alphanumeric invoice identifier.
+          05 AR-CUSTOMER-ID       PIC 9(10).         *> Numeric identifier for the customer.
+          05 AR-INVOICE-DATE      PIC X(10).         *> Date invoice was generated (YYYY-MM-DD).
+          05 AR-DUE-DATE          PIC X(10).         *> Date invoice payment is due (YYYY-MM-DD).
+          05 AR-POSTING-DATE      PIC X(10).         *> Date invoice was posted to ledger (YYYY-MM-DD).
+
+          ***********************************************************
+          * Financial Totals and Status
+          ***********************************************************
+          05 AR-INVOICE-TOTAL     PIC S9(11)V99 COMP-3. *> Total gross amount of the invoice.
+          05 AR-SUBTOTAL          PIC S9(11)V99 COMP-3. *> Sum of all line item totals before tax/discount.
+          05 AR-TAX-AMOUNT        PIC S9(09)V99 COMP-3. *> Total tax amount applied to the invoice.
+          05 AR-DISCOUNT-AMOUNT   PIC S9(09)V99 COMP-3. *> Total discount amount applied to the invoice.
+          05 AR-BALANCE-DUE       PIC S9(11)V99 COMP-3. *> Remaining balance outstanding on the invoice.
+          05 AR-AMOUNT-PAID       PIC S9(11)V99 COMP-3. *> Total amount paid towards the invoice.
+          05 AR-CURRENCY-CODE     PIC X(03).         *> ISO currency code (e.g., 'USD', 'EUR', 'GBP').
+          05 AR-STATUS            PIC X(01).         *> Current payment status of the invoice.
+             88 AR-PAID           VALUE 'P'.         *> Invoice is fully paid.
+             88 AR-UNPAID         VALUE 'U'.         *> Invoice is unpaid.
+             88 AR-OVERDUE        VALUE 'O'.         *> Invoice is past its due date.
+             88 AR-PARTIAL-PAID   VALUE 'R'.         *> Invoice has received partial payment.
+             88 AR-VOIDED         VALUE 'V'.         *> Invoice has been voided.
+             88 AR-CANCELLED      VALUE 'C'.         *> Invoice has been cancelled.
+             88 AR-PENDING-APPROVAL VALUE 'A'.       *> Invoice is awaiting internal approval.
+
+          ***********************************************************
+          * Customer Information (Summary on Invoice)
+          ***********************************************************
+          05 AR-CUSTOMER-NAME     PIC X(60).         *> Full name of the customer.
+          05 AR-CUSTOMER-ADDRESS.                    *> Billing address of the customer.
+             10 AR-ADDR-LINE1     PIC X(40).
+             10 AR-ADDR-LINE2     PIC X(40).
+             10 AR-ADDR-CITY      PIC X(30).
+             10 AR-ADDR-STATE     PIC X(20).         *> State/Province.
+             10 AR-ADDR-ZIP       PIC X(10).         *> Postal/ZIP code.
+             10 AR-ADDR-COUNTRY   PIC X(20).
+          05 AR-CUSTOMER-EMAIL    PIC X(50).         *> Primary contact email for the customer.
+          05 AR-CUSTOMER-PHONE    PIC X(20).         *> Primary contact phone for the customer.
+          05 AR-CUSTOMER-TYPE     PIC X(15).         *> E.g., 'RETAIL', 'WHOLESALE', 'GOVERNMENT'.
+
+          ***********************************************************
+          * Invoice Payment Terms and Transaction Details
+          ***********************************************************
+          05 AR-PAYMENT-TERMS-CODE PIC X(05).        *> Code for payment terms (e.g., 'NET30', 'NET60', 'DUEON').
+          05 AR-LAST-PAYMENT-DATE PIC X(10).         *> Date of the most recent payment received (YYYY-MM-DD).
+          05 AR-LAST-PAYMENT-AMT  PIC S9(11)V99 COMP-3. *> Amount of the most recent payment.
+          05 AR-PAYMENT-METHOD    PIC X(20).         *> E.g., 'BANK TRANSFER', 'CREDIT CARD', 'CHECK'.
+          05 AR-SALESPERSON-ID    PIC X(10).         *> Identifier for the salesperson responsible.
+          05 AR-PURCHASE-ORDER-NO PIC X(25).         *> Customer's internal purchase order number.
+          05 AR-REFERENCE-NO      PIC X(25).         *> Any other external reference number.
+
+          ***********************************************************
+          * Line Item Details (Maximum of 20 items per invoice)
+          ***********************************************************
+          05 AR-NUMBER-OF-LINE-ITEMS PIC 9(02).      *> Actual count of line items in this invoice.
+          05 AR-LINE-ITEMS OCCURS 20 TIMES.          *> Table for individual invoice line items.
+             10 AR-ITEM-ID        PIC X(18).         *> Unique identifier for the product or service.
+             10 AR-ITEM-DESCRIPTION PIC X(80).       *> Detailed description of the item.
+             10 AR-QUANTITY       PIC S9(09)V99 COMP-3. *> Quantity of the item purchased.
+             10 AR-UNIT-PRICE     PIC S9(09)V99 COMP-3. *> Price per unit of the item.
+             10 AR-LINE-TOTAL     PIC S9(11)V99 COMP-3. *> Total amount for this specific line item (Quantity * Unit Price).
+             10 AR-ITEM-GL-ACCOUNT PIC X(10).       *> General Ledger account code for this item.
+             10 AR-ITEM-TAXABLE-FLAG PIC X(01).      *> 'Y' if taxable, 'N' if not.
+             10 AR-ITEM-DISCOUNT-AMT PIC S9(07)V99 COMP-3. *> Discount applied to this specific line item.
+
+          ***********************************************************
+          * AI-Driven Insights and Predictions (Non-Controversial)
+          * These fields capture data generated or used by an AI
+          * system to assist with accounts receivable management,
+          * enhancing efficiency and decision-making.
+          ***********************************************************
+          05 AR-AI-PREDICT-SCORE  PIC 9(03).         *> AI-generated score (000-100) for likelihood of on-time payment.
+                                                      *> 100 indicates highest likelihood of on-time payment, 000 lowest.
+          05 AR-AI-PREDICT-PAY-DATE PIC X(10).       *> YYYY-MM-DD. AI's estimated payment arrival date.
+                                                      *> Blank if no prediction or invoice already paid.
+          05 AR-AI-ACTION-RECOMMEND PIC X(25).       *> AI's suggested action for this invoice, based on analysis.
+             88 AI-ACTION-REMINDER       VALUE 'SEND PAYMENT REMINDER'.
+             88 AI-ACTION-CALL           VALUE 'INITIATE PHONE CALL'.
+             88 AI-ACTION-OFFER-DISC     VALUE 'RECOMMEND DISCOUNT'.
+             88 AI-ACTION-ESCALATE       VALUE 'ESCALATE TO MANAGER'.
+             88 AI-ACTION-MONITOR        VALUE 'MONITOR CLOSELY'.
+             88 AI-ACTION-NO-ACTION      VALUE 'NO ACTION REQUIRED'.
+             88 AI-ACTION-COLLECT        VALUE 'INITIATE COLLECTION'.
+          05 AR-AI-ADJUSTMENT-AMOUNT PIC S9(09)V99 COMP-3. *> AI-recommended adjustment (e.g., goodwill discount).
+          05 AR-AI-SENTIMENT-SCORE PIC X(01).        *> AI-analyzed sentiment from related customer communications.
+                                                      *> 'P'ositive, 'N'eutral, 'G'eneral (Negative), 'U'nknown.
+             88 AI-SENTIMENT-POSITIVE    VALUE 'P'.
+             88 AI-SENTIMENT-NEUTRAL     VALUE 'N'.
+             88 AI-SENTIMENT-NEGATIVE    VALUE 'G'.
+             88 AI-SENTIMENT-UNKNOWN     VALUE 'U'.
+          05 AR-AI-CONFIDENCE-LEVEL PIC 9(02).       *> AI's confidence in its prediction/recommendation (00-99%).
+          05 AR-AI-LAST-PROCESS-DATE PIC X(10).      *> YYYY-MM-DD. Date AI last processed this record for insights.
+          05 AR-AI-TAGS-COUNT     PIC 9(02).         *> Number of active AI-generated classification tags.
+          05 AR-AI-CLASSIFICATION-TAGS OCCURS 5 TIMES. *> AI-generated descriptive tags for classification or routing.
+             10 AR-AI-TAG         PIC X(25).         *> E.g., 'HIGH-VALUE-CUSTOMER', 'RISK-ALERT', 'FAST-PAYER',
+                                                      *> 'DISPUTE-LIKELY', 'LONG-TERM-CLIENT'.
+          05 AR-AI-AUDIT-TRAIL-ID PIC X(20).         *> Identifier for AI processing log or audit trail.
+
+          ***********************************************************
+          * Administrative and System Information
+          ***********************************************************
+          05 AR-CREATED-BY        PIC X(10).         *> User or system that created the invoice.
+          05 AR-CREATED-DATE      PIC X(10).         *> Date of invoice record creation (YYYY-MM-DD).
+          05 AR-LAST-UPDATED-BY   PIC X(10).         *> User or system that last updated the invoice.
+          05 AR-LAST-UPDATED-DATE PIC X(10).         *> Date of last update (YYYY-MM-DD).
+          05 AR-LAST-UPDATED-TIME PIC X(08).         *> Time of last update (HH.MM.SS).
+          05 AR-VERSION-NUMBER    PIC 9(04).         *> Version number of the invoice record.
+          05 AR-RESERVED-AREA     PIC X(50).         *> Reserved for future expansion.

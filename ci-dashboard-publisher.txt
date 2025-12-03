@@ -1,0 +1,1039 @@
+name: CI Dashboard Publisher
+
+on:
+  push:
+    branches:
+      - "main"
+      - "develop"
+      - "feature/**" # Include feature branches for comprehensive metric collection
+      - "release/**" # Include release branches
+  pull_request:
+    branches:
+      - "main"
+      - "develop"
+      - "feature/**"
+      - "release/**"
+  workflow_dispatch: # Allow manual triggering for re-publishing or ad-hoc analysis
+    inputs:
+      republish_all_metrics:
+        description: 'Set to true to force a full re-collection and re-publication of metrics from the specified branch.'
+        required: false
+        type: boolean
+        default: false
+      target_branch:
+        description: 'Specify a branch to collect metrics from (e.g., main, develop). Defaults to main for manual runs if not specified.'
+        required: false
+        type: string
+        default: 'main'
+      manual_run_description:
+        description: 'Optional: Describe the purpose of this manual metric collection run.'
+        required: false
+        type: string
+
+env:
+  # Define common environment variables for consistent usage across steps in this workflow.
+  # These variables help in standardizing paths and configurations.
+  METRIC_COLLECTION_DIR: 'ci-metrics-data'
+  REPORT_GENERATION_DIR: 'ci-reports'
+  ARTIFACT_RETENTION_DAYS: 14 # Default retention for workflow artifacts (in days).
+  DEFAULT_NODE_VERSION: 20 # Specify a preferred Node.js version for consistency.
+  DASHBOARD_TYPE: 'internal_custom_dashboard' # Example: 'sonar_cloud', 'datadog', 'grafana', 'custom_api'.
+
+jobs:
+  publish_metrics:
+    runs-on: ubuntu-latest # Execute this job on a fresh Ubuntu environment.
+
+    timeout-minutes: 60 # Set a maximum time for the entire job to prevent unexpected long runs.
+                         # This helps manage resource consumption and provides timely feedback.
+
+    strategy:
+      matrix:
+        node-version: [ 20 ] # Use a single Node.js version for dashboard publishing for consistency.
+                             # If multiple environments were needed for metrics collection, this matrix
+                             # could be expanded or split into separate jobs.
+      fail-fast: false # Ensure all matrix combinations (if any) run, even if one fails.
+
+    steps:
+    - name: Initialize Workflow Environment Variables and Directories
+      id: init_env
+      shell: bash
+      run: |
+        echo "--- Initializing Workflow Environment for Metric Collection and Publishing ---"
+        echo "Ensuring necessary directories are created for storing temporary data and reports."
+
+        # Display resolved environment variables for transparency.
+        echo "METRIC_COLLECTION_DIR: ${{ env.METRIC_COLLECTION_DIR }}"
+        echo "REPORT_GENERATION_DIR: ${{ env.REPORT_GENERATION_DIR }}"
+        echo "ARTIFACT_RETENTION_DAYS: ${{ env.ARTIFACT_RETENTION_DAYS }}"
+        echo "DEFAULT_NODE_VERSION: ${{ env.DEFAULT_NODE_VERSION }}"
+        echo "DASHBOARD_TYPE: ${{ env.DASHBOARD_TYPE }}"
+
+        # Create structured directories for different types of metric outputs.
+        # This helps organize the data collected from various tools.
+        mkdir -p "${{ env.METRIC_COLLECTION_DIR }}/build-performance"
+        mkdir -p "${{ env.METRIC_COLLECTION_DIR }}/test-results"
+        mkdir -p "${{ env.METRIC_COLLECTION_DIR }}/code-quality"
+        mkdir -p "${{ env.METRIC_COLLECTION_DIR }}/security"
+        mkdir -p "${{ env.METRIC_COLLECTION_DIR }}/bundle-size"
+        mkdir -p "${{ env.REPORT_GENERATION_DIR }}" # Directory for final consolidated reports.
+
+        echo "Required workflow directories created successfully at $(pwd)."
+        echo "Current working directory: $(pwd)"
+        echo "GitHub Actions context and environment setup completed."
+        echo "--- Workflow Environment Initialized ---"
+      
+    - name: Checkout Repository Code (Full History Required)
+      id: checkout_code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # Essential for git history-based metrics (e.g., code churn, author statistics).
+                       # A shallow clone would prevent such detailed analysis.
+        # Determine the branch to checkout based on the event.
+        # For 'workflow_dispatch', use 'target_branch' input; otherwise, use the current branch (github.ref).
+        ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.target_branch || github.ref }}
+      shell: bash
+      run: |
+        echo "--- Repository Checkout Initiated ---"
+        echo "Performing a deep clone (fetch-depth: 0) to ensure full git history is available for advanced metrics."
+        echo "Checking out Git reference: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.target_branch || github.ref }}"
+        echo "Current commit SHA after checkout: ${{ github.sha }}"
+        echo "Repository checkout completed successfully."
+        echo "--- Repository Checkout Completed ---"
+
+    - name: Configure Git User for Automated Operations
+      id: git_config
+      shell: bash
+      run: |
+        echo "--- Configuring Git User for Automated Scripts ---"
+        # Set a generic user name and email for actions performed by the workflow itself.
+        # This can be useful for any git commands that require user context.
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        echo "Git user configured successfully. This is crucial for any commit-related operations or history analysis."
+        echo "--- Git Configuration Complete ---"
+
+    - name: Setup Node.js Environment (Version ${{ matrix.node-version }})
+      id: setup_node_env
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm' # Cache npm dependencies to speed up subsequent workflow runs.
+      shell: bash
+      run: |
+        echo "--- Setting up Node.js Environment ---"
+        echo "Node.js version explicitly set to: ${{ matrix.node-version }}"
+        npm -v || echo "NPM not found or version check failed."
+        node -v || echo "Node.js not found or version check failed."
+        echo "Node.js environment ready for use with any metric collection or publishing scripts written in JavaScript/TypeScript."
+        echo "--- Node.js Setup Complete ---"
+
+    - name: Install Common NPM Dependencies for Metric Tools
+      id: install_npm_deps
+      shell: bash
+      run: |
+        echo "--- Installing NPM Dependencies for Metric Collection and Reporting Tools ---"
+        # Check for package.json to determine if npm installation is necessary.
+        if [ -f package.json ]; then
+          echo "package.json found. Running npm ci for clean and reproducible installation."
+          npm ci # Use npm ci for clean and reproducible installs in CI environments.
+          echo "NPM dependencies installed from package.json."
+        else
+          echo "No package.json found in the repository root. Skipping npm install."
+        fi
+        echo "--- NPM Dependency Installation Complete ---"
+
+    - name: Setup Python Environment for Data Processing and Aggregation
+      id: setup_python_env
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10' # Specify a fixed Python version for stability and consistent script execution.
+        cache: 'pip' # Cache pip dependencies to accelerate build times.
+      shell: bash
+      run: |
+        echo "--- Setting up Python Environment ---"
+        python --version || echo "Python not found or version check failed."
+        echo "Python environment established for data manipulation, aggregation, and external integrations (e.g., API calls, custom reports)."
+        echo "--- Python Setup Complete ---"
+
+    - name: Install Python Data Processing Libraries
+      id: install_pip_deps
+      shell: bash
+      run: |
+        echo "--- Installing Python Libraries for Data Handling ---"
+        # Install common Python libraries that might be used for parsing, processing,
+        # or generating reports from collected metrics.
+        pip install requests pandas openpyxl PyYAML jinja2 # Example: requests for API calls, pandas for data frames, openpyxl for Excel output, Jinja2 for templating.
+        echo "Python data processing libraries installed: requests, pandas, openpyxl, PyYAML, jinja2."
+        echo "--- Python Library Installation Complete ---"
+
+    - name: Extract Workflow Metadata for Report Context
+      id: extract_metadata
+      shell: bash
+      run: |
+        echo "--- Extracting Key Workflow Metadata ---"
+        # Capture essential GitHub context variables to include in the metrics report.
+        # This provides valuable context for understanding the metric data.
+        BRANCH_NAME=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+        EVENT_TYPE=${{ github.event_name }}
+        COMMIT_SHA=${{ github.sha }}
+        REPOSITORY_NAME=${{ github.repository }}
+        RUN_ID=${{ github.run_id }}
+        RUN_ATTEMPT=${{ github.run_attempt }}
+        TRIGGER_ACTOR=${{ github.actor }}
+        
+        # Output these variables for use by subsequent steps.
+        echo "branch_name=${BRANCH_NAME}" >> $GITHUB_OUTPUT
+        echo "event_type=${EVENT_TYPE}" >> $GITHUB_OUTPUT
+        echo "commit_sha=${COMMIT_SHA}" >> $GITHUB_OUTPUT
+        echo "repository_name=${REPOSITORY_NAME}" >> $GITHUB_OUTPUT
+        echo "run_id=${RUN_ID}" >> $GITHUB_OUTPUT
+        echo "run_attempt=${RUN_ATTEMPT}" >> $GITHUB_OUTPUT
+        echo "trigger_actor=${TRIGGER_ACTOR}" >> $GITHUB_OUTPUT
+
+        echo "Extracted workflow metadata:"
+        echo "  Branch: $BRANCH_NAME"
+        echo "  Event Type: $EVENT_TYPE"
+        echo "  Commit SHA: $COMMIT_SHA"
+        echo "  Repository: $REPOSITORY_NAME"
+        echo "  Run ID: $RUN_ID"
+        echo "  Run Attempt: $RUN_ATTEMPT"
+        echo "  Trigger Actor: $TRIGGER_ACTOR"
+        echo "--- Workflow Metadata Extraction Complete ---"
+
+    - name: Collect Build Performance Metrics (Simulated Data)
+      id: collect_build_perf_metrics
+      shell: bash
+      run: |
+        echo "--- Collecting Build Performance Metrics ---"
+        # In a real-world scenario, this step would parse logs from a build tool
+        # (e.g., Jenkins, CircleCI, self-hosted runners) or query a build service API.
+        # For this demonstration, we are simulating these metrics with random values.
+        
+        BUILD_START_DATETIME=$(date -u -d "30 minutes ago" +%Y-%m-%dT%H:%M:%SZ) # Simulate start time 30 mins ago.
+        BUILD_END_DATETIME=$(date -u +%Y-%m-%dT%H:%M:%SZ) # Current UTC time.
+        BUILD_DURATION_SECONDS=$(( RANDOM % 600 + 120 )) # Simulate a build duration between 120 (2 min) and 720 (12 min) seconds.
+        BUILD_CACHE_HIT_RATE=$(( RANDOM % 100 )) # Simulate cache hit rate between 0% and 99%.
+        BUILD_STEPS_COUNT=$(( RANDOM % 50 + 10 )) # Simulate total build steps between 10 and 59.
+
+        echo "Simulated Build Start Time: ${BUILD_START_DATETIME}"
+        echo "Simulated Build End Time: ${BUILD_END_DATETIME}"
+        echo "Simulated Build Duration: ${BUILD_DURATION_SECONDS} seconds"
+        echo "Simulated Build Cache Hit Rate: ${BUILD_CACHE_HIT_RATE}%"
+        echo "Simulated Build Steps Executed: ${BUILD_STEPS_COUNT}"
+
+        # Output collected metrics for use by subsequent steps.
+        echo "BUILD_START_DATETIME=${BUILD_START_DATETIME}" >> $GITHUB_OUTPUT
+        echo "BUILD_END_DATETIME=${BUILD_END_DATETIME}" >> $GITHUB_OUTPUT
+        echo "BUILD_DURATION_SECONDS=${BUILD_DURATION_SECONDS}" >> $GITHUB_OUTPUT
+        echo "BUILD_CACHE_HIT_RATE=${BUILD_CACHE_HIT_RATE}" >> $GITHUB_OUTPUT
+        echo "BUILD_STEPS_COUNT=${BUILD_STEPS_COUNT}" >> $GITHUB_OUTPUT
+
+        # Store raw build metrics in a JSON file for archival and further processing.
+        RAW_BUILD_METRICS_FILE="${{ env.METRIC_COLLECTION_DIR }}/build-performance/raw-build-metrics.json"
+        jq -n \
+          --arg start_time "$BUILD_START_DATETIME" \
+          --arg end_time "$BUILD_END_DATETIME" \
+          --arg duration "$BUILD_DURATION_SECONDS" \
+          --arg cache_rate "$BUILD_CACHE_HIT_RATE" \
+          --arg steps_count "$BUILD_STEPS_COUNT" \
+          '{
+            "start_time": $start_time,
+            "end_time": $end_time,
+            "duration_seconds": ($duration | tonumber),
+            "cache_hit_rate_percent": ($cache_rate | tonumber),
+            "total_steps": ($steps_count | tonumber),
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }' > "$RAW_BUILD_METRICS_FILE"
+        echo "Raw build performance metrics outputted to '$RAW_BUILD_METRICS_FILE'."
+        echo "--- Build Performance Metrics Collection Complete ---"
+
+    - name: Collect Test Execution Metrics (Simulated from JUnit XML)
+      id: collect_test_execution_metrics
+      shell: bash
+      run: |
+        echo "--- Collecting Test Execution Metrics ---"
+        echo "Simulating the download and parsing of a JUnit XML test report."
+        # In a real scenario, `actions/download-artifact` would be used to fetch actual test reports.
+        
+        # Create a dummy JUnit XML file for demonstration purposes.
+        DUMMY_JUNIT_XML="${{ env.METRIC_COLLECTION_DIR }}/test-results/junit-report.xml"
+        mkdir -p "$(dirname "$DUMMY_JUNIT_XML")" # Ensure directory exists.
+        cat > "$DUMMY_JUNIT_XML" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="AllTests" tests="50" failures="2" errors="1" skipped="3" time="15.234">
+  <testsuite name="TestSuiteA" tests="20" failures="1" errors="0" skipped="1" time="8.123">
+    <testcase name="testMethod1" classname="com.example.TestA" time="1.5"/>
+    <testcase name="testMethod2" classname="com.example.TestA" time="0.8"/>
+    <testcase name="testMethod3" classname="com.example.TestA" time="2.1">
+      <failure message="Assertion failed in testMethod3 from TestSuiteA."/>
+    </testcase>
+    <testcase name="testMethod4" classname="com.example.TestA" time="0.5">
+      <skipped/>
+    </testcase>
+  </testsuite>
+  <testsuite name="TestSuiteB" tests="30" failures="1" errors="1" skipped="2" time="7.111">
+    <testcase name="testMethod5" classname="com.example.TestB" time="2.0"/>
+    <testcase name="testMethod6" classname="com.example.TestB" time="1.2">
+      <failure message="Another assertion failed in TestSuiteB."/>
+    </testcase>
+    <testcase name="testMethod7" classname="com.example.TestB" time="0.9">
+      <error message="Runtime error during test method7 execution."/>
+    </testcase>
+    <testcase name="testMethod8" classname="com.example.TestB" time="0.7">
+      <skipped/>
+    </testcase>
+    <testcase name="testMethod9" classname="com.example.TestB" time="0.6">
+      <skipped/>
+    </testcase>
+  </testsuite>
+</testsuites>
+EOF
+        echo "Dummy JUnit XML created at ${DUMMY_JUNIT_XML}"
+
+        # Parse test metrics using `xmllint` for XML parsing and standard shell tools.
+        # This provides a robust way to extract data from XML reports.
+        TOTAL_TESTS=$(xmllint --xpath 'string(//testsuites/@tests)' "$DUMMY_JUNIT_XML" 2>/dev/null || echo "0")
+        TOTAL_FAILURES=$(xmllint --xpath 'string(//testsuites/@failures)' "$DUMMY_JUNIT_XML" 2>/dev/null || echo "0")
+        TOTAL_ERRORS=$(xmllint --xpath 'string(//testsuites/@errors)' "$DUMMY_JUNIT_XML" 2>/dev/null || echo "0")
+        TOTAL_SKIPPED=$(xmllint --xpath 'string(//testsuites/@skipped)' "$DUMMY_JUNIT_XML" 2>/dev/null || echo "0")
+        TOTAL_TIME=$(xmllint --xpath 'string(//testsuites/@time)' "$DUMMY_JUNIT_XML" 2>/dev/null || echo "0.0")
+
+        PASSED_TESTS=$(( TOTAL_TESTS - TOTAL_FAILURES - TOTAL_ERRORS - TOTAL_SKIPPED ))
+        # Calculate success rate, handling division by zero for robustness.
+        if (( TOTAL_TESTS > 0 )); then
+          TEST_SUCCESS_RATE=$(echo "scale=2; ($PASSED_TESTS * 100) / $TOTAL_TESTS" | bc -l)
+        else
+          TEST_SUCCESS_RATE="0.00"
+        fi
+
+        # Output metrics for subsequent steps.
+        echo "TOTAL_TESTS=${TOTAL_TESTS}" >> $GITHUB_OUTPUT
+        echo "TOTAL_PASSED_TESTS=${PASSED_TESTS}" >> $GITHUB_OUTPUT
+        echo "TOTAL_FAILED_TESTS=${TOTAL_FAILURES}" >> $GITHUB_OUTPUT
+        echo "TOTAL_ERRORS=${TOTAL_ERRORS}" >> $GITHUB_OUTPUT
+        echo "TOTAL_SKIPPED_TESTS=${TOTAL_SKIPPED}" >> $GITHUB_OUTPUT
+        echo "TEST_EXECUTION_TIME_SECONDS=${TOTAL_TIME}" >> $GITHUB_OUTPUT
+        echo "TEST_SUCCESS_RATE=${TEST_SUCCESS_RATE}" >> $GITHUB_OUTPUT
+
+        echo "Test Results Summary: Total=${TOTAL_TESTS}, Passed=${PASSED_TESTS}, Failed=${TOTAL_FAILURES}, Errors=${TOTAL_ERRORS}, Skipped=${TOTAL_SKIPPED}"
+        echo "Total Test Time: ${TOTAL_TIME} seconds, Overall Success Rate: ${TEST_SUCCESS_RATE}%"
+        echo "--- Test Execution Metrics Collection Complete ---"
+
+    - name: Collect Code Coverage Metrics (Simulated from Cobertura XML)
+      id: collect_code_coverage_metrics
+      shell: bash
+      run: |
+        echo "--- Collecting Code Coverage Metrics ---"
+        echo "Simulating the download and parsing of a Cobertura XML coverage report."
+        
+        # Create a dummy Cobertura XML file for demonstration.
+        DUMMY_COVERAGE_XML="${{ env.METRIC_COLLECTION_DIR }}/test-results/cobertura-coverage.xml"
+        cat > "$DUMMY_COVERAGE_XML" <<EOF
+<?xml version="1.0"?>
+<!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd">
+<coverage line-rate="0.78" branch-rate="0.65" lines-covered="150" lines-valid="192" branches-covered="50" branches-valid="77" complexity="250" version="4.0" timestamp="1678886400">
+  <sources>
+    <source>/app/src</source>
+  </sources>
+  <packages>
+    <package name="com.example.app" line-rate="0.78" branch-rate="0.65" complexity="250">
+      <classes>
+        <class name="AppService" filename="AppService.java" line-rate="0.85" branch-rate="0.70" complexity="100">
+          <methods>
+            <method name="init" signature="()V" line-rate="1.0" branch-rate="1.0" complexity="1"/>
+            <method name="process" signature="(Ljava/lang/String;)V" line-rate="0.75" branch-rate="0.60" complexity="10"/>
+          </methods>
+          <lines>
+            <line number="10" hits="1" branch="false"/>
+            <line number="15" hits="1" branch="true" condition-coverage="50% (1/2)"/>
+            <line number="20" hits="0" branch="false"/>
+            <line number="25" hits="1" branch="true" condition-coverage="100% (2/2)"/>
+            <line number="30" hits="1" branch="false"/>
+            <line number="35" hits="0" branch="true" condition-coverage="0% (0/2)"/>
+          </lines>
+        </class>
+        <class name="UtilService" filename="UtilService.java" line-rate="0.70" branch-rate="0.55" complexity="150">
+          <methods>
+            <method name="helper" signature="()V" line-rate="0.80" branch-rate="0.70" complexity="5"/>
+          </methods>
+          <lines>
+            <line number="5" hits="1" branch="false"/>
+            <line number="8" hits="0" branch="false"/>
+          </lines>
+        </class>
+      </classes>
+    </package>
+  </packages>
+</coverage>
+EOF
+        echo "Dummy Cobertura XML created at ${DUMMY_COVERAGE_XML}"
+
+        # Parse key coverage metrics using `xmllint`.
+        LINE_COVERAGE_RATE=$(xmllint --xpath 'string(//coverage/@line-rate)' "$DUMMY_COVERAGE_XML" 2>/dev/null || echo "0.0")
+        BRANCH_COVERAGE_RATE=$(xmllint --xpath 'string(//coverage/@branch-rate)' "$DUMMY_COVERAGE_XML" 2>/dev/null || echo "0.0")
+        LINES_COVERED=$(xmllint --xpath 'string(//coverage/@lines-covered)' "$DUMMY_COVERAGE_XML" 2>/dev/null || echo "0")
+        LINES_VALID=$(xmllint --xpath 'string(//coverage/@lines-valid)' "$DUMMY_COVERAGE_XML" 2>/dev/null || echo "0")
+        TOTAL_COMPLEXITY=$(xmllint --xpath 'string(//coverage/@complexity)' "$DUMMY_COVERAGE_XML" 2>/dev/null || echo "0")
+
+        # Convert rates to percentages and output.
+        echo "LINE_COVERAGE_PERCENTAGE=$(echo "scale=2; $LINE_COVERAGE_RATE * 100" | bc -l)" >> $GITHUB_OUTPUT
+        echo "BRANCH_COVERAGE_PERCENTAGE=$(echo "scale=2; $BRANCH_COVERAGE_RATE * 100" | bc -l)" >> $GITHUB_OUTPUT
+        echo "LINES_COVERED=${LINES_COVERED}" >> $GITHUB_OUTPUT
+        echo "LINES_VALID=${LINES_VALID}" >> $GITHUB_OUTPUT
+        echo "TOTAL_CODE_COMPLEXITY=${TOTAL_COMPLEXITY}" >> $GITHUB_OUTPUT
+
+        echo "Code Coverage Summary: Overall Line Coverage = $(echo "scale=2; $LINE_COVERAGE_RATE * 100" | bc -l)%, Branch Coverage = $(echo "scale=2; $BRANCH_COVERAGE_RATE * 100" | bc -l)%"
+        echo "Covered Lines: ${LINES_COVERED} out of ${LINES_VALID} valid lines. Total Code Complexity: ${TOTAL_COMPLEXITY}."
+        echo "--- Code Coverage Metrics Collection Complete ---"
+
+    - name: Collect Static Code Analysis Metrics (ESLint and SonarQube Simulation)
+      id: collect_code_analysis_metrics
+      shell: bash
+      run: |
+        echo "--- Collecting Static Code Analysis Metrics ---"
+        echo "Simulating ESLint JSON report parsing for linting issues."
+        
+        # Create a dummy ESLint JSON report.
+        DUMMY_ESLINT_JSON="${{ env.METRIC_COLLECTION_DIR }}/code-quality/eslint-report.json"
+        cat > "$DUMMY_ESLINT_JSON" <<EOF
+[
+  {
+    "filePath": "src/components/Button.js",
+    "messages": [
+      { "ruleId": "no-unused-vars", "severity": 2, "message": "Unused variable 'props'.", "line": 1, "column": 10 },
+      { "ruleId": "react/prop-types", "severity": 1, "message": "Missing 'prop-types' validation for 'children'.", "line": 5, "column": 15 },
+      { "ruleId": "indent", "severity": 2, "message": "Expected 2 spaces, got 4.", "line": 2, "column": 1 }
+    ],
+    "errorCount": 2,
+    "warningCount": 1,
+    "fixableErrorCount": 1,
+    "fixableWarningCount": 0
+  },
+  {
+    "filePath": "src/utils/helpers.js",
+    "messages": [
+      { "ruleId": "eqeqeq", "severity": 1, "message": "Expected '===' and instead saw '=='.", "line": 10, "column": 12 }
+    ],
+    "errorCount": 0,
+    "warningCount": 1,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 1
+  },
+  {
+    "filePath": "src/services/api.js",
+    "messages": [],
+    "errorCount": 0,
+    "warningCount": 0,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0
+  }
+]
+EOF
+        echo "Dummy ESLint JSON created at ${DUMMY_ESLINT_JSON}"
+
+        # Use `jq` to parse the ESLint report and sum up counts.
+        LINT_TOTAL_ERRORS=$(jq 'map(.errorCount) | add' "$DUMMY_ESLINT_JSON" || echo "0")
+        LINT_TOTAL_WARNINGS=$(jq 'map(.warningCount) | add' "$DUMMY_ESLINT_JSON" || echo "0")
+        LINT_TOTAL_FIXABLE_ERRORS=$(jq 'map(.fixableErrorCount) | add' "$DUMMY_ESLINT_JSON" || echo "0")
+        LINT_TOTAL_FIXABLE_WARNINGS=$(jq 'map(.fixableWarningCount) | add' "$DUMMY_ESLINT_JSON" || echo "0")
+
+        echo "LINT_TOTAL_ERRORS=${LINT_TOTAL_ERRORS}" >> $GITHUB_OUTPUT
+        echo "LINT_TOTAL_WARNINGS=${LINT_TOTAL_WARNINGS}" >> $GITHUB_OUTPUT
+        echo "LINT_TOTAL_FIXABLE_ERRORS=${LINT_TOTAL_FIXABLE_ERRORS}" >> $GITHUB_OUTPUT
+        echo "LINT_TOTAL_FIXABLE_WARNINGS=${LINT_TOTAL_FIXABLE_WARNINGS}" >> $GITHUB_OUTPUT
+
+        echo "ESLint Results: Total Errors=${LINT_TOTAL_ERRORS}, Total Warnings=${LINT_TOTAL_WARNINGS}"
+        echo "Fixable Issues: Errors=${LINT_TOTAL_FIXABLE_ERRORS}, Warnings=${LINT_TOTAL_FIXABLE_WARNINGS}"
+
+        echo "Simulating SonarQube analysis metrics. (Typically these would be fetched from SonarCloud API)."
+        # Generate random values for simulated SonarQube metrics.
+        SONAR_BUGS=$(( RANDOM % 5 ))
+        SONAR_VULNERABILITIES=$(( RANDOM % 10 ))
+        SONAR_CODE_SMELLS=$(( RANDOM % 20 ))
+        SONAR_DUPLICATION_DENSITY=$(echo "scale=2; ($RANDOM % 2000) / 100" | bc -l) # 0.00 to 19.99%
+
+        echo "SONAR_BUGS=${SONAR_BUGS}" >> $GITHUB_OUTPUT
+        echo "SONAR_VULNERABILITIES=${SONAR_VULNERABILITIES}" >> $GITHUB_OUTPUT
+        echo "SONAR_CODE_SMELLS=${SONAR_CODE_SMELLS}" >> $GITHUB_OUTPUT
+        echo "SONAR_DUPLICATION_DENSITY=${SONAR_DUPLICATION_DENSITY}" >> $GITHUB_OUTPUT
+
+        echo "SonarQube Summary: Bugs=${SONAR_BUGS}, Vulnerabilities=${SONAR_VULNERABILITIES}, Code Smells=${SONAR_CODE_SMELLS}, Duplication Density=${SONAR_DUPLICATION_DENSITY}%"
+        echo "--- Static Code Analysis Metrics Collection Complete ---"
+
+    - name: Collect Security Vulnerability Metrics (NPM Audit & Snyk Simulation)
+      id: collect_security_metrics
+      shell: bash
+      run: |
+        echo "--- Collecting Security Vulnerability Metrics ---"
+        echo "Simulating NPM Audit report parsing for dependency vulnerabilities."
+        
+        # Create a dummy NPM Audit JSON report.
+        DUMMY_NPM_AUDIT_JSON="${{ env.METRIC_COLLECTION_DIR }}/security/npm-audit-report.json"
+        cat > "$DUMMY_NPM_AUDIT_JSON" <<EOF
+{
+  "auditReportVersion": 2,
+  "vulnerabilities": {
+    "high": [{}, {}, {}],
+    "moderate": [{}, {}, {}, {}, {}],
+    "low": [{}]
+  },
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 1,
+      "moderate": 5,
+      "high": 3,
+      "critical": 0
+    },
+    "dependencies": {
+      "total": 150,
+      "vulnerable": 9
+    }
+  }
+}
+EOF
+        echo "Dummy NPM Audit JSON created at ${DUMMY_NPM_AUDIT_JSON}"
+
+        # Parse NPM Audit results.
+        NPM_AUDIT_CRITICAL=$(jq '.metadata.vulnerabilities.critical' "$DUMMY_NPM_AUDIT_JSON" || echo "0")
+        NPM_AUDIT_HIGH=$(jq '.metadata.vulnerabilities.high' "$DUMMY_NPM_AUDIT_JSON" || echo "0")
+        NPM_AUDIT_MODERATE=$(jq '.metadata.vulnerabilities.moderate' "$DUMMY_NPM_AUDIT_JSON" || echo "0")
+        NPM_AUDIT_LOW=$(jq '.metadata.vulnerabilities.low' "$DUMMY_NPM_AUDIT_JSON" || echo "0")
+        NPM_AUDIT_TOTAL_VULNERABLE_DEPS=$(jq '.metadata.dependencies.vulnerable' "$DUMMY_NPM_AUDIT_JSON" || echo "0")
+
+        echo "NPM_AUDIT_CRITICAL=${NPM_AUDIT_CRITICAL}" >> $GITHUB_OUTPUT
+        echo "NPM_AUDIT_HIGH=${NPM_AUDIT_HIGH}" >> $GITHUB_OUTPUT
+        echo "NPM_AUDIT_MODERATE=${NPM_AUDIT_MODERATE}" >> $GITHUB_OUTPUT
+        echo "NPM_AUDIT_LOW=${NPM_AUDIT_LOW}" >> $GITHUB_OUTPUT
+        echo "NPM_AUDIT_TOTAL_VULNERABLE_DEPS=${NPM_AUDIT_TOTAL_VULNERABLE_DEPS}" >> $GITHUB_OUTPUT
+
+        echo "NPM Audit Results: Critical=${NPM_AUDIT_CRITICAL}, High=${NPM_AUDIT_HIGH}, Moderate=${NPM_AUDIT_MODERATE}, Low=${NPM_AUDIT_LOW}. Vulnerable Dependencies: ${NPM_AUDIT_TOTAL_VULNERABLE_DEPS}."
+
+        echo "Simulating Snyk scan report (aggregated results). (In real life, this would be an API call or report parsing)."
+        # Generate random values for simulated Snyk metrics.
+        SNYK_CRITICAL=$(( RANDOM % 3 ))
+        SNYK_HIGH=$(( RANDOM % 7 ))
+        SNYK_MEDIUM=$(( RANDOM % 15 ))
+        SNYK_LOW=$(( RANDOM % 25 ))
+
+        echo "SNYK_CRITICAL=${SNYK_CRITICAL}" >> $GITHUB_OUTPUT
+        echo "SNYK_HIGH=${SNYK_HIGH}" >> $GITHUB_OUTPUT
+        echo "SNYK_MEDIUM=${SNYK_MEDIUM}" >> $GITHUB_OUTPUT
+        echo "SNYK_LOW=${SNYK_LOW}" >> $GITHUB_OUTPUT
+
+        echo "Snyk Scan Results: Critical=${SNYK_CRITICAL}, High=${SNYK_HIGH}, Medium=${SNYK_MEDIUM}, Low=${SNYK_LOW}."
+        echo "--- Security Vulnerability Metrics Collection Complete ---"
+
+    - name: Collect Bundle Size and Asset Metrics (Frontend Specific, Simulated)
+      id: collect_bundle_size_metrics
+      shell: bash
+      # Conditionally run this step only for repositories that are likely frontend projects.
+      # This prevents unnecessary execution and potential failures on backend-only repositories.
+      if: contains(github.workspace, 'frontend') || contains(github.repository, 'web-app') || contains(github.repository, 'ui-component')
+      run: |
+        echo "--- Collecting Bundle Size and Asset Metrics ---"
+        echo "Simulating build and asset size measurement for a frontend application."
+        # In a real setup, this would involve running a build command (e.g., `npm run build`)
+        # and then using a tool like `webpack-bundle-analyzer` or custom scripts to measure sizes.
+        
+        # Create a dummy bundle size report JSON.
+        DUMMY_BUNDLE_JSON="${{ env.METRIC_COLLECTION_DIR }}/bundle-size/bundle-analysis.json"
+        cat > "$DUMMY_BUNDLE_JSON" <<EOF
+{
+  "main.js": { "raw": 150234, "gzip": 45123 },
+  "vendor.js": { "raw": 300456, "gzip": 90345 },
+  "index.html": { "raw": 2048, "gzip": 850 },
+  "style.css": { "raw": 10240, "gzip": 3000 },
+  "assets/image.png": { "raw": 50000, "gzip": 48000 },
+  "total": { "raw": 512738, "gzip": 187218 }
+}
+EOF
+        echo "Dummy bundle analysis JSON created at ${DUMMY_BUNDLE_JSON}"
+
+        # Parse bundle size metrics using `jq`.
+        MAIN_BUNDLE_RAW_SIZE=$(jq '."main.js".raw' "$DUMMY_BUNDLE_JSON" || echo "0")
+        MAIN_BUNDLE_GZIP_SIZE=$(jq '."main.js".gzip' "$DUMMY_BUNDLE_JSON" || echo "0")
+        TOTAL_BUNDLE_RAW_SIZE=$(jq '.total.raw' "$DUMMY_BUNDLE_JSON" || echo "0")
+        TOTAL_BUNDLE_GZIP_SIZE=$(jq '.total.gzip' "$DUMMY_BUNDLE_JSON" || echo "0")
+
+        echo "MAIN_BUNDLE_RAW_SIZE=${MAIN_BUNDLE_RAW_SIZE}" >> $GITHUB_OUTPUT
+        echo "MAIN_BUNDLE_GZIP_SIZE=${MAIN_BUNDLE_GZIP_SIZE}" >> $GITHUB_OUTPUT
+        echo "TOTAL_BUNDLE_RAW_SIZE=${TOTAL_BUNDLE_RAW_SIZE}" >> $GITHUB_OUTPUT
+        echo "TOTAL_BUNDLE_GZIP_SIZE=${TOTAL_BUNDLE_GZIP_SIZE}" >> $GITHUB_OUTPUT
+
+        echo "Bundle Sizes (bytes): Main Raw=${MAIN_BUNDLE_RAW_SIZE}, Main Gzip=${MAIN_BUNDLE_GZIP_SIZE}"
+        echo "Total Bundle Sizes (bytes): Total Raw=${TOTAL_BUNDLE_RAW_SIZE}, Total Gzip=${TOTAL_BUNDLE_GZIP_SIZE}"
+        echo "--- Bundle Size and Asset Metrics Collection Complete ---"
+
+    - name: Generate Comprehensive JSON Metrics Report
+      id: generate_json_report
+      shell: bash
+      run: |
+        echo "--- Consolidating All Collected Metrics into a Single Structured JSON Report ---"
+        # This step combines all individual metric outputs from previous steps into one
+        # comprehensive JSON file. This is the primary data payload for dashboards/archives.
+        # `jq -n` is used to build the JSON from scratch, using --arg for input variables.
+        # Fallback to default values (0 or "N/A") is included for metrics that might not
+        # have been collected (e.g., bundle size on a non-frontend repo).
+
+        JSON_REPORT_PATH="${{ env.REPORT_GENERATION_DIR }}/ci-metrics-full-report.json"
+        
+        jq -n \
+          --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+          --arg repository "${{ steps.extract_metadata.outputs.repository_name }}" \
+          --arg commit_sha "${{ steps.extract_metadata.outputs.commit_sha }}" \
+          --arg branch "${{ steps.extract_metadata.outputs.branch_name }}" \
+          --arg event_type "${{ steps.extract_metadata.outputs.event_type }}" \
+          --arg run_id "${{ steps.extract_metadata.outputs.run_id }}" \
+          --arg run_attempt "${{ steps.extract_metadata.outputs.run_attempt }}" \
+          --arg trigger_actor "${{ steps.extract_metadata.outputs.trigger_actor }}" \
+          \
+          --arg build_start_time "${{ steps.collect_build_perf_metrics.outputs.BUILD_START_DATETIME }}" \
+          --arg build_end_time "${{ steps.collect_build_perf_metrics.outputs.BUILD_END_DATETIME }}" \
+          --arg build_duration "${{ steps.collect_build_perf_metrics.outputs.BUILD_DURATION_SECONDS }}" \
+          --arg build_cache_hit_rate "${{ steps.collect_build_perf_metrics.outputs.BUILD_CACHE_HIT_RATE }}" \
+          --arg build_steps_count "${{ steps.collect_build_perf_metrics.outputs.BUILD_STEPS_COUNT }}" \
+          \
+          --arg total_tests "${{ steps.collect_test_execution_metrics.outputs.TOTAL_TESTS }}" \
+          --arg passed_tests "${{ steps.collect_test_execution_metrics.outputs.TOTAL_PASSED_TESTS }}" \
+          --arg failed_tests "${{ steps.collect_test_execution_metrics.outputs.TOTAL_FAILED_TESTS }}" \
+          --arg errors_tests "${{ steps.collect_test_execution_metrics.outputs.TOTAL_ERRORS }}" \
+          --arg skipped_tests "${{ steps.collect_test_execution_metrics.outputs.TOTAL_SKIPPED_TESTS }}" \
+          --arg test_execution_time "${{ steps.collect_test_execution_metrics.outputs.TEST_EXECUTION_TIME_SECONDS }}" \
+          --arg test_success_rate "${{ steps.collect_test_execution_metrics.outputs.TEST_SUCCESS_RATE }}" \
+          \
+          --arg line_coverage_pct "${{ steps.collect_code_coverage_metrics.outputs.LINE_COVERAGE_PERCENTAGE }}" \
+          --arg branch_coverage_pct "${{ steps.collect_code_coverage_metrics.outputs.BRANCH_COVERAGE_PERCENTAGE }}" \
+          --arg lines_covered "${{ steps.collect_code_coverage_metrics.outputs.LINES_COVERED }}" \
+          --arg lines_valid "${{ steps.collect_code_coverage_metrics.outputs.LINES_VALID }}" \
+          --arg total_complexity "${{ steps.collect_code_coverage_metrics.outputs.TOTAL_CODE_COMPLEXITY }}" \
+          \
+          --arg lint_total_errors "${{ steps.collect_code_analysis_metrics.outputs.LINT_TOTAL_ERRORS }}" \
+          --arg lint_total_warnings "${{ steps.collect_code_analysis_metrics.outputs.LINT_TOTAL_WARNINGS }}" \
+          --arg lint_fixable_errors "${{ steps.collect_code_analysis_metrics.outputs.LINT_TOTAL_FIXABLE_ERRORS }}" \
+          --arg lint_fixable_warnings "${{ steps.collect_code_analysis_metrics.outputs.LINT_TOTAL_FIXABLE_WARNINGS }}" \
+          --arg sonar_bugs "${{ steps.collect_code_analysis_metrics.outputs.SONAR_BUGS }}" \
+          --arg sonar_vulnerabilities "${{ steps.collect_code_analysis_metrics.outputs.SONAR_VULNERABILITIES }}" \
+          --arg sonar_code_smells "${{ steps.collect_code_analysis_metrics.outputs.SONAR_CODE_SMELLS }}" \
+          --arg sonar_duplication_density "${{ steps.collect_code_analysis_metrics.outputs.SONAR_DUPLICATION_DENSITY }}" \
+          \
+          --arg npm_audit_critical "${{ steps.collect_security_metrics.outputs.NPM_AUDIT_CRITICAL }}" \
+          --arg npm_audit_high "${{ steps.collect_security_metrics.outputs.NPM_AUDIT_HIGH }}" \
+          --arg npm_audit_moderate "${{ steps.collect_security_metrics.outputs.NPM_AUDIT_MODERATE }}" \
+          --arg npm_audit_low "${{ steps.collect_security_metrics.outputs.NPM_AUDIT_LOW }}" \
+          --arg npm_audit_total_vulnerable_deps "${{ steps.collect_security_metrics.outputs.NPM_AUDIT_TOTAL_VULNERABLE_DEPS }}" \
+          --arg snyk_critical "${{ steps.collect_security_metrics.outputs.SNYK_CRITICAL }}" \
+          --arg snyk_high "${{ steps.collect_security_metrics.outputs.SNYK_HIGH }}" \
+          --arg snyk_medium "${{ steps.collect_security_metrics.outputs.SNYK_MEDIUM }}" \
+          --arg snyk_low "${{ steps.collect_security_metrics.outputs.SNYK_LOW }}" \
+          \
+          --arg main_bundle_raw_size "${{ steps.collect_bundle_size_metrics.outputs.MAIN_BUNDLE_RAW_SIZE || '0' }}" \
+          --arg main_bundle_gzip_size "${{ steps.collect_bundle_size_metrics.outputs.MAIN_BUNDLE_GZIP_SIZE || '0' }}" \
+          --arg total_bundle_raw_size "${{ steps.collect_bundle_size_metrics.outputs.TOTAL_BUNDLE_RAW_SIZE || '0' }}" \
+          --arg total_bundle_gzip_size "${{ steps.collect_bundle_size_metrics.outputs.TOTAL_BUNDLE_GZIP_SIZE || '0' }}" \
+          '{
+            "meta": {
+              "timestamp": $timestamp,
+              "repository": $repository,
+              "commit_sha": $commit_sha,
+              "branch": $branch,
+              "event_type": $event_type,
+              "run_id": ($run_id | tonumber),
+              "run_attempt": ($run_attempt | tonumber),
+              "trigger_actor": $trigger_actor,
+              "workflow_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            },
+            "metrics": {
+              "build_performance": {
+                "start_time": $build_start_time,
+                "end_time": $build_end_time,
+                "duration_seconds": ($build_duration | tonumber),
+                "cache_hit_rate_percent": ($build_cache_hit_rate | tonumber),
+                "total_steps": ($build_steps_count | tonumber)
+              },
+              "test_execution": {
+                "total_tests": ($total_tests | tonumber),
+                "passed_tests": ($passed_tests | tonumber),
+                "failed_tests": ($failed_tests | tonumber),
+                "error_tests": ($errors_tests | tonumber),
+                "skipped_tests": ($skipped_tests | tonumber),
+                "execution_time_seconds": ($test_execution_time | tonumber),
+                "success_rate_percent": ($test_success_rate | tonumber)
+              },
+              "code_coverage": {
+                "line_coverage_percent": ($line_coverage_pct | tonumber),
+                "branch_coverage_percent": ($branch_coverage_pct | tonumber),
+                "lines_covered": ($lines_covered | tonumber),
+                "lines_valid": ($lines_valid | tonumber),
+                "total_code_complexity": ($total_complexity | tonumber)
+              },
+              "static_code_analysis": {
+                "eslint": {
+                  "total_errors": ($lint_total_errors | tonumber),
+                  "total_warnings": ($lint_total_warnings | tonumber),
+                  "fixable_errors": ($lint_fixable_errors | tonumber),
+                  "fixable_warnings": ($lint_fixable_warnings | tonumber)
+                },
+                "sonarqube_summary": { # These are high-level summaries, full details would be in SonarCloud.
+                  "bugs": ($sonar_bugs | tonumber),
+                  "vulnerabilities": ($sonar_vulnerabilities | tonumber),
+                  "code_smells": ($sonar_code_smells | tonumber),
+                  "duplication_density_percent": ($sonar_duplication_density | tonumber)
+                }
+              },
+              "security_vulnerabilities": {
+                "npm_audit": {
+                  "critical": ($npm_audit_critical | tonumber),
+                  "high": ($npm_audit_high | tonumber),
+                  "moderate": ($npm_audit_moderate | tonumber),
+                  "low": ($npm_audit_low | tonumber),
+                  "total_vulnerable_dependencies": ($npm_audit_total_vulnerable_deps | tonumber)
+                },
+                "snyk_scan": {
+                  "critical": ($snyk_critical | tonumber),
+                  "high": ($snyk_high | tonumber),
+                  "medium": ($snyk_medium | tonumber),
+                  "low": ($snyk_low | tonumber)
+                }
+              },
+              "bundle_size": {
+                "main_bundle_raw_bytes": ($main_bundle_raw_size | tonumber),
+                "main_bundle_gzip_bytes": ($main_bundle_gzip_size | tonumber),
+                "total_bundle_raw_bytes": ($total_bundle_raw_size | tonumber),
+                "total_bundle_gzip_bytes": ($total_bundle_gzip_size | tonumber)
+              }
+            }
+          }' > "$JSON_REPORT_PATH"
+        echo "Comprehensive JSON metrics report generated at ${JSON_REPORT_PATH}"
+        echo "Displaying first 50 lines of the generated JSON report for preview:"
+        cat "$JSON_REPORT_PATH" | head -n 50
+        echo "..."
+        echo "--- JSON Metrics Report Generation Complete ---"
+
+    - name: Publish Metrics to External Dashboard API
+      id: publish_dashboard_api
+      shell: bash
+      env:
+        DASHBOARD_API_KEY: ${{ secrets.DASHBOARD_API_KEY }} # Secret for authentication.
+        DASHBOARD_API_URL: "https://your-external-dashboard.com/api/v1/metrics/ci" # Endpoint for your dashboard.
+      # Only attempt to publish if the previous steps were successful and API key is provided.
+      # Also, skip if 'republish_all_metrics' is true, as that might indicate a different publishing flow.
+      if: success() && env.DASHBOARD_API_KEY != '' && github.event.inputs.republish_all_metrics != 'true'
+      run: |
+        echo "--- Attempting to Publish Metrics to External Dashboard API ---"
+        REPORT_FILE="${{ env.REPORT_GENERATION_DIR }}/ci-metrics-full-report.json"
+        
+        if [ ! -f "$REPORT_FILE" ]; then
+          echo "Error: Consolidated metrics report '$REPORT_FILE' not found. Cannot publish to dashboard."
+          exit 1
+        fi
+
+        echo "Sending data to configured dashboard API: ${{ env.DASHBOARD_API_URL }}"
+        # Use `curl` to send the JSON report. `--data-binary` ensures raw file content is sent.
+        # `--fail-with-body` and `--show-error` help debug API failures.
+        curl -X POST \
+             -H "Content-Type: application/json" \
+             -H "Authorization: Bearer ${{ env.DASHBOARD_API_KEY }}" \
+             --data-binary "@$REPORT_FILE" \
+             "${{ env.DASHBOARD_API_URL }}" \
+             --fail-with-body \
+             --silent --show-error
+        
+        # Check the exit status of curl.
+        if [ $? -eq 0 ]; then
+          echo "Metrics successfully published to external dashboard API."
+        else
+          echo "Failed to publish metrics to external dashboard API. Please check API key, URL, and dashboard service status."
+          exit 1 # Fail the step if publishing to the primary dashboard fails.
+        fi
+        echo "--- External Dashboard API Publishing Complete ---"
+
+    - name: Generate Human-Readable Markdown Summary Report
+      id: generate_markdown_report
+      shell: bash
+      run: |
+        echo "--- Generating Human-Readable Markdown Summary Report ---"
+        # This step creates a user-friendly summary of the collected metrics in Markdown format.
+        # It uses a Python script with Jinja2 templating for a flexible and rich report generation.
+
+        MARKDOWN_REPORT_PATH="${{ env.REPORT_GENERATION_DIR }}/ci-summary-report-${{ github.run_id }}.md"
+        JSON_REPORT_INPUT_PATH="${{ env.REPORT_GENERATION_DIR }}/ci-metrics-full-report.json"
+        
+        # Embed the Python script directly in the workflow for self-contained execution.
+        cat > generate_summary.py <<'EOF'
+import json
+import os
+from jinja2 import Environment, FileSystemLoader
+
+def generate_report(json_path, output_path, env_vars):
+    """
+    Generates a Markdown report from a JSON metrics file using Jinja2 templating.
+    """
+    try:
+        with open(json_path, 'r') as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        print(f"Error: JSON report not found at {json_path}. Cannot generate Markdown.")
+        return
+    except json.JSONDecodeError:
+        print(f"Error: Invalid JSON format in {json_path}. Cannot generate Markdown.")
+        return
+
+    # Setup Jinja2 environment to load templates from the current directory.
+    # This allows the template string to be directly embedded or loaded from a file.
+    env = Environment(loader=FileSystemLoader('.'))
+
+    # Define the Jinja2 template for the Markdown report.
+    # It includes conditional rendering for sections like bundle size, which may not always be present.
+    template = env.from_string("""
+# CI Metrics Summary Report
+
+**Generated At:** {{ data.meta.timestamp }}
+**Repository:** `{{ data.meta.repository }}`
+**Branch:** `{{ data.meta.branch }}`
+**Commit SHA:** `{{ data.meta.commit_sha }}`
+**Trigger Event:** `{{ data.meta.event_type }}`
+**Workflow Run:** [Link]({{ data.meta.workflow_url }})
+**Triggered By:** {{ data.meta.trigger_actor }}
+{% if env.manual_run_description %}
+**Manual Run Description:** {{ env.manual_run_description }}
+{% endif %}
+
+---
+
+## 🚀 Build Performance
+
+- **Duration:** {{ data.metrics.build_performance.duration_seconds }} seconds
+- **Cache Hit Rate:** {{ data.metrics.build_performance.cache_hit_rate_percent }}%
+- **Total Steps:** {{ data.metrics.build_performance.total_steps }}
+- **Start Time:** `{{ data.metrics.build_performance.start_time }}`
+- **End Time:** `{{ data.metrics.build_performance.end_time }}`
+
+---
+
+## 🧪 Test Execution
+
+- **Total Tests:** {{ data.metrics.test_execution.total_tests }}
+- **Passed Tests:** {{ data.metrics.test_execution.passed_tests }}
+- **Failed Tests:** {{ data.metrics.test_execution.failed_tests }}
+- **Error Tests:** {{ data.metrics.test_execution.error_tests }}
+- **Skipped Tests:** {{ data.metrics.test_execution.skipped_tests }}
+- **Execution Time:** {{ data.metrics.test_execution.execution_time_seconds }} seconds
+- **Success Rate:** {{ data.metrics.test_execution.success_rate_percent }}%
+
+---
+
+## 📊 Code Coverage
+
+- **Line Coverage:** {{ data.metrics.code_coverage.line_coverage_percent }}%
+- **Branch Coverage:** {{ data.metrics.code_coverage.branch_coverage_percent }}%
+- **Lines Covered/Valid:** {{ data.metrics.code_coverage.lines_covered }} / {{ data.metrics.code_coverage.lines_valid }}
+- **Total Code Complexity:** {{ data.metrics.code_coverage.total_code_complexity }}
+
+---
+
+## 🧐 Static Code Analysis
+
+### ESLint
+- **Total Errors:** {{ data.metrics.static_code_analysis.eslint.total_errors }}
+- **Total Warnings:** {{ data.metrics.static_code_analysis.eslint.total_warnings }}
+- **Fixable Errors:** {{ data.metrics.static_code_analysis.eslint.fixable_errors }}
+- **Fixable Warnings:** {{ data.metrics.static_code_analysis.eslint.fixable_warnings }}
+
+### SonarQube Summary
+- **Bugs:** {{ data.metrics.static_code_analysis.sonarqube_summary.bugs }}
+- **Vulnerabilities:** {{ data.metrics.static_code_analysis.sonarqube_summary.vulnerabilities }}
+- **Code Smells:** {{ data.metrics.static_code_analysis.sonarqube_summary.code_smells }}
+- **Duplication Density:** {{ data.metrics.static_code_analysis.sonarqube_summary.duplication_density_percent }}%
+
+---
+
+## 🔒 Security Vulnerabilities
+
+### NPM Audit
+- **Critical:** {{ data.metrics.security_vulnerabilities.npm_audit.critical }}
+- **High:** {{ data.metrics.security_vulnerabilities.npm_audit.high }}
+- **Moderate:** {{ data.metrics.security_vulnerabilities.npm_audit.moderate }}
+- **Low:** {{ data.metrics.security_vulnerabilities.npm_audit.low }}
+- **Vulnerable Dependencies:** {{ data.metrics.security_vulnerabilities.npm_audit.total_vulnerable_dependencies }}
+
+### Snyk Scan
+- **Critical:** {{ data.metrics.security_vulnerabilities.snyk_scan.critical }}
+- **High:** {{ data.metrics.security_vulnerabilities.snyk_scan.high }}
+- **Medium:** {{ data.metrics.security_vulnerabilities.snyk_scan.medium }}
+- **Low:** {{ data.metrics.security_vulnerabilities.snyk_scan.low }}
+
+{% if data.metrics.bundle_size.total_bundle_raw_bytes > 0 %}
+---
+
+## 📦 Bundle Size Metrics (Frontend)
+
+- **Main Bundle (Raw):** {{ "%.2f" | format(data.metrics.bundle_size.main_bundle_raw_bytes / 1024) }} KB
+- **Main Bundle (Gzip):** {{ "%.2f" | format(data.metrics.bundle_size.main_bundle_gzip_bytes / 1024) }} KB
+- **Total Bundle (Raw):** {{ "%.2f" | format(data.metrics.bundle_size.total_bundle_raw_bytes / 1024) }} KB
+- **Total Bundle (Gzip):** {{ "%.2f" | format(data.metrics.bundle_size.total_bundle_gzip_bytes / 1024) }} KB
+{% endif %}
+
+---
+
+**Raw JSON Report:** [ci-metrics-full-report.json](./ci-metrics-full-report.json)
+""")
+    
+    # Render the template with the collected data and environment variables.
+    rendered_report = template.render(data=data, env=env_vars)
+    
+    # Write the generated Markdown content to the output file.
+    with open(output_path, 'w') as f:
+        f.write(rendered_report)
+    print(f"Markdown report successfully generated at {output_path}")
+
+if __name__ == "__main__":
+    json_report_path = os.environ.get('JSON_REPORT_PATH')
+    markdown_report_path = os.environ.get('MARKDOWN_REPORT_PATH')
+    
+    # Pass GitHub environment/workflow_dispatch inputs to the Jinja template if needed.
+    # This allows the report to include custom details from the workflow run.
+    github_env_for_report = {
+        "manual_run_description": os.environ.get('MANUAL_RUN_DESCRIPTION', '')
+    }
+    
+    generate_report(json_report_path, markdown_report_path, github_env_for_report)
+EOF
+        echo "Python report generation script 'generate_summary.py' created."
+
+        # Execute the Python script.
+        python generate_summary.py
+        
+        echo "Markdown summary report generated at ${MARKDOWN_REPORT_PATH}"
+        echo "Displaying first 50 lines of the generated Markdown report for preview:"
+        cat "${MARKDOWN_REPORT_PATH}" | head -n 50
+        echo "..."
+        echo "--- Human-Readable Markdown Summary Report Generation Complete ---"
+      env:
+        JSON_REPORT_PATH: "${{ env.REPORT_GENERATION_DIR }}/ci-metrics-full-report.json"
+        MARKDOWN_REPORT_PATH: "${{ env.REPORT_GENERATION_DIR }}/ci-summary-report-${{ github.run_id }}.md"
+        # Pass workflow_dispatch input description to the Python script for inclusion in the report.
+        MANUAL_RUN_DESCRIPTION: ${{ github.event.inputs.manual_run_description }}
+
+    - name: Send Summary to Slack (Conditional Notification)
+      id: slack_notification
+      uses: slackapi/slack-github-action@v1.26.0
+      # Send Slack notification only if the workflow job failed, or if specific critical metrics are detected.
+      # This ensures alerts are sent for important issues without spamming.
+      if: |
+        always() &&
+        (failure() ||
+        (steps.collect_test_execution_metrics.outputs.TOTAL_FAILED_TESTS > 0) ||
+        (steps.collect_security_metrics.outputs.NPM_AUDIT_CRITICAL > 0) ||
+        (steps.collect_security_metrics.outputs.SNYK_CRITICAL > 0))
+      with:
+        channel-id: '#ci-dashboard-alerts' # Target a specific Slack channel for CI alerts.
+        slack-message: |
+          📢 *CI Metrics Update for Repository:* `${{ steps.extract_metadata.outputs.repository_name }}` 📢
+          *Branch:* `${{ steps.extract_metadata.outputs.branch_name }}`
+          *Commit:* `${{ steps.extract_metadata.outputs.commit_sha }}`
+          *Triggered By:* `${{ steps.extract_metadata.outputs.trigger_actor }}`
+          *Workflow Status:* `${{ job.status }}`
+          
+          ---
+          **Build Metrics**
+          - Duration: `${{ steps.collect_build_perf_metrics.outputs.BUILD_DURATION_SECONDS }}s`
+          - Cache Hit Rate: `${{ steps.collect_build_perf_metrics.outputs.BUILD_CACHE_HIT_RATE }}%`
+
+          **Test Results**
+          - Total: `${{ steps.collect_test_execution_metrics.outputs.TOTAL_TESTS }}`
+          - Passed: `${{ steps.collect_test_execution_metrics.outputs.TOTAL_PASSED_TESTS }}`
+          - *Failed:* `${{ steps.collect_test_execution_metrics.outputs.TOTAL_FAILED_TESTS }}`
+          - Coverage: `${{ steps.collect_code_coverage_metrics.outputs.LINE_COVERAGE_PERCENTAGE }}%`
+
+          **Code Quality (ESLint)**
+          - *Errors:* `${{ steps.collect_code_analysis_metrics.outputs.LINT_TOTAL_ERRORS }}`
+          - Warnings: `${{ steps.collect_code_analysis_metrics.outputs.LINT_TOTAL_WARNINGS }}`
+
+          **Security Vulnerabilities**
+          - *NPM Audit Critical:* `${{ steps.collect_security_metrics.outputs.NPM_AUDIT_CRITICAL }}`
+          - *Snyk Critical:* `${{ steps.collect_security_metrics.outputs.SNYK_CRITICAL }}`
+          
+          <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Detailed Workflow Run> | <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/ci-metrics-reports-${{ github.run_id }}/ci-summary-report-${{ github.run_id }}.md|View Full Report (Artifact)>
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} # Requires a Slack Webhook URL secret.
+      continue-on-error: true # Do not fail the entire workflow if the Slack notification fails (e.g., invalid webhook).
+
+    - name: Upload All Generated Metric Reports as Artifacts
+      id: upload_artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ci-metrics-reports-${{ github.run_id }} # Unique name for the artifact bundle.
+        path: |
+          ${{ env.METRIC_COLLECTION_DIR }}/ # All raw collected data from various tools.
+          ${{ env.REPORT_GENERATION_DIR }}/ # All generated consolidated reports (JSON, Markdown).
+          generate_summary.py # Include the script for reproducibility and debugging.
+        retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }} # Use the environment variable for retention.
+        if-no-files-found: ignore # Prevents job failure if certain reports weren't generated (e.g., bundle size).
+      continue-on-error: true # Allow subsequent steps to run even if artifact upload fails.
+      shell: bash
+      run: |
+        echo "--- Uploading Artifacts to GitHub Actions ---"
+        echo "Artifacts will be stored for ${{ env.ARTIFACT_RETENTION_DAYS }} days."
+        echo "Including all metric collection data from '${{ env.METRIC_COLLECTION_DIR }}/', reports from '${{ env.REPORT_GENERATION_DIR }}/', and the generation script."
+        echo "This bundle ensures all raw and processed data from this workflow run is available for review."
+        echo "--- Artifact Upload Initiated ---"
+
+    - name: Archive Metrics to Long-Term Storage (e.g., AWS S3 / Azure Blob Storage)
+      id: archive_to_long_term_storage
+      # Archive only for successful main branch builds, unless it's a forced republish (which might be for a different purpose).
+      # This prevents archiving incomplete or test data by default.
+      if: success() && github.ref == 'refs/heads/main' && github.event.inputs.republish_all_metrics != 'true'
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }} # AWS credentials for S3 access.
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION: 'us-east-1' # Specify your AWS region for S3 bucket.
+        S3_BUCKET_NAME: 'your-ci-metrics-archive-bucket' # Your designated S3 bucket.
+      shell: bash
+      run: |
+        echo "--- Archiving Metrics to Long-Term Storage (AWS S3) ---"
+        # Basic check for AWS credentials. In production, consider OIDC for more secure access.
+        if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
+          echo "AWS credentials not provided in secrets. Skipping S3 archive for security reasons."
+          exit 0
+        fi
+
+        echo "Installing AWS CLI for S3 operations..."
+        pip install awscli --upgrade # Install AWS CLI on the fly to ensure it's available.
+
+        # Define the S3 path for archiving, typically structured by repo, branch, and commit SHA.
+        ARCHIVE_BASE_PATH="s3://${{ env.S3_BUCKET_NAME }}/${{ steps.extract_metadata.outputs.repository_name }}/${{ steps.extract_metadata.outputs.branch_name }}/${{ steps.extract_metadata.outputs.commit_sha }}/"
+        
+        # Upload the full JSON report.
+        echo "Archiving '${{ env.REPORT_GENERATION_DIR }}/ci-metrics-full-report.json' to ${ARCHIVE_BASE_PATH}ci-metrics-full-report.json"
+        aws s3 cp "${{ env.REPORT_GENERATION_DIR }}/ci-metrics-full-report.json" "${ARCHIVE_BASE_PATH}ci-metrics-full-report.json" \
+            --metadata "run_id=${{ github.run_id }},actor=${{ github.actor }},event_type=${{ steps.extract_metadata.outputs.event_type }}" \
+            --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers # Example: make public for simple dashboard, adjust as needed.
+        
+        # Upload the human-readable Markdown report.
+        echo "Archiving '${{ env.REPORT_GENERATION_DIR }}/ci-summary-report-${{ github.run_id }}.md' to ${ARCHIVE_BASE_PATH}ci-summary-report-${{ github.run_id }}.md"
+        aws s3 cp "${{ env.REPORT_GENERATION_DIR }}/ci-summary-report-${{ github.run_id }}.md" "${ARCHIVE_BASE_PATH}ci-summary-report-${{ github.run_id }}.md" \
+            --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
+
+        echo "Metrics successfully archived to S3 bucket: ${{ env.S3_BUCKET_NAME }} under path: ${ARCHIVE_BASE_PATH}"
+        echo "--- Long-Term Storage Archival Complete ---"
+      continue-on-error: true # Archiving is secondary; the pipeline should not fail if S3 upload fails.
+
+    - name: Final Cleanup of Temporary Files and Directories
+      id: final_cleanup
+      if: always() # Always run this step to clean up, even if previous steps failed.
+                   # This ensures the runner environment is reset for subsequent jobs/workflows.
+      shell: bash
+      run: |
+        echo "--- Performing Final Cleanup ---"
+        echo "Removing temporary metric collection directory: '${{ env.METRIC_COLLECTION_DIR }}'"
+        rm -rf "${{ env.METRIC_COLLECTION_DIR }}" || echo "Failed to remove '${{ env.METRIC_COLLECTION_DIR }}', it might not exist or permissions issue."
+        
+        echo "Removing temporary report generation directory: '${{ env.REPORT_GENERATION_DIR }}'"
+        rm -rf "${{ env.REPORT_GENERATION_DIR }}" || echo "Failed to remove '${{ env.REPORT_GENERATION_DIR }}', it might not exist or permissions issue."
+        
+        echo "Removing temporary Python script: 'generate_summary.py'"
+        rm -f generate_summary.py || echo "Failed to remove 'generate_summary.py', it might not exist or permissions issue."
+        
+        echo "Cleanup completed. The workflow environment is now clean."
+        echo "--- Final Cleanup Complete ---"

@@ -1,0 +1,1190 @@
+import React from 'react';
+
+export const B_URL = 'https://citibankdemobusiness.dev/api/v3/';
+export const C_NAME = 'Citibank demo business Inc.';
+export const C_ID = 'jbo_citi_demo_inc_2024';
+export const VER = '1.0.0-alpha';
+export const MAX_DP = 1000;
+export const MIN_DP = 10;
+export const DFLT_RFRSH = 30000;
+
+export type T_Str = string;
+export type T_Num = number;
+export type T_Bool = boolean;
+export type T_Dt = Date;
+export type T_Obj = Record<T_Str, any>;
+export type T_Arr<T> = T[];
+export type T_St = 'idle' | 'proc' | 'ok' | 'err';
+export type T_ChrtTyp = 'ln' | 'bar' | 'pie' | 'scttr' | 'area';
+export type T_TmRng = '1D' | '5D' | '1M' | '3M' | '6M' | '1Y' | 'YTD' | 'MAX';
+
+export interface I_Pt {
+  x: T_Num;
+  y: T_Num;
+  meta: T_Obj;
+}
+
+export interface I_Srs {
+  id: T_Str;
+  lbl: T_Str;
+  d: T_Arr<I_Pt>;
+  clr: T_Str;
+  typ: T_ChrtTyp;
+}
+
+export interface I_WdgtSt {
+  stat: T_St;
+  dta: T_Arr<I_Srs>;
+  cfg: T_Obj;
+  err: T_Str | null;
+  lastUpd: T_Dt | null;
+  actIntg: T_Str | null;
+}
+
+export const GLBL_CNFG = {
+  apiBase: B_URL,
+  companyId: C_ID,
+  defaultChartType: 'ln',
+  theme: {
+    primary: '#00579D',
+    secondary: '#00AEEF',
+    background: '#F0F2F5',
+    text: '#333333',
+    grid: '#DDDDDD',
+    error: '#D32F2F',
+    success: '#388E3C',
+  },
+  featureFlags: {
+    enableGeminiAI: true,
+    enablePipedream: true,
+    enableGithubSync: false,
+    enableHuggingFaceModels: true,
+    enableMultiCloud: true,
+    enableSalesforceLink: true,
+    enableOracleDB: true,
+    enableShopify: true,
+    enableWooCommerce: true,
+    enableTwilioAlerts: true,
+  },
+  integrations: {
+    gemini: { k: 'GEMINI_API_KEY_PLACEHOLDER', e: `${B_URL}ext/gemini` },
+    chathot: { k: 'CHATHOT_API_KEY', e: `${B_URL}ext/chathot` },
+    pipedream: { t: 'PIPEDREAM_TOKEN', w: 'https://hooks.pipedream.com/xyz' },
+    github: { t: 'GITHUB_PAT', r: 'citibank-demo-biz/balance-data' },
+    huggingface: { t: 'HF_TOKEN', m: 'stabilityai/stable-diffusion-xl-base-1.0' },
+    plaid: { c_id: 'PLAID_CLIENT_ID', s: 'PLAID_SECRET' },
+    modern_treasury: { org_id: 'MT_ORG_ID', k: 'MT_API_KEY' },
+    google_drive: { c_id: 'GDRIVE_CLIENT_ID', s: 'GDRIVE_SECRET' },
+    one_drive: { c_id: 'ODRIVE_CLIENT_ID', s: 'ODRIVE_SECRET' },
+    azure_blob: { acct: 'AZURE_ACCT_NAME', k: 'AZURE_ACCT_KEY' },
+    google_cloud: { p_id: 'GCP_PROJECT_ID', kf: 'path/to/keyfile.json' },
+    supabase: { url: 'SUPABASE_URL', k: 'SUPABASE_ANON_KEY' },
+    vercel: { t: 'VERCEL_TOKEN', p_id: 'VERCEL_PROJECT_ID' },
+    salesforce: { url: 'SF_INSTANCE_URL', c_id: 'SF_CLIENT_ID' },
+    oracle: { conn_str: 'ORACLE_CONN_STRING' },
+    marqeta: { user: 'MARQETA_USER', pass: 'MARQETA_PASS' },
+    citibank: { c_id: 'CITI_CLIENT_ID', s: 'CITI_SECRET' },
+    shopify: { k: 'SHOPIFY_API_KEY', s: 'SHOPIFY_SECRET' },
+    woocommerce: { ck: 'WOO_CONSUMER_KEY', cs: 'WOO_CONSUMER_SECRET' },
+    godaddy: { k: 'GD_API_KEY', s: 'GD_SECRET' },
+    cpanel: { user: 'CPANEL_USER', t: 'CPANEL_TOKEN' },
+    adobe: { c_id: 'ADOBE_CLIENT_ID', s: 'ADOBE_SECRET' },
+    twilio: { sid: 'TWILIO_SID', t: 'TWILIO_TOKEN' },
+    stripe: { pk: 'STRIPE_PK', sk: 'STRIPE_SK' },
+    paypal: { c_id: 'PAYPAL_CLIENT_ID', s: 'PAYPAL_SECRET' },
+    square: { app_id: 'SQUARE_APP_ID', t: 'SQUARE_ACCESS_TOKEN' },
+    quickbooks: { c_id: 'QB_CLIENT_ID', s: 'QB_SECRET' },
+    xero: { c_id: 'XERO_CLIENT_ID', s: 'XERO_SECRET' },
+    slack: { t: 'SLACK_BOT_TOKEN' },
+    microsoft_teams: { wh: 'TEAMS_WEBHOOK_URL' },
+    zoom: { k: 'ZOOM_API_KEY', s: 'ZOOM_SECRET' },
+    asana: { t: 'ASANA_PAT' },
+    trello: { k: 'TRELLO_KEY', t: 'TRELLO_TOKEN' },
+    jira: { url: 'JIRA_URL', user: 'JIRA_USER', t: 'JIRA_TOKEN' },
+    notion: { t: 'NOTION_TOKEN' },
+    figma: { t: 'FIGMA_TOKEN' },
+    sketch: { lic: 'SKETCH_LICENSE_KEY' },
+    invision: { t: 'INVISION_TOKEN' },
+    zendesk: { dom: 'ZENDESK_SUBDOMAIN', t: 'ZENDESK_TOKEN' },
+    hubspot: { k: 'HUBSPOT_API_KEY' },
+    mailchimp: { k: 'MAILCHIMP_API_KEY' },
+    sendgrid: { k: 'SENDGRID_API_KEY' },
+    segment: { wk: 'SEGMENT_WRITE_KEY' },
+    datadog: { k: 'DATADOG_API_KEY' },
+    newrelic: { ik: 'NEWRELIC_INGEST_KEY' },
+    sentry: { dsn: 'SENTRY_DSN' },
+    aws: { ak: 'AWS_ACCESS_KEY', sk: 'AWS_SECRET_KEY', r: 'us-east-1' },
+    digitalocean: { t: 'DO_TOKEN' },
+    cloudflare: { t: 'CF_TOKEN', z_id: 'CF_ZONE_ID' },
+    netlify: { t: 'NETLIFY_TOKEN' },
+    auth0: { dom: 'AUTH0_DOMAIN', c_id: 'AUTH0_CLIENT_ID' },
+    okta: { dom: 'OKTA_DOMAIN', t: 'OKTA_TOKEN' },
+    box: { c_id: 'BOX_CLIENT_ID', s: 'BOX_SECRET' },
+    dropbox: { k: 'DROPBOX_KEY', s: 'DROPBOX_SECRET' },
+    docusign: { i_k: 'DOCUSIGN_INTEGRATION_KEY' },
+    sap: { url: 'SAP_HANA_URL' },
+    workday: { url: 'WORKDAY_API_URL' },
+    servicenow: { inst: 'SERVICENOW_INSTANCE' },
+    atlassian: { t: 'ATLASSIAN_API_TOKEN' },
+    snowflake: { acct: 'SNOWFLAKE_ACCOUNT' },
+    mongodb: { uri: 'MONGO_DB_URI' },
+    redis: { url: 'REDIS_URL' },
+    postgresql: { uri: 'POSTGRES_URI' },
+    mysql: { uri: 'MYSQL_URI' },
+    docker: { reg: 'DOCKER_REGISTRY_URL' },
+    kubernetes: { cfg: 'path/to/kubeconfig' },
+    terraform: { t: 'TERRAFORM_CLOUD_TOKEN' },
+    ansible: { inv: 'path/to/inventory' },
+    jenkins: { url: 'JENKINS_URL' },
+    circleci: { t: 'CIRCLECI_TOKEN' },
+    gitlab: { url: 'GITLAB_URL', t: 'GITLAB_TOKEN' },
+    bitbucket: { user: 'BITBUCKET_USER', p: 'BITBUCKET_APP_PASS' },
+    postman: { k: 'POSTMAN_API_KEY' },
+    zapier: { wh: 'ZAPIER_WEBHOOK_URL' },
+    ifttt: { k: 'IFTTT_KEY' },
+    airtable: { b_id: 'AIRTABLE_BASE_ID', t: 'AIRTABLE_TOKEN' },
+    calendly: { t: 'CALENDLY_TOKEN' },
+    surveymonkey: { t: 'SURVEYMONKEY_TOKEN' },
+    typeform: { t: 'TYPEFORM_TOKEN' },
+    intercom: { t: 'INTERCOM_TOKEN' },
+    drift: { t: 'DRIFT_TOKEN' },
+    crisp: { id: 'CRISP_WEBSITE_ID' },
+    mixpanel: { t: 'MIXPANEL_TOKEN' },
+    amplitude: { k: 'AMPLITUDE_KEY' },
+    heap: { id: 'HEAP_ENV_ID' },
+    launchdarkly: { sdk: 'LD_SDK_KEY' },
+    optimizely: { sdk: 'OPTIMIZELY_SDK_KEY' },
+    vwo: { acct_id: 'VWO_ACCOUNT_ID' },
+    webflow: { t: 'WEBFLOW_TOKEN' },
+    squarespace: { k: 'SQUARESPACE_KEY' },
+    wix: { k: 'WIX_KEY' },
+  },
+};
+
+export const fnDtFmt = (d: T_Dt, f: T_Str): T_Str => {
+  const pz = (n: T_Num) => n.toString().padStart(2, '0');
+  const y = d.getFullYear();
+  const m = d.getMonth() + 1;
+  const dt = d.getDate();
+  const h = d.getHours();
+  const min = d.getMinutes();
+  const s = d.getSeconds();
+  return f
+    .replace('YYYY', y.toString())
+    .replace('MM', pz(m))
+    .replace('DD', pz(dt))
+    .replace('hh', pz(h))
+    .replace('mm', pz(min))
+    .replace('ss', pz(s));
+};
+
+export const fnCalcAvg = (n: T_Num[]): T_Num => n.reduce((a, b) => a + b, 0) / n.length;
+export const fnCalcSum = (n: T_Num[]): T_Num => n.reduce((a, b) => a + b, 0);
+export const fnCalcMax = (n: T_Num[]): T_Num => Math.max(...n);
+export const fnCalcMin = (n: T_Num[]): T_Num => Math.min(...n);
+
+export const genRndmStr = (len: T_Num): T_Str => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let res = '';
+  for (let i = 0; i < len; i++) {
+    res += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return res;
+};
+
+export const fnDebounce = <F extends (...args: any[]) => any>(func: F, waitFor: number) => {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+
+  const debounced = (...args: Parameters<F>) => {
+    if (timeout !== null) {
+      clearTimeout(timeout);
+      timeout = null;
+    }
+    timeout = setTimeout(() => func(...args), waitFor);
+  };
+
+  return debounced;
+};
+
+export const fnThrottle = <F extends (...args: any[]) => any>(func: F, limit: number) => {
+  let inThrottle: boolean;
+  let lastResult: ReturnType<F>;
+
+  return function(this: any, ...args: Parameters<F>) {
+    const context = this;
+    if (!inThrottle) {
+      inThrottle = true;
+      setTimeout(() => (inThrottle = false), limit);
+      lastResult = func.apply(context, args);
+    }
+    return lastResult;
+  };
+};
+
+export const fnDeepClone = <T>(obj: T): T => {
+  if (obj === null || typeof obj !== 'object') {
+    return obj;
+  }
+  if (obj instanceof Date) {
+    return new Date(obj.getTime()) as any;
+  }
+  if (Array.isArray(obj)) {
+    const arrCopy: any[] = [];
+    for (const item of obj) {
+      arrCopy.push(fnDeepClone(item));
+    }
+    return arrCopy as any;
+  }
+  const objCopy: { [key: string]: any } = {};
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      objCopy[key] = fnDeepClone(obj[key]);
+    }
+  }
+  return objCopy as T;
+};
+
+export const fnNormalizeData = (data: T_Arr<I_Pt>, min: T_Num, max: T_Num): T_Arr<I_Pt> => {
+  const dMin = Math.min(...data.map(p => p.y));
+  const dMax = Math.max(...data.map(p => p.y));
+  const range = dMax - dMin;
+  const newRange = max - min;
+  if (range === 0) return data.map(p => ({ ...p, y: min }));
+  return data.map(p => ({
+    ...p,
+    y: ((p.y - dMin) / range) * newRange + min,
+  }));
+};
+
+const _svc_base_class = class SvcBase {
+  protected readonly k: T_Str;
+  protected readonly s: T_Str;
+  public readonly e: T_Str;
+  protected st: T_St;
+
+  constructor(cfg: { k?: T_Str, s?: T_Str, e?: T_Str, t?: T_Str, [key: T_Str]: any }) {
+    this.k = cfg.k || cfg.t || genRndmStr(32);
+    this.s = cfg.s || genRndmStr(64);
+    this.e = cfg.e || B_URL;
+    this.st = 'idle';
+  }
+
+  protected async _req(method: T_Str, path: T_Str, body?: T_Obj): Promise<any> {
+    this.st = 'proc';
+    try {
+      const resp = await fetch(`${this.e}${path}`, {
+        method,
+        headers: {
+          'Authorization': `Bearer ${this.k}`,
+          'Content-Type': 'application/json',
+          'X-CDBI-Company-ID': C_ID,
+        },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      if (!resp.ok) {
+        throw new Error(`HTTP error! status: ${resp.status}`);
+      }
+      const d = await resp.json();
+      this.st = 'ok';
+      return { s: true, d };
+    } catch (e: any) {
+      this.st = 'err';
+      return { s: false, e: e.message };
+    }
+  }
+  public getStat(): T_St {
+      return this.st;
+  }
+};
+
+
+export class SvcGeminiAI extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async analyze(d: T_Arr<I_Pt>): Promise<any> {
+    return this._req('POST', '/analyze', { d });
+  }
+  public async forecast(d: T_Arr<I_Pt>, p: T_Num): Promise<any> {
+    return this._req('POST', '/forecast', { d, p });
+  }
+}
+export class SvcChatHot extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async query(q: T_Str): Promise<any> {
+    return this._req('POST', '/query', { q });
+  }
+}
+export class SvcPipedream extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); this.e = cfg.w; }
+  public async trigger(ev: T_Str, p: T_Obj): Promise<any> {
+    return this._req('POST', '', { ev, p });
+  }
+}
+export class SvcGithub extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); this.e = 'https://api.github.com'; }
+  public async save(f: T_Str, c: T_Str): Promise<any> {
+    const path = `/repos/${GLBL_CNFG.integrations.github.r}/contents/${f}`;
+    const content = btoa(c);
+    const shaRes = await this._req('GET', path);
+    const sha = shaRes.s ? shaRes.d.sha : undefined;
+    return this._req('PUT', path, { message: `Data update ${new Date().toISOString()}`, content, sha });
+  }
+}
+export class SvcHuggingFace extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); this.e = `https://api-inference.huggingface.co/models/${cfg.m}`; }
+  public async infer(inp: T_Obj): Promise<any> {
+    return this._req('POST', '', inp);
+  }
+}
+export class SvcPlaid extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async getTransactions(t: T_Str): Promise<any> {
+    return this._req('POST', '/transactions/get', { access_token: t });
+  }
+}
+export class SvcModernTreasury extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async listPaymentOrders(): Promise<any> {
+    return this._req('GET', '/payment_orders');
+  }
+}
+export class SvcGoogleDrive extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); this.e = 'https://www.googleapis.com/drive/v3'; }
+  public async upload(n: T_Str, c: T_Str): Promise<any> {
+    return this._req('POST', '/files?uploadType=media', { name: n, content: c });
+  }
+}
+export class SvcOneDrive extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); this.e = 'https://graph.microsoft.com/v1.0'; }
+  public async upload(p: T_Str, c: T_Str): Promise<any> {
+    return this._req('PUT', `/me/drive/root:/${p}:/content`, c);
+  }
+}
+export class SvcAzureBlob extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); this.e = `https://${cfg.acct}.blob.core.windows.net`; }
+  public async upload(c: T_Str, b: T_Str): Promise<any> {
+    return this._req('PUT', `/${c}/${b}`, b);
+  }
+}
+export class SvcGoogleCloud extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async store(b: T_Str, o: T_Str, d: T_Str): Promise<any> {
+    return this._req('POST', `/storage/b/${b}/o`, { name: o, data: d });
+  }
+}
+export class SvcSupabase extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); this.e = `${cfg.url}/rest/v1`; }
+  public async insert(t: T_Str, r: T_Obj): Promise<any> {
+    return this._req('POST', `/${t}`, r);
+  }
+}
+export class SvcVercel extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async triggerDeploy(p_id: T_Str): Promise<any> {
+    return this._req('POST', `/v13/deployments`, { name: p_id, gitSource: {} });
+  }
+}
+export class SvcSalesforce extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); this.e = cfg.url; }
+  public async query(q: T_Str): Promise<any> {
+    return this._req('GET', `/services/data/v58.0/query?q=${encodeURIComponent(q)}`);
+  }
+}
+export class SvcOracle extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async exec(q: T_Str): Promise<any> {
+    return this._req('POST', '/exec', { query: q });
+  }
+}
+export class SvcMarqeta extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async listTransactions(): Promise<any> {
+    return this._req('GET', '/transactions');
+  }
+}
+export class SvcCitibank extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async getAccounts(): Promise<any> {
+    return this._req('GET', '/accounts');
+  }
+}
+export class SvcShopify extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async getOrders(): Promise<any> {
+    return this._req('GET', '/orders');
+  }
+}
+export class SvcWooCommerce extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async getProducts(): Promise<any> {
+    return this._req('GET', '/products');
+  }
+}
+export class SvcGoDaddy extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async getDomains(): Promise<any> {
+    return this._req('GET', '/v1/domains');
+  }
+}
+export class SvcCPanel extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async getStats(): Promise<any> {
+    return this._req('GET', '/execute/StatsBar/get_stats');
+  }
+}
+export class SvcAdobe extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async getAnalytics(): Promise<any> {
+    return this._req('GET', '/analytics/reports');
+  }
+}
+export class SvcTwilio extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async sendSms(to: T_Str, msg: T_Str): Promise<any> {
+    return this._req('POST', `/Accounts/${cfg.sid}/Messages.json`, { To: to, From: '+15005550006', Body: msg });
+  }
+}
+export class SvcStripe extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async getBalance(): Promise<any> {
+    return this._req('GET', '/v1/balance');
+  }
+}
+export class SvcPaypal extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async getTransactions(): Promise<any> {
+    return this._req('GET', '/v1/reporting/transactions');
+  }
+}
+export class SvcSquare extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async listPayments(): Promise<any> {
+    return this._req('GET', '/v2/payments');
+  }
+}
+export class SvcQuickbooks extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async getReport(): Promise<any> {
+    return this._req('GET', '/v3/company/123/reports/BalanceSheet');
+  }
+}
+export class SvcXero extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async getInvoices(): Promise<any> {
+    return this._req('GET', '/api.xro/2.0/Invoices');
+  }
+}
+export class SvcSlack extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); this.e = 'https://slack.com/api'; }
+  public async postMessage(c: T_Str, t: T_Str): Promise<any> {
+    return this._req('POST', '/chat.postMessage', { channel: c, text: t });
+  }
+}
+export class SvcMicrosoftTeams extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); this.e = cfg.wh; }
+  public async postCard(c: T_Obj): Promise<any> {
+    return this._req('POST', '', c);
+  }
+}
+export class SvcZoom extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async listMeetings(): Promise<any> {
+    return this._req('GET', '/users/me/meetings');
+  }
+}
+export class SvcAsana extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async getTasks(p_gid: T_Str): Promise<any> {
+    return this._req('GET', `/projects/${p_gid}/tasks`);
+  }
+}
+export class SvcTrello extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async getCards(b_id: T_Str): Promise<any> {
+    return this._req('GET', `/1/boards/${b_id}/cards`);
+  }
+}
+export class SvcJira extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); this.e = cfg.url; }
+  public async search(jql: T_Str): Promise<any> {
+    return this._req('POST', '/rest/api/2/search', { jql });
+  }
+}
+export class SvcNotion extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async queryDb(db_id: T_Str): Promise<any> {
+    return this._req('POST', `/v1/databases/${db_id}/query`, {});
+  }
+}
+export class SvcFigma extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async getFile(f_key: T_Str): Promise<any> {
+    return this._req('GET', `/v1/files/${f_key}`);
+  }
+}
+export class SvcSketch extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async getDocument(d_id: T_Str): Promise<any> {
+    return this._req('GET', `/documents/${d_id}`);
+  }
+}
+export class SvcInvision extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async getPrototypes(): Promise<any> {
+    return this._req('GET', '/v2/prototypes');
+  }
+}
+export class SvcZendesk extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); this.e = `https://${cfg.dom}.zendesk.com/api/v2`; }
+  public async getTickets(): Promise<any> {
+    return this._req('GET', '/tickets.json');
+  }
+}
+export class SvcHubspot extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async getContacts(): Promise<any> {
+    return this._req('GET', '/crm/v3/objects/contacts');
+  }
+}
+export class SvcMailchimp extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async getCampaigns(): Promise<any> {
+    return this._req('GET', '/3.0/campaigns');
+  }
+}
+export class SvcSendGrid extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async getStats(): Promise<any> {
+    return this._req('GET', '/v3/stats');
+  }
+}
+export class SvcSegment extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async track(ev: T_Str): Promise<any> {
+    return this._req('POST', '/v1/track', { event: ev });
+  }
+}
+export class SvcDatadog extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async postMetric(m: T_Str, p: T_Arr<T_Arr<T_Num>>): Promise<any> {
+    return this._req('POST', '/api/v1/series', { series: [{ metric: m, points: p }] });
+  }
+}
+export class SvcNewRelic extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async postEvent(d: T_Obj): Promise<any> {
+    return this._req('POST', '/v1/events', d);
+  }
+}
+export class SvcSentry extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async getIssues(p_slug: T_Str): Promise<any> {
+    return this._req('GET', `/api/0/projects/${C_NAME}/${p_slug}/issues/`);
+  }
+}
+export class SvcAws extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async s3ListBuckets(): Promise<any> {
+    return this._req('GET', 's3.amazonaws.com');
+  }
+}
+export class SvcDigitalOcean extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async listDroplets(): Promise<any> {
+    return this._req('GET', '/v2/droplets');
+  }
+}
+export class SvcCloudflare extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async getAnalytics(z_id: T_Str): Promise<any> {
+    return this._req('GET', `/client/v4/zones/${z_id}/analytics/dashboard`);
+  }
+}
+export class SvcNetlify extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async listSites(): Promise<any> {
+    return this._req('GET', '/api/v1/sites');
+  }
+}
+export class SvcAuth0 extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); this.e = `https://${cfg.dom}`; }
+  public async getUsers(): Promise<any> {
+    return this._req('GET', '/api/v2/users');
+  }
+}
+export class SvcOkta extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); this.e = `https://${cfg.dom}`; }
+  public async listApps(): Promise<any> {
+    return this._req('GET', '/api/v1/apps');
+  }
+}
+export class SvcBox extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async getFolderItems(f_id: T_Str): Promise<any> {
+    return this._req('GET', `/2.0/folders/${f_id}/items`);
+  }
+}
+export class SvcDropbox extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async listFolder(p: T_Str): Promise<any> {
+    return this._req('POST', '/2/files/list_folder', { path: p });
+  }
+}
+export class SvcDocuSign extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async listEnvelopes(): Promise<any> {
+    return this._req('GET', '/restapi/v2.1/accounts/{accountId}/envelopes');
+  }
+}
+export class SvcSap extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async query(q: T_Str): Promise<any> {
+    return this._req('POST', '/hana/query', { query: q });
+  }
+}
+export class SvcWorkday extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async getReport(r_url: T_Str): Promise<any> {
+    return this._req('GET', r_url);
+  }
+}
+export class SvcServiceNow extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); this.e = `https://${cfg.inst}.service-now.com`; }
+  public async getIncidents(): Promise<any> {
+    return this._req('GET', '/api/now/table/incident');
+  }
+}
+export class SvcAtlassian extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async getCurrentUser(): Promise<any> {
+    return this._req('GET', '/me');
+  }
+}
+export class SvcSnowflake extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async exec(sql: T_Str): Promise<any> {
+    return this._req('POST', '/api/v2/statements', { statement: sql });
+  }
+}
+export class SvcMongodb extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async find(db: T_Str, coll: T_Str, q: T_Obj): Promise<any> {
+    return this._req('POST', '/action/find', { dataSource: 'Cluster0', database: db, collection: coll, filter: q });
+  }
+}
+export class SvcRedis extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async get(k: T_Str): Promise<any> {
+    return this._req('GET', `/GET/${k}`);
+  }
+}
+export class SvcPostgresql extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async query(q: T_Str): Promise<any> {
+    return this._req('POST', '/rpc/query', { q });
+  }
+}
+export class SvcMysql extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async query(q: T_Str): Promise<any> {
+    return this._req('POST', '/query', { q });
+  }
+}
+export class SvcDocker extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async listImages(): Promise<any> {
+    return this._req('GET', '/images/json');
+  }
+}
+export class SvcKubernetes extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async listPods(ns: T_Str): Promise<any> {
+    return this._req('GET', `/api/v1/namespaces/${ns}/pods`);
+  }
+}
+export class SvcTerraform extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async listWorkspaces(org: T_Str): Promise<any> {
+    return this._req('GET', `/api/v2/organizations/${org}/workspaces`);
+  }
+}
+export class SvcAnsible extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async runPlaybook(pb: T_Str): Promise<any> {
+    return this._req('POST', '/jobs/run', { playbook: pb });
+  }
+}
+export class SvcJenkins extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); this.e = cfg.url; }
+  public async buildJob(j_name: T_Str): Promise<any> {
+    return this._req('POST', `/job/${j_name}/build`);
+  }
+}
+export class SvcCircleci extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async triggerPipeline(p_slug: T_Str): Promise<any> {
+    return this._req('POST', `/api/v2/project/${p_slug}/pipeline`);
+  }
+}
+export class SvcGitlab extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); this.e = cfg.url; }
+  public async listProjects(): Promise<any> {
+    return this._req('GET', '/api/v4/projects');
+  }
+}
+export class SvcBitbucket extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async getRepos(ws: T_Str): Promise<any> {
+    return this._req('GET', `/2.0/repositories/${ws}`);
+  }
+}
+export class SvcPostman extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async getCollections(): Promise<any> {
+    return this._req('GET', '/collections');
+  }
+}
+export class SvcZapier extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); this.e = cfg.wh; }
+  public async trigger(d: T_Obj): Promise<any> {
+    return this._req('POST', '', d);
+  }
+}
+export class SvcIfttt extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async trigger(ev: T_Str): Promise<any> {
+    return this._req('POST', `https://maker.ifttt.com/trigger/${ev}/with/key/${this.k}`);
+  }
+}
+export class SvcAirtable extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async listRecords(b_id: T_Str, t_name: T_Str): Promise<any> {
+    return this._req('GET', `/v0/${b_id}/${t_name}`);
+  }
+}
+export class SvcCalendly extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async listEvents(): Promise<any> {
+    return this._req('GET', '/scheduled_events');
+  }
+}
+export class SvcSurveyMonkey extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async getSurveys(): Promise<any> {
+    return this._req('GET', '/v3/surveys');
+  }
+}
+export class SvcTypeform extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async getResponses(f_id: T_Str): Promise<any> {
+    return this._req('GET', `/forms/${f_id}/responses`);
+  }
+}
+export class SvcIntercom extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async listContacts(): Promise<any> {
+    return this._req('GET', '/contacts');
+  }
+}
+export class SvcDrift extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async listConversations(): Promise<any> {
+    return this._req('GET', '/conversations/list');
+  }
+}
+export class SvcCrisp extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async listConversations(w_id: T_Str): Promise<any> {
+    return this._req('GET', `https://api.crisp.chat/v1/website/${w_id}/conversations`);
+  }
+}
+export class SvcMixpanel extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async track(ev: T_Str, p: T_Obj): Promise<any> {
+    const d = { event: ev, properties: { token: this.k, ...p } };
+    return this._req('POST', '/track', { data: btoa(JSON.stringify(d)) });
+  }
+}
+export class SvcAmplitude extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async logEvent(ev: T_Obj): Promise<any> {
+    return this._req('POST', '/2/httpapi', { api_key: this.k, events: [ev] });
+  }
+}
+export class SvcHeap extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async track(ev: T_Str, p: T_Obj): Promise<any> {
+    return this._req('POST', '/v1/track', { app_id: GLBL_CNFG.integrations.heap.id, event: ev, properties: p });
+  }
+}
+export class SvcLaunchDarkly extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async getFlags(): Promise<any> {
+    return this._req('GET', '/sdk/flags');
+  }
+}
+export class SvcOptimizely extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async activate(exp: T_Str, u_id: T_Str): Promise<any> {
+    return this._req('POST', '/activate', { experiment: exp, userId: u_id });
+  }
+}
+export class SvcVwo extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async track(c_id: T_Str, g_id: T_Str, u_id: T_Str): Promise<any> {
+    const p = `/track-goal?id=${c_id}&combination=${g_id}&u=${u_id}&account_id=${GLBL_CNFG.integrations.vwo.acct_id}`;
+    return this._req('GET', p);
+  }
+}
+export class SvcWebflow extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async listSites(): Promise<any> {
+    return this._req('GET', '/sites');
+  }
+}
+export class SvcSquarespace extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async getOrders(s_id: T_Str): Promise<any> {
+    return this._req('GET', `/1.0/commerce/orders?siteId=${s_id}`);
+  }
+}
+export class SvcWix extends _svc_base_class {
+  constructor(cfg: T_Obj) { super(cfg); }
+  public async getProducts(): Promise<any> {
+    return this._req('GET', '/stores/v1/products');
+  }
+}
+
+export const SVC_MAP = {
+    gemini: SvcGeminiAI,
+    chathot: SvcChatHot,
+    pipedream: SvcPipedream,
+    github: SvcGithub,
+    huggingface: SvcHuggingFace,
+    plaid: SvcPlaid,
+    modern_treasury: SvcModernTreasury,
+    google_drive: SvcGoogleDrive,
+    one_drive: SvcOneDrive,
+    azure_blob: SvcAzureBlob,
+    google_cloud: SvcGoogleCloud,
+    supabase: SvcSupabase,
+    vercel: SvcVercel,
+    salesforce: SvcSalesforce,
+    oracle: SvcOracle,
+    marqeta: SvcMarqeta,
+    citibank: SvcCitibank,
+    shopify: SvcShopify,
+    woocommerce: SvcWooCommerce,
+    godaddy: SvcGoDaddy,
+    cpanel: SvcCPanel,
+    adobe: SvcAdobe,
+    twilio: SvcTwilio,
+    stripe: SvcStripe,
+    paypal: SvcPaypal,
+    square: SvcSquare,
+    quickbooks: SvcQuickbooks,
+    xero: SvcXero,
+    slack: SvcSlack,
+    microsoft_teams: SvcMicrosoftTeams,
+    zoom: SvcZoom,
+    asana: SvcAsana,
+    trello: SvcTrello,
+    jira: SvcJira,
+    notion: SvcNotion,
+    figma: SvcFigma,
+    sketch: SvcSketch,
+    invision: SvcInvision,
+    zendesk: SvcZendesk,
+    hubspot: SvcHubspot,
+    mailchimp: SvcMailchimp,
+    sendgrid: SvcSendGrid,
+    segment: SvcSegment,
+    datadog: SvcDatadog,
+    newrelic: SvcNewRelic,
+    sentry: SvcSentry,
+    aws: SvcAws,
+    digitalocean: SvcDigitalOcean,
+    cloudflare: SvcCloudflare,
+    netlify: SvcNetlify,
+    auth0: SvcAuth0,
+    okta: SvcOkta,
+    box: SvcBox,
+    dropbox: SvcDropbox,
+    docusign: SvcDocuSign,
+    sap: SvcSap,
+    workday: SvcWorkday,
+    servicenow: SvcServiceNow,
+    atlassian: SvcAtlassian,
+    snowflake: SvcSnowflake,
+    mongodb: SvcMongodb,
+    redis: SvcRedis,
+    postgresql: SvcPostgresql,
+    mysql: SvcMysql,
+    docker: SvcDocker,
+    kubernetes: SvcKubernetes,
+    terraform: SvcTerraform,
+    ansible: SvcAnsible,
+    jenkins: SvcJenkins,
+    circleci: SvcCircleci,
+    gitlab: SvcGitlab,
+    bitbucket: SvcBitbucket,
+    postman: SvcPostman,
+    zapier: SvcZapier,
+    ifttt: SvcIfttt,
+    airtable: SvcAirtable,
+    calendly: SvcCalendly,
+    surveymonkey: SvcSurveyMonkey,
+    typeform: SvcTypeform,
+    intercom: SvcIntercom,
+    drift: SvcDrift,
+    crisp: SvcCrisp,
+    mixpanel: SvcMixpanel,
+    amplitude: SvcAmplitude,
+    heap: SvcHeap,
+    launchdarkly: SvcLaunchDarkly,
+    optimizely: SvcOptimizely,
+    vwo: SvcVwo,
+    webflow: SvcWebflow,
+    squarespace: SvcSquarespace,
+    wix: SvcWix,
+};
+
+const wdgtReducer = (state: I_WdgtSt, action: { type: T_Str; pld?: any }): I_WdgtSt => {
+  switch (action.type) {
+    case 'FETCH_INIT':
+      return { ...state, stat: 'proc', err: null };
+    case 'FETCH_OK':
+      return { ...state, stat: 'ok', dta: action.pld, lastUpd: new Date() };
+    case 'FETCH_ERR':
+      return { ...state, stat: 'err', err: action.pld, dta: [] };
+    case 'SET_CFG':
+      return { ...state, cfg: { ...state.cfg, ...action.pld } };
+    case 'SET_INTG':
+      return { ...state, actIntg: action.pld };
+    default:
+      return state;
+  }
+};
+
+export const useDataFet = (disp: React.Dispatch<any>, tmRng: T_TmRng) => {
+  React.useEffect(() => {
+    const fetchData = async () => {
+      disp({ type: 'FETCH_INIT' });
+      try {
+        const resp = await fetch(`${B_URL}/balances?range=${tmRng}`);
+        if (!resp.ok) throw new Error('Network response was not ok');
+        const d = await resp.json();
+        disp({ type: 'FETCH_OK', pld: d.data });
+      } catch (e: any) {
+        disp({ type: 'FETCH_ERR', pld: e.message });
+      }
+    };
+    fetchData();
+    const intId = setInterval(fetchData, DFLT_RFRSH);
+    return () => clearInterval(intId);
+  }, [tmRng, disp]);
+};
+
+export const useSvcInit = () => {
+    return React.useMemo(() => {
+        const insts: T_Obj = {};
+        for (const [key, SvcClass] of Object.entries(SVC_MAP)) {
+            const cfg = (GLBL_CNFG.integrations as T_Obj)[key];
+            if (cfg) {
+                insts[key] = new SvcClass(cfg);
+            }
+        }
+        return insts;
+    }, []);
+};
+
+
+export const AcctBalChrtWdgt = ({ p }: { p: { w: T_Num; h: T_Num } }) => {
+  const [st, disp] = React.useReducer(wdgtReducer, {
+    stat: 'idle',
+    dta: [],
+    cfg: { typ: GLBL_CNFG.defaultChartType, tmRng: '1M' },
+    err: null,
+    lastUpd: null,
+    actIntg: null,
+  });
+
+  const svcs = useSvcInit();
+  useDataFet(disp, st.cfg.tmRng);
+
+  const [hoverPt, setHoverPt] = React.useState<I_Pt | null>(null);
+
+  const handleChngTmRng = (rng: T_TmRng) => disp({ type: 'SET_CFG', pld: { tmRng: rng } });
+  const handleChngChrtTyp = (typ: T_ChrtTyp) => disp({ type: 'SET_CFG', pld: { typ } });
+  
+  const renderLoading = () => <div style={{ color: GLBL_CNFG.theme.text }}>Loading financial data...</div>;
+  const renderError = () => <div style={{ color: GLBL_CNFG.theme.error }}>Error: {st.err}</div>;
+
+  const renderSVGChart = () => {
+    const { w, h } = p;
+    const m = { t: 20, r: 30, b: 40, l: 50 };
+    const iw = w - m.l - m.r;
+    const ih = h - m.b - m.t;
+    
+    if (!st.dta || st.dta.length === 0 || st.dta.every(s => s.d.length === 0)) {
+        return <div style={{height: ih, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>No data available</div>
+    }
+
+    const allPts = st.dta.flatMap(s => s.d);
+    const xMin = Math.min(...allPts.map(pt => pt.x));
+    const xMax = Math.max(...allPts.map(pt => pt.x));
+    const yMin = Math.min(0, ...allPts.map(pt => pt.y));
+    const yMax = Math.max(...allPts.map(pt => pt.y));
+
+    const xScl = (v: T_Num) => (v - xMin) / (xMax - xMin) * iw;
+    const yScl = (v: T_Num) => ih - (v - yMin) / (yMax - yMin) * ih;
+
+    const genPath = (pts: I_Pt[]) => {
+      if (pts.length < 2) return '';
+      let p = `M ${xScl(pts[0].x)} ${yScl(pts[0].y)}`;
+      for (let i = 1; i < pts.length; i++) {
+        p += ` L ${xScl(pts[i].x)} ${yScl(pts[i].y)}`;
+      }
+      return p;
+    };
+    
+    const renderXAxis = () => {
+        const ticks = 5;
+        const tickVals = Array.from({ length: ticks }, (_, i) => xMin + i * ((xMax-xMin) / (ticks - 1)));
+        return (
+            <g transform={`translate(0, ${ih})`}>
+                {tickVals.map(v => (
+                    <g key={`x-tick-${v}`} transform={`translate(${xScl(v)}, 0)`}>
+                        <line y2="5" stroke={GLBL_CNFG.theme.grid} />
+                        <text y="20" textAnchor="middle" fill={GLBL_CNFG.theme.text} fontSize="10">
+                            {fnDtFmt(new Date(v * 1000), 'MM/DD')}
+                        </text>
+                    </g>
+                ))}
+            </g>
+        )
+    };
+    
+    const renderYAxis = () => {
+        const ticks = 5;
+        const tickVals = Array.from({ length: ticks }, (_, i) => yMin + i * ((yMax-yMin) / (ticks - 1)));
+        return (
+            <g>
+                {tickVals.map(v => (
+                    <g key={`y-tick-${v}`} transform={`translate(0, ${yScl(v)})`}>
+                        <line x2={iw} stroke={GLBL_CNFG.theme.grid} strokeDasharray="2,2"/>
+                        <text x="-10" dy="0.32em" textAnchor="end" fill={GLBL_CNFG.theme.text} fontSize="10">
+                            ${(v/1000).toFixed(1)}k
+                        </text>
+                    </g>
+                ))}
+            </g>
+        )
+    };
+    
+    const handleMouseOv = (e: React.MouseEvent<SVGRectElement>) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseXVal = (mouseX / iw) * (xMax - xMin) + xMin;
+        let closestPt: I_Pt | null = null;
+        let minDist = Infinity;
+        st.dta[0].d.forEach(pt => {
+            const dist = Math.abs(pt.x - mouseXVal);
+            if (dist < minDist) {
+                minDist = dist;
+                closestPt = pt;
+            }
+        });
+        setHoverPt(closestPt);
+    };
+
+    return (
+      <svg width={w} height={h} onMouseMove={handleMouseOv} onMouseLeave={() => setHoverPt(null)}>
+        <g transform={`translate(${m.l}, ${m.t})`}>
+          {renderXAxis()}
+          {renderYAxis()}
+          {st.dta.map(srs => (
+            <path
+              key={srs.id}
+              d={genPath(srs.d)}
+              fill="none"
+              stroke={srs.clr}
+              strokeWidth="2"
+            />
+          ))}
+          {hoverPt && (
+            <g>
+              <line x1={xScl(hoverPt.x)} y1="0" x2={xScl(hoverPt.x)} y2={ih} stroke={GLBL_CNFG.theme.secondary} strokeDasharray="4,4" />
+              <circle cx={xScl(hoverPt.x)} cy={yScl(hoverPt.y)} r="5" fill={GLBL_CNFG.theme.secondary} />
+              <g transform={`translate(${xScl(hoverPt.x) + 10}, ${yScl(hoverPt.y) - 10})`}>
+                  <rect x="0" y="-20" width="100" height="40" fill="rgba(255,255,255,0.8)" />
+                  <text x="5" y="-5" fill={GLBL_CNFG.theme.text}>
+                      {fnDtFmt(new Date(hoverPt.x * 1000), 'MM/DD/YYYY')}
+                  </text>
+                  <text x="5" y="10" fill={GLBL_CNFG.theme.text} fontWeight="bold">
+                      ${hoverPt.y.toLocaleString()}
+                  </text>
+              </g>
+            </g>
+          )}
+        </g>
+      </svg>
+    );
+  };
+  
+  const renderControls = () => {
+      const tmRngs: T_TmRng[] = ['1D', '5D', '1M', '3M', '6M', '1Y', 'YTD', 'MAX'];
+      const chrtTyps: T_ChrtTyp[] = ['ln', 'bar', 'area'];
+      return (
+          <div style={{display: 'flex', justifyContent: 'space-between', padding: '10px'}}>
+              <div>
+                  {tmRngs.map(r => (
+                      <button key={r} onClick={() => handleChngTmRng(r)} disabled={st.cfg.tmRng === r} style={{margin: '0 5px'}}>{r}</button>
+                  ))}
+              </div>
+              <div>
+                 {chrtTyps.map(t => (
+                      <button key={t} onClick={() => handleChngChrtTyp(t)} disabled={st.cfg.typ === t} style={{margin: '0 5px'}}>{t.toUpperCase()}</button>
+                 ))}
+              </div>
+          </div>
+      )
+  };
+  
+  const renderIntegrationsPanel = () => {
+      return (
+          <div style={{ maxHeight: '200px', overflowY: 'auto', border: `1px solid ${GLBL_CNFG.theme.grid}`, padding: '10px' }}>
+              <h3>Integrations</h3>
+              <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+                  {Object.keys(svcs).map(key => (
+                      <button key={key} onClick={() => disp({type: 'SET_INTG', pld: key})} style={{ margin: '4px' }}>
+                          {key}
+                      </button>
+                  ))}
+              </div>
+              {st.actIntg && (
+                <div style={{marginTop: '10px', padding: '10px', backgroundColor: '#eee'}}>
+                    Active: {st.actIntg} (Status: {svcs[st.actIntg].getStat()})
+                </div>
+              )}
+          </div>
+      )
+  };
+
+  return (
+    <div style={{ width: p.w, height: p.h, backgroundColor: GLBL_CNFG.theme.background, fontFamily: 'sans-serif' }}>
+      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px'}}>
+          <h2 style={{color: GLBL_CNFG.theme.primary}}>Account Balances</h2>
+          <div style={{fontSize: '12px', color: GLBL_CNFG.theme.text}}>
+              {st.lastUpd ? `Last updated: ${fnDtFmt(st.lastUpd, 'hh:mm:ss')}` : ''}
+          </div>
+      </div>
+      {renderControls()}
+      <div style={{ position: 'relative' }}>
+          {st.stat === 'proc' && renderLoading()}
+          {st.stat === 'err' && renderError()}
+          {st.stat === 'ok' && renderSVGChart()}
+      </div>
+      {renderIntegrationsPanel()}
+    </div>
+  );
+};

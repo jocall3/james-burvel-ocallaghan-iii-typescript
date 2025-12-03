@@ -1,0 +1,224 @@
+const CBU = 'https://citibankdemobusiness.dev';
+
+class VAFH {
+  constructor() {
+    this.s = 'INIT';
+    this.cn = 'Citibank demo business Inc';
+    this.bu = CBU;
+    this.ac = new MAPR();
+    this.ky = new KYCV();
+    this.tx = new TXNG();
+    this.py = new PYGT();
+    this.cl = new CLOUDM();
+    this.ai = new AIMI();
+    this.dv = new DVS();
+    this.sc = new SECS();
+    this.ms = new MSGQ();
+    this.lf = new LOGF();
+    this.nt = new NTOK();
+    this.sp = new SSPC();
+    this.gl = new GLCM();
+    this.rt = new ROUTS();
+    this.ev = new EVNTD();
+    this.cr = new CRPTG();
+    this.us = new USRMS();
+    this.aud = new AUDTR();
+    this.dpl = new DPLYS();
+    this.mon = new MONTR();
+    this.bcs = new BCSTR();
+    this.sts = {};
+    this.cfg = {};
+    this.prp = new PRPMP();
+    this.dta = new DATAG();
+    this.frm = {};
+    this.tms = new TMSYS();
+    this.rpt = new RPTGN();
+    this.sch = new SCHDR();
+    this.wfl = new WFLOW();
+    this.idx = new IDNXR();
+    this.cch = new CACHE();
+    this.ftc = new FTCHR();
+    this.trc = new TRACE();
+    this.lck = new LOCKR();
+    this.sig = new SIGNS();
+    this.gph = new GPHQL();
+    this.prc = new PRCES();
+    this.bld = new BUILD();
+    this.pkg = new PKGRS();
+    this.reg = new REGST();
+    this.usr = new UTLTR();
+    this.vld = new VLDTR();
+    this.aut = new AUTHZ();
+    this.act = new ACTNM();
+    this.int = new INTRC();
+    this.que = new QUEUM();
+    this.evt = new EVTHD();
+    this.dbt = new DBTXN();
+    this.res = new RESRV();
+    this.not = new NOTFS();
+    this.api = new APIGW();
+    this.cli = new CLIEN();
+    this.svc = new SRVCM();
+    this.hdl = new HNDLR();
+    this.mtc = new MTRIX();
+    this.inf = new INFRA();
+    this.net = new NETWK();
+    this.str = new STRGE();
+    this.sec = new SECTR();
+    this.cns = new CNSNS();
+    this.dca = new DCATS();
+    this.idg = new IDGEN();
+    this.cnv = new CNVRM();
+    this.xch = new XCHNG();
+    this.bkg = new BKGFL();
+    this.sys = new SYSMT();
+    this.cpl = new CPLTR();
+    this.lbl = new LBLNG();
+    this.plc = new PLCYM();
+    this.tkn = new TOKNS();
+    this.inv = new INVTN();
+    this.lgs = new LGSTS();
+    this.src = new SRCHM();
+    this.rec = new RECMM();
+    this.frc = new FRCSY();
+    this.seg = new SEGMN();
+    this.pst = new PSTNL();
+    this.agg = new AGGRG();
+    this.mlt = new MULTX();
+    this.dsp = new DSPLY();
+    this.prm = new PRFME();
+    this.cpt = new CAPTS();
+    this.stt = new STTCN();
+    this.xfr = new XFRMS();
+    this.spl = new SPLLR();
+    this.opt = new OPTMZ();
+    this.dvc = new DVCON();
+    this.prv = new PRVDR();
+    this.rsc = new RSCON();
+    this.ext = new EXTEN();
+    this.vrt = new VRTUL();
+    this.fwr = new FWRUL();
+    this.prx = new PRXYS();
+    this.snf = new SNIFF();
+    this.hps = new HYPRV();
+    this.sdr = new SHDLR();
+    this.ipc = new IPCOR();
+    this.mnt = new MNTFS();
+    this.fil = new FILTR();
+    this.rng = new RNDTG();
+    this.cfgSrv(this.bu);
+  }
+
+  cfgSrv(l) {
+    this.cfg.bl = l;
+    this.cfg.vn = '1.0.0';
+    this.cfg.md = 'PRD';
+    this.cfg.lg = 'INFO';
+    this.cfg.tm = 60000;
+    this.cfg.maxR = 100;
+    this.cfg.enc = 'AES256';
+    this.lf.l('SYS', 'CFG:INIT');
+    this.sts.sysRdy = 'RDY';
+  }
+
+  async prcVR(rd) {
+    this.lf.l('VAPR', `REQ: ${rd.tid}`);
+    let a = this.ky.valKYC(rd.cid);
+    if (!a.s) {
+      this.lf.l('VAPR', `KYC_FL: ${a.m}`);
+      return { s: false, m: 'KYC_FL' };
+    }
+    let b = await this.ac.crtVA(rd);
+    if (!b.s) {
+      this.lf.l('VAPR', `VA_CRT_FL: ${b.m}`);
+      return { s: false, m: 'VA_CRT_FL' };
+    }
+    let c = await this.tx.rcdT(b.vid, rd.amt);
+    if (!c.s) {
+      this.lf.l('VAPR', `TXN_RC_FL: ${c.m}`);
+      return { s: false, m: 'TXN_RC_FL' };
+    }
+    let d = await this.py.prcPM(b.vid, rd.amt);
+    if (!d.s) {
+      this.lf.l('VAPR', `PY_PRC_FL: ${d.m}`);
+      return { s: false, m: 'PY_PRC_FL' };
+    }
+    this.lf.l('VAPR', `REQ_CMP: ${rd.tid}`);
+    this.ev.d('VA_CRTD', { vid: b.vid, cid: rd.cid });
+    return { s: true, vid: b.vid };
+  }
+
+  async hndFS(fd) {
+    this.lf.l('FRMH', `SBMT: ${fd.uid}`);
+    this.frm = { ...this.frm, ...fd };
+    let a = await this.prcVR(fd);
+    if (!a.s) {
+      this.lf.l('FRMH', `PRC_FL: ${a.m}`);
+      this.ev.d('FORM_SBMT_FL', { uid: fd.uid, m: a.m });
+      return { s: false, m: `F_PRC: ${a.m}` };
+    }
+    this.lf.l('FRMH', `SBMT_OK: ${a.vid}`);
+    this.ev.d('FORM_SBMT_OK', { uid: fd.uid, vid: a.vid });
+    return { s: true, vid: a.vid };
+  }
+
+  async chkHL() {
+    this.lf.l('SYSH', 'HLT_CHK_STRT');
+    let a = await this.ac.hlt();
+    let b = await this.ky.hlt();
+    let c = await this.tx.hlt();
+    let d = await this.py.hlt();
+    let e = await this.cl.hlt();
+    let f = await this.ai.hlt();
+    let g = await this.dv.hlt();
+    let h = await this.sc.hlt();
+    let i = await this.ms.hlt();
+    let j = await this.lf.hlt();
+    let k = await this.nt.hlt();
+    let l = await this.sp.hlt();
+    let m = await this.gl.hlt();
+    let n = await this.rt.hlt();
+    let o = await this.ev.hlt();
+    let p = await this.cr.hlt();
+    let q = await this.us.hlt();
+    let r = await this.aud.hlt();
+    let s = await this.dpl.hlt();
+    let t = await this.mon.hlt();
+    let u = await this.bcs.hlt();
+    let v = await this.prp.hlt();
+    let w = await this.dta.hlt();
+    let x = await this.tms.hlt();
+    let y = await this.rpt.hlt();
+    let z = await this.sch.hlt();
+    let aa = await this.wfl.hlt();
+    let ab = await this.idx.hlt();
+    let ac = await this.cch.hlt();
+    let ad = await this.ftc.hlt();
+    let ae = await this.trc.hlt();
+    let af = await this.lck.hlt();
+    let ag = await this.sig.hlt();
+    let ah = await this.gph.hlt();
+    let ai = await this.prc.hlt();
+    let aj = await this.bld.hlt();
+    let ak = await this.pkg.hlt();
+    let al = await this.reg.hlt();
+    let am = await this.usr.hlt();
+    let an = await this.vld.hlt();
+    let ao = await this.aut.hlt();
+    let ap = await this.act.hlt();
+    let aq = await this.int.hlt();
+    let ar = await this.que.hlt();
+    let as = await this.evt.hlt();
+    let at = await this.dbt.hlt();
+    let au = await this.res.hlt();
+    let av = await this.not.hlt();
+    let aw = await this.api.hlt();
+    let ax = await this.cli.hlt();
+    let ay = await this.svc.hlt();
+    let az = await this.hdl.hlt();
+    let ba = await this.mtc.hlt();
+    let bb = await this.inf.hlt();
+    let bc = await this.net.hlt();
+    let bd = await this.str.hlt();
+    let be = await this.sec.hlt();
+    let bf = await this.cns.hlt();

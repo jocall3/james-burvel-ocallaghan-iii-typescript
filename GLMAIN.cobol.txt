@@ -1,0 +1,227 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. GLMAIN.
+       AUTHOR. MAINFRAME-AI-INITIATIVE.
+       DATE-WRITTEN. 2024-07-27.
+      ******************************************************************
+      * GENERAL LEDGER SYSTEM (GL) MAIN MENU
+      *
+      * THIS IS THE SUB-MENU CONTROLLER FOR THE GENERAL LEDGER
+      * SYSTEM (GL). THE SINGLE SOURCE OF TRUTH. 100% BALANCED.
+      * It now incorporates advanced AI functionalities to augment
+      * financial operations and provide deeper insights, aiming to
+      * enhance efficiency and accuracy for human operators.
+      ******************************************************************
+       ENVIRONMENT DIVISION.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01 WS-MENU-SWITCHES.
+          05 WS-USER-CHOICE       PIC X(01).
+             88 EXIT-GL-MENU      VALUE 'X'.
+
+       01 WS-AI-STATUS.
+          05 WS-AI-ENGINE-ACTIVE  PIC X(01) VALUE 'Y'.
+             88 AI-ENABLED        VALUE 'Y'.
+             88 AI-DISABLED       VALUE 'N'.
+          05 WS-AI-LAST-ACTIVITY  PIC X(30) VALUE SPACES.
+          05 WS-AI-MESSAGE        PIC X(70) VALUE SPACES.
+          05 WS-AI-CONFIG-PARAMS.
+             10 WS-AI-ANOMALY-THRESHOLD PIC 9V99 VALUE 0.85.
+             10 WS-AI-PREDICT-HORIZON   PIC 9(02) VALUE 12.
+             10 WS-AI-RECON-CONFIDENCE  PIC 9V99 VALUE 0.90.
+             10 WS-AI-REPORT-VERBOSITY  PIC X(01) VALUE 'M'. *> L=Low, M=Medium, H=High
+
+       01 WS-SYSTEM-STATUS.
+          05 WS-CURRENT-USER      PIC X(10) VALUE 'GLUSER'.
+          05 WS-CURRENT-DATE-STRUCT.
+             10 WS-CURRENT-YEAR    PIC X(04).
+             10 WS-CURRENT-MONTH   PIC X(02).
+             10 WS-CURRENT-DAY     PIC X(02).
+          05 WS-CURRENT-TIME-STRUCT.
+             10 WS-CURRENT-HOUR    PIC X(02).
+             10 WS-CURRENT-MINUTE  PIC X(02).
+             10 WS-CURRENT-SECOND  PIC X(02).
+
+       01 WS-MENU-SCREEN.
+          05 FILLER PIC X(80) VALUE ALL "*".
+          05 FILLER PIC X(80) VALUE
+             "*             GENERAL LEDGER SYSTEM (GL)               *".
+          05 FILLER PIC X(80) VALUE ALL "*".
+          05 FILLER PIC X(80) VALUE "*   1. POST JOURNAL ENTRY                          *".
+          05 FILLER PIC X(80) VALUE "*   2. ACCOUNT BALANCE INQUIRY                     *".
+          05 FILLER PIC X(80) VALUE "*   3. VIEW TRANSACTION HISTORY                    *".
+          05 FILLER PIC X(80) VALUE "*   4. GENERATE FINANCIAL REPORTS                  *".
+          05 FILLER PIC X(80) VALUE "*   5. MANAGE CHART OF ACCOUNTS                    *".
+          05 FILLER PIC X(80) VALUE ALL "*".
+          05 FILLER PIC X(80) VALUE "*        AI-POWERED INSIGHTS & AUTOMATION          *".
+          05 FILLER PIC X(80) VALUE ALL "*".
+          05 FILLER PIC X(80) VALUE "*   A. AI: ANOMALY DETECTION (JOURNAL ENTRIES)     *".
+          05 FILLER PIC X(80) VALUE "*   B. AI: PREDICTIVE ANALYTICS (BALANCE TRENDS)   *".
+          05 FILLER PIC X(80) VALUE "*   C. AI: RECONCILIATION ASSISTANT                *".
+          05 FILLER PIC X(80) VALUE "*   D. AI: INTELLIGENT REPORTING SUMMARIES         *".
+          05 FILLER PIC X(80) VALUE "*   E. AI: CONFIGURE ASSISTANCE SETTINGS           *".
+          05 FILLER PIC X(80) VALUE ALL "*".
+          05 FILLER PIC X(80) VALUE "*   X. EXIT TO MAIN MENU                           *".
+          05 FILLER PIC X(80) VALUE ALL "*".
+          05 FILLER PIC X(80) VALUE SPACES.
+          05 FILLER PIC X(20) VALUE ">> Enter your choice: ".
+
+       01 WS-AI-LOG-RECORD.
+          05 WSR-LOG-DATE          PIC X(08).
+          05 WSR-LOG-TIME          PIC X(06).
+          05 WSR-USER-ID           PIC X(10).
+          05 WSR-AI-FUNCTION       PIC X(30).
+          05 WSR-AI-RESULT-CODE    PIC X(04). *> E.g., 'PASS', 'FAIL', 'INFO'
+          05 WSR-AI-DETAIL         PIC X(120).
+
+       PROCEDURE DIVISION.
+       0000-MAIN-LOGIC.
+           PERFORM 0100-INITIALIZE-SYSTEM.
+           PERFORM 1000-CONTROL-LOOP UNTIL EXIT-GL-MENU.
+           PERFORM 9000-TERMINATE-SYSTEM.
+           GOBACK.
+
+       0100-INITIALIZE-SYSTEM.
+           MOVE FUNCTION WHEN-COMPILED (1:8) TO WS-CURRENT-DATE-STRUCT.
+           MOVE FUNCTION WHEN-COMPILED (9:6) TO WS-CURRENT-TIME-STRUCT.
+           
+           DISPLAY "Initializing General Ledger System with AI Integration...".
+           DISPLAY "Current User: " WS-CURRENT-USER " Date: "
+               WS-CURRENT-YEAR "/" WS-CURRENT-MONTH "/" WS-CURRENT-DAY
+               " Time: " WS-CURRENT-HOUR ":" WS-CURRENT-MINUTE ":" WS-CURRENT-SECOND.
+           PERFORM 0200-CHECK-AI-HEALTH.
+
+       0200-CHECK-AI-HEALTH.
+           MOVE "AI System Health Check" TO WS-AI-LAST-ACTIVITY.
+           IF AI-ENABLED
+               MOVE 'Y' TO WS-AI-ENGINE-ACTIVE
+               MOVE 'AI Subsystem operational and ready for use.' TO WS-AI-MESSAGE
+               DISPLAY "AI System Health: " WS-AI-MESSAGE
+               *> Call a subprogram to perform a deeper AI readiness check
+               CALL "GLAIINIT" USING WS-AI-STATUS
+               IF WS-AI-ENGINE-ACTIVE = 'Y'
+                   PERFORM 8000-LOG-AI-ACTIVITY USING 'AI_HEALTH_CHECK' 'PASS' WS-AI-MESSAGE
+               ELSE
+                   PERFORM 8000-LOG-AI-ACTIVITY USING 'AI_HEALTH_CHECK' 'FAIL' WS-AI-MESSAGE
+               END-IF
+           ELSE
+               MOVE 'N' TO WS-AI-ENGINE-ACTIVE
+               MOVE 'AI Subsystem is currently disabled.' TO WS-AI-MESSAGE
+               DISPLAY "AI System Health: " WS-AI-MESSAGE
+               PERFORM 8000-LOG-AI-ACTIVITY USING 'AI_HEALTH_CHECK' 'INFO' WS-AI-MESSAGE
+           END-IF.
+           DISPLAY SPACES.
+
+       1000-CONTROL-LOOP.
+           DISPLAY WS-MENU-SCREEN.
+           ACCEPT WS-USER-CHOICE.
+           MOVE FUNCTION UPPER-CASE(WS-USER-CHOICE) TO WS-USER-CHOICE.
+
+           EVALUATE WS-USER-CHOICE
+               WHEN "1"
+                   DISPLAY "Calling GLPOST - Post Journal Entry..."
+                   CALL "GLPOST"
+                   PERFORM 8000-LOG-AI-ACTIVITY USING 'POST_JOURNAL_ENTRY' 'INFO' 'User posted new journal entry.'
+               WHEN "2"
+                   DISPLAY "Calling GLBAL - Account Balance Inquiry..."
+                   CALL "GLBAL"
+                   PERFORM 8000-LOG-AI-ACTIVITY USING 'ACCOUNT_BALANCE_INQUIRY' 'INFO' 'User inquired about account balance.'
+               WHEN "3"
+                   DISPLAY "Calling GLTRNHIST - View Transaction History..."
+                   CALL "GLTRNHIST"
+                   PERFORM 8000-LOG-AI-ACTIVITY USING 'TRANSACTION_HISTORY_VIEW' 'INFO' 'User viewed transaction history.'
+               WHEN "4"
+                   DISPLAY "Calling GLREPORT - Generate Financial Reports..."
+                   CALL "GLREPORT"
+                   PERFORM 8000-LOG-AI-ACTIVITY USING 'GENERATE_FINANCIAL_REPORTS' 'INFO' 'User generated financial reports.'
+               WHEN "5"
+                   DISPLAY "Calling GLCOA - Manage Chart of Accounts..."
+                   CALL "GLCOA" *> New subprogram for Chart of Accounts management
+                   PERFORM 8000-LOG-AI-ACTIVITY USING 'MANAGE_COA' 'INFO' 'User managed Chart of Accounts.'
+               WHEN "A"
+                   IF AI-ENABLED
+                       DISPLAY "Activating AI: Anomaly Detection..."
+                       CALL "GLANOMALY" USING WS-AI-STATUS
+                       PERFORM 8000-LOG-AI-ACTIVITY USING 'AI_ANOMALY_DETECTION' 'INFO' WS-AI-MESSAGE
+                   ELSE
+                       DISPLAY "AI is disabled. Please enable it in configuration (Option E)."
+                       PERFORM 8000-LOG-AI-ACTIVITY USING 'AI_ANOMALY_DETECTION' 'FAIL' 'AI disabled, request rejected.'
+                   END-IF
+               WHEN "B"
+                   IF AI-ENABLED
+                       DISPLAY "Activating AI: Predictive Analytics..."
+                       CALL "GLPREDICT" USING WS-AI-STATUS
+                       PERFORM 8000-LOG-AI-ACTIVITY USING 'AI_PREDICTIVE_ANALYTICS' 'INFO' WS-AI-MESSAGE
+                   ELSE
+                       DISPLAY "AI is disabled. Please enable it in configuration (Option E)."
+                       PERFORM 8000-LOG-AI-ACTIVITY USING 'AI_PREDICTIVE_ANALYTICS' 'FAIL' 'AI disabled, request rejected.'
+                   END-IF
+               WHEN "C"
+                   IF AI-ENABLED
+                       DISPLAY "Activating AI: Reconciliation Assistant..."
+                       CALL "GLRECONAI" USING WS-AI-STATUS
+                       PERFORM 8000-LOG-AI-ACTIVITY USING 'AI_RECONCILIATION_ASSISTANT' 'INFO' WS-AI-MESSAGE
+                   ELSE
+                       DISPLAY "AI is disabled. Please enable it in configuration (Option E)."
+                       PERFORM 8000-LOG-AI-ACTIVITY USING 'AI_RECONCILIATION_ASSISTANT' 'FAIL' 'AI disabled, request rejected.'
+                   END-IF
+               WHEN "D"
+                   IF AI-ENABLED
+                       DISPLAY "Activating AI: Intelligent Reporting Summaries..."
+                       CALL "GLREPORTAI" USING WS-AI-STATUS
+                       PERFORM 8000-LOG-AI-ACTIVITY USING 'AI_INTELLIGENT_REPORTING' 'INFO' WS-AI-MESSAGE
+                   ELSE
+                       DISPLAY "AI is disabled. Please enable it in configuration (Option E)."
+                       PERFORM 8000-LOG-AI-ACTIVITY USING 'AI_INTELLIGENT_REPORTING' 'FAIL' 'AI disabled, request rejected.'
+                   END-IF
+               WHEN "E"
+                   DISPLAY "Calling GLAICFG - Configure AI Assistance Settings..."
+                   CALL "GLAICFG" USING WS-AI-STATUS
+                   PERFORM 8000-LOG-AI-ACTIVITY USING 'AI_CONFIGURATION' 'INFO' WS-AI-MESSAGE
+                   PERFORM 0200-CHECK-AI-HEALTH  *> Re-check AI health after config
+               WHEN "X"
+                   DISPLAY "RETURNING TO MAIN MENU..."
+                   MOVE 'EXIT_GL_MENU' TO WS-AI-LAST-ACTIVITY
+                   MOVE 'User chose to exit the GL system.' TO WS-AI-MESSAGE
+                   PERFORM 8000-LOG-AI-ACTIVITY USING 'EXIT_SYSTEM' 'INFO' WS-AI-MESSAGE
+               WHEN OTHER
+                   DISPLAY "INVALID SELECTION. PLEASE CHOOSE A VALID OPTION."
+                   MOVE 'INVALID_SELECTION' TO WS-AI-LAST-ACTIVITY
+                   MOVE 'User made an invalid menu selection.' TO WS-AI-MESSAGE
+                   PERFORM 8000-LOG-AI-ACTIVITY USING 'INVALID_INPUT' 'WARN' WS-AI-MESSAGE
+           END-EVALUATE.
+           DISPLAY SPACES.
+           DISPLAY "Press ENTER to continue...".
+           ACCEPT WS-USER-CHOICE. *> Pause for user to read messages and then continue the loop
+
+       8000-LOG-AI-ACTIVITY USING P-FUNCTION P-RESULT-CODE P-DETAIL-MSG.
+           MOVE FUNCTION WHEN-COMPILED (1:8) TO WSR-LOG-DATE.
+           MOVE FUNCTION WHEN-COMPILED (9:6) TO WSR-LOG-TIME.
+           MOVE WS-CURRENT-USER    TO WSR-USER-ID.
+           MOVE P-FUNCTION         TO WSR-AI-FUNCTION.
+           MOVE P-RESULT-CODE      TO WSR-AI-RESULT-CODE.
+           MOVE P-DETAIL-MSG       TO WSR-AI-DETAIL.
+
+           *> In a real mainframe, this would write to a log file or database.
+           *> For this expanded example, we'll demonstrate a structured display.
+           DISPLAY "--- AI INTERACTION LOG ENTRY ---" UPON SYSOUT.
+           DISPLAY "DATE/TIME: " WSR-LOG-DATE " " WSR-LOG-TIME UPON SYSOUT.
+           DISPLAY "USER: " WSR-USER-ID UPON SYSOUT.
+           DISPLAY "FUNCTION: " WSR-AI-FUNCTION UPON SYSOUT.
+           DISPLAY "RESULT CODE: " WSR-AI-RESULT-CODE UPON SYSOUT.
+           DISPLAY "DETAIL: " WSR-AI-DETAIL UPON SYSOUT.
+           DISPLAY "--------------------------------" UPON SYSOUT.
+           *> Potentially CALL a logging subprogram for persistent storage:
+           *> CALL "GLLOGGER" USING WS-AI-LOG-RECORD.
+
+       9000-TERMINATE-SYSTEM.
+           DISPLAY "General Ledger System (GL) shutting down. Goodbye!".
+           MOVE 'GL_SYSTEM_SHUTDOWN' TO WS-AI-LAST-ACTIVITY.
+           MOVE 'GL system terminated gracefully.' TO WS-AI-MESSAGE.
+           PERFORM 8000-LOG-AI-ACTIVITY USING 'SYSTEM_SHUTDOWN' 'INFO' WS-AI-MESSAGE.
+
+      * End of GLMAIN program.
+      * Note: Subprograms like GLPOST, GLBAL, GLTRNHIST, GLREPORT, GLCOA,
+      * GLAIINIT, GLANOMALY, GLPREDICT, GLRECONAI, GLREPORTAI, and GLAICFG
+      * are expected to be separate COBOL programs callable by GLMAIN.
+      * Their implementation would be detailed in their respective files.
+      ******************************************************************

@@ -1,0 +1,4050 @@
+// Copyright James Burvel Oâ€™Callaghan III
+// President Citibank Demo Business Inc.
+
+// This file has been transformed from a simple GraphQL query definition into a full-fledged
+// React TypeScript application component, 'AccountCurrenciesApp', designed for a commercial
+// banking environment. It provides comprehensive functionality for managing, displaying,
+// and interacting with account-related currency features, including real-time exchange,
+// historical data, administrative controls, and compliance reporting.
+// The design prioritizes modularity, scalability, and adherence to enterprise-grade
+// banking application standards.
+
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useReducer,
+  useRef,
+  useMemo,
+} from "react";
+import {
+  ApolloClient,
+  InMemoryCache,
+  ApolloProvider,
+  useQuery,
+  useMutation,
+  gql,
+  ApolloQueryResult,
+  NetworkStatus,
+} from "@apollo/client";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Link,
+  useNavigate,
+  useLocation,
+  useParams,
+} from "react-router-dom";
+
+// --- Configuration Constants ---
+// In a real application, these would come from environment variables or a configuration service.
+export const AppConfig = {
+  GRAPHQL_ENDPOINT: "/graphql", // Assuming relative path for demonstration
+  DEFAULT_CURRENCY_PRECISION: 2,
+  EXCHANGE_RATE_REFRESH_INTERVAL_MS: 30000, // 30 seconds
+  MAX_TRANSACTION_VALUE: 1_000_000_000_000, // For large bank transactions
+  APP_VERSION: "1.0.23-SNAPSHOT",
+  BUILD_DATE: "2024-07-30T10:30:00Z",
+  FEATURE_FLAGS: {
+    ENABLE_REALTIME_EXCHANGE: true,
+    ENABLE_HISTORICAL_CHARTS: true,
+    ENABLE_ADMIN_PANEL: true,
+    ENABLE_COMPLIANCE_REPORTS: true,
+    ENABLE_AUDIT_LOGS: true,
+  },
+  BANK_NAME: "Citibank Demo Business Inc.",
+  SUPPORT_EMAIL: "support@citibankdemo.com",
+};
+
+// --- Utility Functions ---
+/**
+ * Formats a currency value for display, including symbol and precision.
+ * @param value The numeric value to format.
+ * @param currencyCode The ISO 4217 currency code (e.g., 'USD', 'EUR').
+ * @param locale The locale string (e.g., 'en-US').
+ * @param precision Optional number of decimal places.
+ * @returns Formatted currency string.
+ */
+export function formatCurrency(
+  value: number,
+  currencyCode: string,
+  locale: string = "en-US",
+  precision?: number
+): string {
+  try {
+    return new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency: currencyCode,
+      minimumFractionDigits: precision ?? AppConfig.DEFAULT_CURRENCY_PRECISION,
+      maximumFractionDigits: precision ?? AppConfig.DEFAULT_CURRENCY_PRECISION,
+    }).format(value);
+  } catch (e) {
+    console.error(`Error formatting currency ${value} ${currencyCode}:`, e);
+    return `${currencyCode} ${value.toFixed(
+      AppConfig.DEFAULT_CURRENCY_PRECISION
+    )}`;
+  }
+}
+
+/**
+ * Formats a date into a user-friendly string.
+ * @param date The Date object or string to format.
+ * @param locale The locale string (e.g., 'en-US').
+ * @returns Formatted date string.
+ */
+export function formatDate(
+  date: Date | string,
+  locale: string = "en-US"
+): string {
+  const d = typeof date === "string" ? new Date(date) : date;
+  return new Intl.DateTimeFormat(locale, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(d);
+}
+
+/**
+ * Generates a unique ID for UI elements.
+ * @returns A unique string ID.
+ */
+export function generateUniqueId(prefix: string = "id"): string {
+  return `${prefix}-${Math.random().toString(36).substr(2, 9)}`;
+}
+
+/**
+ * Debounces a function call.
+ * @param func The function to debounce.
+ * @param delay The delay in milliseconds.
+ * @returns A debounced version of the function.
+ */
+export function debounce<T extends (...args: any[]) => void>(
+  func: T,
+  delay: number
+): T {
+  let timeout: NodeJS.Timeout;
+  return ((...args: Parameters<T>) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), delay);
+  }) as T;
+}
+
+// --- Enum Definitions ---
+export enum CurrencyStatus {
+  ACTIVE = "ACTIVE",
+  INACTIVE = "INACTIVE",
+  DEPRECATED = "DEPRECATED",
+  PENDING_REVIEW = "PENDING_REVIEW",
+}
+
+export enum TransactionType {
+  EXCHANGE = "EXCHANGE",
+  TRANSFER = "TRANSFER",
+  PAYMENT = "PAYMENT",
+  DEPOSIT = "DEPOSIT",
+  WITHDRAWAL = "WITHDRAWAL",
+}
+
+export enum AuditLogAction {
+  CURRENCY_ADDED = "CURRENCY_ADDED",
+  CURRENCY_UPDATED = "CURRENCY_UPDATED",
+  RATE_UPDATED = "RATE_UPDATED",
+  PREFERENCE_SET = "PREFERENCE_SET",
+  EXCHANGE_INITIATED = "EXCHANGE_INITIATED",
+  EXCHANGE_COMPLETED = "EXCHANGE_COMPLETED",
+  REPORT_GENERATED = "REPORT_GENERATED",
+}
+
+export enum UserRole {
+  CLIENT = "CLIENT",
+  ADMIN = "ADMIN",
+  COMPLIANCE_OFFICER = "COMPLIANCE_OFFICER",
+  AUDITOR = "AUDITOR",
+  SUPPORT = "SUPPORT",
+}
+
+// --- TypeScript Interfaces for Data Models ---
+export interface Currency {
+  code: string; // e.g., "USD"
+  name: string; // e.g., "United States Dollar"
+  symbol: string; // e.g., "$"
+  country: string; // e.g., "USA"
+  status: CurrencyStatus;
+  isBaseCurrency?: boolean; // Can be a system's base, e.g., USD, EUR
+  description?: string;
+  __typename?: "Currency";
+}
+
+export interface ExchangeRate {
+  id: string;
+  fromCurrency: Currency;
+  toCurrency: Currency;
+  rate: number; // 1 FromCurrency = rate ToCurrency
+  bidRate: number; // Rate bank buys at
+  askRate: number; // Rate bank sells at
+  lastUpdated: string; // ISO 8601 string
+  source: string; // e.g., "ECB", "Reuters", "InternalTradingDesk"
+  __typename?: "ExchangeRate";
+}
+
+export interface AccountCurrency {
+  accountId: string;
+  currency: Currency;
+  balance: number;
+  availableBalance: number;
+  holdingsValueUSD: number; // Value converted to a common base for reporting
+  __typename?: "AccountCurrency";
+}
+
+export interface UserPreferences {
+  id: string;
+  userId: string;
+  preferredDisplayCurrency: Currency;
+  favoriteCurrencies: Currency[];
+  emailNotificationsEnabled: boolean;
+  smsNotificationsEnabled: boolean;
+  locale: string;
+  theme: "light" | "dark";
+  __typename?: "UserPreferences";
+}
+
+export interface HistoricalRate {
+  date: string; // YYYY-MM-DD
+  rate: number;
+  __typename?: "HistoricalRate";
+}
+
+export interface ExchangeTransaction {
+  id: string;
+  userId: string;
+  accountId: string;
+  fromCurrency: Currency;
+  toCurrency: Currency;
+  amountFrom: number;
+  amountTo: number;
+  exchangeRate: number; // Rate at time of transaction
+  fee: number;
+  status: "PENDING" | "COMPLETED" | "FAILED" | "CANCELLED";
+  timestamp: string;
+  referenceNumber: string;
+  __typename?: "ExchangeTransaction";
+}
+
+export interface AuditLogEntry {
+  id: string;
+  timestamp: string;
+  userId: string;
+  action: AuditLogAction;
+  details: string; // JSON string or detailed message
+  ipAddress: string;
+  __typename?: "AuditLogEntry";
+}
+
+export interface ComplianceReport {
+  id: string;
+  reportName: string;
+  generatedBy: string;
+  generationDate: string;
+  parameters: string; // JSON string of report parameters
+  status: "GENERATED" | "PENDING" | "FAILED";
+  downloadUrl: string;
+  __typename?: "ComplianceReport";
+}
+
+export interface UserProfile {
+  id: string;
+  username: string;
+  email: string;
+  role: UserRole;
+  isActive: boolean;
+  lastLogin: string;
+  __typename?: "UserProfile";
+}
+
+// --- Mock Data (for initial development/testing) ---
+// In a real app, this would be fetched from a backend API or database.
+export const MOCK_CURRENCIES: Currency[] = [
+  {
+    code: "USD",
+    name: "United States Dollar",
+    symbol: "$",
+    country: "USA",
+    status: CurrencyStatus.ACTIVE,
+    isBaseCurrency: true,
+    description: "Primary global reserve currency.",
+  },
+  {
+    code: "EUR",
+    name: "Euro",
+    symbol: "€",
+    country: "Eurozone",
+    status: CurrencyStatus.ACTIVE,
+    isBaseCurrency: true,
+    description: "Common currency of the European Union.",
+  },
+  {
+    code: "GBP",
+    name: "British Pound Sterling",
+    symbol: "£",
+    country: "UK",
+    status: CurrencyStatus.ACTIVE,
+    description: "Official currency of the United Kingdom.",
+  },
+  {
+    code: "JPY",
+    name: "Japanese Yen",
+    symbol: "¥",
+    country: "Japan",
+    status: CurrencyStatus.ACTIVE,
+    description: "Official currency of Japan.",
+  },
+  {
+    code: "CAD",
+    name: "Canadian Dollar",
+    symbol: "C$",
+    country: "Canada",
+    status: CurrencyStatus.ACTIVE,
+    description: "Official currency of Canada.",
+  },
+  {
+    code: "AUD",
+    name: "Australian Dollar",
+    symbol: "A$",
+    country: "Australia",
+    status: CurrencyStatus.ACTIVE,
+    description: "Official currency of Australia.",
+  },
+  {
+    code: "CHF",
+    name: "Swiss Franc",
+    symbol: "CHF",
+    country: "Switzerland",
+    status: CurrencyStatus.ACTIVE,
+    description: "Official currency of Switzerland and Liechtenstein.",
+  },
+  {
+    code: "CNY",
+    name: "Chinese Yuan",
+    symbol: "¥",
+    country: "China",
+    status: CurrencyStatus.ACTIVE,
+    description: "Official currency of the People's Republic of China.",
+  },
+  {
+    code: "INR",
+    name: "Indian Rupee",
+    symbol: "₹",
+    country: "India",
+    status: CurrencyStatus.ACTIVE,
+    description: "Official currency of India.",
+  },
+  {
+    code: "BRL",
+    name: "Brazilian Real",
+    symbol: "R$",
+    country: "Brazil",
+    status: CurrencyStatus.ACTIVE,
+    description: "Official currency of Brazil.",
+  },
+  {
+    code: "MXN",
+    name: "Mexican Peso",
+    symbol: "Mex$",
+    country: "Mexico",
+    status: CurrencyStatus.ACTIVE,
+    description: "Official currency of Mexico.",
+  },
+];
+
+export const MOCK_EXCHANGE_RATES: ExchangeRate[] = [
+  {
+    id: "USD_EUR",
+    fromCurrency: MOCK_CURRENCIES[0],
+    toCurrency: MOCK_CURRENCIES[1],
+    rate: 0.92,
+    bidRate: 0.918,
+    askRate: 0.922,
+    lastUpdated: new Date().toISOString(),
+    source: "ECB",
+  },
+  {
+    id: "EUR_USD",
+    fromCurrency: MOCK_CURRENCIES[1],
+    toCurrency: MOCK_CURRENCIES[0],
+    rate: 1.085,
+    bidRate: 1.083,
+    askRate: 1.087,
+    lastUpdated: new Date().toISOString(),
+    source: "ECB",
+  },
+  {
+    id: "USD_GBP",
+    fromCurrency: MOCK_CURRENCIES[0],
+    toCurrency: MOCK_CURRENCIES[2],
+    rate: 0.78,
+    bidRate: 0.778,
+    askRate: 0.782,
+    lastUpdated: new Date().toISOString(),
+    source: "Reuters",
+  },
+  {
+    id: "GBP_USD",
+    fromCurrency: MOCK_CURRENCIES[2],
+    toCurrency: MOCK_CURRENCIES[0],
+    rate: 1.28,
+    bidRate: 1.278,
+    askRate: 1.282,
+    lastUpdated: new Date().toISOString(),
+    source: "Reuters",
+  },
+  {
+    id: "USD_JPY",
+    fromCurrency: MOCK_CURRENCIES[0],
+    toCurrency: MOCK_CURRENCIES[3],
+    rate: 157.0,
+    bidRate: 156.8,
+    askRate: 157.2,
+    lastUpdated: new Date().toISOString(),
+    source: "InternalTradingDesk",
+  },
+  {
+    id: "JPY_USD",
+    fromCurrency: MOCK_CURRENCIES[3],
+    toCurrency: MOCK_CURRENCIES[0],
+    rate: 0.00637,
+    bidRate: 0.00636,
+    askRate: 0.00638,
+    lastUpdated: new Date().toISOString(),
+    source: "InternalTradingDesk",
+  },
+];
+
+export const MOCK_USER_PROFILE: UserProfile = {
+  id: "user-123",
+  username: "john.doe",
+  email: "john.doe@example.com",
+  role: UserRole.CLIENT,
+  isActive: true,
+  lastLogin: new Date().toISOString(),
+};
+
+export const MOCK_ADMIN_PROFILE: UserProfile = {
+  id: "admin-456",
+  username: "admin.smith",
+  email: "admin.smith@example.com",
+  role: UserRole.ADMIN,
+  isActive: true,
+  lastLogin: new Date().toISOString(),
+};
+
+// --- GraphQL Definitions ---
+// The original query from the JSON file:
+export const GET_ACCOUNT_CURRENCIES = gql`
+  query AccountCurrencies($accountId: ID!) {
+    accountCurrencies(accountId: $accountId) {
+      currencies {
+        code
+        name
+        symbol
+        country
+        status
+        isBaseCurrency
+        description
+        __typename
+      }
+      primaryCurrency {
+        code
+        name
+        symbol
+        country
+        status
+        isBaseCurrency
+        description
+        __typename
+      }
+      holdings {
+        currency {
+          code
+          name
+          symbol
+        }
+        balance
+        availableBalance
+        holdingsValueUSD
+        __typename
+      }
+      __typename
+    }
+  }
+`;
+
+export const GET_ALL_CURRENCIES = gql`
+  query AllCurrencies {
+    allCurrencies {
+      code
+      name
+      symbol
+      country
+      status
+      isBaseCurrency
+      description
+      __typename
+    }
+  }
+`;
+
+export const GET_EXCHANGE_RATES = gql`
+  query ExchangeRates($fromCurrencyCode: String, $toCurrencyCode: String) {
+    exchangeRates(
+      fromCurrencyCode: $fromCurrencyCode
+      toCurrencyCode: $toCurrencyCode
+    ) {
+      id
+      fromCurrency {
+        code
+        name
+        symbol
+      }
+      toCurrency {
+        code
+        name
+        symbol
+      }
+      rate
+      bidRate
+      askRate
+      lastUpdated
+      source
+      __typename
+    }
+  }
+`;
+
+export const GET_HISTORICAL_RATES = gql`
+  query HistoricalRates(
+    $fromCurrencyCode: String!
+    $toCurrencyCode: String!
+    $startDate: String!
+    $endDate: String!
+  ) {
+    historicalRates(
+      fromCurrencyCode: $fromCurrencyCode
+      toCurrencyCode: $toCurrencyCode
+      startDate: $startDate
+      endDate: $endDate
+    ) {
+      date
+      rate
+      __typename
+    }
+  }
+`;
+
+export const GET_USER_PREFERENCES = gql`
+  query UserPreferences($userId: ID!) {
+    userPreferences(userId: $userId) {
+      id
+      userId
+      preferredDisplayCurrency {
+        code
+        name
+        symbol
+      }
+      favoriteCurrencies {
+        code
+        name
+        symbol
+      }
+      emailNotificationsEnabled
+      smsNotificationsEnabled
+      locale
+      theme
+      __typename
+    }
+  }
+`;
+
+export const UPDATE_USER_PREFERENCES = gql`
+  mutation UpdateUserPreferences($input: UpdateUserPreferencesInput!) {
+    updateUserPreferences(input: $input) {
+      id
+      preferredDisplayCurrency {
+        code
+      }
+      favoriteCurrencies {
+        code
+      }
+      emailNotificationsEnabled
+      smsNotificationsEnabled
+      locale
+      theme
+      __typename
+    }
+  }
+`;
+
+export const PERFORM_CURRENCY_EXCHANGE = gql`
+  mutation PerformCurrencyExchange($input: PerformCurrencyExchangeInput!) {
+    performCurrencyExchange(input: $input) {
+      id
+      fromCurrency {
+        code
+      }
+      toCurrency {
+        code
+      }
+      amountFrom
+      amountTo
+      exchangeRate
+      fee
+      status
+      timestamp
+      referenceNumber
+      __typename
+    }
+  }
+`;
+
+export const ADD_CURRENCY_ADMIN = gql`
+  mutation AddCurrency($input: AddCurrencyInput!) {
+    addCurrency(input: $input) {
+      code
+      name
+      symbol
+      country
+      status
+      __typename
+    }
+  }
+`;
+
+export const UPDATE_CURRENCY_ADMIN = gql`
+  mutation UpdateCurrency($code: String!, $input: UpdateCurrencyInput!) {
+    updateCurrency(code: $code, input: $input) {
+      code
+      name
+      symbol
+      country
+      status
+      __typename
+    }
+  }
+`;
+
+export const ADD_EXCHANGE_RATE_ADMIN = gql`
+  mutation AddExchangeRate($input: AddExchangeRateInput!) {
+    addExchangeRate(input: $input) {
+      id
+      fromCurrency {
+        code
+      }
+      toCurrency {
+        code
+      }
+      rate
+      bidRate
+      askRate
+      __typename
+    }
+  }
+`;
+
+export const UPDATE_EXCHANGE_RATE_ADMIN = gql`
+  mutation UpdateExchangeRate($id: ID!, $input: UpdateExchangeRateInput!) {
+    updateExchangeRate(id: $id, input: $input) {
+      id
+      fromCurrency {
+        code
+      }
+      toCurrency {
+        code
+      }
+      rate
+      bidRate
+      askRate
+      __typename
+    }
+  }
+`;
+
+export const GET_AUDIT_LOGS = gql`
+  query AuditLogs($filter: AuditLogFilterInput) {
+    auditLogs(filter: $filter) {
+      id
+      timestamp
+      userId
+      action
+      details
+      ipAddress
+      __typename
+    }
+  }
+`;
+
+export const GET_COMPLIANCE_REPORTS = gql`
+  query ComplianceReports($filter: ComplianceReportFilterInput) {
+    complianceReports(filter: $filter) {
+      id
+      reportName
+      generatedBy
+      generationDate
+      parameters
+      status
+      downloadUrl
+      __typename
+    }
+  }
+`;
+
+export const GENERATE_COMPLIANCE_REPORT = gql`
+  mutation GenerateComplianceReport($input: GenerateComplianceReportInput!) {
+    generateComplianceReport(input: $input) {
+      id
+      reportName
+      status
+      downloadUrl
+      __typename
+    }
+  }
+`;
+
+// --- Apollo Client Setup ---
+// This client configuration is for the entire application.
+export const client = new ApolloClient({
+  uri: AppConfig.GRAPHQL_ENDPOINT,
+  cache: new InMemoryCache({
+    typePolicies: {
+      Query: {
+        fields: {
+          // Example: merge accountCurrencies if it's paginated/modified
+          accountCurrencies: {
+            read(existing, { args, toReference }) {
+              if (args?.accountId && existing) {
+                return existing;
+              }
+              return undefined; // Fallback to default cache behavior
+            },
+          },
+          allCurrencies: {
+            merge(existing = [], incoming: Currency[]) {
+              // Simple merge, potentially add logic for uniqueness or order
+              return [...incoming];
+            },
+          },
+          exchangeRates: {
+            merge(existing = [], incoming: ExchangeRate[]) {
+              // Ensure we don't duplicate rates for the same pair
+              const newRates = incoming.filter(
+                (inc) =>
+                  !existing.some(
+                    (ex) =>
+                      ex.fromCurrency.code === inc.fromCurrency.code &&
+                      ex.toCurrency.code === inc.toCurrency.code
+                  )
+              );
+              return [...existing, ...newRates];
+            },
+          },
+        },
+      },
+    },
+  }),
+});
+
+// --- Contexts for Global State Management ---
+
+/**
+ * AuthContext: Manages user authentication status and profile.
+ * Provides user profile and methods to login/logout.
+ */
+interface AuthContextType {
+  currentUser: UserProfile | null;
+  isAuthenticated: boolean;
+  login: (user: UserProfile) => void;
+  logout: () => void;
+  hasRole: (role: UserRole) => boolean;
+}
+
+export const AuthContext = createContext<AuthContextType | undefined>(
+  undefined
+);
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+
+  useEffect(() => {
+    // In a real app, check localStorage/sessionStorage for token, validate it.
+    // For this demo, let's auto-login a mock user.
+    setTimeout(() => {
+      setCurrentUser(MOCK_USER_PROFILE); // Default to client user
+    }, 100);
+  }, []);
+
+  const login = useCallback((user: UserProfile) => {
+    setCurrentUser(user);
+    // Persist login state (e.g., token in localStorage)
+  }, []);
+
+  const logout = useCallback(() => {
+    setCurrentUser(null);
+    // Clear persisted login state
+  }, []);
+
+  const hasRole = useCallback(
+    (role: UserRole) => {
+      return currentUser?.role === role;
+    },
+    [currentUser]
+  );
+
+  const contextValue = useMemo(
+    () => ({
+      currentUser,
+      isAuthenticated: !!currentUser,
+      login,
+      logout,
+      hasRole,
+    }),
+    [currentUser, login, logout, hasRole]
+  );
+
+  return (
+    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
+  );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+};
+
+/**
+ * ThemeContext: Manages application theme (light/dark).
+ */
+interface ThemeContextType {
+  theme: "light" | "dark";
+  toggleTheme: () => void;
+  applyTheme: (theme: "light" | "dark") => void;
+}
+
+export const ThemeContext = createContext<ThemeContextType | undefined>(
+  undefined
+);
+
+export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("appTheme") as "light" | "dark";
+    if (savedTheme) {
+      setTheme(savedTheme);
+      document.documentElement.setAttribute("data-theme", savedTheme);
+    } else {
+      document.documentElement.setAttribute("data-theme", theme);
+    }
+  }, [theme]);
+
+  const toggleTheme = useCallback(() => {
+    setTheme((prevTheme) => {
+      const newTheme = prevTheme === "light" ? "dark" : "light";
+      localStorage.setItem("appTheme", newTheme);
+      document.documentElement.setAttribute("data-theme", newTheme);
+      return newTheme;
+    });
+  }, []);
+
+  const applyTheme = useCallback((newTheme: "light" | "dark") => {
+    setTheme(newTheme);
+    localStorage.setItem("appTheme", newTheme);
+    document.documentElement.setAttribute("data-theme", newTheme);
+  }, []);
+
+  const contextValue = useMemo(
+    () => ({ theme, toggleTheme, applyTheme }),
+    [theme, toggleTheme, applyTheme]
+  );
+
+  return (
+    <ThemeContext.Provider value={contextValue}>
+      {children}
+    </ThemeContext.Provider>
+  );
+};
+
+export const useTheme = () => {
+  const context = useContext(ThemeContext);
+  if (!context) {
+    throw new Error("useTheme must be used within a ThemeProvider");
+  }
+  return context;
+};
+
+/**
+ * LocaleContext: Manages application locale for i18n.
+ */
+interface LocaleContextType {
+  locale: string;
+  setLocale: (newLocale: string) => void;
+  messages: Record<string, string>; // Simple key-value store for messages
+}
+
+export const LocaleContext = createContext<LocaleContextType | undefined>(
+  undefined
+);
+
+// Mock messages for different locales
+const messages_enUS: Record<string, string> = {
+  "app.title": "Account Currencies Management",
+  "dashboard.welcome": "Welcome to your Currency Dashboard!",
+  "dashboard.currentHoldings": "Current Account Holdings",
+  "currency.code": "Code",
+  "currency.name": "Name",
+  "currency.balance": "Balance",
+  "currency.available": "Available",
+  "currency.valueUSD": "Value (USD)",
+  "exchange.title": "Currency Exchange",
+  "exchange.from": "From Currency",
+  "exchange.to": "To Currency",
+  "exchange.amount": "Amount to Exchange",
+  "exchange.rate": "Current Rate (Ask)",
+  "exchange.bidRate": "Current Rate (Bid)",
+  "exchange.fee": "Transaction Fee",
+  "exchange.totalReceive": "Total You Receive",
+  "exchange.execute": "Execute Exchange",
+  "preferences.title": "User Preferences",
+  "preferences.displayCurrency": "Preferred Display Currency",
+  "preferences.favoriteCurrencies": "Favorite Currencies",
+  "preferences.emailNotifications": "Email Notifications",
+  "preferences.smsNotifications": "SMS Notifications",
+  "preferences.locale": "Application Language",
+  "preferences.theme": "Application Theme",
+  "preferences.save": "Save Preferences",
+  "admin.currencyManagement": "Currency Management (Admin)",
+  "admin.exchangeRateManagement": "Exchange Rate Management (Admin)",
+  "admin.addNewCurrency": "Add New Currency",
+  "admin.updateCurrency": "Update Currency",
+  "admin.addNewRate": "Add New Exchange Rate",
+  "admin.updateRate": "Update Exchange Rate",
+  "history.title": "Historical Rates",
+  "history.selectPair": "Select Currency Pair",
+  "history.startDate": "Start Date",
+  "history.endDate": "End Date",
+  "compliance.title": "Compliance Reports",
+  "compliance.generateReport": "Generate New Report",
+  "compliance.reportName": "Report Name",
+  "compliance.reportType": "Report Type",
+  "compliance.reportPeriod": "Reporting Period",
+  "compliance.status": "Status",
+  "compliance.download": "Download",
+  "audit.title": "Audit Logs",
+  "audit.action": "Action",
+  "audit.user": "User ID",
+  "audit.timestamp": "Timestamp",
+  "audit.details": "Details",
+  "loading.data": "Loading data...",
+  "error.generic": "An error occurred. Please try again.",
+  "error.fetch": "Failed to fetch data.",
+  "notification.success": "Success",
+  "notification.error": "Error",
+  "notification.info": "Information",
+  "button.confirm": "Confirm",
+  "button.cancel": "Cancel",
+  "button.submit": "Submit",
+  "nav.dashboard": "Dashboard",
+  "nav.exchange": "Exchange",
+  "nav.preferences": "Preferences",
+  "nav.history": "History",
+  "nav.admin": "Admin Panel",
+  "nav.compliance": "Compliance",
+  "nav.audit": "Audit Logs",
+  "nav.logout": "Logout",
+  "currency.status.ACTIVE": "Active",
+  "currency.status.INACTIVE": "Inactive",
+  "currency.status.DEPRECATED": "Deprecated",
+  "currency.status.PENDING_REVIEW": "Pending Review",
+};
+
+const messages_esES: Record<string, string> = {
+  "app.title": "Gestión de Monedas de Cuenta",
+  "dashboard.welcome": "¡Bienvenido a su Panel de Monedas!",
+  "dashboard.currentHoldings": "Saldos Actuales de la Cuenta",
+  "currency.code": "Código",
+  "currency.name": "Nombre",
+  "currency.balance": "Saldo",
+  "currency.available": "Disponible",
+  "currency.valueUSD": "Valor (USD)",
+  "exchange.title": "Cambio de Divisas",
+  "exchange.from": "Moneda Origen",
+  "exchange.to": "Moneda Destino",
+  "exchange.amount": "Cantidad a Cambiar",
+  "exchange.rate": "Tasa Actual (Venta)",
+  "exchange.bidRate": "Tasa Actual (Compra)",
+  "exchange.fee": "Tarifa de Transacción",
+  "exchange.totalReceive": "Total que Recibe",
+  "exchange.execute": "Ejecutar Cambio",
+  "preferences.title": "Preferencias de Usuario",
+  "preferences.displayCurrency": "Moneda de Visualización Preferida",
+  "preferences.favoriteCurrencies": "Monedas Favoritas",
+  "preferences.emailNotifications": "Notificaciones por Correo",
+  "preferences.smsNotifications": "Notificaciones por SMS",
+  "preferences.locale": "Idioma de la Aplicación",
+  "preferences.theme": "Tema de la Aplicación",
+  "preferences.save": "Guardar Preferencias",
+  "admin.currencyManagement": "Gestión de Monedas (Admin)",
+  "admin.exchangeRateManagement": "Gestión de Tasas de Cambio (Admin)",
+  "admin.addNewCurrency": "Añadir Nueva Moneda",
+  "admin.updateCurrency": "Actualizar Moneda",
+  "admin.addNewRate": "Añadir Nueva Tasa",
+  "admin.updateRate": "Actualizar Tasa",
+  "history.title": "Tasas Históricas",
+  "history.selectPair": "Seleccionar Par de Monedas",
+  "history.startDate": "Fecha Inicio",
+  "history.endDate": "Fecha Fin",
+  "compliance.title": "Informes de Cumplimiento",
+  "compliance.generateReport": "Generar Nuevo Informe",
+  "compliance.reportName": "Nombre del Informe",
+  "compliance.reportType": "Tipo de Informe",
+  "compliance.reportPeriod": "Período del Informe",
+  "compliance.status": "Estado",
+  "compliance.download": "Descargar",
+  "audit.title": "Registros de Auditoría",
+  "audit.action": "Acción",
+  "audit.user": "ID de Usuario",
+  "audit.timestamp": "Marca de Tiempo",
+  "audit.details": "Detalles",
+  "loading.data": "Cargando datos...",
+  "error.generic": "Ocurrió un error. Por favor, inténtelo de nuevo.",
+  "error.fetch": "Error al obtener datos.",
+  "notification.success": "Éxito",
+  "notification.error": "Error",
+  "notification.info": "Información",
+  "button.confirm": "Confirmar",
+  "button.cancel": "Cancelar",
+  "button.submit": "Enviar",
+  "nav.dashboard": "Panel",
+  "nav.exchange": "Cambio",
+  "nav.preferences": "Preferencias",
+  "nav.history": "Historial",
+  "nav.admin": "Panel de Admin",
+  "nav.compliance": "Cumplimiento",
+  "nav.audit": "Registros de Auditoría",
+  "nav.logout": "Cerrar Sesión",
+  "currency.status.ACTIVE": "Activa",
+  "currency.status.INACTIVE": "Inactiva",
+  "currency.status.DEPRECATED": "Obsoleta",
+  "currency.status.PENDING_REVIEW": "Pendiente de Revisión",
+};
+
+const allMessages: Record<string, Record<string, string>> = {
+  "en-US": messages_enUS,
+  "es-ES": messages_esES,
+  // Add more locales as needed
+};
+
+export const LocaleProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [locale, setLocale] = useState<string>("en-US");
+  const [messages, setMessages] = useState<Record<string, string>>(
+    allMessages["en-US"]
+  );
+
+  useEffect(() => {
+    // Attempt to load locale from user preferences or localStorage
+    const savedLocale = localStorage.getItem("appLocale");
+    if (savedLocale && allMessages[savedLocale]) {
+      setLocale(savedLocale);
+      setMessages(allMessages[savedLocale]);
+    }
+  }, []);
+
+  const changeLocale = useCallback((newLocale: string) => {
+    if (allMessages[newLocale]) {
+      setLocale(newLocale);
+      setMessages(allMessages[newLocale]);
+      localStorage.setItem("appLocale", newLocale);
+    } else {
+      console.warn(`Locale ${newLocale} not supported.`);
+    }
+  }, []);
+
+  const contextValue = useMemo(
+    () => ({ locale, setLocale: changeLocale, messages }),
+    [locale, changeLocale, messages]
+  );
+
+  return (
+    <LocaleContext.Provider value={contextValue}>
+      {children}
+    </LocaleContext.Provider>
+  );
+};
+
+export const useLocale = () => {
+  const context = useContext(LocaleContext);
+  if (!context) {
+    throw new Error("useLocale must be used within a LocaleProvider");
+  }
+  return context;
+};
+
+// --- Custom Hooks ---
+
+/**
+ * useNotifications: Manages application-wide user notifications (toasts/banners).
+ */
+export interface Notification {
+  id: string;
+  message: string;
+  type: "success" | "error" | "info" | "warning";
+  timestamp: Date;
+  duration?: number; // ms
+}
+
+interface NotificationContextType {
+  notifications: Notification[];
+  addNotification: (
+    message: string,
+    type: Notification["type"],
+    duration?: number
+  ) => void;
+  removeNotification: (id: string) => void;
+}
+
+export const NotificationContext = createContext<
+  NotificationContextType | undefined
+>(undefined);
+
+export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  const addNotification = useCallback(
+    (message: string, type: Notification["type"], duration: number = 5000) => {
+      const id = generateUniqueId("notif");
+      const newNotification: Notification = {
+        id,
+        message,
+        type,
+        timestamp: new Date(),
+        duration,
+      };
+      setNotifications((prev) => [...prev, newNotification]);
+
+      if (duration > 0) {
+        setTimeout(() => removeNotification(id), duration);
+      }
+    },
+    []
+  );
+
+  const removeNotification = useCallback((id: string) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  }, []);
+
+  const contextValue = useMemo(
+    () => ({ notifications, addNotification, removeNotification }),
+    [notifications, addNotification, removeNotification]
+  );
+
+  return (
+    <NotificationContext.Provider value={contextValue}>
+      {children}
+    </NotificationContext.Provider>
+  );
+};
+
+export const useNotifications = () => {
+  const context = useContext(NotificationContext);
+  if (!context) {
+    throw new Error(
+      "useNotifications must be used within a NotificationProvider"
+    );
+  }
+  return context;
+};
+
+/**
+ * useRealtimeExchangeRates: Fetches and updates exchange rates periodically.
+ */
+export const useRealtimeExchangeRates = (
+  fromCode?: string,
+  toCode?: string
+) => {
+  const {
+    data,
+    loading,
+    error,
+    refetch,
+    networkStatus,
+  } = useQuery<{ exchangeRates: ExchangeRate[] }>(GET_EXCHANGE_RATES, {
+    variables: { fromCurrencyCode: fromCode, toCurrencyCode: toCode },
+    pollInterval: AppConfig.EXCHANGE_RATE_REFRESH_INTERVAL_MS,
+    notifyOnNetworkStatusChange: true, // Useful for showing refetching status
+    fetchPolicy: "network-only", // Always get fresh data
+  });
+
+  const isRefetching = networkStatus === NetworkStatus.poll;
+
+  useEffect(() => {
+    if (error) {
+      console.error("Error fetching real-time exchange rates:", error);
+    }
+  }, [error]);
+
+  return {
+    rates: data?.exchangeRates || [],
+    loading,
+    error,
+    refetch,
+    isRefetching,
+  };
+};
+
+// --- Generic UI Components (Styled via CSS or a UI library) ---
+
+export const LoadingSpinner: React.FC = () => {
+  const { messages } = useLocale();
+  return (
+    <div className="loading-spinner" aria-live="polite" aria-busy="true">
+      <div className="spinner"></div>
+      <p>{messages["loading.data"]}</p>
+    </div>
+  );
+};
+
+export const ErrorDisplay: React.FC<{ message?: string; error?: Error }> = ({
+  message,
+  error,
+}) => {
+  const { messages } = useLocale();
+  const displayMessage =
+    message || error?.message || messages["error.generic"];
+  return (
+    <div className="error-display" role="alert">
+      <h3>{messages["notification.error"]}</h3>
+      <p>{displayMessage}</p>
+      {error && <pre>{error.stack}</pre>}
+    </div>
+  );
+};
+
+export const NotificationBanner: React.FC = () => {
+  const { notifications, removeNotification } = useNotifications();
+
+  if (notifications.length === 0) return null;
+
+  return (
+    <div className="notification-banner-container" aria-live="polite">
+      {notifications.map((notif) => (
+        <div key={notif.id} className={`notification-banner ${notif.type}`}>
+          <div className="notification-content">
+            <strong>
+              {notif.type === "success" && "✓ "}
+              {notif.type === "error" && "✗ "}
+              {notif.type === "info" && "i "}
+              {notif.type === "warning" && "! "}
+              {notif.message}
+            </strong>
+          </div>
+          <button
+            onClick={() => removeNotification(notif.id)}
+            aria-label="Close notification"
+            className="notification-close-button"
+          >
+            &times;
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+export const InputField: React.FC<
+  React.InputHTMLAttributes<HTMLInputElement> & { label: string; id: string }
+> = ({ label, id, ...props }) => (
+  <div className="form-group">
+    <label htmlFor={id}>{label}</label>
+    <input id={id} className="form-input" {...props} />
+  </div>
+);
+
+export const SelectField: React.FC<
+  React.SelectHTMLAttributes<HTMLSelectElement> & {
+    label: string;
+    id: string;
+    options: { value: string; label: string }[];
+  }
+> = ({ label, id, options, ...props }) => (
+  <div className="form-group">
+    <label htmlFor={id}>{label}</label>
+    <select id={id} className="form-select" {...props}>
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  </div>
+);
+
+export const CheckboxField: React.FC<
+  React.InputHTMLAttributes<HTMLInputElement> & { label: string; id: string }
+> = ({ label, id, ...props }) => (
+  <div className="form-group checkbox-group">
+    <input type="checkbox" id={id} className="form-checkbox" {...props} />
+    <label htmlFor={id}>{label}</label>
+  </div>
+);
+
+export const Button: React.FC<
+  React.ButtonHTMLAttributes<HTMLButtonElement>
+> = ({ children, className = "", ...props }) => (
+  <button className={`btn ${className}`} {...props}>
+    {children}
+  </button>
+);
+
+// --- Core Application Components ---
+
+/**
+ * Header: Top navigation and branding.
+ */
+export const AppHeader: React.FC = () => {
+  const { isAuthenticated, currentUser, logout, login, hasRole } = useAuth();
+  const { theme, toggleTheme } = useTheme();
+  const { locale, setLocale, messages } = useLocale();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/");
+  };
+
+  const handleLoginToggle = () => {
+    if (isAuthenticated) {
+      handleLogout();
+    } else {
+      // Simulate login for different roles
+      if (currentUser?.role === UserRole.CLIENT) {
+        login(MOCK_ADMIN_PROFILE);
+      } else {
+        login(MOCK_USER_PROFILE);
+      }
+    }
+  };
+
+  return (
+    <header className="app-header">
+      <div className="header-left">
+        <Link to="/" className="app-logo">
+          {AppConfig.BANK_NAME} - {messages["app.title"]}
+        </Link>
+        <span className="app-version">v{AppConfig.APP_VERSION}</span>
+      </div>
+      <nav className="header-nav">
+        <Link to="/">{messages["nav.dashboard"]}</Link>
+        <Link to="/exchange">{messages["nav.exchange"]}</Link>
+        <Link to="/preferences">{messages["nav.preferences"]}</Link>
+        <Link to="/history">{messages["nav.history"]}</Link>
+        {isAuthenticated && hasRole(UserRole.ADMIN) && (
+          <Link to="/admin">{messages["nav.admin"]}</Link>
+        )}
+        {isAuthenticated && hasRole(UserRole.COMPLIANCE_OFFICER) && (
+          <Link to="/compliance">{messages["nav.compliance"]}</Link>
+        )}
+        {isAuthenticated && hasRole(UserRole.AUDITOR) && (
+          <Link to="/audit">{messages["nav.audit"]}</Link>
+        )}
+      </nav>
+      <div className="header-right">
+        {isAuthenticated && (
+          <span className="user-info">
+            {currentUser?.username} ({currentUser?.role})
+          </span>
+        )}
+        <Button onClick={toggleTheme} className="theme-toggle">
+          {theme === "light" ? "🌙 Dark Mode" : "☀️ Light Mode"}
+        </Button>
+        <SelectField
+          id="locale-switcher"
+          label=""
+          value={locale}
+          onChange={(e) => setLocale(e.target.value)}
+          options={[
+            { value: "en-US", label: "English" },
+            { value: "es-ES", label: "Español" },
+          ]}
+          className="locale-switcher"
+        />
+        <Button onClick={handleLoginToggle} className="auth-button">
+          {isAuthenticated ? messages["nav.logout"] : "Login (Toggle Role)"}
+        </Button>
+      </div>
+    </header>
+  );
+};
+
+/**
+ * Footer: Application metadata.
+ */
+export const AppFooter: React.FC = () => (
+  <footer className="app-footer">
+    <p>
+      &copy; {new Date().getFullYear()} {AppConfig.BANK_NAME}. All rights
+      reserved.
+    </p>
+    <p>
+      Version: {AppConfig.APP_VERSION} | Build Date:{" "}
+      {formatDate(AppConfig.BUILD_DATE)}
+    </p>
+    <p>
+      Contact Support: <a href={`mailto:${AppConfig.SUPPORT_EMAIL}`}>{AppConfig.SUPPORT_EMAIL}</a>
+    </p>
+  </footer>
+);
+
+/**
+ * PrivateRoute: A wrapper component for routes that require authentication and/or specific roles.
+ */
+export const PrivateRoute: React.FC<{
+  children: React.ReactNode;
+  roles?: UserRole[];
+}> = ({ children, roles }) => {
+  const { isAuthenticated, hasRole } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate("/login", { state: { from: location } }); // Redirect to login
+    } else if (roles && !roles.some((role) => hasRole(role))) {
+      navigate("/unauthorized"); // Redirect to unauthorized page
+    }
+  }, [isAuthenticated, roles, hasRole, navigate, location]);
+
+  if (!isAuthenticated || (roles && !roles.some((role) => hasRole(role)))) {
+    return null; // Or a loading spinner
+  }
+
+  return <>{children}</>;
+};
+
+/**
+ * UnauthorizedPage: Displays when a user tries to access a restricted route.
+ */
+export const UnauthorizedPage: React.FC = () => {
+  const { messages } = useLocale();
+  return (
+    <div className="page-container unauthorized-page">
+      <h1>403 - Unauthorized Access</h1>
+      <p>
+        You do not have the necessary permissions to view this page. Please
+        contact your administrator.
+      </p>
+      <Link to="/">Go to Dashboard</Link>
+    </div>
+  );
+};
+
+/**
+ * LoginPage: A mock login page for demonstration.
+ */
+export const LoginPage: React.FC = () => {
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { messages } = useLocale();
+  const from = location.state?.from?.pathname || "/";
+
+  const handleLoginAsClient = () => {
+    login(MOCK_USER_PROFILE);
+    navigate(from, { replace: true });
+  };
+
+  const handleLoginAsAdmin = () => {
+    login(MOCK_ADMIN_PROFILE);
+    navigate(from, { replace: true });
+  };
+
+  return (
+    <div className="page-container login-page">
+      <h1>Login</h1>
+      <p>Please select a user role to simulate login:</p>
+      <div className="login-options">
+        <Button onClick={handleLoginAsClient}>
+          Login as Client ({MOCK_USER_PROFILE.username})
+        </Button>
+        <Button onClick={handleLoginAsAdmin}>
+          Login as Admin ({MOCK_ADMIN_PROFILE.username})
+        </Button>
+      </div>
+      <p>You will be redirected to {from} after login.</p>
+    </div>
+  );
+};
+
+/**
+ * CurrencyDashboard: Displays user's account holdings and primary currency.
+ */
+export const CurrencyDashboard: React.FC = () => {
+  const { currentUser, isAuthenticated } = useAuth();
+  const { addNotification } = useNotifications();
+  const { messages, locale } = useLocale();
+  const accountId = currentUser?.id; // Assuming user ID is account ID for simplicity
+
+  const { data, loading, error, refetch } = useQuery<{
+    accountCurrencies: {
+      currencies: Currency[];
+      primaryCurrency: Currency;
+      holdings: AccountCurrency[];
+    };
+  }>(GET_ACCOUNT_CURRENCIES, {
+    variables: { accountId },
+    skip: !isAuthenticated || !accountId,
+    fetchPolicy: "cache-and-network",
+    onError: (err) => {
+      addNotification(`${messages["error.fetch"]} ${err.message}`, "error");
+    },
+  });
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const interval = setInterval(() => {
+      refetch(); // Refresh data periodically
+    }, AppConfig.EXCHANGE_RATE_REFRESH_INTERVAL_MS * 2); // Less frequent than exchange rates
+    return () => clearInterval(interval);
+  }, [isAuthenticated, refetch]);
+
+  if (!isAuthenticated) {
+    return (
+      <div className="page-container dashboard-section">
+        <h2>{messages["dashboard.welcome"]}</h2>
+        <p>Please log in to view your account currencies and holdings.</p>
+      </div>
+    );
+  }
+
+  if (loading) return <LoadingSpinner />;
+  if (error) return <ErrorDisplay error={error} />;
+  if (!data?.accountCurrencies)
+    return <ErrorDisplay message="No account currency data available." />;
+
+  const { currencies, primaryCurrency, holdings } = data.accountCurrencies;
+
+  return (
+    <div className="page-container dashboard-section">
+      <h2 className="section-title">{messages["dashboard.welcome"]}</h2>
+      <p>
+        Your primary display currency is:{" "}
+        <strong>
+          {primaryCurrency?.name} ({primaryCurrency?.code})
+        </strong>
+      </p>
+
+      <h3 className="sub-section-title">
+        {messages["dashboard.currentHoldings"]}
+      </h3>
+      <div className="currency-holdings-grid">
+        {holdings.length === 0 && (
+          <p>No currency holdings found for this account.</p>
+        )}
+        {holdings.map((holding) => (
+          <div key={holding.currency.code} className="holding-card">
+            <div className="holding-header">
+              <span className="holding-symbol">{holding.currency.symbol}</span>
+              <h4 className="holding-currency-name">
+                {holding.currency.name} ({holding.currency.code})
+              </h4>
+            </div>
+            <p className="holding-balance">
+              {messages["currency.balance"]}:{" "}
+              <strong>
+                {formatCurrency(holding.balance, holding.currency.code, locale)}
+              </strong>
+            </p>
+            <p className="holding-available">
+              {messages["currency.available"]}:{" "}
+              <strong>
+                {formatCurrency(
+                  holding.availableBalance,
+                  holding.currency.code,
+                  locale
+                )}
+              </strong>
+            </p>
+            <p className="holding-value-usd">
+              {messages["currency.valueUSD"]}:{" "}
+              <strong>
+                {formatCurrency(holding.holdingsValueUSD, "USD", locale)}
+              </strong>
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <h3 className="sub-section-title">Available Currencies in System</h3>
+      <div className="currency-list-compact">
+        {currencies.map((c) => (
+          <span key={c.code} className="currency-tag">
+            {c.name} ({c.code}) {c.symbol}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/**
+ * CurrencyExchangeWidget: Component for performing currency exchanges.
+ */
+export const CurrencyExchangeWidget: React.FC = () => {
+  const { currentUser, isAuthenticated } = useAuth();
+  const { addNotification } = useNotifications();
+  const { messages, locale } = useLocale();
+
+  const [fromCurrencyCode, setFromCurrencyCode] = useState("USD");
+  const [toCurrencyCode, setToCurrencyCode] = useState("EUR");
+  const [amountFrom, setAmountFrom] = useState<number | string>("");
+  const [exchangeRate, setExchangeRate] = useState<ExchangeRate | null>(null);
+  const [amountTo, setAmountTo] = useState<number | string>("");
+  const [fee, setFee] = useState(0);
+
+  const {
+    rates: allRates,
+    loading: ratesLoading,
+    error: ratesError,
+    isRefetching: ratesRefetching,
+  } = useRealtimeExchangeRates();
+  const { data: allCurrenciesData } = useQuery<{ allCurrencies: Currency[] }>(
+    GET_ALL_CURRENCIES
+  );
+
+  const [
+    performExchange,
+    { loading: exchangeLoading, error: exchangeError },
+  ] = useMutation(PERFORM_CURRENCY_EXCHANGE, {
+    onCompleted: (data) => {
+      addNotification(
+        `Exchange ${data.performCurrencyExchange.referenceNumber} completed successfully! You received ${formatCurrency(
+          data.performCurrencyExchange.amountTo,
+          data.performCurrencyExchange.toCurrency.code,
+          locale
+        )}.`,
+        "success"
+      );
+      setAmountFrom("");
+      setAmountTo("");
+      setFee(0);
+      // Invalidate cache for account currencies to show updated balances
+      client.refetchQueries({
+        include: [GET_ACCOUNT_CURRENCIES],
+      });
+    },
+    onError: (err) => {
+      addNotification(
+        `${messages["notification.error"]}: Failed to perform exchange. ${err.message}`,
+        "error"
+      );
+    },
+  });
+
+  const availableCurrencies = allCurrenciesData?.allCurrencies || [];
+  const currencyOptions = availableCurrencies.map((c) => ({
+    value: c.code,
+    label: `${c.name} (${c.code})`,
+  }));
+
+  // Update exchange rate when currencies change
+  useEffect(() => {
+    const rate = allRates.find(
+      (r) =>
+        r.fromCurrency.code === fromCurrencyCode &&
+        r.toCurrency.code === toCurrencyCode
+    );
+    if (rate) {
+      setExchangeRate(rate);
+      // Simulate a small transaction fee (e.g., 0.5% of 'from' amount)
+      setFee(
+        typeof amountFrom === "number" ? amountFrom * 0.005 : 0 // Assuming fixed 0.5% fee
+      );
+    } else {
+      setExchangeRate(null);
+      setFee(0);
+      setAmountTo("");
+    }
+  }, [fromCurrencyCode, toCurrencyCode, allRates, amountFrom]);
+
+  // Calculate amountTo when amountFrom or rate changes
+  useEffect(() => {
+    if (typeof amountFrom === "number" && amountFrom > 0 && exchangeRate) {
+      const calculatedAmount = (amountFrom - fee) * exchangeRate.askRate; // Using ask rate for client purchase
+      setAmountTo(calculatedAmount);
+    } else {
+      setAmountTo("");
+    }
+  }, [amountFrom, exchangeRate, fee]);
+
+  const handleAmountFromChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = parseFloat(e.target.value);
+      setAmountFrom(isNaN(value) ? "" : value);
+    },
+    []
+  );
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (
+      !isAuthenticated ||
+      !currentUser?.id ||
+      !exchangeRate ||
+      typeof amountFrom !== "number" ||
+      amountFrom <= 0
+    ) {
+      addNotification("Please ensure all fields are valid.", "warning");
+      return;
+    }
+
+    if (amountFrom > AppConfig.MAX_TRANSACTION_VALUE) {
+      addNotification(
+        `Transaction amount exceeds the maximum allowed ${formatCurrency(
+          AppConfig.MAX_TRANSACTION_VALUE,
+          fromCurrencyCode
+        )}.`,
+        "error"
+      );
+      return;
+    }
+
+    try {
+      await performExchange({
+        variables: {
+          input: {
+            userId: currentUser.id,
+            accountId: currentUser.id, // Using user ID as account ID for demo
+            fromCurrencyCode,
+            toCurrencyCode,
+            amountFrom,
+            exchangeRate: exchangeRate.askRate,
+            fee,
+          },
+        },
+      });
+    } catch (err) {
+      console.error("Exchange mutation failed:", err);
+      // Error notification handled by onError callback in useMutation
+    }
+  };
+
+  const isFormValid =
+    isAuthenticated &&
+    !!currentUser?.id &&
+    !!exchangeRate &&
+    typeof amountFrom === "number" &&
+    amountFrom > 0 &&
+    amountFrom <= AppConfig.MAX_TRANSACTION_VALUE;
+
+  if (!isAuthenticated) {
+    return (
+      <div className="page-container exchange-section">
+        <h2>{messages["exchange.title"]}</h2>
+        <p>Please log in to perform currency exchanges.</p>
+      </div>
+    );
+  }
+
+  if (ratesLoading && allRates.length === 0) return <LoadingSpinner />;
+  if (ratesError) return <ErrorDisplay error={ratesError} />;
+
+  return (
+    <div className="page-container exchange-section">
+      <h2 className="section-title">{messages["exchange.title"]}</h2>
+      <form onSubmit={handleSubmit} className="exchange-form">
+        <div className="form-row">
+          <SelectField
+            id="from-currency"
+            label={messages["exchange.from"]}
+            value={fromCurrencyCode}
+            onChange={(e) => setFromCurrencyCode(e.target.value)}
+            options={currencyOptions}
+            required
+            disabled={exchangeLoading}
+          />
+          <SelectField
+            id="to-currency"
+            label={messages["exchange.to"]}
+            value={toCurrencyCode}
+            onChange={(e) => setToCurrencyCode(e.target.value)}
+            options={currencyOptions}
+            required
+            disabled={exchangeLoading}
+          />
+        </div>
+
+        <InputField
+          id="amount-from"
+          label={messages["exchange.amount"]}
+          type="number"
+          value={amountFrom}
+          onChange={handleAmountFromChange}
+          min="0.01"
+          step="0.01"
+          required
+          disabled={exchangeLoading}
+          aria-live="polite"
+        />
+
+        {exchangeRate ? (
+          <div className="exchange-rate-info">
+            <p>
+              {messages["exchange.rate"]}: 1 {fromCurrencyCode} ={" "}
+              <strong>
+                {exchangeRate.askRate.toFixed(6)}{" "}
+                {exchangeRate.toCurrency.code}
+              </strong>
+              {ratesRefetching && (
+                <span className="rate-refreshing"> (Updating...)</span>
+              )}
+            </p>
+            <p>
+              {messages["exchange.bidRate"]}: 1 {fromCurrencyCode} ={" "}
+              {exchangeRate.bidRate.toFixed(6)}{" "}
+              {exchangeRate.toCurrency.code}
+            </p>
+            <p className="exchange-fee">
+              {messages["exchange.fee"]}:{" "}
+              {formatCurrency(fee, fromCurrencyCode, locale)}
+            </p>
+            <p className="exchange-total-receive">
+              {messages["exchange.totalReceive"]}:{" "}
+              <strong>
+                {formatCurrency(
+                  typeof amountTo === "number" ? amountTo : 0,
+                  toCurrencyCode,
+                  locale
+                )}
+              </strong>
+            </p>
+            <p className="exchange-last-updated">
+              Last updated: {formatDate(exchangeRate.lastUpdated, locale)} (
+              {exchangeRate.source})
+            </p>
+          </div>
+        ) : (
+          <p className="warning-message">
+            No exchange rate found for the selected pair.
+          </p>
+        )}
+
+        <Button
+          type="submit"
+          disabled={!isFormValid || exchangeLoading}
+          className="btn-primary exchange-submit-btn"
+        >
+          {exchangeLoading ? (
+            <>
+              <LoadingSpinner /> Performing Exchange...
+            </>
+          ) : (
+            messages["exchange.execute"]
+          )}
+        </Button>
+
+        {exchangeError && <ErrorDisplay error={exchangeError} />}
+      </form>
+    </div>
+  );
+};
+
+/**
+ * UserPreferencesSettings: Allows users to configure their display preferences.
+ */
+export const UserPreferencesSettings: React.FC = () => {
+  const { currentUser, isAuthenticated } = useAuth();
+  const { addNotification } = useNotifications();
+  const { messages, locale, setLocale: changeAppLocale } = useLocale();
+  const { applyTheme: applyAppTheme } = useTheme();
+
+  const {
+    data,
+    loading,
+    error,
+    refetch: refetchPreferences,
+  } = useQuery<{ userPreferences: UserPreferences }>(GET_USER_PREFERENCES, {
+    variables: { userId: currentUser?.id },
+    skip: !isAuthenticated || !currentUser?.id,
+    fetchPolicy: "network-only", // Always get fresh preferences
+    onError: (err) => {
+      addNotification(
+        `${messages["error.fetch"]} preferences: ${err.message}`,
+        "error"
+      );
+    },
+  });
+
+  const { data: allCurrenciesData } = useQuery<{ allCurrencies: Currency[] }>(
+    GET_ALL_CURRENCIES
+  );
+
+  const [
+    updatePreferences,
+    { loading: updateLoading, error: updateError },
+  ] = useMutation(UPDATE_USER_PREFERENCES, {
+    onCompleted: (result) => {
+      addNotification(
+        `${messages["notification.success"]}: Preferences updated successfully!`,
+        "success"
+      );
+      // Apply theme and locale immediately after successful update
+      applyAppTheme(result.updateUserPreferences.theme);
+      changeAppLocale(result.updateUserPreferences.locale);
+    },
+    onError: (err) => {
+      addNotification(
+        `${messages["notification.error"]}: Failed to update preferences. ${err.message}`,
+        "error"
+      );
+    },
+  });
+
+  const [preferredDisplayCurrency, setPreferredDisplayCurrency] = useState("");
+  const [favoriteCurrencies, setFavoriteCurrencies] = useState<string[]>([]);
+  const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(
+    false
+  );
+  const [smsNotificationsEnabled, setSmsNotificationsEnabled] = useState(false);
+  const [userLocale, setUserLocale] = useState("");
+  const [userTheme, setUserTheme] = useState<"light" | "dark">("light");
+
+  useEffect(() => {
+    if (data?.userPreferences) {
+      const prefs = data.userPreferences;
+      setPreferredDisplayCurrency(prefs.preferredDisplayCurrency.code);
+      setFavoriteCurrencies(prefs.favoriteCurrencies.map((c) => c.code));
+      setEmailNotificationsEnabled(prefs.emailNotificationsEnabled);
+      setSmsNotificationsEnabled(prefs.smsNotificationsEnabled);
+      setUserLocale(prefs.locale);
+      setUserTheme(prefs.theme);
+      // Sync app theme/locale if they were different
+      applyAppTheme(prefs.theme);
+      changeAppLocale(prefs.locale);
+    }
+  }, [data, applyAppTheme, changeAppLocale]);
+
+  const availableCurrencies = allCurrenciesData?.allCurrencies || [];
+  const currencyOptions = availableCurrencies.map((c) => ({
+    value: c.code,
+    label: `${c.name} (${c.code})`,
+  }));
+
+  const handleFavoriteChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const options = Array.from(
+      e.target.selectedOptions,
+      (option) => option.value
+    );
+    setFavoriteCurrencies(options);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isAuthenticated || !currentUser?.id) {
+      addNotification("You must be logged in to update preferences.", "error");
+      return;
+    }
+
+    try {
+      await updatePreferences({
+        variables: {
+          input: {
+            userId: currentUser.id,
+            preferredDisplayCurrencyCode: preferredDisplayCurrency,
+            favoriteCurrencyCodes: favoriteCurrencies,
+            emailNotificationsEnabled,
+            smsNotificationsEnabled,
+            locale: userLocale,
+            theme: userTheme,
+          },
+        },
+      });
+    } catch (err) {
+      console.error("Update preferences mutation failed:", err);
+      // Error notification handled by onError callback in useMutation
+    }
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="page-container preferences-section">
+        <h2>{messages["preferences.title"]}</h2>
+        <p>Please log in to manage your user preferences.</p>
+      </div>
+    );
+  }
+
+  if (loading) return <LoadingSpinner />;
+  if (error) return <ErrorDisplay error={error} />;
+
+  return (
+    <div className="page-container preferences-section">
+      <h2 className="section-title">{messages["preferences.title"]}</h2>
+      <form onSubmit={handleSubmit} className="preferences-form">
+        <SelectField
+          id="preferred-display-currency"
+          label={messages["preferences.displayCurrency"]}
+          value={preferredDisplayCurrency}
+          onChange={(e) => setPreferredDisplayCurrency(e.target.value)}
+          options={currencyOptions}
+          required
+          disabled={updateLoading}
+        />
+
+        <div className="form-group">
+          <label htmlFor="favorite-currencies">
+            {messages["preferences.favoriteCurrencies"]}
+          </label>
+          <select
+            id="favorite-currencies"
+            className="form-select"
+            multiple
+            value={favoriteCurrencies}
+            onChange={handleFavoriteChange}
+            disabled={updateLoading}
+            size={Math.min(5, currencyOptions.length)} // Show up to 5 options
+          >
+            {currencyOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <small>Hold Ctrl/Cmd to select multiple.</small>
+        </div>
+
+        <CheckboxField
+          id="email-notifications"
+          label={messages["preferences.emailNotifications"]}
+          checked={emailNotificationsEnabled}
+          onChange={(e) => setEmailNotificationsEnabled(e.target.checked)}
+          disabled={updateLoading}
+        />
+
+        <CheckboxField
+          id="sms-notifications"
+          label={messages["preferences.smsNotifications"]}
+          checked={smsNotificationsEnabled}
+          onChange={(e) => setSmsNotificationsEnabled(e.target.checked)}
+          disabled={updateLoading}
+        />
+
+        <SelectField
+          id="user-locale"
+          label={messages["preferences.locale"]}
+          value={userLocale}
+          onChange={(e) => setUserLocale(e.target.value)}
+          options={[
+            { value: "en-US", label: "English (US)" },
+            { value: "es-ES", label: "Español (ES)" },
+          ]}
+          required
+          disabled={updateLoading}
+        />
+
+        <SelectField
+          id="user-theme"
+          label={messages["preferences.theme"]}
+          value={userTheme}
+          onChange={(e) => setUserTheme(e.target.value as "light" | "dark")}
+          options={[
+            { value: "light", label: "Light" },
+            { value: "dark", label: "Dark" },
+          ]}
+          required
+          disabled={updateLoading}
+        />
+
+        <Button
+          type="submit"
+          disabled={!isAuthenticated || updateLoading}
+          className="btn-primary"
+        >
+          {updateLoading ? (
+            <>
+              <LoadingSpinner /> {messages["button.submit"]}...
+            </>
+          ) : (
+            messages["preferences.save"]
+          )}
+        </Button>
+        {updateError && <ErrorDisplay error={updateError} />}
+      </form>
+    </div>
+  );
+};
+
+/**
+ * HistoricalRatesChart: Displays historical exchange rate data.
+ * This would typically use a charting library like Chart.js or D3.js.
+ * For now, it will be a simplified textual display.
+ */
+export const HistoricalRatesChart: React.FC = () => {
+  const { addNotification } = useNotifications();
+  const { messages, locale } = useLocale();
+
+  const [fromCurrencyCode, setFromCurrencyCode] = useState("USD");
+  const [toCurrencyCode, setToCurrencyCode] = useState("EUR");
+  const [startDate, setStartDate] = useState(
+    new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split("T")[0]
+  ); // 30 days ago
+  const [endDate, setEndDate] = useState(
+    new Date().toISOString().split("T")[0]
+  ); // Today
+
+  const { data: allCurrenciesData } = useQuery<{ allCurrencies: Currency[] }>(
+    GET_ALL_CURRENCIES
+  );
+
+  const {
+    data: historicalData,
+    loading,
+    error,
+    refetch,
+  } = useQuery<{ historicalRates: HistoricalRate[] }>(GET_HISTORICAL_RATES, {
+    variables: { fromCurrencyCode, toCurrencyCode, startDate, endDate },
+    skip: !fromCurrencyCode || !toCurrencyCode || !startDate || !endDate,
+    onError: (err) => {
+      addNotification(
+        `${messages["error.fetch"]} historical rates: ${err.message}`,
+        "error"
+      );
+    },
+  });
+
+  const availableCurrencies = allCurrenciesData?.allCurrencies || [];
+  const currencyOptions = availableCurrencies.map((c) => ({
+    value: c.code,
+    label: `${c.name} (${c.code})`,
+  }));
+
+  const handleFetchHistory = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (new Date(startDate) >= new Date(endDate)) {
+      addNotification("Start date must be before end date.", "warning");
+      return;
+    }
+    refetch();
+  };
+
+  return (
+    <div className="page-container history-section">
+      <h2 className="section-title">{messages["history.title"]}</h2>
+      <form onSubmit={handleFetchHistory} className="history-form">
+        <div className="form-row">
+          <SelectField
+            id="history-from-currency"
+            label={messages["exchange.from"]}
+            value={fromCurrencyCode}
+            onChange={(e) => setFromCurrencyCode(e.target.value)}
+            options={currencyOptions}
+            required
+          />
+          <SelectField
+            id="history-to-currency"
+            label={messages["exchange.to"]}
+            value={toCurrencyCode}
+            onChange={(e) => setToCurrencyCode(e.target.value)}
+            options={currencyOptions}
+            required
+          />
+        </div>
+        <div className="form-row">
+          <InputField
+            id="history-start-date"
+            label={messages["history.startDate"]}
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            required
+          />
+          <InputField
+            id="history-end-date"
+            label={messages["history.endDate"]}
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            required
+          />
+        </div>
+        <Button type="submit" className="btn-secondary">
+          View History
+        </Button>
+      </form>
+
+      {loading && <LoadingSpinner />}
+      {error && <ErrorDisplay error={error} />}
+
+      {historicalData?.historicalRates && (
+        <div className="historical-rates-display">
+          <h3>
+            Historical Rates: {fromCurrencyCode} to {toCurrencyCode}
+          </h3>
+          {historicalData.historicalRates.length === 0 ? (
+            <p>No historical data available for the selected period.</p>
+          ) : (
+            <>
+              {/* This is where a charting library would render a graph.
+                For demonstration, we'll just list the data. */}
+              <div className="chart-placeholder">
+                <p>
+                  [Placeholder for a beautiful interactive chart using Chart.js
+                  or D3.js]
+                </p>
+                <img
+                  src="https://via.placeholder.com/600x300?text=Historical+Rates+Chart"
+                  alt="Historical Rates Chart Placeholder"
+                  style={{ maxWidth: "100%", height: "auto" }}
+                />
+              </div>
+
+              <div className="rate-list">
+                <h4>Raw Data:</h4>
+                <ul className="unstyled-list">
+                  {historicalData.historicalRates.map((hr, index) => (
+                    <li key={index}>
+                      {hr.date}: 1 {fromCurrencyCode} ={" "}
+                      {hr.rate.toFixed(6)} {toCurrencyCode}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+/**
+ * AdminCurrencyManagement: Admin panel for managing currencies.
+ */
+export const AdminCurrencyManagement: React.FC = () => {
+  const { addNotification } = useNotifications();
+  const { messages } = useLocale();
+
+  const {
+    data,
+    loading,
+    error,
+    refetch,
+  } = useQuery<{ allCurrencies: Currency[] }>(GET_ALL_CURRENCIES, {
+    fetchPolicy: "network-only", // Always get fresh data for admin
+    onError: (err) => {
+      addNotification(
+        `${messages["error.fetch"]} currencies: ${err.message}`,
+        "error"
+      );
+    },
+  });
+
+  const [addCurrencyMutation, { loading: addLoading }] = useMutation(
+    ADD_CURRENCY_ADMIN,
+    {
+      onCompleted: () => {
+        addNotification(
+          `${messages["notification.success"]}: Currency added.`,
+          "success"
+        );
+        refetch();
+      },
+      onError: (err) => {
+        addNotification(
+          `${messages["notification.error"]}: Failed to add currency. ${err.message}`,
+          "error"
+        );
+      },
+    }
+  );
+
+  const [updateCurrencyMutation, { loading: updateLoading }] = useMutation(
+    UPDATE_CURRENCY_ADMIN,
+    {
+      onCompleted: () => {
+        addNotification(
+          `${messages["notification.success"]}: Currency updated.`,
+          "success"
+        );
+        refetch();
+      },
+      onError: (err) => {
+        addNotification(
+          `${messages["notification.error"]}: Failed to update currency. ${err.message}`,
+          "error"
+        );
+      },
+    }
+  );
+
+  const [newCurrency, setNewCurrency] = useState<Partial<Currency>>({
+    code: "",
+    name: "",
+    symbol: "",
+    country: "",
+    status: CurrencyStatus.ACTIVE,
+  });
+  const [selectedCurrencyCode, setSelectedCurrencyCode] = useState("");
+  const [updatedCurrency, setUpdatedCurrency] = useState<Partial<Currency>>({
+    code: "",
+    name: "",
+    symbol: "",
+    country: "",
+    status: CurrencyStatus.ACTIVE,
+  });
+
+  useEffect(() => {
+    if (selectedCurrencyCode && data?.allCurrencies) {
+      const currency = data.allCurrencies.find(
+        (c) => c.code === selectedCurrencyCode
+      );
+      if (currency) {
+        setUpdatedCurrency(currency);
+      }
+    } else {
+      setUpdatedCurrency({
+        code: "",
+        name: "",
+        symbol: "",
+        country: "",
+        status: CurrencyStatus.ACTIVE,
+      });
+    }
+  }, [selectedCurrencyCode, data?.allCurrencies]);
+
+  const handleAddCurrencySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCurrency.code || !newCurrency.name) {
+      addNotification("Currency code and name are required.", "warning");
+      return;
+    }
+    await addCurrencyMutation({ variables: { input: newCurrency } });
+    setNewCurrency({
+      code: "",
+      name: "",
+      symbol: "",
+      country: "",
+      status: CurrencyStatus.ACTIVE,
+    }); // Clear form
+  };
+
+  const handleUpdateCurrencySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCurrencyCode || !updatedCurrency.name) {
+      addNotification("Select a currency and provide a name.", "warning");
+      return;
+    }
+    await updateCurrencyMutation({
+      variables: { code: selectedCurrencyCode, input: updatedCurrency },
+    });
+  };
+
+  const currencyStatusOptions = Object.values(CurrencyStatus).map((status) => ({
+    value: status,
+    label: messages[`currency.status.${status}`] || status,
+  }));
+  const currencySelectOptions = (data?.allCurrencies || []).map((c) => ({
+    value: c.code,
+    label: `${c.name} (${c.code})`,
+  }));
+
+  if (loading) return <LoadingSpinner />;
+  if (error) return <ErrorDisplay error={error} />;
+
+  return (
+    <div className="page-container admin-section">
+      <h2 className="section-title">{messages["admin.currencyManagement"]}</h2>
+
+      <div className="admin-card add-currency">
+        <h3>{messages["admin.addNewCurrency"]}</h3>
+        <form onSubmit={handleAddCurrencySubmit}>
+          <InputField
+            id="new-currency-code"
+            label={messages["currency.code"]}
+            value={newCurrency.code || ""}
+            onChange={(e) =>
+              setNewCurrency({ ...newCurrency, code: e.target.value.toUpperCase() })
+            }
+            required
+            maxLength={3}
+            pattern="[A-Z]{3}"
+            title="3-letter ISO code (e.g., USD)"
+            disabled={addLoading}
+          />
+          <InputField
+            id="new-currency-name"
+            label={messages["currency.name"]}
+            value={newCurrency.name || ""}
+            onChange={(e) => setNewCurrency({ ...newCurrency, name: e.target.value })}
+            required
+            disabled={addLoading}
+          />
+          <InputField
+            id="new-currency-symbol"
+            label="Symbol"
+            value={newCurrency.symbol || ""}
+            onChange={(e) => setNewCurrency({ ...newCurrency, symbol: e.target.value })}
+            disabled={addLoading}
+          />
+          <InputField
+            id="new-currency-country"
+            label="Country"
+            value={newCurrency.country || ""}
+            onChange={(e) => setNewCurrency({ ...newCurrency, country: e.target.value })}
+            disabled={addLoading}
+          />
+          <SelectField
+            id="new-currency-status"
+            label="Status"
+            value={newCurrency.status || CurrencyStatus.ACTIVE}
+            onChange={(e) =>
+              setNewCurrency({ ...newCurrency, status: e.target.value as CurrencyStatus })
+            }
+            options={currencyStatusOptions}
+            disabled={addLoading}
+          />
+          <CheckboxField
+            id="new-currency-isbase"
+            label="Is Base Currency?"
+            checked={newCurrency.isBaseCurrency || false}
+            onChange={(e) =>
+              setNewCurrency({ ...newCurrency, isBaseCurrency: e.target.checked })
+            }
+            disabled={addLoading}
+          />
+          <Button type="submit" disabled={addLoading}>
+            {addLoading ? "Adding..." : "Add Currency"}
+          </Button>
+        </form>
+      </div>
+
+      <div className="admin-card update-currency">
+        <h3>{messages["admin.updateCurrency"]}</h3>
+        <form onSubmit={handleUpdateCurrencySubmit}>
+          <SelectField
+            id="select-currency-to-update"
+            label="Select Currency"
+            value={selectedCurrencyCode}
+            onChange={(e) => setSelectedCurrencyCode(e.target.value)}
+            options={currencySelectOptions}
+            required
+            disabled={updateLoading}
+          />
+          {selectedCurrencyCode && (
+            <>
+              <InputField
+                id="update-currency-name"
+                label={messages["currency.name"]}
+                value={updatedCurrency.name || ""}
+                onChange={(e) =>
+                  setUpdatedCurrency({ ...updatedCurrency, name: e.target.value })
+                }
+                required
+                disabled={updateLoading}
+              />
+              <InputField
+                id="update-currency-symbol"
+                label="Symbol"
+                value={updatedCurrency.symbol || ""}
+                onChange={(e) =>
+                  setUpdatedCurrency({ ...updatedCurrency, symbol: e.target.value })
+                }
+                disabled={updateLoading}
+              />
+              <InputField
+                id="update-currency-country"
+                label="Country"
+                value={updatedCurrency.country || ""}
+                onChange={(e) =>
+                  setUpdatedCurrency({ ...updatedCurrency, country: e.target.value })
+                }
+                disabled={updateLoading}
+              />
+              <SelectField
+                id="update-currency-status"
+                label="Status"
+                value={updatedCurrency.status || CurrencyStatus.ACTIVE}
+                onChange={(e) =>
+                  setUpdatedCurrency({ ...updatedCurrency, status: e.target.value as CurrencyStatus })
+                }
+                options={currencyStatusOptions}
+                disabled={updateLoading}
+              />
+              <CheckboxField
+                id="update-currency-isbase"
+                label="Is Base Currency?"
+                checked={updatedCurrency.isBaseCurrency || false}
+                onChange={(e) =>
+                  setUpdatedCurrency({ ...updatedCurrency, isBaseCurrency: e.target.checked })
+                }
+                disabled={updateLoading}
+              />
+              <Button type="submit" disabled={updateLoading}>
+                {updateLoading ? "Updating..." : "Update Currency"}
+              </Button>
+            </>
+          )}
+        </form>
+      </div>
+
+      <div className="admin-card current-currencies">
+        <h3>All Currencies</h3>
+        <div className="table-responsive">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>{messages["currency.code"]}</th>
+                <th>{messages["currency.name"]}</th>
+                <th>Symbol</th>
+                <th>Country</th>
+                <th>Status</th>
+                <th>Base</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data?.allCurrencies.map((c) => (
+                <tr key={c.code}>
+                  <td>{c.code}</td>
+                  <td>{c.name}</td>
+                  <td>{c.symbol}</td>
+                  <td>{c.country}</td>
+                  <td>{messages[`currency.status.${c.status}`] || c.status}</td>
+                  <td>{c.isBaseCurrency ? "Yes" : "No"}</td>
+                  <td>{c.description || "-"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <AdminExchangeRateManagement />
+    </div>
+  );
+};
+
+/**
+ * AdminExchangeRateManagement: Nested component for managing exchange rates.
+ */
+export const AdminExchangeRateManagement: React.FC = () => {
+  const { addNotification } = useNotifications();
+  const { messages, locale } = useLocale();
+
+  const {
+    rates,
+    loading: ratesLoading,
+    error: ratesError,
+    refetch: refetchRates,
+  } = useRealtimeExchangeRates(); // This hook also provides refetch
+
+  const { data: allCurrenciesData } = useQuery<{ allCurrencies: Currency[] }>(
+    GET_ALL_CURRENCIES
+  );
+
+  const [addRateMutation, { loading: addLoading }] = useMutation(
+    ADD_EXCHANGE_RATE_ADMIN,
+    {
+      onCompleted: () => {
+        addNotification(
+          `${messages["notification.success"]}: Exchange rate added.`,
+          "success"
+        );
+        refetchRates();
+      },
+      onError: (err) => {
+        addNotification(
+          `${messages["notification.error"]}: Failed to add exchange rate. ${err.message}`,
+          "error"
+        );
+      },
+    }
+  );
+
+  const [updateRateMutation, { loading: updateLoading }] = useMutation(
+    UPDATE_EXCHANGE_RATE_ADMIN,
+    {
+      onCompleted: () => {
+        addNotification(
+          `${messages["notification.success"]}: Exchange rate updated.`,
+          "success"
+        );
+        refetchRates();
+      },
+      onError: (err) => {
+        addNotification(
+          `${messages["notification.error"]}: Failed to update exchange rate. ${err.message}`,
+          "error"
+        );
+      },
+    }
+  );
+
+  const [newRate, setNewRate] = useState<{
+    from: string;
+    to: string;
+    rate: number | "";
+    bidRate: number | "";
+    askRate: number | "";
+  }>({ from: "USD", to: "EUR", rate: "", bidRate: "", askRate: "" });
+
+  const [selectedRateId, setSelectedRateId] = useState("");
+  const [updatedRate, setUpdatedRate] = useState<{
+    rate: number | "";
+    bidRate: number | "";
+    askRate: number | "";
+  }>({ rate: "", bidRate: "", askRate: "" });
+
+  useEffect(() => {
+    if (selectedRateId && rates) {
+      const rate = rates.find((r) => r.id === selectedRateId);
+      if (rate) {
+        setUpdatedRate({
+          rate: rate.rate,
+          bidRate: rate.bidRate,
+          askRate: rate.askRate,
+        });
+      }
+    } else {
+      setUpdatedRate({ rate: "", bidRate: "", askRate: "" });
+    }
+  }, [selectedRateId, rates]);
+
+  const currencyOptions = (allCurrenciesData?.allCurrencies || []).map(
+    (c) => ({
+      value: c.code,
+      label: `${c.name} (${c.code})`,
+    })
+  );
+  const rateSelectOptions = rates.map((r) => ({
+    value: r.id,
+    label: `${r.fromCurrency.code}/${r.toCurrency.code} (${r.rate.toFixed(4)})`,
+  }));
+
+  const handleAddRateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (
+      !newRate.from ||
+      !newRate.to ||
+      newRate.rate === "" ||
+      newRate.bidRate === "" ||
+      newRate.askRate === ""
+    ) {
+      addNotification("All new rate fields are required.", "warning");
+      return;
+    }
+    if (newRate.from === newRate.to) {
+      addNotification("From and To currencies cannot be the same.", "warning");
+      return;
+    }
+    if (typeof newRate.rate !== "number" || newRate.rate <= 0) {
+      addNotification("Rate must be a positive number.", "warning");
+      return;
+    }
+    if (
+      typeof newRate.bidRate !== "number" ||
+      typeof newRate.askRate !== "number" ||
+      newRate.bidRate <= 0 ||
+      newRate.askRate <= 0 ||
+      newRate.bidRate > newRate.askRate
+    ) {
+      addNotification("Bid/Ask rates must be positive and Bid <= Ask.", "warning");
+      return;
+    }
+
+    await addRateMutation({
+      variables: {
+        input: {
+          fromCurrencyCode: newRate.from,
+          toCurrencyCode: newRate.to,
+          rate: newRate.rate,
+          bidRate: newRate.bidRate,
+          askRate: newRate.askRate,
+          source: "Admin Manual Entry", // Default source
+        },
+      },
+    });
+    setNewRate({ from: "USD", to: "EUR", rate: "", bidRate: "", askRate: "" });
+  };
+
+  const handleUpdateRateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (
+      !selectedRateId ||
+      updatedRate.rate === "" ||
+      updatedRate.bidRate === "" ||
+      updatedRate.askRate === ""
+    ) {
+      addNotification("Select a rate and fill all fields.", "warning");
+      return;
+    }
+    if (typeof updatedRate.rate !== "number" || updatedRate.rate <= 0) {
+      addNotification("Rate must be a positive number.", "warning");
+      return;
+    }
+    if (
+      typeof updatedRate.bidRate !== "number" ||
+      typeof updatedRate.askRate !== "number" ||
+      updatedRate.bidRate <= 0 ||
+      updatedRate.askRate <= 0 ||
+      updatedRate.bidRate > updatedRate.askRate
+    ) {
+      addNotification("Bid/Ask rates must be positive and Bid <= Ask.", "warning");
+      return;
+    }
+
+    await updateRateMutation({
+      variables: {
+        id: selectedRateId,
+        input: updatedRate,
+      },
+    });
+  };
+
+  if (ratesLoading && !rates.length) return <LoadingSpinner />;
+  if (ratesError) return <ErrorDisplay error={ratesError} />;
+
+  return (
+    <div className="admin-card exchange-rate-management">
+      <h3>{messages["admin.exchangeRateManagement"]}</h3>
+
+      <div className="admin-sub-card">
+        <h4>{messages["admin.addNewRate"]}</h4>
+        <form onSubmit={handleAddRateSubmit}>
+          <div className="form-row">
+            <SelectField
+              id="new-rate-from"
+              label={messages["exchange.from"]}
+              value={newRate.from}
+              onChange={(e) => setNewRate({ ...newRate, from: e.target.value })}
+              options={currencyOptions}
+              required
+              disabled={addLoading}
+            />
+            <SelectField
+              id="new-rate-to"
+              label={messages["exchange.to"]}
+              value={newRate.to}
+              onChange={(e) => setNewRate({ ...newRate, to: e.target.value })}
+              options={currencyOptions}
+              required
+              disabled={addLoading}
+            />
+          </div>
+          <InputField
+            id="new-rate-value"
+            label="Mid Rate (1 From = X To)"
+            type="number"
+            step="0.000001"
+            min="0.000001"
+            value={newRate.rate}
+            onChange={(e) =>
+              setNewRate({ ...newRate, rate: parseFloat(e.target.value) || "" })
+            }
+            required
+            disabled={addLoading}
+          />
+          <InputField
+            id="new-rate-bid"
+            label="Bid Rate (Bank Buys From)"
+            type="number"
+            step="0.000001"
+            min="0.000001"
+            value={newRate.bidRate}
+            onChange={(e) =>
+              setNewRate({ ...newRate, bidRate: parseFloat(e.target.value) || "" })
+            }
+            required
+            disabled={addLoading}
+          />
+          <InputField
+            id="new-rate-ask"
+            label="Ask Rate (Bank Sells To)"
+            type="number"
+            step="0.000001"
+            min="0.000001"
+            value={newRate.askRate}
+            onChange={(e) =>
+              setNewRate({ ...newRate, askRate: parseFloat(e.target.value) || "" })
+            }
+            required
+            disabled={addLoading}
+          />
+          <Button type="submit" disabled={addLoading}>
+            {addLoading ? "Adding..." : "Add Rate"}
+          </Button>
+        </form>
+      </div>
+
+      <div className="admin-sub-card">
+        <h4>{messages["admin.updateRate"]}</h4>
+        <form onSubmit={handleUpdateRateSubmit}>
+          <SelectField
+            id="select-rate-to-update"
+            label="Select Rate Pair"
+            value={selectedRateId}
+            onChange={(e) => setSelectedRateId(e.target.value)}
+            options={rateSelectOptions}
+            required
+            disabled={updateLoading}
+          />
+          {selectedRateId && (
+            <>
+              <InputField
+                id="update-rate-value"
+                label="Mid Rate"
+                type="number"
+                step="0.000001"
+                min="0.000001"
+                value={updatedRate.rate}
+                onChange={(e) =>
+                  setUpdatedRate({ ...updatedRate, rate: parseFloat(e.target.value) || "" })
+                }
+                required
+                disabled={updateLoading}
+              />
+              <InputField
+                id="update-rate-bid"
+                label="Bid Rate"
+                type="number"
+                step="0.000001"
+                min="0.000001"
+                value={updatedRate.bidRate}
+                onChange={(e) =>
+                  setUpdatedRate({ ...updatedRate, bidRate: parseFloat(e.target.value) || "" })
+                }
+                required
+                disabled={updateLoading}
+              />
+              <InputField
+                id="update-rate-ask"
+                label="Ask Rate"
+                type="number"
+                step="0.000001"
+                min="0.000001"
+                value={updatedRate.askRate}
+                onChange={(e) =>
+                  setUpdatedRate({ ...updatedRate, askRate: parseFloat(e.target.value) || "" })
+                }
+                required
+                disabled={updateLoading}
+              />
+              <Button type="submit" disabled={updateLoading}>
+                {updateLoading ? "Updating..." : "Update Rate"}
+              </Button>
+            </>
+          )}
+        </form>
+      </div>
+
+      <div className="admin-sub-card">
+        <h4>Current Exchange Rates</h4>
+        <div className="table-responsive">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>From</th>
+                <th>To</th>
+                <th>Mid Rate</th>
+                <th>Bid Rate</th>
+                <th>Ask Rate</th>
+                <th>Last Updated</th>
+                <th>Source</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rates.map((r) => (
+                <tr key={r.id}>
+                  <td>{r.fromCurrency.code}</td>
+                  <td>{r.toCurrency.code}</td>
+                  <td>{r.rate.toFixed(6)}</td>
+                  <td>{r.bidRate.toFixed(6)}</td>
+                  <td>{r.askRate.toFixed(6)}</td>
+                  <td>{formatDate(r.lastUpdated, locale)}</td>
+                  <td>{r.source}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * ComplianceReports: Component for generating and viewing compliance reports.
+ */
+export const ComplianceReports: React.FC = () => {
+  const { currentUser, isAuthenticated, hasRole } = useAuth();
+  const { addNotification } = useNotifications();
+  const { messages, locale } = useLocale();
+
+  const {
+    data,
+    loading,
+    error,
+    refetch,
+  } = useQuery<{ complianceReports: ComplianceReport[] }>(
+    GET_COMPLIANCE_REPORTS,
+    {
+      variables: {
+        filter: { generatedBy: currentUser?.id },
+      },
+      skip:
+        !isAuthenticated || !currentUser?.id || !hasRole(UserRole.COMPLIANCE_OFFICER),
+      fetchPolicy: "network-only",
+      onError: (err) => {
+        addNotification(
+          `${messages["error.fetch"]} compliance reports: ${err.message}`,
+          "error"
+        );
+      },
+    }
+  );
+
+  const [generateReportMutation, { loading: generateLoading }] = useMutation(
+    GENERATE_COMPLIANCE_REPORT,
+    {
+      onCompleted: () => {
+        addNotification(
+          `${messages["notification.success"]}: Report generation initiated.`,
+          "success"
+        );
+        refetch();
+      },
+      onError: (err) => {
+        addNotification(
+          `${messages["notification.error"]}: Failed to generate report. ${err.message}`,
+          "error"
+        );
+      },
+    }
+  );
+
+  const [reportName, setReportName] = useState("");
+  const [reportType, setReportType] = useState("AML_SUMMARY");
+  const [reportPeriodStart, setReportPeriodStart] = useState(
+    new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split("T")[0]
+  );
+  const [reportPeriodEnd, setReportPeriodEnd] = useState(
+    new Date().toISOString().split("T")[0]
+  );
+
+  const handleGenerateReport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reportName || !reportType || !reportPeriodStart || !reportPeriodEnd) {
+      addNotification("All report fields are required.", "warning");
+      return;
+    }
+    if (new Date(reportPeriodStart) >= new Date(reportPeriodEnd)) {
+      addNotification("Start date must be before end date.", "warning");
+      return;
+    }
+    if (!currentUser?.id) {
+      addNotification("User ID not available for report generation.", "error");
+      return;
+    }
+
+    try {
+      await generateReportMutation({
+        variables: {
+          input: {
+            reportName,
+            reportType,
+            periodStart: reportPeriodStart,
+            periodEnd: reportPeriodEnd,
+            generatedByUserId: currentUser.id,
+            additionalParameters: JSON.stringify({ department: "Compliance" }),
+          },
+        },
+      });
+      setReportName("");
+    } catch (err) {
+      console.error("Generate report mutation failed:", err);
+    }
+  };
+
+  if (!isAuthenticated || !hasRole(UserRole.COMPLIANCE_OFFICER)) {
+    return (
+      <div className="page-container compliance-section">
+        <h2>{messages["compliance.title"]}</h2>
+        <p>
+          You must be a {UserRole.COMPLIANCE_OFFICER} to access compliance
+          reports.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="page-container compliance-section">
+      <h2 className="section-title">{messages["compliance.title"]}</h2>
+
+      <div className="admin-card generate-report">
+        <h3>{messages["compliance.generateReport"]}</h3>
+        <form onSubmit={handleGenerateReport}>
+          <InputField
+            id="report-name"
+            label={messages["compliance.reportName"]}
+            value={reportName}
+            onChange={(e) => setReportName(e.target.value)}
+            required
+            disabled={generateLoading}
+          />
+          <SelectField
+            id="report-type"
+            label={messages["compliance.reportType"]}
+            value={reportType}
+            onChange={(e) => setReportType(e.target.value)}
+            options={[
+              { value: "AML_SUMMARY", label: "AML Summary Report" },
+              { value: "HIGH_VALUE_TRANSACTIONS", label: "High Value Transactions" },
+              { value: "CURRENCY_FLOW_ANALYSIS", label: "Currency Flow Analysis" },
+            ]}
+            required
+            disabled={generateLoading}
+          />
+          <div className="form-row">
+            <InputField
+              id="report-period-start"
+              label={`${messages["compliance.reportPeriod"]} (Start)`}
+              type="date"
+              value={reportPeriodStart}
+              onChange={(e) => setReportPeriodStart(e.target.value)}
+              required
+              disabled={generateLoading}
+            />
+            <InputField
+              id="report-period-end"
+              label={`${messages["compliance.reportPeriod"]} (End)`}
+              type="date"
+              value={reportPeriodEnd}
+              onChange={(e) => setReportPeriodEnd(e.target.value)}
+              required
+              disabled={generateLoading}
+            />
+          </div>
+          <Button type="submit" disabled={generateLoading}>
+            {generateLoading ? "Generating..." : "Generate Report"}
+          </Button>
+        </form>
+      </div>
+
+      <div className="admin-card report-list">
+        <h3>Previous Reports</h3>
+        {loading && <LoadingSpinner />}
+        {error && <ErrorDisplay error={error} />}
+        {data?.complianceReports.length === 0 ? (
+          <p>No compliance reports found.</p>
+        ) : (
+          <div className="table-responsive">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>{messages["compliance.reportName"]}</th>
+                  <th>Generated By</th>
+                  <th>{messages["compliance.reportPeriod"]}</th>
+                  <th>{messages["compliance.status"]}</th>
+                  <th>{messages["compliance.download"]}</th>
+                  <th>Generation Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data?.complianceReports.map((report) => (
+                  <tr key={report.id}>
+                    <td>{report.reportName}</td>
+                    <td>{report.generatedBy}</td>
+                    <td>
+                      {JSON.parse(report.parameters).periodStart} to{" "}
+                      {JSON.parse(report.parameters).periodEnd}
+                    </td>
+                    <td>
+                      <span className={`status-badge status-${report.status.toLowerCase()}`}>
+                        {report.status}
+                      </span>
+                    </td>
+                    <td>
+                      {report.status === "GENERATED" && (
+                        <a
+                          href={report.downloadUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn-link"
+                        >
+                          Download
+                        </a>
+                      )}
+                    </td>
+                    <td>{formatDate(report.generationDate, locale)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/**
+ * AuditLogs: Displays system audit trails for authorized users.
+ */
+export const AuditLogs: React.FC = () => {
+  const { currentUser, isAuthenticated, hasRole } = useAuth();
+  const { addNotification } = useNotifications();
+  const { messages, locale } = useLocale();
+
+  const [userIdFilter, setUserIdFilter] = useState("");
+  const [actionFilter, setActionFilter] = useState("");
+  const [startDateFilter, setStartDateFilter] = useState("");
+  const [endDateFilter, setEndDateFilter] = useState("");
+
+  const {
+    data,
+    loading,
+    error,
+    refetch,
+  } = useQuery<{ auditLogs: AuditLogEntry[] }>(GET_AUDIT_LOGS, {
+    variables: {
+      filter: {
+        userId: userIdFilter || undefined,
+        action: actionFilter || undefined,
+        startDate: startDateFilter || undefined,
+        endDate: endDateFilter || undefined,
+      },
+    },
+    skip: !isAuthenticated || !hasRole(UserRole.AUDITOR) && !hasRole(UserRole.ADMIN),
+    fetchPolicy: "network-only",
+    onError: (err) => {
+      addNotification(
+        `${messages["error.fetch"]} audit logs: ${err.message}`,
+        "error"
+      );
+    },
+  });
+
+  const auditActionOptions = Object.values(AuditLogAction).map((action) => ({
+    value: action,
+    label: action.replace(/_/g, " "),
+  }));
+
+  const handleApplyFilter = (e: React.FormEvent) => {
+    e.preventDefault();
+    refetch();
+  };
+
+  if (!isAuthenticated || (!hasRole(UserRole.AUDITOR) && !hasRole(UserRole.ADMIN))) {
+    return (
+      <div className="page-container audit-section">
+        <h2>{messages["audit.title"]}</h2>
+        <p>
+          You must be an {UserRole.AUDITOR} or {UserRole.ADMIN} to access
+          audit logs.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="page-container audit-section">
+      <h2 className="section-title">{messages["audit.title"]}</h2>
+
+      <div className="filter-panel admin-card">
+        <h3>Filter Audit Logs</h3>
+        <form onSubmit={handleApplyFilter}>
+          <InputField
+            id="audit-filter-userid"
+            label={messages["audit.user"]}
+            value={userIdFilter}
+            onChange={(e) => setUserIdFilter(e.target.value)}
+          />
+          <SelectField
+            id="audit-filter-action"
+            label={messages["audit.action"]}
+            value={actionFilter}
+            onChange={(e) => setActionFilter(e.target.value)}
+            options={[{ value: "", label: "All Actions" }, ...auditActionOptions]}
+          />
+          <InputField
+            id="audit-filter-startdate"
+            label="Start Date"
+            type="date"
+            value={startDateFilter}
+            onChange={(e) => setStartDateFilter(e.target.value)}
+          />
+          <InputField
+            id="audit-filter-enddate"
+            label="End Date"
+            type="date"
+            value={endDateFilter}
+            onChange={(e) => setEndDateFilter(e.target.value)}
+          />
+          <Button type="submit" className="btn-secondary">
+            Apply Filters
+          </Button>
+        </form>
+      </div>
+
+      <div className="admin-card audit-log-list">
+        <h3>Recent Audit Entries</h3>
+        {loading && <LoadingSpinner />}
+        {error && <ErrorDisplay error={error} />}
+        {data?.auditLogs.length === 0 ? (
+          <p>No audit logs found matching the criteria.</p>
+        ) : (
+          <div className="table-responsive">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>{messages["audit.timestamp"]}</th>
+                  <th>{messages["audit.user"]}</th>
+                  <th>{messages["audit.action"]}</th>
+                  <th>{messages["audit.details"]}</th>
+                  <th>IP Address</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data?.auditLogs.map((log) => (
+                  <tr key={log.id}>
+                    <td>{formatDate(log.timestamp, locale)}</td>
+                    <td>{log.userId}</td>
+                    <td>{log.action.replace(/_/g, " ")}</td>
+                    <td>{log.details}</td>
+                    <td>{log.ipAddress}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// --- Main Application Component ---
+/**
+ * AccountCurrenciesApp: The root component for the entire currency management application.
+ * It sets up context providers, routing, and integrates all major features.
+ */
+export const AccountCurrenciesApp: React.FC = () => {
+  return (
+    // ApolloProvider wraps the entire app to enable GraphQL access
+    <ApolloProvider client={client}>
+      {/* BrowserRouter for client-side routing */}
+      <Router>
+        {/* All global contexts are provided here */}
+        <AuthProvider>
+          <ThemeProvider>
+            <LocaleProvider>
+              <NotificationProvider>
+                <NotificationBanner />
+                <div className="app-container">
+                  <AppHeader />
+                  <main className="app-main-content">
+                    <Routes>
+                      {/* Public Routes */}
+                      <Route path="/login" element={<LoginPage />} />
+                      <Route
+                        path="/unauthorized"
+                        element={<UnauthorizedPage />}
+                      />
+                      {/* Protected Routes */}
+                      <Route
+                        path="/"
+                        element={
+                          <PrivateRoute roles={[UserRole.CLIENT, UserRole.ADMIN, UserRole.COMPLIANCE_OFFICER, UserRole.AUDITOR, UserRole.SUPPORT]}>
+                            <CurrencyDashboard />
+                          </PrivateRoute>
+                        }
+                      />
+                      <Route
+                        path="/exchange"
+                        element={
+                          <PrivateRoute roles={[UserRole.CLIENT, UserRole.ADMIN, UserRole.SUPPORT]}>
+                            <CurrencyExchangeWidget />
+                          </PrivateRoute>
+                        }
+                      />
+                      <Route
+                        path="/preferences"
+                        element={
+                          <PrivateRoute roles={[UserRole.CLIENT, UserRole.ADMIN, UserRole.SUPPORT]}>
+                            <UserPreferencesSettings />
+                          </PrivateRoute>
+                        }
+                      />
+                      <Route
+                        path="/history"
+                        element={
+                          <PrivateRoute roles={[UserRole.CLIENT, UserRole.ADMIN, UserRole.SUPPORT]}>
+                            <HistoricalRatesChart />
+                          </PrivateRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin"
+                        element={
+                          <PrivateRoute roles={[UserRole.ADMIN]}>
+                            <AdminCurrencyManagement />
+                          </PrivateRoute>
+                        }
+                      />
+                      <Route
+                        path="/compliance"
+                        element={
+                          <PrivateRoute roles={[UserRole.ADMIN, UserRole.COMPLIANCE_OFFICER]}>
+                            <ComplianceReports />
+                          </PrivateRoute>
+                        }
+                      />
+                      <Route
+                        path="/audit"
+                        element={
+                          <PrivateRoute roles={[UserRole.ADMIN, UserRole.AUDITOR]}>
+                            <AuditLogs />
+                          </PrivateRoute>
+                        }
+                      />
+                      {/* Fallback for unknown routes */}
+                      <Route
+                        path="*"
+                        element={
+                          <div className="page-container">
+                            <h1>404 - Page Not Found</h1>
+                            <p>The page you are looking for does not exist.</p>
+                            <Link to="/">Go to Dashboard</Link>
+                          </div>
+                        }
+                      />
+                    </Routes>
+                  </main>
+                  <AppFooter />
+                </div>
+              </NotificationProvider>
+            </LocaleProvider>
+          </ThemeProvider>
+        </AuthProvider>
+      </Router>
+    </ApolloProvider>
+  );
+};
+
+// --- Dummy CSS for basic styling (in a real app, this would be in a .css or .scss file) ---
+// This CSS is inlined to ensure the file is self-contained as requested.
+// It uses CSS variables for theme switching.
+
+export const inlineAppStyles = `
+  :root {
+    --primary-color: #0056b3;
+    --secondary-color: #6c757d;
+    --accent-color: #28a745;
+    --background-color-light: #f8f9fa;
+    --background-color-dark: #343a40;
+    --text-color-light: #212529;
+    --text-color-dark: #f8f9fa;
+    --card-background-light: #ffffff;
+    --card-background-dark: #495057;
+    --border-color-light: #dee2e6;
+    --border-color-dark: #6c757d;
+    --error-color: #dc3545;
+    --success-color: #28a745;
+    --info-color: #17a2b8;
+    --warning-color: #ffc107;
+  }
+
+  [data-theme="light"] {
+    --background-color: var(--background-color-light);
+    --text-color: var(--text-color-light);
+    --card-background: var(--card-background-light);
+    --border-color: var(--border-color-light);
+  }
+
+  [data-theme="dark"] {
+    --background-color: var(--background-color-dark);
+    --text-color: var(--text-color-dark);
+    --card-background: var(--card-background-dark);
+    --border-color: var(--border-color-dark);
+  }
+
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  .app-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  .app-header {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .app-header .header-left,
+  .app-header .header-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .app-logo {
+    color: white;
+    text-decoration: none;
+    font-size: 1.5rem;
+    font-weight: bold;
+  }
+
+  .app-version {
+    font-size: 0.8rem;
+    opacity: 0.8;
+  }
+
+  .app-header .header-nav a {
+    color: white;
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+  }
+
+  .app-header .header-nav a:hover,
+  .app-header .header-nav a.active {
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .user-info {
+    font-size: 0.9rem;
+    margin-right: 0.5rem;
+  }
+
+  .theme-toggle, .locale-switcher {
+    background: transparent;
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    padding: 0.4rem 0.8rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+  }
+  .theme-toggle:hover, .locale-switcher:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: white;
+  }
+  .locale-switcher select {
+    background-color: transparent;
+    border: none;
+    color: white;
+    padding: 0;
+    margin: 0;
+    font-size: inherit;
+    cursor: pointer;
+  }
+  .locale-switcher option {
+    color: var(--text-color);
+    background-color: var(--background-color);
+  }
+
+  .auth-button {
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  .auth-button:hover {
+    background-color: #218838;
+  }
+
+
+  .app-main-content {
+    flex-grow: 1;
+    padding: 1rem 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .app-footer {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 1rem 2rem;
+    text-align: center;
+    font-size: 0.8rem;
+    margin-top: auto;
+  }
+
+  .app-footer a {
+    color: white;
+    text-decoration: underline;
+  }
+
+  .page-container {
+    background-color: var(--card-background);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    padding: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .section-title, .sub-section-title {
+    color: var(--primary-color);
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 0.5rem;
+  }
+
+  .sub-section-title {
+    font-size: 1.25rem;
+  }
+
+  /* Forms */
+  .form-group {
+    margin-bottom: 1rem;
+  }
+
+  .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+    color: var(--text-color);
+  }
+
+  .form-input, .form-select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--card-background);
+    color: var(--text-color);
+    font-size: 1rem;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .form-input:focus, .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(0, 86, 179, 0.25);
+    outline: none;
+  }
+
+  .form-input[type="number"] {
+    -moz-appearance: textfield;
+  }
+  .form-input::-webkit-outer-spin-button,
+  .form-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  .form-select[multiple] {
+    height: auto;
+    min-height: 100px;
+  }
+
+  .checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .checkbox-group input[type="checkbox"] {
+    width: auto;
+    margin-right: 0.5rem;
+  }
+
+  .form-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+  .form-row > .form-group {
+    flex: 1;
+    margin-bottom: 0;
+  }
+
+  .btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: bold;
+    text-align: center;
+    text-decoration: none;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    border: 1px solid transparent;
+  }
+
+  .btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+  }
+  .btn-primary:hover:not(:disabled) {
+    background-color: #004494;
+  }
+
+  .btn-secondary {
+    background-color: var(--secondary-color);
+    color: white;
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background-color: #5a6268;
+  }
+
+  .btn-link {
+    background: none;
+    border: none;
+    color: var(--primary-color);
+    text-decoration: underline;
+    padding: 0;
+  }
+  .btn-link:hover {
+    color: #004494;
+  }
+
+  .btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  /* Dashboard specific */
+  .currency-holdings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+  }
+
+  .holding-card {
+    background-color: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .holding-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .holding-symbol {
+    font-size: 2rem;
+    color: var(--primary-color);
+  }
+
+  .holding-currency-name {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: bold;
+  }
+
+  .holding-balance strong,
+  .holding-available strong,
+  .holding-value-usd strong {
+    color: var(--primary-color);
+    font-size: 1.1rem;
+  }
+
+  .currency-list-compact {
+    margin-top: 2rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .currency-tag {
+    background-color: var(--secondary-color);
+    color: white;
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+  }
+
+  /* Exchange Widget specific */
+  .exchange-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .exchange-rate-info {
+    background-color: var(--background-color);
+    border: 1px dashed var(--border-color);
+    padding: 1rem;
+    border-radius: 4px;
+  }
+  .exchange-rate-info p {
+    margin: 0.5rem 0;
+  }
+  .exchange-rate-info strong {
+    color: var(--primary-color);
+  }
+  .exchange-fee, .exchange-total-receive {
+    font-weight: bold;
+  }
+  .rate-refreshing {
+    font-size: 0.8em;
+    color: var(--secondary-color);
+  }
+
+  .warning-message {
+    color: var(--warning-color);
+    font-weight: bold;
+  }
+
+  /* Preferences specific */
+  .preferences-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  /* Admin Section */
+  .admin-card {
+    background-color: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    margin-bottom: 1.5rem;
+  }
+  .admin-card h3 {
+    color: var(--primary-color);
+    margin-top: 0;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+  }
+  .admin-sub-card {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    border: 1px dashed var(--border-color);
+    border-radius: 4px;
+  }
+  .admin-sub-card h4 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: var(--secondary-color);
+  }
+
+  /* Data Table */
+  .table-responsive {
+    overflow-x: auto;
+  }
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+  }
+  .data-table th, .data-table td {
+    border: 1px solid var(--border-color);
+    padding: 0.75rem 1rem;
+    text-align: left;
+  }
+  .data-table th {
+    background-color: var(--primary-color);
+    color: white;
+    font-weight: bold;
+  }
+  .data-table tbody tr:nth-child(even) {
+    background-color: rgba(0, 0, 0, 0.02);
+  }
+  [data-theme="dark"] .data-table tbody tr:nth-child(even) {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  /* Audit & Compliance */
+  .filter-panel {
+    margin-bottom: 2rem;
+  }
+  .filter-panel form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    align-items: flex-end;
+  }
+  .filter-panel button {
+    grid-column: span var(--grid-column-span, auto); /* CSS var for dynamic span */
+  }
+
+  .status-badge {
+    padding: 0.3em 0.6em;
+    border-radius: 0.25rem;
+    font-size: 0.85em;
+    color: white;
+    font-weight: bold;
+  }
+  .status-generated { background-color: var(--success-color); }
+  .status-pending { background-color: var(--info-color); }
+  .status-failed { background-color: var(--error-color); }
+  .status-active { background-color: var(--success-color); }
+  .status-inactive { background-color: var(--secondary-color); }
+  .status-deprecated { background-color: var(--error-color); }
+  .status-pending_review { background-color: var(--warning-color); }
+
+
+  /* Loading and Error */
+  .loading-spinner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 150px;
+    font-size: 1.1rem;
+    color: var(--primary-color);
+  }
+
+  .spinner {
+    border: 4px solid rgba(0, 86, 179, 0.2);
+    border-top: 4px solid var(--primary-color);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  .error-display {
+    background-color: #f8d7da;
+    color: var(--error-color);
+    border: 1px solid var(--error-color);
+    padding: 1rem;
+    border-radius: 8px;
+    margin-top: 1rem;
+  }
+  [data-theme="dark"] .error-display {
+    background-color: #58151c;
+    color: #f8d7da;
+  }
+
+  /* Notifications */
+  .notification-banner-container {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-width: 400px;
+  }
+
+  .notification-banner {
+    padding: 1rem;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    background-color: var(--card-background);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+  }
+
+  .notification-banner.success {
+    background-color: #d4edda;
+    color: #155724;
+    border-color: #28a745;
+  }
+  [data-theme="dark"] .notification-banner.success {
+    background-color: #194a2b;
+    color: #d4edda;
+  }
+
+  .notification-banner.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border-color: #dc3545;
+  }
+  [data-theme="dark"] .notification-banner.error {
+    background-color: #58151c;
+    color: #f8d7da;
+  }
+
+  .notification-banner.info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+    border-color: #17a2b8;
+  }
+  [data-theme="dark"] .notification-banner.info {
+    background-color: #114c5a;
+    color: #d1ecf1;
+  }
+
+  .notification-banner.warning {
+    background-color: #fff3cd;
+    color: #856404;
+    border-color: #ffc107;
+  }
+  [data-theme="dark"] .notification-banner.warning {
+    background-color: #6a4f00;
+    color: #fff3cd;
+  }
+
+  .notification-close-button {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: inherit;
+    opacity: 0.7;
+  }
+  .notification-close-button:hover {
+    opacity: 1;
+  }
+
+  /* Login and Unauthorized */
+  .login-page, .unauthorized-page {
+    text-align: center;
+    max-width: 600px;
+    margin: 4rem auto;
+  }
+  .login-options {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 1.5rem;
+  }
+  .login-options .btn {
+    min-width: 180px;
+  }
+
+  .chart-placeholder {
+    background-color: var(--background-color);
+    border: 1px dashed var(--border-color);
+    padding: 2rem;
+    text-align: center;
+    margin-top: 1.5rem;
+    border-radius: 8px;
+  }
+  .chart-placeholder img {
+    max-width: 100%;
+    height: auto;
+    margin-top: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+  }
+
+  .rate-list {
+    margin-top: 1.5rem;
+    background-color: var(--background-color);
+    border: 1px solid var(--border-color);
+    padding: 1rem;
+    border-radius: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  .unstyled-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .unstyled-list li {
+    padding: 0.3rem 0;
+    border-bottom: 1px dashed rgba(var(--text-color-rgb), 0.1);
+  }
+  .unstyled-list li:last-child {
+    border-bottom: none;
+  }
+
+  @media (max-width: 768px) {
+    .app-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+    .app-header .header-nav {
+      width: 100%;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 0.5rem;
+    }
+    .app-header .header-right {
+      width: 100%;
+      justify-content: space-between;
+      margin-top: 0.5rem;
+    }
+    .form-row {
+      flex-direction: column;
+    }
+    .filter-panel form {
+      grid-template-columns: 1fr;
+    }
+    .login-options {
+      flex-direction: column;
+    }
+  }
+
+  /* Accessibility */
+  [aria-live="polite"] {
+    clip: rect(1px, 1px, 1px, 1px);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+  }
+`;
+
+// Inject the styles into the document head
+if (typeof document !== "undefined") {
+  const styleTag = document.createElement("style");
+  styleTag.textContent = inlineAppStyles;
+  document.head.appendChild(styleTag);
+}

@@ -1,0 +1,2326 @@
+// Copyright James Burvel Oâ€™Callaghan III
+// President Citibank Demo Business Inc.
+
+// This file serves as the main entry point for a comprehensive commercial banking application.
+// It integrates various features, services, and UI components to provide a full-fledged
+// digital banking experience, extending the concept of an Account Currency Balance Widget
+// into a complete financial management platform.
+
+import React, {
+  useState,
+  useEffect,
+  useContext,
+  createContext,
+  useCallback,
+  useMemo,
+  useReducer,
+  useRef,
+} from 'react';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Link,
+  useNavigate,
+  useParams,
+  useLocation,
+} from 'react-router-dom';
+import {
+  ApolloClient,
+  InMemoryCache,
+  ApolloProvider,
+  useQuery,
+  gql,
+  useMutation,
+} from '@apollo/client';
+import {
+  format,
+  parseISO,
+  isBefore,
+  addDays,
+  subDays,
+  differenceInDays,
+  startOfMonth,
+  endOfMonth,
+  startOfYear,
+  endOfYear,
+  addMonths,
+  subMonths,
+} from 'date-fns';
+import { enUS, es, fr } from 'date-fns/locale'; // Example locales
+
+// --- Global Constants and Configuration ---
+const API_BASE_URL = 'https://api.democitibank.com/graphql';
+const AUTH_TOKEN_STORAGE_KEY = 'demoBankAuthToken';
+const REFRESH_TOKEN_STORAGE_KEY = 'demoBankRefreshToken';
+const THEME_STORAGE_KEY = 'demoBankTheme';
+const DEFAULT_LOCALE = 'en-US';
+const SESSION_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
+const MAX_FILE_UPLOAD_SIZE_MB = 10;
+const TRANSACTION_PAGE_SIZE = 20;
+
+enum CurrencyEnum {
+  USD = 'USD',
+  EUR = 'EUR',
+  GBP = 'GBP',
+  JPY = 'JPY',
+  CAD = 'CAD',
+  AUD = 'AUD',
+  CHF = 'CHF',
+  CNY = 'CNY',
+  INR = 'INR',
+  BRL = 'BRL',
+}
+
+enum AccountTypeEnum {
+  CHECKING = 'CHECKING',
+  SAVINGS = 'SAVINGS',
+  CREDIT_CARD = 'CREDIT_CARD',
+  LOAN = 'LOAN',
+  INVESTMENT = 'INVESTMENT',
+  MORTGAGE = 'MORTGAGE',
+}
+
+enum TransactionTypeEnum {
+  DEPOSIT = 'DEPOSIT',
+  WITHDRAWAL = 'WITHDRAWAL',
+  TRANSFER_IN = 'TRANSFER_IN',
+  TRANSFER_OUT = 'TRANSFER_OUT',
+  PAYMENT = 'PAYMENT',
+  PURCHASE = 'PURCHASE',
+  FEE = 'FEE',
+  INTEREST = 'INTEREST',
+  BILL_PAY = 'BILL_PAY',
+}
+
+enum NotificationSeverity {
+  INFO = 'info',
+  SUCCESS = 'success',
+  WARNING = 'warning',
+  ERROR = 'error',
+}
+
+enum ThemeMode {
+  LIGHT = 'light',
+  DARK = 'dark',
+}
+
+// --- Type and Interface Definitions ---
+
+interface User {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  preferredLocale: string;
+  securityQuestionsSet: boolean;
+  mfaEnabled: boolean;
+  lastLogin: string; // ISO Date string
+}
+
+interface AccountCurrencyMetricNode {
+  typename: 'AccountCurrencyMetricNode';
+  id: string;
+  currency: CurrencyEnum;
+  prettyPriorDayBalance: string;
+  priorDayBalanceValue: number; // Added for actual calculation
+  prettyAvailableBalance: string;
+  availableBalanceValue: number; // Added for actual calculation
+  accountCount: number; // How many accounts contribute to this currency balance
+  lastUpdated: string; // ISO Date string
+}
+
+interface AccountCurrencyMetricsEdge {
+  node: AccountCurrencyMetricNode;
+  typename: 'AccountCurrencyMetricsEdge';
+}
+
+interface AccountCurrencyMetricsData {
+  accountCurrencyMetrics: {
+    edges: AccountCurrencyMetricsEdge[];
+    typename: 'AccountCurrencyMetricsConnection';
+  };
+}
+
+interface AccountCurrencyMetricsVariables {
+  currency?: CurrencyEnum;
+}
+
+interface Account {
+  id: string;
+  accountNumber: string;
+  name: string;
+  type: AccountTypeEnum;
+  currency: CurrencyEnum;
+  balance: number;
+  availableBalance: number;
+  priorDayBalance: number;
+  nickname: string;
+  status: 'ACTIVE' | 'CLOSED' | 'FROZEN';
+  openingDate: string; // ISO Date string
+  interestRate?: number; // For savings/loans
+  creditLimit?: number; // For credit cards
+  outstandingBalance?: number; // For credit cards/loans
+  dueDate?: string; // ISO Date string for credit cards/loans
+}
+
+interface Transaction {
+  id: string;
+  accountId: string;
+  type: TransactionTypeEnum;
+  description: string;
+  amount: number;
+  currency: CurrencyEnum;
+  date: string; // ISO Date string
+  merchant?: string;
+  category?: string;
+  status: 'COMPLETED' | 'PENDING' | 'FAILED';
+  referenceId?: string;
+}
+
+interface Beneficiary {
+  id: string;
+  name: string;
+  accountNumber: string;
+  bankName: string;
+  swiftCode?: string;
+  iban?: string;
+  currency: CurrencyEnum;
+  isInternational: boolean;
+  addedDate: string; // ISO Date string
+}
+
+interface InvestmentHolding {
+  id: string;
+  accountId: string;
+  symbol: string;
+  name: string;
+  quantity: number;
+  averageCostBasis: number;
+  currentPrice: number;
+  marketValue: number;
+  currency: CurrencyEnum;
+  lastUpdated: string; // ISO Date string
+}
+
+interface Loan {
+  id: string;
+  accountId: string;
+  type: AccountTypeEnum.LOAN | AccountTypeEnum.MORTGAGE;
+  principalAmount: number;
+  outstandingBalance: number;
+  interestRate: number;
+  nextPaymentDate: string; // ISO Date string
+  nextPaymentAmount: number;
+  maturityDate: string; // ISO Date string
+  status: 'ACTIVE' | 'PAID_OFF' | 'DELINQUENT';
+}
+
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  severity: NotificationSeverity;
+  read: boolean;
+  timestamp: string; // ISO Date string
+  actionUrl?: string;
+}
+
+interface Statement {
+  id: string;
+  accountId: string;
+  period: string; // e.g., "January 2023"
+  startDate: string; // ISO Date string
+  endDate: string; // ISO Date string
+  downloadUrl: string;
+  statementType: 'MONTHLY' | 'ANNUAL' | 'CUSTOM';
+}
+
+interface CurrencyRate {
+  fromCurrency: CurrencyEnum;
+  toCurrency: CurrencyEnum;
+  rate: number;
+  lastUpdated: string; // ISO Date string
+}
+
+interface SecurityLog {
+  id: string;
+  userId: string;
+  action: string;
+  timestamp: string;
+  ipAddress: string;
+  status: 'SUCCESS' | 'FAILURE';
+  details?: string;
+}
+
+interface Bill {
+  id: string;
+  payeeName: string;
+  accountNumber: string;
+  amount: number;
+  currency: CurrencyEnum;
+  dueDate: string; // ISO Date string
+  scheduledDate: string; // ISO Date string (if scheduled)
+  status: 'PENDING' | 'PAID' | 'FAILED' | 'SCHEDULED';
+  isRecurring: boolean;
+  frequency?: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUALLY';
+}
+
+interface ScheduledPayment {
+  id: string;
+  fromAccountId: string;
+  toBeneficiaryId?: string;
+  toExternalAccount?: {
+    accountNumber: string;
+    bankName: string;
+  };
+  amount: number;
+  currency: CurrencyEnum;
+  scheduleDate: string; // ISO Date string
+  frequency: 'ONE_TIME' | 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUALLY';
+  endDate?: string; // ISO Date string for recurring payments
+  description: string;
+  status: 'ACTIVE' | 'COMPLETED' | 'CANCELLED' | 'PAUSED';
+}
+
+interface Document {
+  id: string;
+  userId: string;
+  documentType: 'ID_PROOF' | 'ADDRESS_PROOF' | 'BANK_STATEMENT' | 'OTHER';
+  fileName: string;
+  uploadDate: string; // ISO Date string
+  status: 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED';
+  downloadUrl: string;
+}
+
+// --- GraphQL Query Definitions ---
+
+const GET_ACCOUNT_CURRENCY_METRICS = gql`
+  query AccountCurrencyBalanceWidget($currency: CurrencyEnum) {
+    accountCurrencyMetrics(currency: $currency) {
+      edges {
+        node {
+          typename: __typename
+          id
+          currency
+          prettyPriorDayBalance
+          prettyAvailableBalance
+          priorDayBalanceValue
+          availableBalanceValue
+          accountCount
+          lastUpdated
+        }
+        __typename
+      }
+      __typename
+    }
+  }
+`;
+
+const GET_USER_PROFILE = gql`
+  query GetUserProfile {
+    userProfile {
+      id
+      firstName
+      lastName
+      email
+      phone
+      address
+      city
+      state
+      zipCode
+      preferredLocale
+      securityQuestionsSet
+      mfaEnabled
+      lastLogin
+    }
+  }
+`;
+
+const GET_ALL_ACCOUNTS = gql`
+  query GetAllAccounts {
+    accounts {
+      id
+      accountNumber
+      name
+      type
+      currency
+      balance
+      availableBalance
+      priorDayBalance
+      nickname
+      status
+      openingDate
+      interestRate
+      creditLimit
+      outstandingBalance
+      dueDate
+    }
+  }
+`;
+
+const GET_TRANSACTIONS_BY_ACCOUNT = gql`
+  query GetTransactionsByAccount(
+    $accountId: ID!
+    $startDate: Date
+    $endDate: Date
+    $type: TransactionTypeEnum
+    $limit: Int
+    $offset: Int
+  ) {
+    transactions(
+      accountId: $accountId
+      startDate: $startDate
+      endDate: $endDate
+      type: $type
+      limit: $limit
+      offset: $offset
+    ) {
+      id
+      accountId
+      type
+      description
+      amount
+      currency
+      date
+      merchant
+      category
+      status
+      referenceId
+    }
+  }
+`;
+
+const CREATE_FUNDS_TRANSFER = gql`
+  mutation CreateFundsTransfer(
+    $fromAccountId: ID!
+    $toBeneficiaryId: ID
+    $toExternalAccount: ExternalAccountInput
+    $amount: Float!
+    $currency: CurrencyEnum!
+    $description: String
+    $scheduledDate: Date
+    $isRecurring: Boolean
+    $frequency: PaymentFrequencyEnum
+    $endDate: Date
+  ) {
+    createFundsTransfer(
+      fromAccountId: $fromAccountId
+      toBeneficiaryId: $toBeneficiaryId
+      toExternalAccount: $toExternalAccount
+      amount: $amount
+      currency: $currency
+      description: $description
+      scheduledDate: $scheduledDate
+      isRecurring: $isRecurring
+      frequency: $frequency
+      endDate: $endDate
+    ) {
+      id
+      status
+      message
+    }
+  }
+`;
+
+const GET_BENEFICIARIES = gql`
+  query GetBeneficiaries {
+    beneficiaries {
+      id
+      name
+      accountNumber
+      bankName
+      swiftCode
+      iban
+      currency
+      isInternational
+      addedDate
+    }
+  }
+`;
+
+const ADD_BENEFICIARY = gql`
+  mutation AddBeneficiary(
+    $name: String!
+    $accountNumber: String!
+    $bankName: String!
+    $currency: CurrencyEnum!
+    $isInternational: Boolean!
+    $swiftCode: String
+    $iban: String
+  ) {
+    addBeneficiary(
+      name: $name
+      accountNumber: $accountNumber
+      bankName: $bankName
+      currency: $currency
+      isInternational: $isInternational
+      swiftCode: $swiftCode
+      iban: $iban
+    ) {
+      id
+      name
+    }
+  }
+`;
+
+const GET_INVESTMENT_HOLDINGS = gql`
+  query GetInvestmentHoldings($accountId: ID!) {
+    investmentHoldings(accountId: $accountId) {
+      id
+      accountId
+      symbol
+      name
+      quantity
+      averageCostBasis
+      currentPrice
+      marketValue
+      currency
+      lastUpdated
+    }
+  }
+`;
+
+const GET_LOANS = gql`
+  query GetLoans {
+    loans {
+      id
+      accountId
+      type
+      principalAmount
+      outstandingBalance
+      interestRate
+      nextPaymentDate
+      nextPaymentAmount
+      maturityDate
+      status
+    }
+  }
+`;
+
+const GET_NOTIFICATIONS = gql`
+  query GetNotifications($read: Boolean) {
+    notifications(read: $read) {
+      id
+      title
+      message
+      severity
+      read
+      timestamp
+      actionUrl
+    }
+  }
+`;
+
+const MARK_NOTIFICATION_AS_READ = gql`
+  mutation MarkNotificationAsRead($id: ID!) {
+    markNotificationAsRead(id: $id) {
+      id
+      read
+    }
+  }
+`;
+
+const GET_STATEMENTS = gql`
+  query GetStatements($accountId: ID, $year: Int, $type: StatementTypeEnum) {
+    statements(accountId: $accountId, year: $year, type: $type) {
+      id
+      accountId
+      period
+      startDate
+      endDate
+      downloadUrl
+      statementType
+    }
+  }
+`;
+
+const UPDATE_USER_PROFILE = gql`
+  mutation UpdateUserProfile(
+    $firstName: String
+    $lastName: String
+    $email: String
+    $phone: String
+    $address: String
+    $city: String
+    $state: String
+    $zipCode: String
+    $preferredLocale: String
+  ) {
+    updateUserProfile(
+      firstName: $firstName
+      lastName: $lastName
+      email: $email
+      phone: $phone
+      address: $address
+      city: $city
+      state: $state
+      zipCode: $zipCode
+      preferredLocale: $preferredLocale
+    ) {
+      id
+      firstName
+      lastName
+      email
+    }
+  }
+`;
+
+const SET_MFA_STATUS = gql`
+  mutation SetMFAStatus($enable: Boolean!) {
+    setMFAStatus(enable: $enable) {
+      id
+      mfaEnabled
+    }
+  }
+`;
+
+const GET_SECURITY_LOGS = gql`
+  query GetSecurityLogs($limit: Int, $offset: Int) {
+    securityLogs(limit: $limit, offset: $offset) {
+      id
+      userId
+      action
+      timestamp
+      ipAddress
+      status
+      details
+    }
+  }
+`;
+
+const GET_CURRENCY_RATES = gql`
+  query GetCurrencyRates($from: CurrencyEnum, $to: CurrencyEnum) {
+    currencyRates(from: $from, to: $to) {
+      fromCurrency
+      toCurrency
+      rate
+      lastUpdated
+    }
+  }
+`;
+
+const GET_SCHEDULED_PAYMENTS = gql`
+  query GetScheduledPayments($status: PaymentStatusEnum, $limit: Int, $offset: Int) {
+    scheduledPayments(status: $status, limit: $limit, offset: $offset) {
+      id
+      fromAccountId
+      toBeneficiaryId
+      toExternalAccount {
+        accountNumber
+        bankName
+      }
+      amount
+      currency
+      scheduleDate
+      frequency
+      endDate
+      description
+      status
+    }
+  }
+`;
+
+const CANCEL_SCHEDULED_PAYMENT = gql`
+  mutation CancelScheduledPayment($id: ID!) {
+    cancelScheduledPayment(id: $id) {
+      id
+      status
+    }
+  }
+`;
+
+const GET_DOCUMENTS = gql`
+  query GetDocuments {
+    documents {
+      id
+      userId
+      documentType
+      fileName
+      uploadDate
+      status
+      downloadUrl
+    }
+  }
+`;
+
+const UPLOAD_DOCUMENT = gql`
+  mutation UploadDocument($file: Upload!, $documentType: DocumentTypeEnum!) {
+    uploadDocument(file: $file, documentType: $documentType) {
+      id
+      fileName
+      status
+    }
+  }
+`;
+
+// --- GraphQL Client Setup ---
+const createApolloClient = (token: string | null) => {
+  return new ApolloClient({
+    uri: API_BASE_URL,
+    cache: new InMemoryCache(),
+    headers: {
+      authorization: token ? `Bearer ${token}` : '',
+    },
+  });
+};
+
+// --- Utility Functions ---
+
+const formatCurrency = (amount: number, currency: CurrencyEnum, locale: string = DEFAULT_LOCALE): string => {
+  try {
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: currency,
+    }).format(amount);
+  } catch (error) {
+    console.error('Error formatting currency:', error);
+    return `${currency} ${amount.toFixed(2)}`; // Fallback
+  }
+};
+
+const formatDate = (dateString: string, formatStr: string = 'PP', locale: string = DEFAULT_LOCALE): string => {
+  try {
+    const dateLocale = {
+      'en-US': enUS,
+      'es': es,
+      'fr': fr,
+      // Add more locales as needed
+    }[locale] || enUS;
+    return format(parseISO(dateString), formatStr, { locale: dateLocale });
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return dateString; // Fallback
+  }
+};
+
+const generateUUID = (): string => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+};
+
+const debounce = <T extends (...args: any[]) => void>(func: T, delay: number) => {
+  let timeout: NodeJS.Timeout;
+  return function (this: ThisParameterType<T>, ...args: Parameters<T>) {
+    const context = this;
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(context, args), delay);
+  };
+};
+
+const getLocaleDateFnsObject = (localeString: string) => {
+  switch (localeString) {
+    case 'en-US':
+      return enUS;
+    case 'es':
+      return es;
+    case 'fr':
+      return fr;
+    default:
+      return enUS;
+  }
+};
+
+// --- React Contexts ---
+
+interface AuthContextType {
+  isAuthenticated: boolean;
+  user: User | null;
+  loading: boolean;
+  login: (token: string, refreshToken: string, user: User) => Promise<void>;
+  logout: () => void;
+  refreshToken: () => Promise<boolean>;
+  updateUser: (newUser: Partial<User>) => void;
+  apolloClient: ApolloClient<any> | null;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [authToken, setAuthToken] = useState<string | null>(null);
+  const [currentApolloClient, setCurrentApolloClient] = useState<ApolloClient<any> | null>(null);
+  const sessionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const resetSessionTimeout = useCallback(() => {
+    if (sessionTimeoutRef.current) {
+      clearTimeout(sessionTimeoutRef.current);
+    }
+    sessionTimeoutRef.current = setTimeout(() => {
+      console.warn('Session timed out. Logging out.');
+      logout();
+    }, SESSION_TIMEOUT_MS);
+  }, []);
+
+  useEffect(() => {
+    const storedToken = localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+    const storedRefreshToken = localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY);
+
+    if (storedToken && storedRefreshToken) {
+      setAuthToken(storedToken);
+      setIsAuthenticated(true);
+      setCurrentApolloClient(createApolloClient(storedToken));
+      // In a real app, you'd fetch user profile here to hydrate the `user` state
+      // For now, we'll assume a successful login has provided user details.
+      // Or, this could be done via a dedicated `fetchUserProfile` service.
+      setLoading(false);
+      resetSessionTimeout();
+    } else {
+      setLoading(false);
+    }
+
+    const handleActivity = () => resetSessionTimeout();
+    window.addEventListener('mousemove', handleActivity);
+    window.addEventListener('keydown', handleActivity);
+
+    return () => {
+      if (sessionTimeoutRef.current) {
+        clearTimeout(sessionTimeoutRef.current);
+      }
+      window.removeEventListener('mousemove', handleActivity);
+      window.removeEventListener('keydown', handleActivity);
+    };
+  }, [resetSessionTimeout]);
+
+  const login = useCallback(async (token: string, refreshToken: string, userData: User) => {
+    localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
+    localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, refreshToken);
+    setAuthToken(token);
+    setIsAuthenticated(true);
+    setUser(userData);
+    setCurrentApolloClient(createApolloClient(token));
+    resetSessionTimeout();
+  }, [resetSessionTimeout]);
+
+  const logout = useCallback(() => {
+    localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
+    setAuthToken(null);
+    setIsAuthenticated(false);
+    setUser(null);
+    setCurrentApolloClient(null);
+    if (sessionTimeoutRef.current) {
+      clearTimeout(sessionTimeoutRef.current);
+    }
+    console.log('User logged out.');
+    // Redirect to login page or home
+    window.location.href = '/login';
+  }, []);
+
+  const refreshToken = useCallback(async (): Promise<boolean> => {
+    const currentRefreshToken = localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY);
+    if (!currentRefreshToken) {
+      logout();
+      return false;
+    }
+
+    try {
+      // In a real application, this would be an API call to refresh the token
+      // For this demo, we'll simulate a refresh
+      console.log('Attempting to refresh token...');
+      const response = await fetch(`${API_BASE_URL}/refresh-token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ refreshToken: currentRefreshToken }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to refresh token');
+      }
+
+      const { accessToken: newAccessToken, refreshToken: newRefreshToken, user: newUserData } = await response.json();
+      localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, newAccessToken);
+      localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, newRefreshToken);
+      setAuthToken(newAccessToken);
+      setUser(newUserData); // Update user data if it comes with refresh
+      setCurrentApolloClient(createApolloClient(newAccessToken));
+      setIsAuthenticated(true);
+      resetSessionTimeout();
+      console.log('Token refreshed successfully.');
+      return true;
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      logout();
+      return false;
+    }
+  }, [logout, resetSessionTimeout]);
+
+  const updateUser = useCallback((newUser: Partial<User>) => {
+    setUser(prevUser => (prevUser ? { ...prevUser, ...newUser } : null));
+  }, []);
+
+  const value = useMemo(
+    () => ({
+      isAuthenticated,
+      user,
+      loading,
+      login,
+      logout,
+      refreshToken,
+      updateUser,
+      apolloClient: currentApolloClient,
+    }),
+    [isAuthenticated, user, loading, login, logout, refreshToken, updateUser, currentApolloClient]
+  );
+
+  if (loading) {
+    return <LoadingSpinner message="Authenticating..." />;
+  }
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+interface ThemeContextType {
+  themeMode: ThemeMode;
+  toggleTheme: () => void;
+}
+
+const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+
+export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
+    const storedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+    return (storedTheme as ThemeMode) || ThemeMode.LIGHT;
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', themeMode);
+    localStorage.setItem(THEME_STORAGE_KEY, themeMode);
+  }, [themeMode]);
+
+  const toggleTheme = useCallback(() => {
+    setThemeMode(prevMode => (prevMode === ThemeMode.LIGHT ? ThemeMode.DARK : ThemeMode.LIGHT));
+  }, []);
+
+  const value = useMemo(() => ({ themeMode, toggleTheme }), [themeMode, toggleTheme]);
+
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+};
+
+export const useTheme = () => {
+  const context = useContext(ThemeContext);
+  if (context === undefined) {
+    throw new Error('useTheme must be used within a ThemeProvider');
+  }
+  return context;
+};
+
+interface NotificationContextType {
+  notifications: Notification[];
+  addNotification: (notification: Omit<Notification, 'id' | 'read' | 'timestamp'>) => void;
+  markNotificationRead: (id: string) => void;
+  clearNotification: (id: string) => void;
+  clearAllNotifications: () => void;
+}
+
+const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
+
+export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  const addNotification = useCallback((newNotification: Omit<Notification, 'id' | 'read' | 'timestamp'>) => {
+    setNotifications(prev => [
+      ...prev,
+      {
+        ...newNotification,
+        id: generateUUID(),
+        read: false,
+        timestamp: new Date().toISOString(),
+      },
+    ]);
+  }, []);
+
+  const markNotificationRead = useCallback((id: string) => {
+    setNotifications(prev => prev.map(n => (n.id === id ? { ...n, read: true } : n)));
+  }, []);
+
+  const clearNotification = useCallback((id: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  }, []);
+
+  const clearAllNotifications = useCallback(() => {
+    setNotifications([]);
+  }, []);
+
+  const value = useMemo(
+    () => ({
+      notifications,
+      addNotification,
+      markNotificationRead,
+      clearNotification,
+      clearAllNotifications,
+    }),
+    [notifications, addNotification, markNotificationRead, clearNotification, clearAllNotifications]
+  );
+
+  return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
+};
+
+export const useNotification = () => {
+  const context = useContext(NotificationContext);
+  if (context === undefined) {
+    throw new Error('useNotification must be used within a NotificationProvider');
+  }
+  return context;
+};
+
+interface LocaleContextType {
+  locale: string;
+  setLocale: (newLocale: string) => void;
+  dateFnsLocale: Locale;
+}
+
+const LocaleContext = createContext<LocaleContextType | undefined>(undefined);
+
+export const LocaleProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [locale, setLocale] = useState<string>(DEFAULT_LOCALE);
+  const dateFnsLocale = useMemo(() => getLocaleDateFnsObject(locale), [locale]);
+
+  const value = useMemo(() => ({ locale, setLocale, dateFnsLocale }), [locale, setLocale, dateFnsLocale]);
+
+  return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
+};
+
+export const useLocale = () => {
+  const context = useContext(LocaleContext);
+  if (context === undefined) {
+    throw new Error('useLocale must be used within a LocaleProvider');
+  }
+  return context;
+};
+
+// --- Custom Hooks ---
+
+export const useUserProfile = () => {
+  const { apolloClient, isAuthenticated, updateUser: updateAuthUser } = useAuth();
+  const { loading, error, data, refetch } = useQuery<
+    { userProfile: User },
+    {}
+  >(GET_USER_PROFILE, {
+    client: apolloClient || undefined,
+    skip: !isAuthenticated || !apolloClient,
+    onCompleted: (data) => {
+      if (data?.userProfile) {
+        updateAuthUser(data.userProfile);
+      }
+    }
+  });
+
+  const [updateUserMutation, { loading: updateLoading, error: updateError }] = useMutation(UPDATE_USER_PROFILE, {
+    client: apolloClient || undefined,
+    onCompleted: (data) => {
+      if (data?.updateUserProfile) {
+        updateAuthUser(data.updateUserProfile);
+        refetch(); // Re-fetch to ensure consistency
+      }
+    }
+  });
+
+  const updateProfile = useCallback(async (updates: Partial<User>) => {
+    try {
+      await updateUserMutation({ variables: updates });
+      return { success: true };
+    } catch (e) {
+      console.error('Error updating profile:', e);
+      return { success: false, error: (e as Error).message };
+    }
+  }, [updateUserMutation]);
+
+  return {
+    userProfile: data?.userProfile,
+    loading: loading || updateLoading,
+    error: error || updateError,
+    refetchUserProfile: refetch,
+    updateProfile,
+  };
+};
+
+// --- API Service Layer (conceptual, largely covered by Apollo useQuery/useMutation) ---
+
+// In a real application, these would be separate files/modules.
+// For the purpose of making app.tsx "1000 times longer",
+// we'll keep the core logic here, representing the service layer
+// as custom hooks or direct Apollo calls within components.
+
+// This section could theoretically be hundreds of functions mapping to API endpoints.
+// Example:
+export const accountService = {
+  getAccountOverview: (currency?: CurrencyEnum) => {
+    const { apolloClient, isAuthenticated } = useAuth();
+    return useQuery<AccountCurrencyMetricsData, AccountCurrencyMetricsVariables>(GET_ACCOUNT_CURRENCY_METRICS, {
+      variables: { currency },
+      client: apolloClient || undefined,
+      skip: !isAuthenticated || !apolloClient,
+    });
+  },
+  getAccounts: () => {
+    const { apolloClient, isAuthenticated } = useAuth();
+    return useQuery<{ accounts: Account[] }>(GET_ALL_ACCOUNTS, {
+      client: apolloClient || undefined,
+      skip: !isAuthenticated || !apolloClient,
+    });
+  },
+  getTransactions: (accountId: string, startDate?: string, endDate?: string, type?: TransactionTypeEnum, limit: number = TRANSACTION_PAGE_SIZE, offset: number = 0) => {
+    const { apolloClient, isAuthenticated } = useAuth();
+    return useQuery<{ transactions: Transaction[] }>(GET_TRANSACTIONS_BY_ACCOUNT, {
+      variables: { accountId, startDate, endDate, type, limit, offset },
+      client: apolloClient || undefined,
+      skip: !isAuthenticated || !apolloClient || !accountId,
+      fetchPolicy: 'network-only', // Ensure fresh data for transactions
+    });
+  },
+  transferFunds: () => {
+    const { apolloClient, isAuthenticated } = useAuth();
+    const [mutate, { loading, error, data }] = useMutation(CREATE_FUNDS_TRANSFER, {
+      client: apolloClient || undefined,
+      skip: !isAuthenticated || !apolloClient,
+    });
+    return { transfer: mutate, loading, error, data };
+  },
+  getBeneficiaries: () => {
+    const { apolloClient, isAuthenticated } = useAuth();
+    return useQuery<{ beneficiaries: Beneficiary[] }>(GET_BENEFICIARIES, {
+      client: apolloClient || undefined,
+      skip: !isAuthenticated || !apolloClient,
+    });
+  },
+  addBeneficiary: () => {
+    const { apolloClient, isAuthenticated } = useAuth();
+    const [mutate, { loading, error, data }] = useMutation(ADD_BENEFICIARY, {
+      client: apolloClient || undefined,
+      skip: !isAuthenticated || !apolloClient,
+      refetchQueries: [{ query: GET_BENEFICIARIES }],
+    });
+    return { add: mutate, loading, error, data };
+  },
+};
+
+export const investmentService = {
+  getHoldings: (accountId: string) => {
+    const { apolloClient, isAuthenticated } = useAuth();
+    return useQuery<{ investmentHoldings: InvestmentHolding[] }>(GET_INVESTMENT_HOLDINGS, {
+      variables: { accountId },
+      client: apolloClient || undefined,
+      skip: !isAuthenticated || !apolloClient || !accountId,
+    });
+  },
+  // Add buy/sell mutations, portfolio rebalancing etc.
+};
+
+export const loanService = {
+  getLoans: () => {
+    const { apolloClient, isAuthenticated } = useAuth();
+    return useQuery<{ loans: Loan[] }>(GET_LOANS, {
+      client: apolloClient || undefined,
+      skip: !isAuthenticated || !apolloClient,
+    });
+  },
+  // Add makePayment mutation, getPaymentHistory etc.
+};
+
+export const notificationService = {
+  getNotifications: (read?: boolean) => {
+    const { apolloClient, isAuthenticated } = useAuth();
+    return useQuery<{ notifications: Notification[] }>(GET_NOTIFICATIONS, {
+      variables: { read },
+      client: apolloClient || undefined,
+      skip: !isAuthenticated || !apolloClient,
+      fetchPolicy: 'network-only',
+    });
+  },
+  markAsRead: () => {
+    const { apolloClient, isAuthenticated } = useAuth();
+    const [mutate] = useMutation(MARK_NOTIFICATION_AS_READ, {
+      client: apolloClient || undefined,
+      skip: !isAuthenticated || !apolloClient,
+      refetchQueries: [{ query: GET_NOTIFICATIONS, variables: { read: false } }],
+    });
+    return mutate;
+  },
+};
+
+export const statementService = {
+  getStatements: (accountId?: string, year?: number, type?: StatementTypeEnum) => {
+    const { apolloClient, isAuthenticated } = useAuth();
+    return useQuery<{ statements: Statement[] }>(GET_STATEMENTS, {
+      variables: { accountId, year, type },
+      client: apolloClient || undefined,
+      skip: !isAuthenticated || !apolloClient,
+    });
+  },
+  // Add downloadStatement function (client-side for security)
+};
+
+export const securityService = {
+  setMfaStatus: () => {
+    const { apolloClient, isAuthenticated } = useAuth();
+    const [mutate, { loading, error, data }] = useMutation(SET_MFA_STATUS, {
+      client: apolloClient || undefined,
+      skip: !isAuthenticated || !apolloClient,
+      refetchQueries: [{ query: GET_USER_PROFILE }],
+    });
+    return { setStatus: mutate, loading, error, data };
+  },
+  getSecurityLogs: (limit?: number, offset?: number) => {
+    const { apolloClient, isAuthenticated } = useAuth();
+    return useQuery<{ securityLogs: SecurityLog[] }>(GET_SECURITY_LOGS, {
+      variables: { limit, offset },
+      client: apolloClient || undefined,
+      skip: !isAuthenticated || !apolloClient,
+      fetchPolicy: 'network-only',
+    });
+  }
+};
+
+export const utilityService = {
+  getCurrencyRates: (from?: CurrencyEnum, to?: CurrencyEnum) => {
+    const { apolloClient, isAuthenticated } = useAuth();
+    return useQuery<{ currencyRates: CurrencyRate[] }>(GET_CURRENCY_RATES, {
+      variables: { from, to },
+      client: apolloClient || undefined,
+      skip: !isAuthenticated || !apolloClient,
+      pollInterval: 60 * 60 * 1000, // Poll every hour for rates
+    });
+  }
+};
+
+export const paymentService = {
+  getScheduledPayments: (status?: ScheduledPayment['status'], limit?: number, offset?: number) => {
+    const { apolloClient, isAuthenticated } = useAuth();
+    return useQuery<{ scheduledPayments: ScheduledPayment[] }>(GET_SCHEDULED_PAYMENTS, {
+      variables: { status, limit, offset },
+      client: apolloClient || undefined,
+      skip: !isAuthenticated || !apolloClient,
+      fetchPolicy: 'network-only',
+    });
+  },
+  cancelScheduledPayment: () => {
+    const { apolloClient, isAuthenticated } = useAuth();
+    const [mutate, { loading, error }] = useMutation(CANCEL_SCHEDULED_PAYMENT, {
+      client: apolloClient || undefined,
+      skip: !isAuthenticated || !apolloClient,
+      refetchQueries: [{ query: GET_SCHEDULED_PAYMENTS }],
+    });
+    return { cancel: mutate, loading, error };
+  }
+};
+
+export const documentService = {
+  getDocuments: () => {
+    const { apolloClient, isAuthenticated } = useAuth();
+    return useQuery<{ documents: Document[] }>(GET_DOCUMENTS, {
+      client: apolloClient || undefined,
+      skip: !isAuthenticated || !apolloClient,
+      fetchPolicy: 'network-only',
+    });
+  },
+  uploadDocument: () => {
+    const { apolloClient, isAuthenticated } = useAuth();
+    const [mutate, { loading, error }] = useMutation(UPLOAD_DOCUMENT, {
+      client: apolloClient || undefined,
+      skip: !isAuthenticated || !apolloClient,
+      refetchQueries: [{ query: GET_DOCUMENTS }],
+    });
+    return { upload: mutate, loading, error };
+  }
+};
+
+
+// --- UI Primitives (Component Library) ---
+
+export const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'danger' | 'ghost'; isLoading?: boolean; size?: 'sm' | 'md' | 'lg' }> = ({
+  children,
+  variant = 'primary',
+  isLoading = false,
+  className = '',
+  disabled,
+  size = 'md',
+  ...props
+}) => {
+  const baseStyle = 'rounded-md font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2';
+  const variantStyles = {
+    primary: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500',
+    secondary: 'bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-400 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600',
+    danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
+    ghost: 'bg-transparent text-gray-700 hover:bg-gray-100 focus:ring-gray-300 dark:text-gray-300 dark:hover:bg-gray-700',
+  };
+  const sizeStyles = {
+    sm: 'px-3 py-1 text-sm',
+    md: 'px-4 py-2 text-base',
+    lg: 'px-5 py-3 text-lg',
+  };
+  const disabledStyle = 'opacity-50 cursor-not-allowed';
+
+  return (
+    <button
+      className={`${baseStyle} ${variantStyles[variant]} ${sizeStyles[size]} ${isLoading || disabled ? disabledStyle : ''} ${className}`}
+      disabled={isLoading || disabled}
+      {...props}
+    >
+      {isLoading ? (
+        <LoadingSpinner size="sm" />
+      ) : (
+        children
+      )}
+    </button>
+  );
+};
+
+export const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { label?: string; error?: string }> = ({
+  label,
+  error,
+  id,
+  className = '',
+  ...props
+}) => (
+  <div className="mb-4">
+    {label && (
+      <label htmlFor={id} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        {label}
+      </label>
+    )}
+    <input
+      id={id}
+      className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm
+        dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400 ${error ? 'border-red-500' : ''} ${className}`}
+      {...props}
+    />
+    {error && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{error}</p>}
+  </div>
+);
+
+export const Select: React.FC<React.SelectHTMLAttributes<HTMLSelectElement> & { label?: string; error?: string; options: { value: string; label: string }[] }> = ({
+  label,
+  error,
+  id,
+  className = '',
+  options,
+  ...props
+}) => (
+  <div className="mb-4">
+    {label && (
+      <label htmlFor={id} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        {label}
+      </label>
+    )}
+    <select
+      id={id}
+      className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm
+        dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400 ${error ? 'border-red-500' : ''} ${className}`}
+      {...props}
+    >
+      {options.map(option => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+    {error && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{error}</p>}
+  </div>
+);
+
+
+export const Card: React.FC<{ children: React.ReactNode; className?: string; title?: string }> = ({ children, className = '', title }) => (
+  <div className={`bg-white dark:bg-gray-800 shadow rounded-lg p-6 ${className}`}>
+    {title && <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">{title}</h2>}
+    {children}
+  </div>
+);
+
+export const LoadingSpinner: React.FC<{ message?: string; size?: 'sm' | 'md' | 'lg' }> = ({ message, size = 'md' }) => {
+  const sizeClasses = {
+    sm: 'w-4 h-4 border-2',
+    md: 'w-8 h-8 border-4',
+    lg: 'w-12 h-12 border-4',
+  };
+  const spinnerSize = sizeClasses[size];
+  return (
+    <div className="flex flex-col items-center justify-center p-4">
+      <div className={`${spinnerSize} border-blue-500 border-t-transparent rounded-full animate-spin`} role="status">
+        <span className="sr-only">Loading...</span>
+      </div>
+      {message && <p className="mt-2 text-gray-600 dark:text-gray-400 text-sm">{message}</p>}
+    </div>
+  );
+};
+
+export const Modal: React.FC<{ isOpen: boolean; onClose: () => void; title: string; children: React.ReactNode; }> = ({ isOpen, onClose, title, children }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center z-50">
+      <div className="relative p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800 dark:border-gray-700">
+        <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+            &times;
+          </button>
+        </div>
+        <div className="mt-4">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const Alert: React.FC<{ message: string; severity: NotificationSeverity; onClose?: () => void; className?: string }> = ({ message, severity, onClose, className = '' }) => {
+  const baseStyle = 'p-4 rounded-md text-sm';
+  const severityStyles = {
+    info: 'bg-blue-100 text-blue-700 dark:bg-blue-800 dark:text-blue-100',
+    success: 'bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-100',
+    warning: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-800 dark:text-yellow-100',
+    error: 'bg-red-100 text-red-700 dark:bg-red-800 dark:text-red-100',
+  };
+  return (
+    <div className={`${baseStyle} ${severityStyles[severity]} flex justify-between items-center ${className}`}>
+      <span>{message}</span>
+      {onClose && (
+        <button onClick={onClose} className="ml-4 text-current opacity-75 hover:opacity-100">
+          &times;
+        </button>
+      )}
+    </div>
+  );
+};
+
+export const Table: React.FC<{
+  headers: { key: string; label: string; render?: (item: any) => React.ReactNode }[];
+  data: any[];
+  caption?: string;
+  className?: string;
+}> = ({ headers, data, caption, className }) => (
+  <div className="overflow-x-auto">
+    <table className={`min-w-full divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800 ${className}`}>
+      {caption && <caption className="p-4 text-lg font-semibold text-left text-gray-900 dark:text-white">{caption}</caption>}
+      <thead className="bg-gray-50 dark:bg-gray-700">
+        <tr>
+          {headers.map(header => (
+            <th
+              key={header.key}
+              scope="col"
+              className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+            >
+              {header.label}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+        {data.length === 0 ? (
+          <tr>
+            <td colSpan={headers.length} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 text-center">
+              No data available.
+            </td>
+          </tr>
+        ) : (
+          data.map((item, itemIndex) => (
+            <tr key={item.id || itemIndex}>
+              {headers.map(header => (
+                <td key={`${item.id || itemIndex}-${header.key}`} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                  {header.render ? header.render(item) : item[header.key]}
+                </td>
+              ))}
+            </tr>
+          ))
+        )}
+      </tbody>
+    </table>
+  </div>
+);
+
+// A simple pagination component
+export const Pagination: React.FC<{
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}> = ({ currentPage, totalPages, onPageChange }) => {
+  const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+
+  return (
+    <nav className="flex justify-center mt-4" aria-label="Pagination">
+      <ul className="flex list-none p-0">
+        <li>
+          <Button
+            variant="ghost"
+            onClick={() => onPageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="mx-1"
+          >
+            Previous
+          </Button>
+        </li>
+        {pages.map(page => (
+          <li key={page}>
+            <Button
+              variant={page === currentPage ? 'primary' : 'secondary'}
+              onClick={() => onPageChange(page)}
+              className="mx-1"
+            >
+              {page}
+            </Button>
+          </li>
+        ))}
+        <li>
+          <Button
+            variant="ghost"
+            onClick={() => onPageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="mx-1"
+          >
+            Next
+          </Button>
+        </li>
+      </ul>
+    </nav>
+  );
+};
+
+
+// --- Container Components (Widgets) ---
+
+export const AccountCurrencyBalanceWidget: React.FC<{ currency?: CurrencyEnum }> = ({ currency }) => {
+  const { locale } = useLocale();
+  const { loading, error, data } = accountService.getAccountOverview(currency);
+
+  if (loading) return <Card title="Account Balances"><LoadingSpinner /></Card>;
+  if (error) return <Card title="Account Balances"><Alert severity="error" message={`Error: ${error.message}`} /></Card>;
+
+  const metrics = data?.accountCurrencyMetrics.edges.map(edge => edge.node) || [];
+
+  return (
+    <Card title="Account Balances Overview" className="h-full flex flex-col">
+      <p className="text-gray-600 dark:text-gray-400 mb-4">
+        Summary of your available and prior day balances across different currencies.
+      </p>
+      {metrics.length === 0 ? (
+        <p className="text-gray-500 dark:text-gray-400">No currency balances to display.</p>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 flex-grow">
+          {metrics.map(metric => (
+            <Card key={metric.id} className="bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700">
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200">{metric.currency} Balances</h3>
+                <span className="text-sm text-blue-600 dark:text-blue-400">{metric.accountCount} Accounts</span>
+              </div>
+              <div className="space-y-1">
+                <p className="text-gray-700 dark:text-gray-300">
+                  <span className="font-medium">Available Balance:</span>{' '}
+                  <span className="font-bold text-green-700 dark:text-green-300 text-lg">
+                    {formatCurrency(metric.availableBalanceValue, metric.currency, locale)}
+                  </span>
+                </p>
+                <p className="text-gray-600 dark:text-gray-400">
+                  <span className="font-medium">Prior Day Balance:</span>{' '}
+                  <span className="font-semibold">
+                    {formatCurrency(metric.priorDayBalanceValue, metric.currency, locale)}
+                  </span>
+                </p>
+              </div>
+              <p className="mt-3 text-xs text-gray-500 dark:text-gray-500">
+                Last updated: {formatDate(metric.lastUpdated, 'Pp', locale)}
+              </p>
+            </Card>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+};
+
+export const TransactionHistoryWidget: React.FC<{ accountId?: string; limit?: number }> = ({ accountId, limit = 5 }) => {
+  const { locale } = useLocale();
+  const { addNotification } = useNotification();
+  const { data: accountsData, loading: accountsLoading, error: accountsError } = accountService.getAccounts();
+  const [selectedAccountId, setSelectedAccountId] = useState<string | undefined>(accountId);
+  const [page, setPage] = useState(1);
+  const offset = (page - 1) * TRANSACTION_PAGE_SIZE;
+
+  // Use selectedAccountId first, then fallback to prop, then first account
+  useEffect(() => {
+    if (!selectedAccountId && accountId) {
+      setSelectedAccountId(accountId);
+    } else if (!selectedAccountId && accountsData?.accounts && accountsData.accounts.length > 0) {
+      setSelectedAccountId(accountsData.accounts[0].id);
+    }
+  }, [accountId, accountsData, selectedAccountId]);
+
+
+  const { data: transactionsData, loading: transactionsLoading, error: transactionsError, refetch } = accountService.getTransactions(
+    selectedAccountId || '',
+    undefined, undefined, undefined, limit, offset
+  );
+
+  const transactions = transactionsData?.transactions || [];
+
+  useEffect(() => {
+    if (transactionsError) {
+      addNotification({
+        title: 'Transaction Error',
+        message: `Failed to load transactions: ${transactionsError.message}`,
+        severity: NotificationSeverity.ERROR,
+      });
+    }
+  }, [transactionsError, addNotification]);
+
+  const transactionHeaders = useMemo(() => [
+    { key: 'date', label: 'Date', render: (t: Transaction) => formatDate(t.date, 'P', locale) },
+    { key: 'description', label: 'Description' },
+    { key: 'type', label: 'Type' },
+    { key: 'amount', label: 'Amount', render: (t: Transaction) => formatCurrency(t.amount, t.currency, locale) },
+    { key: 'status', label: 'Status' },
+  ], [locale]);
+
+  const handleAccountChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedAccountId(e.target.value);
+    setPage(1); // Reset page on account change
+  };
+
+  const accountOptions = useMemo(() => accountsData?.accounts.map(acc => ({
+    value: acc.id,
+    label: `${acc.name} (${acc.accountNumber}) - ${acc.currency}`,
+  })) || [], [accountsData]);
+
+  if (accountsLoading || transactionsLoading) return <Card title="Transaction History"><LoadingSpinner /></Card>;
+  if (accountsError) return <Card title="Transaction History"><Alert severity="error" message={`Accounts Error: ${accountsError.message}`} /></Card>;
+
+  return (
+    <Card title="Recent Transactions">
+      <div className="mb-4">
+        <Select
+          label="Select Account"
+          options={accountOptions}
+          value={selectedAccountId || ''}
+          onChange={handleAccountChange}
+          disabled={accountsLoading}
+        />
+      </div>
+      {transactions.length === 0 ? (
+        <p className="text-gray-500 dark:text-gray-400">No recent transactions for this account.</p>
+      ) : (
+        <>
+          <Table headers={transactionHeaders} data={transactions} />
+          {/* Pagination for full page, not for widget (widget typically limits records) */}
+          {/* <Pagination currentPage={page} totalPages={1} onPageChange={() => {}} /> */}
+          <div className="mt-4 text-center">
+            <Link to={`/accounts/${selectedAccountId}/transactions`} className="text-blue-600 hover:underline dark:text-blue-400">
+              View All Transactions
+            </Link>
+          </div>
+        </>
+      )}
+    </Card>
+  );
+};
+
+
+export const FundsTransferWidget: React.FC = () => {
+  const { locale } = useLocale();
+  const { addNotification } = useNotification();
+  const { data: accountsData, loading: accountsLoading, error: accountsError } = accountService.getAccounts();
+  const { data: beneficiariesData, loading: beneficiariesLoading, error: beneficiariesError, refetch: refetchBeneficiaries } = accountService.getBeneficiaries();
+  const { transfer, loading: transferLoading, error: transferError, data: transferResult } = accountService.transferFunds();
+
+  const [fromAccount, setFromAccount] = useState<string>('');
+  const [toBeneficiary, setToBeneficiary] = useState<string>(''); // Can be beneficiary ID or 'new'
+  const [toExternalAccountNumber, setToExternalAccountNumber] = useState<string>('');
+  const [toExternalBankName, setToExternalBankName] = useState<string>('');
+  const [amount, setAmount] = useState<string>('');
+  const [currency, setCurrency] = useState<CurrencyEnum>(CurrencyEnum.USD);
+  const [description, setDescription] = useState<string>('');
+  const [isScheduled, setIsScheduled] = useState<boolean>(false);
+  const [scheduleDate, setScheduleDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
+  const [isRecurring, setIsRecurring] = useState<boolean>(false);
+  const [frequency, setFrequency] = useState<'ONE_TIME' | 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUALLY'>('ONE_TIME');
+  const [endDate, setEndDate] = useState<string>('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showAddBeneficiaryModal, setShowAddBeneficiaryModal] = useState(false);
+
+  const availableAccounts = useMemo(() => accountsData?.accounts || [], [accountsData]);
+  const beneficiaries = useMemo(() => beneficiariesData?.beneficiaries || [], [beneficiariesData]);
+
+  useEffect(() => {
+    if (availableAccounts.length > 0 && !fromAccount) {
+      setFromAccount(availableAccounts[0].id);
+      setCurrency(availableAccounts[0].currency); // Default currency to sending account
+    }
+  }, [availableAccounts, fromAccount]);
+
+  useEffect(() => {
+    if (transferResult) {
+      addNotification({
+        title: 'Transfer initiated',
+        message: `Transfer ID: ${transferResult.createFundsTransfer.id}, Status: ${transferResult.createFundsTransfer.status}`,
+        severity: transferResult.createFundsTransfer.status === 'SUCCESS' ? NotificationSeverity.SUCCESS : NotificationSeverity.INFO,
+      });
+      // Clear form
+      setAmount('');
+      setDescription('');
+      setIsScheduled(false);
+      setIsRecurring(false);
+      setScheduleDate(format(new Date(), 'yyyy-MM-dd'));
+      setEndDate('');
+      setErrors({});
+      // Optionally refetch account balances
+    }
+    if (transferError) {
+      addNotification({
+        title: 'Transfer Failed',
+        message: `Error: ${transferError.message}`,
+        severity: NotificationSeverity.ERROR,
+      });
+    }
+  }, [transferResult, transferError, addNotification]);
+
+  const validateForm = useCallback(() => {
+    const newErrors: Record<string, string> = {};
+    const parsedAmount = parseFloat(amount);
+    if (!fromAccount) newErrors.fromAccount = 'Please select a source account.';
+    if (!toBeneficiary && !toExternalAccountNumber) newErrors.toBeneficiary = 'Please select a beneficiary or enter external account details.';
+    if (toBeneficiary === 'new' && (!toExternalAccountNumber || !toExternalBankName)) {
+      if (!toExternalAccountNumber) newErrors.toExternalAccountNumber = 'External account number is required.';
+      if (!toExternalBankName) newErrors.toExternalBankName = 'External bank name is required.';
+    }
+    if (isNaN(parsedAmount) || parsedAmount <= 0) newErrors.amount = 'Amount must be a positive number.';
+    if (!currency) newErrors.currency = 'Currency is required.';
+    if (isScheduled && !scheduleDate) newErrors.scheduleDate = 'Schedule date is required.';
+    if (isScheduled && isBefore(parseISO(scheduleDate), new Date())) newErrors.scheduleDate = 'Schedule date cannot be in the past.';
+    if (isRecurring && !frequency) newErrors.frequency = 'Frequency is required for recurring payments.';
+    if (isRecurring && endDate && isBefore(parseISO(endDate), parseISO(scheduleDate))) newErrors.endDate = 'End date cannot be before schedule date.';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  }, [amount, fromAccount, toBeneficiary, toExternalAccountNumber, toExternalBankName, currency, isScheduled, scheduleDate, isRecurring, frequency, endDate]);
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    const parsedAmount = parseFloat(amount);
+    const selectedFromAccount = availableAccounts.find(acc => acc.id === fromAccount);
+
+    if (!selectedFromAccount) {
+      addNotification({ title: 'Error', message: 'Selected source account not found.', severity: NotificationSeverity.ERROR });
+      return;
+    }
+
+    if (parsedAmount > selectedFromAccount.availableBalance) {
+      addNotification({ title: 'Insufficient Funds', message: 'You do not have enough funds in the selected account.', severity: NotificationSeverity.WARNING });
+      return;
+    }
+
+    const variables: any = {
+      fromAccountId: fromAccount,
+      amount: parsedAmount,
+      currency: currency,
+      description: description || `Transfer from ${selectedFromAccount.name}`,
+    };
+
+    if (toBeneficiary && toBeneficiary !== 'new') {
+      variables.toBeneficiaryId = toBeneficiary;
+    } else if (toExternalAccountNumber && toExternalBankName) {
+      variables.toExternalAccount = {
+        accountNumber: toExternalAccountNumber,
+        bankName: toExternalBankName,
+        // Assuming SWIFT/IBAN for external are part of Beneficiary or can be added on the fly
+      };
+    } else {
+      addNotification({ title: 'Transfer Error', message: 'Recipient details incomplete.', severity: NotificationSeverity.ERROR });
+      return;
+    }
+
+    if (isScheduled) {
+      variables.scheduledDate = scheduleDate;
+      if (isRecurring) {
+        variables.isRecurring = true;
+        variables.frequency = frequency;
+        if (endDate) variables.endDate = endDate;
+      }
+    }
+
+    try {
+      await transfer({ variables });
+    } catch (e) {
+      console.error('Funds transfer failed:', e);
+      // Error handled by useEffect
+    }
+  }, [validateForm, amount, availableAccounts, fromAccount, addNotification, toBeneficiary, toExternalAccountNumber, toExternalBankName, currency, description, isScheduled, scheduleDate, isRecurring, frequency, endDate, transfer]);
+
+
+  const accountOptions = useMemo(() => availableAccounts.map(acc => ({
+    value: acc.id,
+    label: `${acc.name} (${acc.accountNumber}) - ${formatCurrency(acc.availableBalance, acc.currency, locale)}`,
+  })), [availableAccounts, locale]);
+
+  const beneficiaryOptions = useMemo(() => [
+    { value: '', label: 'Select Beneficiary' },
+    ...beneficiaries.map(b => ({
+      value: b.id,
+      label: `${b.name} (${b.accountNumber}) - ${b.bankName}`,
+    })),
+    { value: 'new', label: 'Transfer to a new external account' },
+  ], [beneficiaries]);
+
+  const currencyOptions = useMemo(() => Object.values(CurrencyEnum).map(c => ({ value: c, label: c })), []);
+
+  const frequencyOptions = useMemo(() => [
+    { value: 'ONE_TIME', label: 'One Time' },
+    { value: 'DAILY', label: 'Daily' },
+    { value: 'WEEKLY', label: 'Weekly' },
+    { value: 'MONTHLY', label: 'Monthly' },
+    { value: 'QUARTERLY', label: 'Quarterly' },
+    { value: 'ANNUALLY', label: 'Annually' },
+  ], []);
+
+  if (accountsLoading || beneficiariesLoading) return <Card title="Funds Transfer"><LoadingSpinner /></Card>;
+  if (accountsError) return <Card title="Funds Transfer"><Alert severity="error" message={`Accounts Error: ${accountsError.message}`} /></Card>;
+  if (beneficiariesError) return <Card title="Funds Transfer"><Alert severity="error" message={`Beneficiaries Error: ${beneficiariesError.message}`} /></Card>;
+
+
+  return (
+    <Card title="Funds Transfer">
+      <form onSubmit={handleSubmit}>
+        <Select
+          label="From Account"
+          id="fromAccount"
+          value={fromAccount}
+          onChange={(e) => {
+            setFromAccount(e.target.value);
+            const selectedAcc = availableAccounts.find(acc => acc.id === e.target.value);
+            if (selectedAcc) setCurrency(selectedAcc.currency);
+          }}
+          options={[{ value: '', label: 'Select an account' }, ...accountOptions]}
+          error={errors.fromAccount}
+        />
+
+        <Select
+          label="To Beneficiary"
+          id="toBeneficiary"
+          value={toBeneficiary}
+          onChange={(e) => setToBeneficiary(e.target.value)}
+          options={beneficiaryOptions}
+          error={errors.toBeneficiary}
+        />
+
+        {toBeneficiary === 'new' && (
+          <>
+            <Input
+              label="Recipient Account Number"
+              id="toExternalAccountNumber"
+              type="text"
+              value={toExternalAccountNumber}
+              onChange={(e) => setToExternalAccountNumber(e.target.value)}
+              error={errors.toExternalAccountNumber}
+            />
+            <Input
+              label="Recipient Bank Name"
+              id="toExternalBankName"
+              type="text"
+              value={toExternalBankName}
+              onChange={(e) => setToExternalBankName(e.target.value)}
+              error={errors.toExternalBankName}
+            />
+          </>
+        )}
+
+        <Input
+          label="Amount"
+          id="amount"
+          type="number"
+          step="0.01"
+          min="0.01"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          error={errors.amount}
+        />
+
+        <Select
+          label="Currency"
+          id="currency"
+          value={currency}
+          onChange={(e) => setCurrency(e.target.value as CurrencyEnum)}
+          options={currencyOptions}
+          error={errors.currency}
+        />
+
+        <Input
+          label="Description (Optional)"
+          id="description"
+          type="text"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
+
+        <div className="flex items-center mt-4 mb-2">
+          <input
+            id="isScheduled"
+            type="checkbox"
+            checked={isScheduled}
+            onChange={(e) => setIsScheduled(e.target.checked)}
+            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+          />
+          <label htmlFor="isScheduled" className="ml-2 text-sm text-gray-900 dark:text-gray-300">Schedule Transfer</label>
+        </div>
+
+        {isScheduled && (
+          <>
+            <Input
+              label="Schedule Date"
+              id="scheduleDate"
+              type="date"
+              value={scheduleDate}
+              onChange={(e) => setScheduleDate(e.target.value)}
+              min={format(new Date(), 'yyyy-MM-dd')}
+              error={errors.scheduleDate}
+            />
+            <div className="flex items-center mt-4 mb-2">
+              <input
+                id="isRecurring"
+                type="checkbox"
+                checked={isRecurring}
+                onChange={(e) => setIsRecurring(e.target.checked)}
+                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+              />
+              <label htmlFor="isRecurring" className="ml-2 text-sm text-gray-900 dark:text-gray-300">Make Recurring</label>
+            </div>
+            {isRecurring && (
+              <>
+                <Select
+                  label="Frequency"
+                  id="frequency"
+                  value={frequency}
+                  onChange={(e) => setFrequency(e.target.value as any)}
+                  options={frequencyOptions}
+                  error={errors.frequency}
+                />
+                <Input
+                  label="End Date (Optional for Recurring)"
+                  id="endDate"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  min={scheduleDate}
+                  error={errors.endDate}
+                />
+              </>
+            )}
+          </>
+        )}
+
+        <div className="flex justify-between items-center mt-6">
+          <Button type="submit" isLoading={transferLoading}>
+            {isScheduled ? 'Schedule Transfer' : 'Transfer Now'}
+          </Button>
+          <Button type="button" variant="secondary" onClick={() => setShowAddBeneficiaryModal(true)}>
+            Manage Beneficiaries
+          </Button>
+        </div>
+      </form>
+
+      <Modal isOpen={showAddBeneficiaryModal} onClose={() => setShowAddBeneficiaryModal(false)} title="Manage Beneficiaries">
+        <BeneficiaryManagerWidget />
+      </Modal>
+    </Card>
+  );
+};
+
+
+export const BeneficiaryManagerWidget: React.FC = () => {
+  const { addNotification } = useNotification();
+  const { data, loading, error, refetch } = accountService.getBeneficiaries();
+  const { add: addBeneficiaryMutation, loading: addLoading, error: addError } = accountService.addBeneficiary();
+
+  const [isAdding, setIsAdding] = useState(false);
+  const [newBeneficiaryName, setNewBeneficiaryName] = useState('');
+  const [newBeneficiaryAccount, setNewBeneficiaryAccount] = useState('');
+  const [newBeneficiaryBank, setNewBeneficiaryBank] = useState('');
+  const [newBeneficiaryCurrency, setNewBeneficiaryCurrency] = useState<CurrencyEnum>(CurrencyEnum.USD);
+  const [newBeneficiaryIsInternational, setNewBeneficiaryIsInternational] = useState(false);
+  const [newBeneficiarySwift, setNewBeneficiarySwift] = useState('');
+  const [newBeneficiaryIban, setNewBeneficiaryIban] = useState('');
+  const [addBeneficiaryErrors, setAddBeneficiaryErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (addError) {
+      addNotification({ title: 'Add Beneficiary Failed', message: addError.message, severity: NotificationSeverity.ERROR });
+    }
+  }, [addError, addNotification]);
+
+  const validateNewBeneficiary = useCallback(() => {
+    const errors: Record<string, string> = {};
+    if (!newBeneficiaryName) errors.name = 'Name is required.';
+    if (!newBeneficiaryAccount) errors.account = 'Account number is required.';
+    if (!newBeneficiaryBank) errors.bank = 'Bank name is required.';
+    if (!newBeneficiaryCurrency) errors.currency = 'Currency is required.';
+    if (newBeneficiaryIsInternational && (!newBeneficiarySwift && !newBeneficiaryIban)) {
+      errors.international = 'SWIFT or IBAN is required for international beneficiaries.';
+    }
+    setAddBeneficiaryErrors(errors);
+    return Object.keys(errors).length === 0;
+  }, [newBeneficiaryName, newBeneficiaryAccount, newBeneficiaryBank, newBeneficiaryCurrency, newBeneficiaryIsInternational, newBeneficiarySwift, newBeneficiaryIban]);
+
+  const handleAddBeneficiary = useCallback(async () => {
+    if (!validateNewBeneficiary()) return;
+
+    try {
+      await addBeneficiaryMutation({
+        variables: {
+          name: newBeneficiaryName,
+          accountNumber: newBeneficiaryAccount,
+          bankName: newBeneficiaryBank,
+          currency: newBeneficiaryCurrency,
+          isInternational: newBeneficiaryIsInternational,
+          swiftCode: newBeneficiarySwift || null,
+          iban: newBeneficiaryIban || null,
+        },
+      });
+      addNotification({ title: 'Success', message: 'Beneficiary added successfully!', severity: NotificationSeverity.SUCCESS });
+      setIsAdding(false);
+      setNewBeneficiaryName('');
+      setNewBeneficiaryAccount('');
+      setNewBeneficiaryBank('');
+      setNewBeneficiaryCurrency(CurrencyEnum.USD);
+      setNewBeneficiaryIsInternational(false);
+      setNewBeneficiarySwift('');
+      setNewBeneficiaryIban('');
+      setAddBeneficiaryErrors({});
+      refetch(); // Re-fetch beneficiaries list
+    } catch (e) {
+      console.error('Failed to add beneficiary:', e);
+      // Notification handled by useEffect
+    }
+  }, [validateNewBeneficiary, addBeneficiaryMutation, newBeneficiaryName, newBeneficiaryAccount, newBeneficiaryBank, newBeneficiaryCurrency, newBeneficiaryIsInternational, newBeneficiarySwift, newBeneficiaryIban, addNotification, refetch]);
+
+  const beneficiaryHeaders = useMemo(() => [
+    { key: 'name', label: 'Name' },
+    { key: 'accountNumber', label: 'Account No.' },
+    { key: 'bankName', label: 'Bank' },
+    { key: 'currency', label: 'Currency' },
+    { key: 'isInternational', label: 'International', render: (b: Beneficiary) => (b.isInternational ? 'Yes' : 'No') },
+    { key: 'addedDate', label: 'Added On', render: (b: Beneficiary) => formatDate(b.addedDate, 'P') },
+    { key: 'actions', label: 'Actions', render: (b: Beneficiary) => (
+      <Button variant="danger" size="sm" onClick={() => addNotification({ title: 'Feature Not Implemented', message: `Delete beneficiary ${b.name} is not implemented in this demo.`, severity: NotificationSeverity.INFO })}>Delete</Button>
+    )},
+  ], [addNotification]);
+
+  const currencyOptions = useMemo(() => Object.values(CurrencyEnum).map(c => ({ value: c, label: c })), []);
+
+  if (loading) return <LoadingSpinner message="Loading beneficiaries..." />;
+  if (error) return <Alert severity="error" message={`Failed to load beneficiaries: ${error.message}`} />;
+
+  return (
+    <div className="space-y-6">
+      <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Your Beneficiaries</h3>
+      <Table headers={beneficiaryHeaders} data={data?.beneficiaries || []} />
+
+      <Button onClick={() => setIsAdding(!isAdding)} variant="secondary" className="mt-4">
+        {isAdding ? 'Cancel Add Beneficiary' : 'Add New Beneficiary'}
+      </Button>
+
+      {isAdding && (
+        <Card className="mt-4 bg-gray-50 dark:bg-gray-700">
+          <h4 className="text-lg font-semibold mb-3 text-gray-900 dark:text-white">Add New Beneficiary</h4>
+          <Input
+            label="Beneficiary Name"
+            value={newBeneficiaryName}
+            onChange={(e) => setNewBeneficiaryName(e.target.value)}
+            error={addBeneficiaryErrors.name}
+          />
+          <Input
+            label="Account Number"
+            value={newBeneficiaryAccount}
+            onChange={(e) => setNewBeneficiaryAccount(e.target.value)}
+            error={addBeneficiaryErrors.account}
+          />
+          <Input
+            label="Bank Name"
+            value={newBeneficiaryBank}
+            onChange={(e) => setNewBeneficiaryBank(e.target.value)}
+            error={addBeneficiaryErrors.bank}
+          />
+          <Select
+            label="Currency"
+            options={currencyOptions}
+            value={newBeneficiaryCurrency}
+            onChange={(e) => setNewBeneficiaryCurrency(e.target.value as CurrencyEnum)}
+            error={addBeneficiaryErrors.currency}
+          />
+          <div className="flex items-center mt-4 mb-2">
+            <input
+              id="newBeneficiaryIsInternational"
+              type="checkbox"
+              checked={newBeneficiaryIsInternational}
+              onChange={(e) => setNewBeneficiaryIsInternational(e.target.checked)}
+              className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+            />
+            <label htmlFor="newBeneficiaryIsInternational" className="ml-2 text-sm text-gray-900 dark:text-gray-300">International Beneficiary</label>
+          </div>
+          {newBeneficiaryIsInternational && (
+            <>
+              <Input
+                label="SWIFT Code (Optional)"
+                value={newBeneficiarySwift}
+                onChange={(e) => setNewBeneficiarySwift(e.target.value)}
+                error={addBeneficiaryErrors.international}
+              />
+              <Input
+                label="IBAN (Optional)"
+                value={newBeneficiaryIban}
+                onChange={(e) => setNewBeneficiaryIban(e.target.value)}
+                error={addBeneficiaryErrors.international}
+              />
+            </>
+          )}
+          <Button onClick={handleAddBeneficiary} isLoading={addLoading} className="mt-4">
+            Save Beneficiary
+          </Button>
+        </Card>
+      )}
+    </div>
+  );
+};
+
+export const InvestmentPortfolioWidget: React.FC = () => {
+  const { locale } = useLocale();
+  const { addNotification } = useNotification();
+  const { data: accountsData, loading: accountsLoading, error: accountsError } = accountService.getAccounts();
+  const investmentAccounts = useMemo(() => accountsData?.accounts.filter(acc => acc.type === AccountTypeEnum.INVESTMENT) || [], [accountsData]);
+  const [selectedAccountId, setSelectedAccountId] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (investmentAccounts.length > 0 && !selectedAccountId) {
+      setSelectedAccountId(investmentAccounts[0].id);
+    }
+  }, [investmentAccounts, selectedAccountId]);
+
+  const { data: holdingsData, loading: holdingsLoading, error: holdingsError, refetch } = investmentService.getHoldings(selectedAccountId || '');
+
+  const totalPortfolioValue = useMemo(() => {
+    return (holdingsData?.investmentHoldings || []).reduce((sum, holding) => sum + holding.marketValue, 0);
+  }, [holdingsData]);
+
+  const holdingsHeaders = useMemo(() => [
+    { key: 'symbol', label: 'Symbol' },
+    { key: 'name', label: 'Name' },
+    { key: 'quantity', label: 'Quantity' },
+    { key: 'averageCostBasis', label: 'Avg. Cost', render: (h: InvestmentHolding) => formatCurrency(h.averageCostBasis, h.currency, locale) },
+    { key: 'currentPrice', label: 'Current Price', render: (h: InvestmentHolding) => formatCurrency(h.currentPrice, h.currency, locale) },
+    { key: 'marketValue', label: 'Market Value', render: (h: InvestmentHolding) => formatCurrency(h.marketValue, h.currency, locale) },
+    { key: 'gainLoss', label: 'Gain/Loss', render: (h: InvestmentHolding) => {
+      const gainLoss = (h.currentPrice - h.averageCostBasis) * h.quantity;
+      const percentGainLoss = (gainLoss / (h.averageCostBasis * h.quantity)) * 100;
+      return (
+        <span className={gainLoss >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+          {formatCurrency(gainLoss, h.currency, locale)} ({percentGainLoss.toFixed(2)}%)
+        </span>
+      );
+    }},
+    { key: 'lastUpdated', label: 'Last Updated', render: (h: InvestmentHolding) => formatDate(h.lastUpdated, 'Pp', locale) },
+  ], [locale]);
+
+  const accountOptions = useMemo(() => investmentAccounts.map(acc => ({
+    value: acc.id,
+    label: `${acc.name} (${acc.accountNumber})`,
+  })) || [], [investmentAccounts]);
+
+  if (accountsLoading) return <Card title="Investment Portfolio"><LoadingSpinner /></Card>;
+  if (accountsError) return <Card title="Investment Portfolio"><Alert severity="error" message={`Accounts Error: ${accountsError.message}`} /></Card>;
+
+  if (investmentAccounts.length === 0) {
+    return (
+      <Card title="Investment Portfolio">
+        <p className="text-gray-500 dark:text-gray-400">No investment accounts found.</p>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-500">
+          Please open an investment account to view your portfolio.
+        </p>
+      </Card>
+    );
+  }
+
+  return (
+    <Card title="Investment Portfolio" className="h-full flex flex-col">
+      <div className="mb-4">
+        <Select
+          label="Select Investment Account"
+          options={accountOptions}
+          value={selectedAccountId || ''}
+          onChange={(e) => setSelectedAccountId(e.target.value)}
+          disabled={holdingsLoading}
+        />
+      </div>
+
+      {holdingsLoading ? (
+        <LoadingSpinner />
+      ) : holdingsError ? (
+        <Alert severity="error" message={`Holdings Error: ${holdingsError.message}`} />
+      ) : (
+        <>
+          <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900 rounded-md">
+            <h3 className="text-xl font-bold text-blue-800 dark:text-blue-200">
+              Total Portfolio Value: {formatCurrency(totalPortfolioValue, CurrencyEnum.USD, locale)} {/* Assuming main portfolio currency is USD */}
+            </h3>
+            <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
+              Reflects the current market value of all your holdings in this account.
+            </p>
+          </div>
+          {holdingsData?.investmentHoldings && holdingsData.investmentHoldings.length > 0 ? (
+            <Table headers={holdingsHeaders} data={holdingsData.investmentHoldings} />
+          ) : (
+            <p className="text-gray-500 dark:text-gray-400">No investment holdings in this account.</p>
+          )}
+          <div className="mt-4 text-center">
+            <Button variant="secondary" onClick={() => addNotification({ title: 'Feature', message: 'Buy/Sell functionality not implemented.', severity: NotificationSeverity.INFO })}>
+              Buy / Sell
+            </Button>
+            <Button variant="ghost" onClick={() => refetch()} className="ml-2">
+              Refresh Data
+            </Button>
+          </div>
+        </>
+      )}
+    </Card>
+  );
+};
+
+export const LoanSummaryWidget: React.FC = () => {
+  const { locale } = useLocale();
+  const { data, loading, error } = loanService.getLoans();
+
+  const loans = data?.loans || [];
+
+  const loanHeaders = useMemo(() => [
+    { key: 'type', label: 'Loan Type' },
+    { key: 'outstandingBalance', label: 'Outstanding Balance', render: (l: Loan) => formatCurrency(l.outstandingBalance, CurrencyEnum.USD, locale) },
+    { key: 'interestRate', label: 'Interest Rate', render: (l: Loan) => `${(l.interestRate * 100).toFixed(2)}%` },
+    { key: 'nextPaymentAmount', label: 'Next Payment', render: (l: Loan) => formatCurrency(l.nextPaymentAmount, CurrencyEnum.USD, locale) },
+    { key: 'nextPaymentDate', label: 'Due Date', render: (l: Loan) => formatDate(l.nextPaymentDate, 'P', locale) },
+    { key: 'status', label: 'Status' },
+    { key: 'actions', label: 'Actions', render: (l: Loan) => (
+      <Button size="sm" onClick={() => alert(`Pay for Loan ID: ${l.id}`)}>Pay Now</Button>
+    )},
+  ], [locale]);
+
+  if (loading) return <Card title="Loan Summary"><LoadingSpinner /></Card>;
+  if (error) return <Card title="Loan Summary"><Alert severity="error" message={`Error loading loans: ${error.message}`} /></Card>;
+
+  return (
+    <Card title="Loan Summary">
+      <p className="text-gray-600 dark:text-gray-400 mb-4">
+        Overview of your active loans and their upcoming payment details.
+      </p>
+      {loans.length === 0 ? (
+        <p className="text-gray-500 dark:text-gray-400">No active loans found.</p>
+      ) : (
+        <Table headers={loanHeaders} data={loans} />
+      )}
+      <div className="mt-4 text-center">
+        <Link to="/loans" className="text-blue-600 hover:underline dark:text-blue-400">
+          Manage All Loans
+        </Link>
+      </div>
+    </Card>
+  );
+};
+
+export const NotificationCenterWidget: React.FC = () => {
+  const { locale } = useLocale();
+  const { addNotification } = useNotification();
+  const { data, loading, error, refetch } = notificationService.getNotifications(false);
+  const markAsReadMutation = notificationService.markAsRead();
+
+  const unreadNotifications = data?.notifications || [];
+
+  const handleMarkAsRead = useCallback(async (id: string) => {
+    try {
+      await markAsReadMutation({ variables: { id } });
+      addNotification({ title: 'Notification', message: 'Notification marked as read.', severity: NotificationSeverity.INFO });
+      refetch(); // Refetch to remove from unread list
+    } catch (e) {
+      console.error('Failed to mark notification as read:', e);
+      addNotification({ title: 'Error', message: 'Failed to mark notification as read.', severity: NotificationSeverity.ERROR });
+    }
+  }, [markAsReadMutation, addNotification, refetch]);
+
+  if (loading) return <Card title="Notifications"><LoadingSpinner /></Card>;
+  if (error) return <Card title="Notifications"><Alert severity="error" message={`Error loading notifications: ${error.message}`} /></Card>;
+
+  return (
+    <Card title="Notifications">
+      <p className="text-gray-600 dark:text-gray-400 mb-4">
+        Stay informed about your account activities and important updates.
+      </p>
+      {unreadNotifications.length === 0 ? (
+        <p className="text-gray-500 dark:text-gray-400">No new notifications.</p>
+      ) : (
+        <div className="space-y-3">
+          {unreadNotifications.slice(0, 5).map(notification => ( // Show top 5
+            <div key={notification.id} className={`p-3 rounded-md border ${notification.severity === NotificationSeverity.ERROR ? 'bg-red-50 border-red-200 dark:bg-red-900 dark:border-red-700' : 'bg-blue-50 border-blue-200 dark:bg-blue-900 dark:border-blue-700'}`}>
+              <div className="flex justify-between items-center mb-1">
+                <h4 className="font-semibold text-gray-900 dark:text-white">{notification.title}</h4>
+                <span className="text-xs text-gray-500 dark:text-gray-400">{formatDate(notification.timestamp, 'PPp', locale)}</span>
+              </div>
+              <p className="text-sm text-gray-700 dark:text-gray-300">{notification.message}</p>
+              <div className="mt-2 flex justify-end space-x-2">
+                {notification.actionUrl && (
+                  <Link to={notification.actionUrl} className="text-blue-600 hover:underline text-sm dark:text-blue-400">View Details</Link>
+                )}
+                <Button variant="ghost" size="sm" onClick={() => handleMarkAsRead(notification.id)}>
+                  Mark as Read
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="mt-4 text-center">
+        <Link to="/notifications" className="text-blue-600 hover:underline dark:text-blue-400">
+          View All Notifications ({unreadNotifications.length} unread)
+        </Link>
+      </div>
+    </Card>
+  );
+};
+
+
+export const SecuritySettingsWidget: React.FC = () => {
+  const { addNotification } = useNotification();
+  const { user, loading: userLoading, error: userError, refetchUserProfile } = useUserProfile();
+  const { setStatus: setMfaStatusMutation, loading: mfaLoading, error: mfaError } = securityService.setMfaStatus();
+
+  const handleToggleMFA = useCallback(async () => {
+    if (!user) return;
+    try {
+      await setMfaStatusMutation({ variables: { enable: !user.mfaEnabled } });
+      addNotification({
+        title: 'MFA Status Updated',
+        message: `Multi-Factor Authentication ${!user.mfaEnabled ? 'enabled' : 'disabled'} successfully.`,
+        severity: NotificationSeverity.SUCCESS,
+      });
+      refetchUserProfile(); // Ensure auth context user is updated
+    } catch (e) {
+      console.error('Failed to toggle MFA:', e);
+      addNotification({
+        title: 'MFA Update Failed',
+        message: `Error: ${(e as Error).message}`,
+        severity: NotificationSeverity.ERROR,
+      });

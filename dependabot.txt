@@ -1,0 +1,1340 @@
+version: 2
+# Dependabot configuration file.
+# This file is used to automate dependency updates and vulnerability alerts for this repository.
+# Dependabot helps keep your dependencies up to date by automatically creating pull requests
+# to update out-of-date dependencies. It also provides security alerts for known vulnerabilities.
+# For more information on how to configure Dependabot, please visit the official GitHub documentation:
+# https://docs.github.com/code-security/dependabot/dependabot-security-updates/configuring-dependabot-security-updates
+# https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuring-dependabot-version-updates
+
+# The 'updates' key configures how Dependabot checks for and updates dependencies.
+# Each entry under 'updates' specifies a package ecosystem, the directory where
+# its manifest files are located, and a schedule for checking for updates.
+updates:
+
+  # --------------------------------------------------------------------------
+  # Node.js (npm) dependency updates
+  # This section configures Dependabot to check for updates to Node.js
+  # dependencies managed by npm. It targets 'package.json' and 'package-lock.json'
+  # (or 'yarn.lock'/'pnpm-lock.yaml') files.
+  # --------------------------------------------------------------------------
+  - package-ecosystem: "npm"
+    # The directory containing the 'package.json' and lock files for the npm project.
+    # For a standard, single-project repository, this is typically the root directory, '/'.
+    directory: "/"
+    # Schedule for checking updates. Supported intervals are 'daily', 'weekly', and 'monthly'.
+    # A 'daily' interval is generally recommended for active projects to stay up-to-date.
+    schedule:
+      interval: "daily"
+      # Optionally, specify a specific day of the week for 'weekly' intervals.
+      # Example: day: "monday"
+      # Optionally, specify a specific time of day for 'daily' or 'weekly' intervals (hh:mm format, UTC).
+      # Example: time: "05:00" # Check for updates at 5 AM UTC
+      # Optionally, specify a timezone for the 'time' setting.
+      # Example: timezone: "Europe/London"
+
+    # The branch Dependabot should open pull requests against.
+    # If not specified, Dependabot will default to the repository's default branch (e.g., 'main').
+    target-branch: "main"
+
+    # Labels to add to pull requests created by Dependabot.
+    # This helps in organizing, filtering, and automating workflows for Dependabot PRs.
+    labels:
+      - "dependencies"
+      - "npm"
+      - "automated"
+      - "node.js"
+      - "security-patch" # Useful if Dependabot also handles security alerts
+      - "feature" # For major/minor version updates that might introduce new features
+
+    # Assignees for pull requests created by Dependabot.
+    # These specified users or teams will be assigned to review the PRs automatically.
+    # Replace "your-github-username" with actual GitHub usernames or team slugs (e.g., "org/team-name").
+    assignees:
+      - "your-github-username"
+      # - "another-dev-username"
+      # - "team-frontend-developers" # Assign to a GitHub team
+
+    # Reviewers for pull requests created by Dependabot.
+    # These specified users or teams will be requested to review the PRs.
+    # Replace "another-github-username" with actual GitHub usernames or team slugs.
+    reviewers:
+      - "another-github-username"
+      # - "qa-team" # Request review from a GitHub team
+
+    # The maximum number of open pull requests Dependabot will create for this ecosystem.
+    # This helps prevent an overwhelming number of PRs from being opened at once,
+    # making it easier to manage dependency updates.
+    open-pull-requests-limit: 10
+
+    # The strategy Dependabot should use when rebasing pull requests.
+    # Options: 'auto', 'none'.
+    # 'auto': Dependabot will attempt to rebase PRs automatically if there are no conflicts.
+    # 'none': Dependabot will not rebase PRs automatically; manual rebase will be required.
+    rebase-strategy: "auto"
+
+    # Configure commit messages for Dependabot PRs.
+    # 'prefix': A custom string to add to the beginning of the commit message.
+    # 'prefix-development': A specific prefix for development dependency updates.
+    # 'include': Specifies additional information to include (e.g., 'scope', 'dependencies').
+    # Using 'scope' often helps integrate with conventional commit workflows.
+    commit-message:
+      prefix: "chore(deps-npm)"
+      prefix-development: "chore(dev-deps-npm)"
+      include: "scope" # Includes the dependency name in the commit message scope
+
+    # Ignore specific dependency updates. This can be used to prevent Dependabot
+    # from creating PRs for certain packages, specific version ranges, or update types.
+    # This is useful for dependencies that require manual intervention, are unstable,
+    # or are intentionally pinned for compatibility.
+    ignore:
+      # Ignore all updates for a specific package name.
+      - dependency-name: "eslint"
+        versions: "*" # Ignore all versions of eslint updates
+      # Ignore a specific major version update for a package.
+      - dependency-name: "webpack"
+        versions: ">5.x.x" # Ignore updates to webpack major versions beyond 5
+      # Ignore all patch updates for a specific package.
+      - dependency-name: "react"
+        update-types: ["patch"]
+      # Ignore minor and patch updates for a critical application dependency.
+      - dependency-name: "express"
+        update-types: ["minor", "patch"]
+      # Ignore specific major versions for a package, but allow other updates.
+      - dependency-name: "typescript"
+        versions: ["4.x.x", "5.x.x"] # If you want to stick to a specific TS version
+      # Ignore updates to internal or private packages that are not hosted on public registries.
+      - dependency-name: "@myorg/internal-common-lib"
+        versions: "*"
+      - dependency-name: "@myorg/private-components"
+        versions: "*"
+      # Ignore specific version ranges for a package.
+      - dependency-name: "lodash"
+        versions: "~>4.17.0" # Ignore patch updates for 4.17.x versions
+      - dependency-name: "moment"
+        versions: "<2.29.0" # Ignore updates below 2.29.0, assuming an intentional downgrade or pin
+      # Ignore all updates for a package that is no longer maintained or intentionally frozen.
+      - dependency-name: "node-sass"
+        versions: "*"
+      # Ignore all major updates for all dependencies. Use with caution.
+      # - dependency-name: "*"
+      #   update-types: ["major"]
+      # Ignore updates for a package that has known breaking changes in certain versions.
+      - dependency-name: "jest"
+        versions: [ "28.x.x", "29.x.x" ] # Example: if these versions cause issues
+
+    # Groups allow you to combine multiple dependency updates into a single pull request.
+    # This can significantly reduce the number of PRs and simplify the review process,
+    # especially for patch updates or related libraries.
+    groups:
+      # Group all production dependencies for major and minor updates.
+      # This group focuses on more significant updates for core application components.
+      production-dependencies-major-minor:
+        patterns:
+          - "@angular/*" # All Angular core packages
+          - "react"
+          - "vue"
+          - "express"
+          - "next"
+          - "nuxt"
+          - "redux"
+          - "axios"
+          - "lodash"
+          - "moment"
+          - "commander"
+          - "yargs"
+          - "typescript"
+          - "webpack"
+          - "babel-*"
+          - "postcss-*"
+          - "sass"
+          - "less"
+          - "style-loader"
+          - "css-loader"
+          - "file-loader"
+          - "url-loader"
+          - "json-loader"
+          - "html-webpack-plugin"
+          - "terser-webpack-plugin"
+          - "mini-css-extract-plugin"
+          - "clean-webpack-plugin"
+          - "webpack-dev-server"
+          - "webpack-cli"
+          - "core-js"
+          - "regenerator-runtime"
+          - "rxjs"
+          - "zone.js"
+          - "ng-packagr"
+          - "semantic-release"
+          - "lerna"
+          - "nx"
+          - "pnpm"
+          - "yarn"
+          - "npm"
+          - "nvm"
+          - "volta"
+          - "dotenv"
+          - "debug"
+          - "glob"
+          - "fs-extra"
+          - "chokidar"
+          - "ws"
+          - "socket.io"
+          - "mongodb"
+          - "mongoose"
+          - "pg"
+          - "sequelize"
+          - "typeorm"
+          - "redis"
+          - "ioredis"
+          - "bullmq"
+          - "kafka-node"
+          - "amqplib"
+          - "aws-sdk"
+          - "firebase-admin"
+          - "google-cloud"
+          - "azure-storage"
+          - "cloudinary"
+          - "stripe"
+          - "paypal-rest-sdk"
+          - "braintree"
+          - "mailgun-js"
+          - "nodemailer"
+          - "jsonwebtoken"
+          - "bcryptjs"
+          - "passport"
+          - "joi"
+          - "class-validator"
+          - "class-transformer"
+          - "reflect-metadata"
+          - "swagger-ui-express"
+          - "type-graphql"
+          - "apollo-server"
+          - "graphql"
+          - "graphql-subscriptions"
+          - "graphql-tools"
+          - "relay-runtime"
+          - "apollo-client"
+          - "urql"
+          - "formik"
+          - "react-hook-form"
+          - "yup"
+          - "zod"
+          - "axios"
+          - "fetch"
+          - "superagent"
+          - "node-fetch"
+          - "got"
+          - "cheerio"
+          - "puppeteer"
+          - "playwright"
+          - "immer"
+          - "redux-toolkit"
+          - "zustand"
+          - "jotai"
+          - "recoil"
+          - "xstate"
+          - "saga"
+          - "thunk"
+          - "apollo-link"
+          - "apollo-cache"
+          - "apollo-utilities"
+          - "graphql-tag"
+          - "prisma"
+          - "typegraphql-prisma"
+          - "nest"
+          - "@nestjs/*"
+          - "koa"
+          - "fastify"
+          - "hapi"
+          - "restify"
+          - "grpc"
+          - "protobufjs"
+          - "amqp"
+          - "kafka"
+          - "mqtt"
+          - "zeromq"
+          - "rabbitmq"
+          - "azure-sdk"
+          - "gcp-sdk"
+          - "firebase-sdk"
+          - "sentry"
+          - "datadog"
+          - "newrelic"
+          - "elastic"
+          - "logstash"
+          - "kibana"
+          - "winston"
+          - "bunyan"
+          - "pino"
+          - "morgan"
+          - "cors"
+          - "helmet"
+          - "compression"
+          - "body-parser"
+          - "cookie-parser"
+          - "express-session"
+          - "connect-mongo"
+          - "connect-redis"
+          - "csurf"
+          - "hpp"
+          - "rate-limit"
+          - "slow-down"
+          - "swagger-jsdoc"
+          - "tsoa"
+          - "routing-controllers"
+          - "typedi"
+          - "inversify"
+          - "sequelize-typescript"
+          - "mikro-orm"
+          - "objection"
+          - "knex"
+          - "type-fest"
+          - "utility-types"
+          - "ramda"
+          - "underscore"
+          - "date-fns"
+          - "luxon"
+          - "moment-timezone"
+          - "validator"
+          - "slugify"
+          - "uuid"
+          - "cuid"
+          - "nanoid"
+          - "shortid"
+          - "color"
+          - "chroma-js"
+          - "d3"
+          - "chart.js"
+          - "highcharts"
+          - "apexcharts"
+          - "recharts"
+          - "victory"
+          - "nivo"
+          - "vega"
+          - "plotly.js"
+          - "three"
+          - "babylonjs"
+          - "phaser"
+          - "pixi.js"
+          - "konva"
+          - "fabric"
+          - "paper"
+          - "opentype.js"
+          - "pdfkit"
+          - "jspdf"
+          - "html2canvas"
+          - "dom-to-image"
+          - "ts-node"
+        update-types: ["major", "minor"] # Group major and minor updates for these packages
+        # Optional: Custom commit message for this group
+        # commit-message:
+        #   prefix: "feat(deps-grouped-prod)"
+        #   include: "scope"
+
+      # Group all development and tooling dependencies for patch updates.
+      # This group typically covers minor, non-breaking updates for developer tools.
+      development-and-tooling-patches:
+        patterns:
+          - "*" # Match all dependencies by default
+        exclude-patterns:
+          # Exclude explicit production dependencies listed above to avoid overlaps
+          - "@angular/*"
+          - "react"
+          - "vue"
+          - "express"
+          - "next"
+          - "nuxt"
+          - "redux"
+          - "axios"
+          - "lodash"
+          - "moment"
+          - "commander"
+          - "yargs"
+          - "typescript"
+          - "webpack"
+          - "babel-*"
+          - "postcss-*"
+          - "sass"
+          - "less"
+          - "style-loader"
+          - "css-loader"
+          - "file-loader"
+          - "url-loader"
+          - "json-loader"
+          - "html-webpack-plugin"
+          - "terser-webpack-plugin"
+          - "mini-css-extract-plugin"
+          - "clean-webpack-plugin"
+          - "webpack-dev-server"
+          - "webpack-cli"
+          - "core-js"
+          - "regenerator-runtime"
+          - "rxjs"
+          - "zone.js"
+          - "ng-packagr"
+          - "semantic-release"
+          - "lerna"
+          - "nx"
+          - "pnpm"
+          - "yarn"
+          - "npm"
+          - "nvm"
+          - "volta"
+          - "dotenv"
+          - "debug"
+          - "glob"
+          - "fs-extra"
+          - "chokidar"
+          - "ws"
+          - "socket.io"
+          - "mongodb"
+          - "mongoose"
+          - "pg"
+          - "sequelize"
+          - "typeorm"
+          - "redis"
+          - "ioredis"
+          - "bullmq"
+          - "kafka-node"
+          - "amqplib"
+          - "aws-sdk"
+          - "firebase-admin"
+          - "google-cloud"
+          - "azure-storage"
+          - "cloudinary"
+          - "stripe"
+          - "paypal-rest-sdk"
+          - "braintree"
+          - "mailgun-js"
+          - "nodemailer"
+          - "jsonwebtoken"
+          - "bcryptjs"
+          - "passport"
+          - "joi"
+          - "class-validator"
+          - "class-transformer"
+          - "reflect-metadata"
+          - "swagger-ui-express"
+          - "type-graphql"
+          - "apollo-server"
+          - "graphql"
+          - "graphql-subscriptions"
+          - "graphql-tools"
+          - "relay-runtime"
+          - "apollo-client"
+          - "urql"
+          - "formik"
+          - "react-hook-form"
+          - "yup"
+          - "zod"
+          - "axios"
+          - "fetch"
+          - "superagent"
+          - "node-fetch"
+          - "got"
+          - "cheerio"
+          - "puppeteer"
+          - "playwright"
+          - "immer"
+          - "redux-toolkit"
+          - "zustand"
+          - "jotai"
+          - "recoil"
+          - "xstate"
+          - "saga"
+          - "thunk"
+          - "apollo-link"
+          - "apollo-cache"
+          - "apollo-utilities"
+          - "graphql-tag"
+          - "prisma"
+          - "typegraphql-prisma"
+          - "nest"
+          - "@nestjs/*"
+          - "koa"
+          - "fastify"
+          - "hapi"
+          - "restify"
+          - "grpc"
+          - "protobufjs"
+          - "amqp"
+          - "kafka"
+          - "mqtt"
+          - "zeromq"
+          - "rabbitmq"
+          - "azure-sdk"
+          - "gcp-sdk"
+          - "firebase-sdk"
+          - "sentry"
+          - "datadog"
+          - "newrelic"
+          - "elastic"
+          - "logstash"
+          - "kibana"
+          - "winston"
+          - "bunyan"
+          - "pino"
+          - "morgan"
+          - "cors"
+          - "helmet"
+          - "compression"
+          - "body-parser"
+          - "cookie-parser"
+          - "express-session"
+          - "connect-mongo"
+          - "connect-redis"
+          - "csurf"
+          - "hpp"
+          - "rate-limit"
+          - "slow-down"
+          - "swagger-jsdoc"
+          - "tsoa"
+          - "routing-controllers"
+          - "typedi"
+          - "inversify"
+          - "sequelize-typescript"
+          - "mikro-orm"
+          - "objection"
+          - "knex"
+          - "type-fest"
+          - "utility-types"
+          - "ramda"
+          - "underscore"
+          - "date-fns"
+          - "luxon"
+          - "moment-timezone"
+          - "validator"
+          - "slugify"
+          - "uuid"
+          - "cuid"
+          - "nanoid"
+          - "shortid"
+          - "color"
+          - "chroma-js"
+          - "d3"
+          - "chart.js"
+          - "highcharts"
+          - "apexcharts"
+          - "recharts"
+          - "victory"
+          - "nivo"
+          - "vega"
+          - "plotly.js"
+          - "three"
+          - "babylonjs"
+          - "phaser"
+          - "pixi.js"
+          - "konva"
+          - "fabric"
+          - "paper"
+          - "opentype.js"
+          - "pdfkit"
+          - "jspdf"
+          - "html2canvas"
+          - "dom-to-image"
+          - "ts-node"
+          # Tools and testing frameworks
+          - "jest"
+          - "mocha"
+          - "chai"
+          - "sinon"
+          - "cypress"
+          - "eslint"
+          - "prettier"
+          - "husky"
+          - "lint-staged"
+          - "concurrently"
+          - "cross-env"
+          - "enzyme"
+          - "react-test-renderer"
+          - "@testing-library/react"
+          - "@testing-library/jest-dom"
+          - "@testing-library/user-event"
+          - "msw"
+          - "nock"
+          - "supertest"
+          - "jest-dom"
+          - "jest-extended"
+          - "jest-mock-extended"
+          - "jest-preset-angular"
+          - "jest-preset-react-native"
+          - "jest-circus"
+          - "jest-environment-jsdom"
+          - "jest-worker"
+          - "jest-resolve"
+          - "jest-runner"
+          - "jest-serializer-vue"
+          - "jest-snapshot"
+          - "jest-util"
+          - "jest-validate"
+          - "jest-watcher"
+          - "jest-leak-detector"
+          - "jest-haste-map"
+          - "jest-cli"
+          - "jest-config"
+          - "jest-runtime"
+          - "jest-each"
+          - "jest-environment-node"
+          - "jest-jasmine2"
+          - "jest-message-util"
+          - "jest-diff"
+          - "jest-matcher-utils"
+          - "jest-mock"
+          - "jest-regex-util"
+          - "jest-resolve-dependencies"
+          - "jest-schemas"
+          - "jest-source-map"
+          - "jest-transform"
+          - "jest-types"
+          - "jest-worker"
+          - "jscodeshift"
+          - "lebab"
+          - "es-dev-server"
+          - "web-dev-server"
+          - "rollup"
+          - "vite"
+          - "parcel"
+          - "esbuild"
+          - "swc-cli"
+          - "typescript-eslint"
+          - "ts-jest"
+          - "lorem-ipsum"
+          - "faker"
+          - "chance"
+          - "casual"
+          - "sinon-chai"
+          - "nyc"
+          - "c8"
+          - "codecov"
+          - "coveralls"
+          - "greenkeeper"
+          - "snyk"
+          - "whitesource"
+          - "renovate"
+        update-types: ["patch"] # Group only patch updates for these (mostly development) dependencies
+
+  # --------------------------------------------------------------------------
+  # GitHub Actions dependency updates
+  # This section configures Dependabot to check for updates to GitHub Actions
+  # used in workflow files (e.g., '.github/workflows/*.yml').
+  # Keeping actions up-to-date is crucial for security and new features.
+  # --------------------------------------------------------------------------
+  - package-ecosystem: "github-actions"
+    # The directory containing the workflow files. For GitHub Actions, this is usually the root directory.
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday" # Check for updates every Monday
+      time: "03:00" # UTC
+    target-branch: "main"
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "automated"
+      - "workflow"
+    assignees:
+      - "your-github-username"
+    reviewers:
+      - "another-github-username"
+    open-pull-requests-limit: 5
+    rebase-strategy: "auto"
+    commit-message:
+      prefix: "chore(deps-actions)"
+      include: "scope"
+    ignore:
+      # Ignore specific action updates, e.g., if you're intentionally stuck on an older major version
+      - dependency-name: "actions/checkout"
+        versions: ">3.x.x" # Example: if you need to stay on v3 for compatibility
+      - dependency-name: "actions/setup-node"
+        versions: "3.x.x" # Example: if you only want patches for v3
+      # Ignore all patch updates for all actions to reduce PR noise for minor changes.
+      # - dependency-name: "*"
+      #   update-types: ["patch"]
+    groups:
+      all-github-actions:
+        patterns: ["*"] # Group all GitHub Actions together
+        update-types: ["major", "minor", "patch"] # Include all update types for actions
+
+  # --------------------------------------------------------------------------
+  # Docker dependency updates
+  # This section configures Dependabot to check for updates to Docker images
+  # specified in 'Dockerfile' files. This is important for base image security.
+  # --------------------------------------------------------------------------
+  - package-ecosystem: "docker"
+    # The directory containing the 'Dockerfile'.
+    # This example assumes Dockerfiles are located in a 'docker' subdirectory.
+    directory: "/docker"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "04:00" # UTC
+    target-branch: "main"
+    labels:
+      - "dependencies"
+      - "docker"
+      - "automated"
+      - "container"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps-docker)"
+      include: "scope"
+    ignore:
+      # Ignore updates for the base Node.js image if its version is tightly coupled
+      # with the application's npm dependencies or if it's managed elsewhere.
+      - dependency-name: "node"
+      - dependency-name: "ubuntu"
+        versions: ">20.04" # If you need to stay on LTS 20.04 for now
+      - dependency-name: "alpine"
+        update-types: ["major"] # Avoid major Alpine releases without careful review
+    groups:
+      base-images:
+        patterns:
+          - "node"
+          - "alpine"
+          - "ubuntu"
+          - "debian"
+          - "busybox"
+          - "openjdk"
+          - "python"
+          - "golang"
+        update-types: ["major", "minor", "patch"]
+      app-images:
+        patterns:
+          - "nginx"
+          - "redis"
+          - "postgres"
+          - "mongo"
+          - "mysql"
+          - "elasticsearch"
+          - "kafka"
+        update-types: ["major", "minor"]
+
+  # --------------------------------------------------------------------------
+  # Python (pip) dependency updates
+  # This section configures Dependabot for Python projects using 'pip'.
+  # It looks for 'requirements.txt', 'Pipfile', 'Pipfile.lock', 'pyproject.toml',
+  # and 'poetry.lock' files.
+  # --------------------------------------------------------------------------
+  - package-ecosystem: "pip"
+    # The directory containing Python dependency files.
+    # This example assumes a Python backend in a '/backend' subdirectory.
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "06:00" # UTC
+    target-branch: "main"
+    labels:
+      - "dependencies"
+      - "python"
+      - "automated"
+      - "backend"
+    assignees:
+      - "python-dev-lead"
+    reviewers:
+      - "python-team"
+    open-pull-requests-limit: 7
+    rebase-strategy: "auto"
+    commit-message:
+      prefix: "chore(deps-python)"
+      include: "scope"
+    ignore:
+      - dependency-name: "django"
+        versions: ">3.x.x" # If you are on Django 3.x and not ready for 4.x
+      - dependency-name: "flask"
+        versions: "~>2.0" # Ignore patch updates for 2.0.x
+      - dependency-name: "boto3"
+        update-types: ["major"] # Avoid major AWS SDK updates
+      - dependency-name: "numpy"
+      - dependency-name: "pandas"
+      - dependency-name: "scikit-learn"
+      - dependency-name: "tensorflow"
+      - dependency-name: "pytorch"
+      - dependency-name: "requests"
+      - dependency-name: "sqlalchemy"
+      - dependency-name: "psycopg2-binary"
+      - dependency-name: "celery"
+      - dependency-name: "pytest"
+      - dependency-name: "flake8"
+      - dependency-name: "black"
+      - dependency-name: "mypy"
+      - dependency-name: "django-rest-framework"
+      - dependency-name: "gunicorn"
+      - dependency-name: "uvicorn"
+      - dependency-name: "fastapi"
+      - dependency-name: "pydantic"
+      - dependency-name: "alembic"
+    groups:
+      all-python-dependencies:
+        patterns: ["*"] # Group all Python dependencies
+        update-types: ["major", "minor", "patch"]
+      security-critical-python:
+        patterns:
+          - "cryptography"
+          - "pyyaml"
+          - "django"
+          - "flask"
+        update-types: ["patch"] # Prioritize patch updates for security
+
+  # --------------------------------------------------------------------------
+  # Java (Maven) dependency updates
+  # This section configures Dependabot for Java projects using 'Maven'.
+  # It looks for 'pom.xml' files.
+  # --------------------------------------------------------------------------
+  - package-ecosystem: "maven"
+    # The directory containing the 'pom.xml' file.
+    # This example assumes a Java application in a '/java-app' subdirectory.
+    directory: "/java-app"
+    schedule:
+      interval: "weekly"
+      day: "thursday"
+      time: "08:00" # UTC
+    target-branch: "main"
+    labels:
+      - "dependencies"
+      - "java"
+      - "maven"
+      - "automated"
+      - "backend"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(deps-java)"
+      include: "scope"
+    ignore:
+      - dependency-name: "org.springframework.boot:spring-boot-starter-web"
+        versions: ">2.x.x" # If you are on Spring Boot 2.x and not ready for 3.x
+      - dependency-name: "junit"
+        versions: "5.x" # Ignore specific Junit 5 versions
+      - dependency-name: "log4j"
+        versions: "*" # Be cautious ignoring logging frameworks due to security risks.
+      - dependency-name: "hibernate-core"
+      - dependency-name: "spring-data-jpa"
+      - dependency-name: "lombok"
+      - dependency-name: "mapstruct"
+      - dependency-name: "guava"
+      - dependency-name: "org.apache.commons:commons-lang3"
+      - dependency-name: "mockito-core"
+      - dependency-name: "assertj-core"
+      - dependency-name: "org.slf4j:slf4j-api"
+      - dependency-name: "ch.qos.logback:logback-classic"
+      - dependency-name: "mysql:mysql-connector-java"
+      - dependency-name: "org.postgresql:postgresql"
+      - dependency-name: "com.h2database:h2"
+      - dependency-name: "org.flywaydb:flyway-core"
+      - dependency-name: "org.liquibase:liquibase-core"
+      - dependency-name: "org.modelmapper:modelmapper"
+    groups:
+      spring-dependencies:
+        patterns:
+          - "org.springframework.boot:*"
+          - "org.springframework:*"
+          - "io.springfox:*"
+          - "org.springdoc:*"
+        update-types: ["major", "minor", "patch"]
+      testing-dependencies-java:
+        patterns:
+          - "org.junit.jupiter:*"
+          - "org.mockito:*"
+          - "org.assertj:*"
+          - "org.hamcrest:*"
+        update-types: ["minor", "patch"]
+      database-drivers:
+        patterns:
+          - "*:postgresql"
+          - "*:mysql-connector-java"
+          - "*:h2"
+          - "*:oracle"
+        update-types: ["minor", "patch"]
+
+  # --------------------------------------------------------------------------
+  # Go (Go Modules) dependency updates
+  # This section configures Dependabot for Go projects using 'Go Modules'.
+  # It looks for 'go.mod' files.
+  # --------------------------------------------------------------------------
+  - package-ecosystem: "go_modules"
+    # The directory containing the 'go.mod' file.
+    # This example assumes a Go service in a '/go-service' subdirectory.
+    directory: "/go-service"
+    schedule:
+      interval: "weekly"
+      day: "friday"
+      time: "10:00" # UTC
+    target-branch: "main"
+    labels:
+      - "dependencies"
+      - "golang"
+      - "automated"
+      - "backend"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps-go)"
+      include: "scope"
+    ignore:
+      - dependency-name: "github.com/gin-gonic/gin"
+        versions: ">1.7.x"
+      - dependency-name: "github.com/spf13/cobra"
+      - dependency-name: "github.com/stretchr/testify"
+      - dependency-name: "golang.org/x/sync"
+      - dependency-name: "gorm.io/gorm"
+      - dependency-name: "go.uber.org/zap"
+      - dependency-name: "github.com/aws/aws-sdk-go"
+      - dependency-name: "github.com/sirupsen/logrus"
+      - dependency-name: "github.com/labstack/echo/v4"
+    groups:
+      all-go-dependencies:
+        patterns: ["*"]
+        update-types: ["major", "minor", "patch"]
+      frameworks-go:
+        patterns:
+          - "github.com/gin-gonic/gin"
+          - "github.com/labstack/echo/v4"
+          - "github.com/go-chi/chi/v5"
+        update-types: ["major", "minor"]
+
+  # --------------------------------------------------------------------------
+  # Terraform dependency updates
+  # This section configures Dependabot for Terraform modules and providers.
+  # It looks for '.tf' files.
+  # --------------------------------------------------------------------------
+  - package-ecosystem: "terraform"
+    # The directory containing Terraform configuration files (e.g., '.tf' files).
+    # This example assumes Terraform configurations in a '/terraform' subdirectory.
+    directory: "/terraform"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "12:00" # UTC
+    target-branch: "main"
+    labels:
+      - "dependencies"
+      - "terraform"
+      - "infrastructure"
+      - "automated"
+      - "iac"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore(deps-tf)"
+      include: "scope"
+    ignore:
+      - dependency-name: "hashicorp/aws"
+        versions: ">4.x.x" # If sticking to AWS provider v4
+      - dependency-name: "hashicorp/azuread"
+      - dependency-name: "hashicorp/google"
+      - dependency-name: "hashicorp/kubernetes"
+      - dependency-name: "terraform-aws-modules/vpc/aws"
+        versions: ">3.x.x"
+      - dependency-name: "terraform-aws-modules/ecs/aws"
+        versions: ">2.x.x"
+      - dependency-name: "cloudflare/cloudflare"
+      - dependency-name: "helm/helm"
+    groups:
+      all-terraform-providers:
+        patterns: ["*/*"] # Providers are typically in 'registry/namespace/name' format (e.g., hashicorp/aws)
+        update-types: ["major", "minor", "patch"]
+      terraform-modules:
+        patterns: ["terraform-*/*/*"] # Modules often follow 'registry/module/provider' format
+        update-types: ["minor", "patch"]
+
+  # --------------------------------------------------------------------------
+  # .NET (NuGet) dependency updates
+  # This section configures Dependabot for .NET projects using 'NuGet'.
+  # It looks for '.csproj', '.fsproj', '.vbproj', '.nuspec', or '.paket/paket.dependencies' files.
+  # --------------------------------------------------------------------------
+  - package-ecosystem: "nuget"
+    # The directory containing .NET project files (e.g., '.csproj').
+    # This example assumes a .NET application in a '/dotnet-app' subdirectory.
+    directory: "/dotnet-app"
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+      time: "14:00" # UTC
+    target-branch: "main"
+    labels:
+      - "dependencies"
+      - "dotnet"
+      - "nuget"
+      - "automated"
+      - "backend"
+    open-pull-requests-limit: 8
+    commit-message:
+      prefix: "chore(deps-dotnet)"
+      include: "scope"
+    ignore:
+      - dependency-name: "Microsoft.NET.Sdk.Web"
+      - dependency-name: "Microsoft.AspNetCore.App"
+      - dependency-name: "Newtonsoft.Json"
+      - dependency-name: "System.Text.Json"
+      - dependency-name: "NUnit"
+      - dependency-name: "xunit"
+      - dependency-name: "Moq"
+      - dependency-name: "FluentAssertions"
+      - dependency-name: "Microsoft.EntityFrameworkCore.*"
+      - dependency-name: "MediatR"
+      - dependency-name: "Serilog.*"
+      - dependency-name: "Swashbuckle.AspNetCore"
+    groups:
+      microsoft-dependencies:
+        patterns:
+          - "Microsoft.*"
+          - "System.*"
+        update-types: ["major", "minor", "patch"]
+      common-libraries-dotnet:
+        patterns:
+          - "Newtonsoft.Json"
+          - "Serilog.*"
+          - "Dapper"
+          - "AutoMapper"
+          - "FluentValidation"
+          - "Polly"
+        update-types: ["minor", "patch"]
+
+  # --------------------------------------------------------------------------
+  # Ruby (Bundler) dependency updates
+  # This section configures Dependabot for Ruby projects using 'Bundler'.
+  # It looks for 'Gemfile' and 'Gemfile.lock' files.
+  # --------------------------------------------------------------------------
+  - package-ecosystem: "bundler"
+    # The directory containing Ruby 'Gemfile' and 'Gemfile.lock' files.
+    # This example assumes a Ruby application in a '/ruby-app' subdirectory.
+    directory: "/ruby-app"
+    schedule:
+      interval: "weekly"
+      day: "monday" # Rotating back to Monday for variety
+      time: "16:00" # UTC
+    target-branch: "main"
+    labels:
+      - "dependencies"
+      - "ruby"
+      - "bundler"
+      - "automated"
+      - "backend"
+    open-pull-requests-limit: 6
+    commit-message:
+      prefix: "chore(deps-ruby)"
+      include: "scope"
+    ignore:
+      - dependency-name: "rails"
+        versions: ">6.x.x" # If sticking to Rails 6.x
+      - dependency-name: "rack"
+      - dependency-name: "puma"
+      - dependency-name: "rspec"
+      - dependency-name: "factory_bot_rails"
+      - dependency-name: "faker"
+      - dependency-name: "devise"
+      - dependency-name: "sidekiq"
+      - dependency-name: "nokogiri"
+      - dependency-name: "activemodel"
+    groups:
+      rails-related:
+        patterns:
+          - "rails"
+          - "actionpack"
+          - "activerecord"
+          - "activesupport"
+          - "actionview"
+          - "activejob"
+          - "actionmailer"
+          - "activestorage"
+          - "railties"
+        update-types: ["major", "minor"]
+      testing-gems:
+        patterns:
+          - "rspec-rails"
+          - "capybara"
+          - "selenium-webdriver"
+          - "shoulda-matchers"
+          - "database_cleaner"
+          - "simplecov"
+        update-types: ["patch"]
+
+  # --------------------------------------------------------------------------
+  # PHP (Composer) dependency updates
+  # This section configures Dependabot for PHP projects using 'Composer'.
+  # It looks for 'composer.json' and 'composer.lock' files.
+  # --------------------------------------------------------------------------
+  - package-ecosystem: "composer"
+    # The directory containing PHP 'composer.json' and 'composer.lock' files.
+    # This example assumes a PHP application in a '/php-app' subdirectory.
+    directory: "/php-app"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "18:00" # UTC
+    target-branch: "main"
+    labels:
+      - "dependencies"
+      - "php"
+      - "composer"
+      - "automated"
+      - "backend"
+    open-pull-requests-limit: 7
+    commit-message:
+      prefix: "chore(deps-php)"
+      include: "scope"
+    ignore:
+      - dependency-name: "laravel/framework"
+        versions: ">8.x.x" # If sticking to Laravel 8.x
+      - dependency-name: "symfony/symfony"
+      - dependency-name: "guzzlehttp/guzzle"
+      - dependency-name: "phpunit/phpunit"
+      - dependency-name: "spatie/laravel-permission"
+      - dependency-name: "doctrine/orm"
+      - dependency-name: "monolog/monolog"
+      - dependency-name: "nesbot/carbon"
+    groups:
+      laravel-core:
+        patterns:
+          - "laravel/framework"
+          - "laravel/tinker"
+          - "facade/ignition"
+          - "nunomaduro/collision"
+          - "fideloper/proxy"
+        update-types: ["major", "minor", "patch"]
+      testing-tools-php:
+        patterns:
+          - "phpunit/phpunit"
+          - "mockery/mockery"
+          - "fakerphp/faker"
+          - "symfony/browser-kit"
+          - "pestphp/pest"
+        update-types: ["minor", "patch"]
+
+  # --------------------------------------------------------------------------
+  # Elixir (Mix) dependency updates
+  # This section configures Dependabot for Elixir projects using 'Mix'.
+  # It looks for 'mix.exs' and 'mix.lock' files.
+  # --------------------------------------------------------------------------
+  - package-ecosystem: "mix"
+    # The directory containing Elixir 'mix.exs' and 'mix.lock' files.
+    # This example assumes an Elixir application in a '/elixir-app' subdirectory.
+    directory: "/elixir-app"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "20:00" # UTC
+    target-branch: "main"
+    labels:
+      - "dependencies"
+      - "elixir"
+      - "mix"
+      - "automated"
+      - "backend"
+    open-pull-requests-limit: 4
+    commit-message:
+      prefix: "chore(deps-elixir)"
+      include: "scope"
+    ignore:
+      - dependency-name: "phoenix"
+        versions: ">1.6.x" # If sticking to Phoenix 1.6.x
+      - dependency-name: "ecto_sql"
+      - dependency-name: "plug_cowboy"
+      - dependency-name: "ex_unit"
+      - dependency-name: "credo"
+      - dependency-name: "dialyxir"
+      - dependency-name: "poison"
+      - dependency-name: "jason"
+    groups:
+      phoenix-core:
+        patterns:
+          - "phoenix"
+          - "phoenix_html"
+          - "phoenix_live_view"
+          - "plug"
+          - "phoenix_pubsub"
+          - "telemetry_metrics"
+          - "telemetry_poller"
+        update-types: ["major", "minor"]
+      ecto-related:
+        patterns:
+          - "ecto"
+          - "ecto_sql"
+          - "postgrex"
+          - "mariaex"
+          - "tds"
+        update-types: ["minor", "patch"]
+
+  # --------------------------------------------------------------------------
+  # Monorepo Example: Multiple Node.js sub-packages
+  # This demonstrates how to configure Dependabot for multiple sub-directories
+  # within a monorepo structure for the same package ecosystem.
+  # Each sub-package can have its own specific update policy, labels, and limits.
+  # --------------------------------------------------------------------------
+  - package-ecosystem: "npm"
+    directory: "/packages/frontend" # Frontend application in a monorepo
+    schedule:
+      interval: "daily"
+      time: "02:00" # UTC
+    target-branch: "main"
+    labels:
+      - "dependencies"
+      - "npm"
+      - "frontend-app"
+      - "monorepo"
+    assignees:
+      - "frontend-team-lead"
+    open-pull-requests-limit: 5
+    rebase-strategy: "auto"
+    commit-message:
+      prefix: "chore(deps-monorepo-frontend)"
+      include: "scope"
+    ignore:
+      - dependency-name: "react-router-dom"
+        versions: ">5.x.x" # If not ready for react-router-dom v6
+    groups:
+      all-frontend-deps-monorepo:
+        patterns: ["*"]
+        update-types: ["major", "minor", "patch"]
+
+  - package-ecosystem: "npm"
+    directory: "/packages/backend" # Backend service in a monorepo
+    schedule:
+      interval: "daily"
+      time: "02:30" # UTC
+    target-branch: "main"
+    labels:
+      - "dependencies"
+      - "npm"
+      - "backend-service"
+      - "monorepo"
+    assignees:
+      - "backend-team-lead"
+    open-pull-requests-limit: 5
+    rebase-strategy: "auto"
+    commit-message:
+      prefix: "chore(deps-monorepo-backend)"
+      include: "scope"
+    ignore:
+      - dependency-name: "sequelize"
+        versions: ">6.x.x" # If not ready for sequelize v7
+    groups:
+      all-backend-deps-monorepo:
+        patterns: ["*"]
+        update-types: ["major", "minor", "patch"]
+
+  - package-ecosystem: "npm"
+    directory: "/packages/shared-ui" # Shared UI library in a monorepo
+    schedule:
+      interval: "weekly"
+      day: "thursday"
+      time: "09:00" # UTC
+    target-branch: "main"
+    labels:
+      - "dependencies"
+      - "npm"
+      - "shared-ui-lib"
+      - "monorepo"
+    assignees:
+      - "ui-ux-engineer"
+    open-pull-requests-limit: 3
+    rebase-strategy: "none" # Might want manual control over shared library updates
+    commit-message:
+      prefix: "chore(deps-monorepo-shared-ui)"
+      include: "scope"
+    ignore:
+      - dependency-name: "@storybook/react"
+        versions: ">6.x.x" # If storybook is not updated yet
+    groups:
+      all-shared-ui-deps-monorepo:
+        patterns: ["*"]
+        update-types: ["major", "minor", "patch"]
+
+  # --------------------------------------------------------------------------
+  # Additional Configuration Options (Commented out examples for reference)
+  # These sections provide examples for advanced Dependabot features like
+  # private registries or highly specific update configurations that might be
+  # relevant for different project setups.
+  # --------------------------------------------------------------------------
+
+  # Private Registries Configuration:
+  # If your project uses private package registries (e.g., GitHub Packages, Artifactory, Nexus),
+  # you need to configure Dependabot with access to them. This involves setting up
+  # encrypted secrets in your repository or organization settings.
+  # The 'token' or 'username'/'password' should reference a GitHub secret.
+  # registries:
+  #   npm-github-packages:
+  #     type: npm-registry
+  #     url: https://npm.pkg.github.com/OWNER # Replace OWNER with your GitHub username or organization
+  #     token: ${{ secrets.DEPENDABOT_NPM_GITHUB_TOKEN }} # Secret must be defined in GitHub
+  #   my-custom-docker-registry:
+  #     type: docker-registry
+  #     url: my-private-docker-registry.com
+  #     username: ${{ secrets.DEPENDABOT_DOCKER_USERNAME }}
+  #     password: ${{ secrets.DEPENDABOT_DOCKER_PASSWORD }}
+  #   private-pypi:
+  #     type: python-index
+  #     url: https://pypi.example.com/simple/
+  #     token: ${{ secrets.DEPENDABOT_PYPI_TOKEN }}
+  #   private-maven:
+  #     type: maven-repository
+  #     url: https://repo.example.com/maven2/
+  #     username: ${{ secrets.DEPENDABOT_MAVEN_USERNAME }}
+  #     password: ${{ secrets.DEPENDABOT_MAVEN_PASSWORD }}
+  #   internal-nuget:
+  #     type: nuget-feed
+  #     url: https://nuget.example.com/v3/index.json
+  #     token: ${{ secrets.DEPENDABOT_NUGET_TOKEN }}
+  #   private-hex-registry:
+  #     type: hex-registry
+  #     url: https://repo.hex.pm
+  #     token: ${{ secrets.DEPENDABOT_HEX_TOKEN }}
+  #   private-packagist:
+  #     type: composer-repository
+  #     url: https://repo.packagist.com/
+  #     token: ${{ secrets.DEPENDABOT_COMPOSER_TOKEN }}
+
+  # Example of an additional, very granular npm configuration for a specific utility directory.
+  # This can be useful for managing dependencies that are isolated or have different update cadences.
+  # - package-ecosystem: "npm"
+  #   directory: "/scripts/tools" # Example: a directory with utility scripts or build tools
+  #   schedule:
+  #     interval: "monthly"
+  #     day: "first" # First day of the month
+  #   target-branch: "dev" # PRs for tools might target a development branch first
+  #   labels: ["dependencies", "tooling", "low-priority"]
+  #   assignees: ["build-engineer"]
+  #   open-pull-requests-limit: 2
+  #   rebase-strategy: "none" # Manual rebase often preferred for tooling updates
+  #   commit-message:
+  #     prefix: "chore(deps-tooling)"
+  #     include: "scope"
+  #   ignore:
+  #     - dependency-name: "gulp"
+  #       update-types: ["major"] # Avoid major Gulp updates unless planned
+  #     - dependency-name: "grunt"
+  #       versions: "*" # If a tool is deprecated and should not receive updates
+  #   groups:
+  #     critical-tools-patches:
+  #       patterns:
+  #         - "eslint-plugin-react"
+  #         - "prettier"
+  #         - "webpack-bundle-analyzer"
+  #       update-types: ["patch"]
+
+  # Another example for documentation-specific dependencies.
+  # - package-ecosystem: "npm"
+  #   directory: "/docs" # Example: a directory for a documentation site (e.g., Docusaurus, Next.js for docs)
+  #   schedule:
+  #     interval: "weekly"
+  #     day: "friday"
+  #   target-branch: "documentation-branch" # PRs target a specific docs branch
+  #   labels:
+  #     - "dependencies"
+  #     - "documentation"
+  #     - "npm"
+  #     - "docs-updates"
+  #   open-pull-requests-limit: 3
+  #   rebase-strategy: "auto"
+  #   commit-message:
+  #     prefix: "docs(deps)"
+  #     include: "scope"
+  #   ignore:
+  #     - dependency-name: "docusaurus"
+  #       versions: ">2.x.x"
+  #     - dependency-name: "mdx-js"
+  #       update-types: ["major"]
+  #   groups:
+  #     docs-minor-updates:
+  #       patterns: ["*"]
+  #       exclude-patterns: ["docusaurus"]
+  #       update-types: ["minor", "patch"]

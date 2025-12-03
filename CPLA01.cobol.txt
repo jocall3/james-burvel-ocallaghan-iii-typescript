@@ -1,0 +1,131 @@
+      ******************************************************************
+      * LOAN MASTER RECORD DEFINITION (V2.1)
+      * DEFINES THE COMPREHENSIVE STATE OF A SINGLE LOAN INSTRUMENT.
+      * ENHANCED FOR AI-DRIVEN INSIGHTS AND EXTENDED DATA CAPTURE.
+      ******************************************************************
+       01 LOAN-MASTER-RECORD.
+      * Basic Loan Identification
+          05 LM-LOAN-ID             PIC 9(12).
+          05 LM-CUSTOMER-ID         PIC 9(10).
+
+      * Detailed Loan Terms and Origination
+          05 LM-LOAN-TERMS.
+             10 LM-LOAN-TYPE        PIC X(04).
+                88 IS-PERSONAL     VALUE 'PERS'.
+                88 IS-AUTO         VALUE 'AUTO'.
+                88 IS-MORTGAGE     VALUE 'MORT'.
+                88 IS-BUSINESS     VALUE 'BIZN'.
+                88 IS-STUDENT      VALUE 'STUD'.
+             10 LM-ORIGINAL-PRINCIPAL PIC S9(13)V99 COMP-3.
+             10 LM-INTEREST-RATE    PIC S9(03)V99 COMP-3.
+             10 LM-TERM-MONTHS      PIC 9(03).
+             10 LM-ORIGINATION-DATE PIC X(10).
+             10 LM-LOAN-CURRENCY    PIC X(03).  *> e.g., 'USD', 'EUR'
+             10 LM-PAYMENT-FREQUENCY PIC X(01).
+                88 PAY-MONTHLY     VALUE 'M'.
+                88 PAY-BI-WEEKLY   VALUE 'B'.
+                88 PAY-WEEKLY      VALUE 'W'.
+                88 PAY-QUARTERLY   VALUE 'Q'.
+             10 LM-GRACE-PERIOD-DAYS PIC 9(02).
+             10 LM-PENALTY-INTEREST-RATE PIC S9(03)V99 COMP-3.
+
+      * Current Loan Status and Payment Information
+          05 LM-CURRENT-STATUS.
+             10 LM-CURRENT-PRINCIPAL PIC S9(13)V99 COMP-3.
+             10 LM-ACCRUED-INTEREST  PIC S9(9)V99 COMP-3.
+             10 LM-NEXT-PAYMENT-DUE  PIC X(10).
+             10 LM-NEXT-PAYMENT-AMT  PIC S9(7)V99 COMP-3.
+             10 LM-LAST-PAYMENT-DATE PIC X(10).
+             10 LM-LAST-PAYMENT-AMOUNT PIC S9(9)V99 COMP-3.
+             10 LM-ESCROW-BALANCE    PIC S9(11)V99 COMP-3.
+             10 LM-REMAINING-TERM-MONTHS PIC 9(03).
+
+      * Delinquency and Collection Details
+          05 LM-DELINQUENCY-INFO.
+             10 LM-DAYS-PAST-DUE    PIC 9(03).
+             10 LM-LATE-FEES-OWED   PIC S9(5)V99 COMP-3.
+             10 LM-LAST-COLLECTION-DATE PIC X(10).
+             10 LM-COLLECTION-ATTEMPTS PIC 9(02).
+             10 LM-COLLECTION-STRATEGY-CODE PIC X(04).
+                88 STRATEGY-GENERAL     VALUE 'GENL'.
+                88 STRATEGY-PRIORITIZED VALUE 'PRIO'.
+                88 STRATEGY-LEGAL       VALUE 'LEGL'.
+                88 STRATEGY-RESTRUCTURE VALUE 'RSTR'.
+
+      * Overall Loan Status and Special Conditions
+          05 LM-STATUS-FLAGS.
+             10 LM-STATUS           PIC X(01).
+                88 LOAN-ACTIVE       VALUE 'A'.
+                88 LOAN-PAID         VALUE 'P'.
+                88 LOAN-DEFAULT      VALUE 'D'.
+                88 LOAN-REFINANCED   VALUE 'R'.
+                88 LOAN-FORBEARANCE  VALUE 'F'.
+                88 LOAN-SETTLED      VALUE 'S'.
+             10 LM-SPECIAL-CONDITION-CODE PIC X(02).
+                88 SP-COND-NONE      VALUE SPACES.
+                88 SP-COND-FORB      VALUE 'FB'. *> Forbearance
+                88 SP-COND-DEFR      VALUE 'DF'. *> Deferment
+                88 SP-COND-RESTR     VALUE 'RS'. *> Restructured
+
+      * Collateral Information
+          05 LM-COLLATERAL-INFO.
+             10 LM-COLLATERAL-ID    PIC X(20).
+             10 LM-COLLATERAL-VALUE PIC S9(13)V99 COMP-3.
+             10 LM-COLLATERAL-TYPE  PIC X(04).
+                88 COLLAT-REAL-ESTATE VALUE 'REAL'.
+                88 COLLAT-VEHICLE     VALUE 'VEHC'.
+                88 COLLAT-SECURITIES  VALUE 'SECR'.
+                88 COLLAT-BUSINESS-ASSET VALUE 'BIZA'.
+                88 COLLAT-OTHER       VALUE 'OTHR'.
+             10 LM-COLLATERAL-LIEN-POSITION PIC 9(01).
+                88 FIRST-LIEN        VALUE 1.
+                88 SECOND-LIEN       VALUE 2.
+                88 THIRD-LIEN        VALUE 3.
+             10 LM-COLLATERAL-APPRAISAL-DATE PIC X(10).
+             10 LM-COLLATERAL-DESCRIPTION PIC X(50).
+
+      * Customer Profile Summary (for quick reference)
+          05 LM-CUSTOMER-PROFILE-SUMMARY.
+             10 LM-CUSTOMER-CREDIT-SCORE PIC 9(03).
+             10 LM-CUSTOMER-ANNUAL-INCOME PIC S9(13)V99 COMP-3.
+             10 LM-CUSTOMER-EMPLOYMENT-STATUS PIC X(01).
+                88 EMP-STATUS-EMPLOYED     VALUE 'E'.
+                88 EMP-STATUS-SELF-EMPLOYED VALUE 'S'.
+                88 EMP-STATUS-UNEMPLOYED   VALUE 'U'.
+                88 EMP-STATUS-RETIRED      VALUE 'R'.
+                88 EMP-STATUS-OTHER        VALUE 'O'.
+
+      * Audit and System Information
+          05 LM-AUDIT-INFORMATION.
+             10 LM-ORIGINATING-BRANCH PIC X(05).
+             10 LM-ORIGINATING-USER PIC X(08).
+             10 LM-LAST-UPDATE-DATE PIC X(10).
+             10 LM-LAST-UPDATE-USER PIC X(08).
+             10 LM-RECORD-VERSION   PIC 9(03). *> Version of this record format
+             10 LM-CREATE-TIMESTAMP   PIC X(26). *> ISO 8601 format YYYY-MM-DD-HH.MM.SS.NNNNNN
+             10 LM-UPDATE-TIMESTAMP   PIC X(26). *> ISO 8601 format YYYY-MM-DD-HH.MM.SS.NNNNNN
+
+      * AI-Driven Assessment Data (Story-like Integration for Enhanced Loan Management)
+      * This section captures insights generated by advanced AI models to aid in proactive
+      * risk management, customer engagement, and decision support.
+          05 LM-AI-ASSESSMENT-DATA.
+             10 LM-AI-RISK-SCORE    PIC S9(03)V99 COMP-3. *> AI-calculated probability of default (0.00-99.99)
+             10 LM-AI-BEHAVIOR-ANOMALY-FLAG PIC X(01).
+                88 AI-ANOMALY-DETECTED VALUE 'Y'.
+                88 AI-NO-ANOMALY     VALUE 'N'.
+                88 AI-ANOMALY-REVIEWED VALUE 'R'.
+             10 LM-AI-PREPAYMENT-PROBABILITY PIC S9(02)V99 COMP-3. *> Probability of early loan payoff (0.00-99.99)
+             10 LM-AI-RECOMMENDATION-CODE PIC X(04).
+                88 AI-REC-NONE       VALUE SPACES.
+                88 AI-REC-REFINANCE  VALUE 'RFIN'. *> Recommend refinance offer review
+                88 AI-REC-PROACTIVE  VALUE 'PRAC'. *> Recommend proactive customer contact
+                88 AI-REC-LOW-RISK   VALUE 'LRIS'. *> Standard low-risk monitoring
+                88 AI-REC-HIGH-RISK  VALUE 'HRIS'. *> Elevated risk monitoring required
+                88 AI-REC-COLLECTION VALUE 'COLL'. *> Prioritize for collection efforts
+             10 LM-AI-MODEL-ID      PIC X(10). *> Identifier for the specific AI model version used
+             10 LM-AI-LAST-EVALUATION-DATE PIC X(10). *> Date of the last AI assessment
+             10 LM-AI-CONFIDENCE-LEVEL PIC S9(02)V99 COMP-3. *> Confidence in AI's assessment (0.00-99.99)
+             10 LM-AI-DECISION-SUPPORT-NOTES PIC X(100). *> Brief AI-generated explanatory notes
+
+      * Filler to round out the record or for future expansion
+          05 LM-FILLER              PIC X(25).

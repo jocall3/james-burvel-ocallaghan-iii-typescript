@@ -1,0 +1,115 @@
+name: Stale Metrics Dashboard
+
+on:
+  schedule:
+    - cron: '0 0 * * 0' # Run weekly on Sunday at midnight UTC
+
+jobs:
+  generate-stale-report:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write # To create/update report issue
+      pull-requests: read # To read PR data
+      contents: read # To checkout repository
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup GitHub CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gh
+
+      - name: Fetch Stale Issues and Pull Requests
+        id: fetch_stale_data
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "--- Fetching Stale Issues ---"
+          STALE_ISSUES_JSON=$(gh issue list --label stale --state open --json number,title,url,createdAt,updatedAt)
+          echo "STALE_ISSUES_JSON obtained."
+
+          STALE_ISSUES_COUNT=$(echo "$STALE_ISSUES_JSON" | jq 'length')
+          echo "stale_issues_count=$STALE_ISSUES_COUNT" >> "$GITHUB_OUTPUT"
+          echo "Number of stale issues: $STALE_ISSUES_COUNT"
+
+          STALE_ISSUES_LIST=""
+          if [ "$STALE_ISSUES_COUNT" -gt 0 ]; then
+            STALE_ISSUES_LIST=$(echo "$STALE_ISSUES_JSON" | jq -r '.[] | "- #" + (.number | to_string) + ": **" + .title + "** (Created: " + (.createdAt | fromdateiso8601 | strftime("%Y-%m-%d")) + ", Last Updated: " + (.updatedAt | fromdateiso8601 | strftime("%Y-%m-%d")) + ") - [Link](" + .url + ")"')
+            echo "stale_issues_list<<EOF" >> "$GITHUB_OUTPUT"
+            echo "$STALE_ISSUES_LIST" >> "$GITHUB_OUTPUT"
+            echo "EOF" >> "$GITHUB_OUTPUT"
+          else
+            echo "stale_issues_list<<EOF" >> "$GITHUB_OUTPUT"
+            echo "_No stale issues found._" >> "$GITHUB_OUTPUT"
+            echo "EOF" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo ""
+          echo "--- Fetching Stale Pull Requests ---"
+          STALE_PRS_JSON=$(gh pr list --label stale --state open --json number,title,url,createdAt,updatedAt)
+          echo "STALE_PRS_JSON obtained."
+
+          STALE_PRS_COUNT=$(echo "$STALE_PRS_JSON" | jq 'length')
+          echo "stale_prs_count=$STALE_PRS_COUNT" >> "$GITHUB_OUTPUT"
+          echo "Number of stale pull requests: $STALE_PRS_COUNT"
+
+          STALE_PRS_LIST=""
+          if [ "$STALE_PRS_COUNT" -gt 0 ]; then
+            STALE_PRS_LIST=$(echo "$STALE_PRS_JSON" | jq -r '.[] | "- #" + (.number | to_string) + ": **" + .title + "** (Created: " + (.createdAt | fromdateiso8601 | strftime("%Y-%m-%d")) + ", Last Updated: " + (.updatedAt | fromdateiso8601 | strftime("%Y-%m-%d")) + ") - [Link](" + .url + ")"')
+            echo "stale_prs_list<<EOF" >> "$GITHUB_OUTPUT"
+            echo "$STALE_PRS_LIST" >> "$GITHUB_OUTPUT"
+            echo "EOF" >> "$GITHUB_OUTPUT"
+          else
+            echo "stale_prs_list<<EOF" >> "$GITHUB_OUTPUT"
+            echo "_No stale pull requests found._" >> "$GITHUB_OUTPUT"
+            echo "EOF" >> "$GITHUB_OUTPUT"
+          fi
+
+
+      - name: Create or Update Stale Metrics Report Issue
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STALE_ISSUES_COUNT: ${{ steps.fetch_stale_data.outputs.stale_issues_count }}
+          STALE_PRS_COUNT: ${{ steps.fetch_stale_data.outputs.stale_prs_count }}
+          STALE_ISSUES_LIST: ${{ steps.fetch_stale_data.outputs.stale_issues_list }}
+          STALE_PRS_LIST: ${{ steps.fetch_stale_data.outputs.stale_prs_list }}
+        run: |
+          REPORT_ISSUE_LABEL="stale-metrics-report"
+          REPORT_TITLE="Stale Items Metrics Report - $(date +'%Y-%m-%d %H:%M UTC')"
+
+          REPORT_BODY=$(cat <<EOF
+## Stale Items Metrics Report - $(date +'%Y-%m-%d %H:%M UTC')
+
+This report provides an overview of stale issues and pull requests in the repository. It is generated weekly to help maintain repository hygiene.
+
+### Summary
+
+*   **Total Open Stale Issues:** ${STALE_ISSUES_COUNT}
+*   **Total Open Stale Pull Requests:** ${STALE_PRS_COUNT}
+
+### Stale Issues
+
+${STALE_ISSUES_LIST}
+
+### Stale Pull Requests
+
+${STALE_PRS_LIST}
+
+---
+_This report is generated weekly by the [Stale Metrics Dashboard workflow](https://github.com/${GITHUB_REPOSITORY}/actions/workflows/$(basename ${{ github.workflow_ref }}))._
+EOF
+          )
+
+          # Check if an existing report issue exists with the specific label
+          # We only consider open issues for update
+          REPORT_ISSUE_NUMBER=$(gh issue list --label "$REPORT_ISSUE_LABEL" --state open --json number --jq '.[0].number')
+
+          if [ -n "$REPORT_ISSUE_NUMBER" ]; then
+            echo "Updating existing report issue #$REPORT_ISSUE_NUMBER"
+            gh issue edit "$REPORT_ISSUE_NUMBER" --title "$REPORT_TITLE" --body "$REPORT_BODY"
+          else
+            echo "Creating new report issue with label '$REPORT_ISSUE_LABEL'"
+            gh issue create --title "$REPORT_TITLE" --body "$REPORT_BODY" --label "$REPORT_ISSUE_LABEL"
+          fi

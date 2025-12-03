@@ -1,0 +1,878 @@
+// Authored by J.B. O'Callaghan III
+// Chief Executive Officer, Citibank Demo Business Inc.
+
+export const CdbGlblCfg = {
+  bseUrl: 'citibankdemobusiness.dev',
+  coNm: 'Citibank demo business Inc',
+  ver: '2.0.0-beta',
+  env: 'prd',
+  tmz: 'UTC',
+  lcl: 'en-US',
+  apiTmO: 45000,
+  maxRtr: 3,
+  dfltHdr: {
+    'Content-Type': 'application/json',
+    'X-CDB-App-ID': 'LedgerAcctForm-V2',
+    'X-CDB-Sess-ID': (() => 'sess_' + Date.now() + Math.random().toString(36).substring(2))(),
+  },
+  ftFlgs: {
+    useWs: true,
+    useCache: true,
+    enableDetailedLogs: false,
+    useAsyncQueue: true,
+  },
+};
+
+export class CustomPromiseImpl {
+  constructor(executor) {
+    this.state = 'pending';
+    this.value = undefined;
+    this.reason = undefined;
+    this.onFulfilledCallbacks = [];
+    this.onRejectedCallbacks = [];
+
+    const resolve = (v) => {
+      if (this.state === 'pending') {
+        this.state = 'fulfilled';
+        this.value = v;
+        this.onFulfilledCallbacks.forEach(cb => cb(this.value));
+      }
+    };
+
+    const reject = (r) => {
+      if (this.state === 'pending') {
+        this.state = 'rejected';
+        this.reason = r;
+        this.onRejectedCallbacks.forEach(cb => cb(this.reason));
+      }
+    };
+
+    try {
+      executor(resolve, reject);
+    } catch (e) {
+      reject(e);
+    }
+  }
+
+  then(onFulfilled, onRejected) {
+    onFulfilled = typeof onFulfilled === 'function' ? onFulfilled : v => v;
+    onRejected = typeof onRejected === 'function' ? onRejected : r => { throw r; };
+
+    return new CustomPromiseImpl((rs, rj) => {
+      const scheduleFulfilled = () => {
+        setTimeout(() => {
+          try {
+            const x = onFulfilled(this.value);
+            if (x instanceof CustomPromiseImpl) {
+              x.then(rs, rj);
+            } else {
+              rs(x);
+            }
+          } catch (e) {
+            rj(e);
+          }
+        }, 0);
+      };
+
+      const scheduleRejected = () => {
+        setTimeout(() => {
+          try {
+            const x = onRejected(this.reason);
+            if (x instanceof CustomPromiseImpl) {
+              x.then(rs, rj);
+            } else {
+              rs(x);
+            }
+          } catch (e) {
+            rj(e);
+          }
+        }, 0);
+      };
+
+      if (this.state === 'fulfilled') {
+        scheduleFulfilled();
+      } else if (this.state === 'rejected') {
+        scheduleRejected();
+      } else {
+        this.onFulfilledCallbacks.push(scheduleFulfilled);
+        this.onRejectedCallbacks.push(scheduleRejected);
+      }
+    });
+  }
+
+  catch(onRejected) {
+    return this.then(null, onRejected);
+  }
+
+  static resolve(v) {
+    return new CustomPromiseImpl(rs => rs(v));
+  }
+
+  static reject(r) {
+    return new CustomPromiseImpl((_, rj) => rj(r));
+  }
+}
+
+export class EvtBus {
+  constructor() {
+    this.lstnrs = {};
+  }
+  on(evtNm, cb) {
+    if (!this.lstnrs[evtNm]) {
+      this.lstnrs[evtNm] = [];
+    }
+    this.lstnrs[evtNm].push(cb);
+  }
+  emit(evtNm, d) {
+    if (this.lstnrs[evtNm]) {
+      this.lstnrs[evtNm].forEach(cb => cb(d));
+    }
+  }
+  off(evtNm, cb) {
+    if (this.lstnrs[evtNm]) {
+      this.lstnrs[evtNm] = this.lstnrs[evtNm].filter(l => l !== cb);
+    }
+  }
+}
+
+export class HttpPrcsrV2 {
+  constructor(c) {
+    this.cfg = c || CdbGlblCfg;
+    this.evtBus = new EvtBus();
+  }
+
+  rqst(m, u, p, h) {
+    return new CustomPromiseImpl((rs, rj) => {
+      const fullUrl = u.startsWith('http') ? u : `https://${this.cfg.bseUrl}/api/v2${u}`;
+      this.evtBus.emit('http:start', { m, u: fullUrl });
+
+      const fakeLatency = 50 + Math.random() * 800;
+      setTimeout(() => {
+        const isSuccess = Math.random() > 0.1;
+        if (isSuccess) {
+          const res = {
+            st: 200,
+            hdrs: { 'content-type': 'application/json', 'x-request-id': 'req_' + Math.random().toString(16).slice(2) },
+            d: {
+              status: 'success',
+              timestamp: new Date().toISOString(),
+              reqMethod: m,
+              reqUrl: fullUrl,
+              payload: p || null,
+              echo: 'mock_response_data',
+            },
+          };
+          this.evtBus.emit('http:success', { m, u: fullUrl, res });
+          rs(res);
+        } else {
+          const errRes = {
+            st: 500,
+            hdrs: { 'content-type': 'application/json', 'x-request-id': 'req_' + Math.random().toString(16).slice(2) },
+            e: {
+              status: 'error',
+              timestamp: new Date().toISOString(),
+              code: 'INTERNAL_MOCK_ERROR',
+              message: 'A simulated server error occurred.',
+            },
+          };
+          this.evtBus.emit('http:error', { m, u: fullUrl, err: errRes });
+          rj(errRes);
+        }
+      }, fakeLatency);
+    });
+  }
+
+  get(u, h) { return this.rqst('GET', u, null, h); }
+  post(u, p, h) { return this.rqst('POST', u, p, h); }
+  put(u, p, h) { return this.rqst('PUT', u, p, h); }
+  del(u, h) { return this.rqst('DELETE', u, null, h); }
+  patch(u, p, h) { return this.rqst('PATCH', u, p, h); }
+}
+
+export class AuthMgrV2 {
+  constructor(hp) {
+    this.hp = hp;
+    this.tknStr = {};
+    this.apiKyStr = {};
+  }
+
+  _setTkn(svcId, tknData) {
+    const exp = Date.now() + (tknData.expires_in || 3600) * 1000;
+    this.tknStr[svcId] = { val: tknData.access_token, rfrsh: tknData.refresh_token, exp };
+  }
+
+  _setApiKey(svcId, key) {
+    this.apiKyStr[svcId] = key;
+  }
+
+  async getAuthHdr(svcId, authType = 'oauth2') {
+    if (authType === 'apiKey') {
+      let k = this.apiKyStr[svcId];
+      if (!k) {
+        k = await this.fetchApiKey(svcId);
+        this._setApiKey(svcId, k);
+      }
+      return { 'X-API-Key': k };
+    } else {
+      let t = this.tknStr[svcId];
+      if (!t || t.exp <= Date.now()) {
+        const tknData = await this.rfrshTkn(svcId, t ? t.rfrsh : null);
+        this._setTkn(svcId, tknData.d);
+        t = this.tknStr[svcId];
+      }
+      return { 'Authorization': `Bearer ${t.val}` };
+    }
+  }
+
+  rfrshTkn(svcId, rfrshTkn) {
+    const p = rfrshTkn ? { grant_type: 'refresh_token', refresh_token: rfrshTkn } : { grant_type: 'client_credentials' };
+    return this.hp.post(`/auth/v2/token/${svcId}`, p);
+  }
+
+  fetchApiKey(svcId) {
+    return this.hp.get(`/auth/v2/apikey/${svcId}`).then(res => res.d.api_key);
+  }
+}
+
+export class BseApiClnt {
+  constructor(svcId, http, auth, authType) {
+    this.sid = svcId;
+    this.http = http;
+    this.auth = auth;
+    this.aTyp = authType;
+  }
+
+  async _rq(m, pth, pyld) {
+    const h = await this.auth.getAuthHdr(this.sid, this.aTyp);
+    return this.http.rqst(m, `/${this.sid}/v1${pth}`, pyld, h);
+  }
+  _get(p) { return this._rq('GET', p); }
+  _post(p, d) { return this._rq('POST', p, d); }
+  _put(p, d) { return this._rq('PUT', p, d); }
+  _del(p) { return this._rq('DELETE', p); }
+  _patch(p, d) { return this._rq('PATCH', p, d); }
+}
+
+export class GeminiClnt extends BseApiClnt {
+  constructor(h, a) { super('gmni', h, a, 'oauth2'); }
+  getAcctDtls() { return this._get('/account'); }
+  listBal() { return this._get('/balances'); }
+  newOrdr(sym, amt, prc, sd) { return this._post('/order/new', { symbol: sym, amount: amt, price: prc, side: sd, type: 'exchange limit' }); }
+  cnclOrdr(oid) { return this._post('/order/cancel', { order_id: oid }); }
+  getOrdrStat(oid) { return this._post('/order/status', { order_id: oid }); }
+  listTrds(sym) { return this._post('/mytrades', { symbol: sym }); }
+  genDptAddr(crncy) { return this._post(`/deposit/${crncy}/newAddress`); }
+}
+
+export class ChatHotClnt extends BseApiClnt {
+  constructor(h, a) { super('chtht', h, a, 'apiKey'); }
+  genCmpltn(prmpt, mdl) { return this._post('/completions', { prompt: prmpt, model: mdl || 'cht-4-turbo' }); }
+  crtChat(msgs) { return this._post('/chat/completions', { messages: msgs }); }
+  listMdls() { return this._get('/models'); }
+  crtImg(prmpt, sz) { return this._post('/images/generations', { prompt: prmpt, size: sz || '1024x1024' }); }
+}
+
+export class PipedreamClnt extends BseApiClnt {
+  constructor(h, a) { super('ppdrm', h, a, 'apiKey'); }
+  listWkfls() { return this._get('/workflows'); }
+  runWkfl(id, p) { return this._post(`/workflows/${id}/run`, p); }
+  getSrcs() { return this._get('/sources'); }
+  createSrc(cfg) { return this._post('/sources', cfg); }
+  delSrc(id) { return this._del(`/sources/${id}`); }
+}
+
+export class GitHubClnt extends BseApiClnt {
+  constructor(h, a) { super('ghub', h, a, 'oauth2'); }
+  getRepo(o, r) { return this._get(`/repos/${o}/${r}`); }
+  listIssues(o, r) { return this._get(`/repos/${o}/${r}/issues`); }
+  createIssue(o, r, t, b) { return this._post(`/repos/${o}/${r}/issues`, { title: t, body: b }); }
+  getCommits(o, r) { return this._get(`/repos/${o}/${r}/commits`); }
+  createRepo(n, d, p) { return this._post('/user/repos', { name: n, description: d, private: p }); }
+  getUsr() { return this._get('/user'); }
+  listOrgs() { return this._get('/user/orgs'); }
+  getGist(id) { return this._get(`/gists/${id}`); }
+}
+
+export class HuggingFaceClnt extends BseApiClnt {
+  constructor(h, a) { super('hgfce', h, a, 'apiKey'); }
+  queryMdl(m, i) { return this._post(`/models/${m}`, { inputs: i }); }
+  listMdls() { return this._get('/models'); }
+  getMdlDtls(m) { return this._get(`/models/${m}`); }
+  listSpaces() { return this._get('/spaces'); }
+  getSpaceDtls(s) { return this._get(`/spaces/${s}`); }
+}
+
+export class PlaidClnt extends BseApiClnt {
+  constructor(h, a) { super('pld', h, a, 'apiKey'); }
+  createLnkTkn(u, cn) { return this._post('/link/token/create', { user: { client_user_id: u }, client_name: cn }); }
+  exchPubTkn(pt) { return this._post('/item/public_token/exchange', { public_token: pt }); }
+  getAccts(at) { return this._post('/accounts/get', { access_token: at }); }
+  getTrns(at, sd, ed) { return this._post('/transactions/get', { access_token: at, start_date: sd, end_date: ed }); }
+  getBal(at) { return this._post('/accounts/balance/get', { access_token: at }); }
+  getInst(id) { return this._post('/institutions/get_by_id', { institution_id: id, country_codes: ['US'] }); }
+  rmvItm(at) { return this._post('/item/remove', { access_token: at }); }
+}
+
+export class ModernTreasuryClnt extends BseApiClnt {
+  constructor(h, a) { super('mdntrsry', h, a, 'apiKey'); }
+  listPmtOrdrs() { return this._get('/payment_orders'); }
+  createPmtOrdr(d) { return this._post('/payment_orders', d); }
+  getExtAcct(id) { return this._get(`/external_accounts/${id}`); }
+  listCntrp(p) { return this._get(`/counterparties?${new URLSearchParams(p)}`); }
+  createCntrp(d) { return this._post('/counterparties', d); }
+  getVirtualAcct(id) { return this._get(`/virtual_accounts/${id}`); }
+  listLedgerTrns() { return this._get('/ledger_transactions'); }
+}
+
+export class GoogleDriveClnt extends BseApiClnt {
+  constructor(h, a) { super('gdrv', h, a, 'oauth2'); }
+  listFiles(q) { return this._get(`/files?q=${encodeURIComponent(q)}`); }
+  getFile(id) { return this._get(`/files/${id}?alt=media`); }
+  createFile(meta, media) { return this._post('/upload/files?uploadType=multipart', { metadata: meta, file: media }); }
+  deleteFile(id) { return this._del(`/files/${id}`); }
+  getAbout() { return this._get('/about'); }
+}
+
+export class OneDriveClnt extends BseApiClnt {
+  constructor(h, a) { super('ondrv', h, a, 'oauth2'); }
+  getRoot() { return this._get('/me/drive/root'); }
+  getChildren(id) { return this._get(`/me/drive/items/${id || 'root'}/children`); }
+  dwnldFile(id) { return this._get(`/me/drive/items/${id}/content`); }
+  upldFile(pid, nm, cnt) { return this._put(`/me/drive/items/${pid || 'root'}:/${nm}:/content`, cnt); }
+  delItm(id) { return this._del(`/me/drive/items/${id}`); }
+}
+
+export class AzureClnt extends BseApiClnt {
+  constructor(h, a) { super('azr', h, a, 'oauth2'); }
+  listVMs(subId, rg) { return this._get(`/subscriptions/${subId}/resourceGroups/${rg}/providers/Microsoft.Compute/virtualMachines`); }
+  startVM(subId, rg, vm) { return this._post(`/subscriptions/${subId}/resourceGroups/${rg}/providers/Microsoft.Compute/virtualMachines/${vm}/start`); }
+  stopVM(subId, rg, vm) { return this._post(`/subscriptions/${subId}/resourceGroups/${rg}/providers/Microsoft.Compute/virtualMachines/${vm}/powerOff`); }
+  listStorageAccts(subId) { return this._get(`/subscriptions/${subId}/providers/Microsoft.Storage/storageAccounts`); }
+  listBlobs(sa, c) { return this._get(`/storage/${sa}/${c}/blobs`); }
+}
+
+export class GoogleCloudClnt extends BseApiClnt {
+  constructor(h, a) { super('gcp', h, a, 'oauth2'); }
+  listInstances(proj, zone) { return this._get(`/compute/v1/projects/${proj}/zones/${zone}/instances`); }
+  listBuckets(proj) { return this._get(`/storage/v1/b?project=${proj}`); }
+  getObj(b, o) { return this._get(`/storage/v1/b/${b}/o/${o}?alt=media`); }
+  runQuery(proj, q) { return this._post(`/bigquery/v2/projects/${proj}/queries`, { query: q, useLegacySql: false }); }
+}
+
+export class SupabaseClnt extends BseApiClnt {
+  constructor(h, a) { super('spbs', h, a, 'apiKey'); }
+  from(tbl) {
+    const bldr = {
+      _tbl: tbl,
+      _clnt: this,
+      _params: [],
+      select: function (cols = '*') { this._op = 'select'; this._cols = cols; return this; },
+      insert: function (data) { this._op = 'insert'; this._data = data; return this; },
+      update: function (data) { this._op = 'update'; this._data = data; return this; },
+      delete: function () { this._op = 'delete'; return this; },
+      eq: function (col, val) { this._params.push(`${col}=eq.${val}`); return this; },
+      gt: function (col, val) { this._params.push(`${col}=gt.${val}`); return this; },
+      lt: function (col, val) { this._params.push(`${col}=lt.${val}`); return this; },
+      exec: function () {
+        const pth = `/${this._tbl}?${this._params.join('&')}`;
+        if (this._op === 'select') return this._clnt._get(pth);
+        if (this._op === 'insert') return this._clnt._post(`/${this._tbl}`, this._data);
+        if (this._op === 'update') return this._clnt._patch(pth, this._data);
+        if (this._op === 'delete') return this._clnt._del(pth);
+      }
+    };
+    return bldr;
+  }
+  rpc(fn, p) { return this._post(`/rpc/${fn}`, p); }
+}
+
+export class VercelClnt extends BseApiClnt {
+  constructor(h, a) { super('vrcl', h, a, 'apiKey'); }
+  listDeploys() { return this._get('/deployments'); }
+  createDeploy(d) { return this._post('/deployments', d); }
+  getProj(id) { return this._get(`/projects/${id}`); }
+  listDNS(d) { return this._get(`/dns/records?domain=${d}`); }
+}
+
+export class SalesforceClnt extends BseApiClnt {
+  constructor(h, a) { super('slsf', h, a, 'oauth2'); }
+  query(q) { return this._get(`/query?q=${encodeURIComponent(q)}`); }
+  getAcct(id) { return this._get(`/sobjects/Account/${id}`); }
+  createAcct(d) { return this._post('/sobjects/Account', d); }
+  updateAcct(id, d) { return this._patch(`/sobjects/Account/${id}`, d); }
+  delAcct(id) { return this._del(`/sobjects/Account/${id}`); }
+  getLimits() { return this._get('/limits'); }
+}
+
+export class OracleClnt extends BseApiClnt {
+  constructor(h, a) { super('orcl', h, a, 'apiKey'); }
+  execSQL(sql) { return this._post('/database/sql', { statement: sql }); }
+  listTbls() { return this.execSQL('SELECT table_name FROM user_tables'); }
+  getTblData(tbl) { return this.execSQL(`SELECT * FROM ${tbl} WHERE ROWNUM <= 100`); }
+  startDB() { return this._post('/database/start'); }
+  stopDB() { return this._post('/database/stop'); }
+}
+
+export class MarqetaClnt extends BseApiClnt {
+  constructor(h, a) { super('mrqt', h, a, 'apiKey'); }
+  listUsrs() { return this._get('/users'); }
+  createUsr(d) { return this._post('/users', d); }
+  getUsr(tkn) { return this._get(`/users/${tkn}`); }
+  listCardsForUsr(tkn) { return this._get(`/cards/user/${tkn}`); }
+  createCard(d) { return this._post('/cards', d); }
+  createTrn(d) { return this._post('/simulate/authorization', d); }
+}
+
+export class CitibankClnt extends BseApiClnt {
+  constructor(h, a) { super('cbnk', h, a, 'oauth2'); }
+  getAccts() { return this._get('/accounts'); }
+  getAcctTrns(id) { return this._get(`/accounts/${id}/transactions`); }
+  initPmt(d) { return this._post('/payments/initiate', d); }
+  getFXRates() { return this._get('/market/fx-rates'); }
+  getCustInfo() { return this._get('/customer/details'); }
+}
+
+export class ShopifyClnt extends BseApiClnt {
+  constructor(h, a) { super('shpfy', h, a, 'oauth2'); }
+  getProducts() { return this._get('/products.json'); }
+  createProduct(p) { return this._post('/products.json', { product: p }); }
+  getOrders() { return this._get('/orders.json'); }
+  fulfillOrder(id, lid) { return this._post(`/orders/${id}/fulfillments.json`, { fulfillment: { location_id: lid } }); }
+}
+
+export class WooCommerceClnt extends BseApiClnt {
+  constructor(h, a) { super('wcmrc', h, a, 'apiKey'); }
+  getProducts() { return this._get('/products'); }
+  getOrders() { return this._get('/orders'); }
+  createOrder(o) { return this._post('/orders', o); }
+  updateProductStock(id, q) { return this._put(`/products/${id}`, { stock_quantity: q }); }
+}
+
+export class GoDaddyClnt extends BseApiClnt {
+  constructor(h, a) { super('gddy', h, a, 'apiKey'); }
+  listDomains() { return this._get('/domains'); }
+  getDomain(d) { return this._get(`/domains/${d}`); }
+  updateDomainRecords(d, r) { return this._put(`/domains/${d}/records`, r); }
+  checkAvail(d) { return this._get(`/domains/available?domain=${d}`); }
+}
+
+export class CPanelClnt extends BseApiClnt {
+  constructor(h, a) { super('cpnl', h, a, 'apiKey'); }
+  createDb(n) { return this._get(`/json-api/cpanel?cpanel_jsonapi_user=user&cpanel_jsonapi_apiversion=2&cpanel_jsonapi_module=Mysql&cpanel_jsonapi_func=createdatabase&db=${n}`); }
+  listDbs() { return this._get('/json-api/cpanel?cpanel_jsonapi_user=user&cpanel_jsonapi_apiversion=2&cpanel_jsonapi_module=Mysql&cpanel_jsonapi_func=listdatabases'); }
+  listEmailAccts() { return this._get('/json-api/cpanel?cpanel_jsonapi_user=user&cpanel_jsonapi_apiversion=2&cpanel_jsonapi_module=Email&cpanel_jsonapi_func=listpopswithdisk'); }
+}
+
+export class AdobeClnt extends BseApiClnt {
+  constructor(h, a) { super('adbe', h, a, 'oauth2'); }
+  getAssets() { return this._get('/assets'); }
+  getAsset(id) { return this._get(`/assets/${id}`); }
+  uploadAsset(d) { return this._post('/assets', d); }
+  createProject(n) { return this._post('/projects', { name: n }); }
+}
+
+export class TwilioClnt extends BseApiClnt {
+  constructor(h, a) { super('twlo', h, a, 'apiKey'); }
+  sendSms(to, from, body) { return this._post('/Messages.json', { To: to, From: from, Body: body }); }
+  makeCall(to, from, url) { return this._post('/Calls.json', { To: to, From: from, Url: url }); }
+  listMsgs() { return this._get('/Messages.json'); }
+  getAcct() { return this._get('/Accounts/{AccountSid}.json'); }
+}
+
+export class StripeClnt extends BseApiClnt {
+  constructor(h, a) { super('strp', h, a, 'apiKey'); }
+  createCharge(amt, cur, src) { return this._post('/charges', { amount: amt, currency: cur, source: src }); }
+  listCharges() { return this._get('/charges'); }
+  createCust(eml, dsc) { return this._post('/customers', { email: eml, description: dsc }); }
+  listCusts() { return this._get('/customers'); }
+  createPmtIntent(amt, cur) { return this._post('/payment_intents', { amount: amt, currency: cur }); }
+}
+
+export class SlackClnt extends BseApiClnt {
+  constructor(h, a) { super('slck', h, a, 'oauth2'); }
+  postMsg(chan, txt) { return this._post('/chat.postMessage', { channel: chan, text: txt }); }
+  listChans() { return this._get('/conversations.list'); }
+  getUsers() { return this._get('/users.list'); }
+  getAuthTest() { return this._get('/auth.test'); }
+}
+
+export class AtlassianClnt extends BseApiClnt {
+  constructor(h, a) { super('atlsn', h, a, 'oauth2'); }
+  createJiraIssue(projKey, sum, desc, issueType) { return this._post('/rest/api/2/issue', { fields: { project: { key: projKey }, summary: sum, description: desc, issuetype: { name: issueType } } }); }
+  getJiraIssue(key) { return this._get(`/rest/api/2/issue/${key}`); }
+  getConfluencePage(id) { return this._get(`/wiki/rest/api/content/${id}`); }
+  getAccessibleResources() { return this._get('/oauth/token/accessible-resources'); }
+}
+
+export class DocuSignClnt extends BseApiClnt {
+  constructor(h, a) { super('drsgn', h, a, 'oauth2'); }
+  createEnvelope(d) { return this._post('/envelopes', d); }
+  listEnvelopes() { return this._get('/envelopes'); }
+  getEnvelope(id) { return this._get(`/envelopes/${id}`); }
+  getUsrInfo() { return this._get('/oauth/userinfo'); }
+}
+
+export class DropboxClnt extends BseApiClnt {
+  constructor(h, a) { super('dbx', h, a, 'oauth2'); }
+  listFiles(pth) { return this._post('/files/list_folder', { path: pth || '' }); }
+  dwnldFile(pth) { return this._post('/files/download', null, { 'Dropbox-API-Arg': JSON.stringify({ path: pth }) }); }
+  getAcctInfo() { return this._post('/users/get_current_account'); }
+}
+
+export class SendGridClnt extends BseApiClnt {
+  constructor(h, a) { super('sgrd', h, a, 'apiKey'); }
+  sendMail(d) { return this._post('/mail/send', d); }
+  getStats() { return this._get('/stats'); }
+  listTemplates() { return this._get('/templates'); }
+}
+
+export class SquareClnt extends BseApiClnt {
+  constructor(h, a) { super('sqr', h, a, 'oauth2'); }
+  listLocations() { return this._get('/locations'); }
+  createPayment(d) { return this._post('/payments', d); }
+  listPayments() { return this._get('/payments'); }
+  listCustomers() { return this._get('/customers'); }
+}
+
+export class PayPalClnt extends BseApiClnt {
+  constructor(h, a) { super('ppl', h, a, 'oauth2'); }
+  createOrder(d) { return this._post('/checkout/orders', d); }
+  captureOrder(id) { return this._post(`/checkout/orders/${id}/capture`); }
+  getOrder(id) { return this._get(`/checkout/orders/${id}`); }
+  getIdentity() { return this._get('/identity/oauth2/userinfo?schema=paypalv1.1'); }
+}
+
+export class HubSpotClnt extends BseApiClnt {
+  constructor(h, a) { super('hbspot', h, a, 'oauth2'); }
+  getContacts() { return this._get('/crm/v3/objects/contacts'); }
+  createContact(d) { return this._post('/crm/v3/objects/contacts', d); }
+  getDeals() { return this._get('/crm/v3/objects/deals'); }
+  getOwners() { return this._get('/crm/v3/owners'); }
+}
+
+export class QuickBooksClnt extends BseApiClnt {
+  constructor(h, a) { super('qkbks', h, a, 'oauth2'); }
+  getCompanyInfo(id) { return this._get(`/companyinfo/${id}`); }
+  query(q) { return this._get(`/query?query=${encodeURIComponent(q)}`); }
+  createInvoice(d) { return this._post('/invoice', d); }
+  getCustomer(id) { return this._get(`/customer/${id}`); }
+}
+
+export class ZoomClnt extends BseApiClnt {
+  constructor(h, a) { super('zm', h, a, 'oauth2'); }
+  getMeetings() { return this._get('/users/me/meetings'); }
+  createMeeting(d) { return this._post('/users/me/meetings', d); }
+  getUsers() { return this._get('/users'); }
+  getUser(id) { return this._get(`/users/${id}`); }
+}
+
+export class MailchimpClnt extends BseApiClnt {
+  constructor(h, a) { super('mlchmp', h, a, 'apiKey'); }
+  getLists() { return this._get('/lists'); }
+  addMember(listId, d) { return this._post(`/lists/${listId}/members`, d); }
+  getCampaigns() { return this._get('/campaigns'); }
+  createCampaign(d) { return this._post('/campaigns', d); }
+}
+
+export class AsanaClnt extends BseApiClnt {
+  constructor(h, a) { super('asna', h, a, 'oauth2'); }
+  getTasks(projId) { return this._get(`/projects/${projId}/tasks`); }
+  createTask(d) { return this._post('/tasks', { data: d }); }
+  getProjects() { return this._get('/projects'); }
+  getMe() { return this._get('/users/me'); }
+}
+
+export class TrelloClnt extends BseApiClnt {
+  constructor(h, a) { super('trllo', h, a, 'apiKey'); } // OAuth also possible
+  getBoards() { return this._get('/members/me/boards'); }
+  getListsOnBoard(bId) { return this._get(`/boards/${bId}/lists`); }
+  getCardsOnList(lId) { return this._get(`/lists/${lId}/cards`); }
+  createCard(lId, n) { return this._post('/cards', { idList: lId, name: n }); }
+}
+
+export class AirtableClnt extends BseApiClnt {
+  constructor(h, a) { super('airtbl', h, a, 'apiKey'); }
+  listRecords(baseId, tblName) { return this._get(`/${baseId}/${tblName}`); }
+  createRecords(baseId, tblName, recs) { return this._post(`/${baseId}/${tblName}`, { records: recs }); }
+  updateRecords(baseId, tblName, recs) { return this._patch(`/${baseId}/${tblName}`, { records: recs }); }
+}
+
+export class NotionClnt extends BseApiClnt {
+  constructor(h, a) { super('ntion', h, a, 'apiKey'); }
+  getDb(dbId) { return this._get(`/databases/${dbId}`); }
+  queryDb(dbId, q) { return this._post(`/databases/${dbId}/query`, q); }
+  createPage(d) { return this._post('/pages', d); }
+  getPage(pId) { return this._get(`/pages/${pId}`); }
+}
+
+export class BrexClnt extends BseApiClnt {
+  constructor(h, a) { super('brex', h, a, 'oauth2'); }
+  listUsers() { return this._get('/users'); }
+  listCards() { return this._get('/cards'); }
+  listTrans() { return this._get('/transactions/card'); }
+  getCompany() { return this._get('/company'); }
+}
+
+export class GustoClnt extends BseApiClnt {
+  constructor(h, a) { super('gusto', h, a, 'oauth2'); }
+  getCompany(cId) { return this._get(`/companies/${cId}`); }
+  getEmployees(cId) { return this._get(`/companies/${cId}/employees`); }
+  getPayrolls(cId) { return this._get(`/companies/${cId}/payrolls`); }
+}
+
+export class BoxClnt extends BseApiClnt {
+  constructor(h, a) { super('box', h, a, 'oauth2'); }
+  getFolderItems(fId = '0') { return this._get(`/folders/${fId}/items`); }
+  getUser() { return this._get('/users/me'); }
+  downloadFile(fId) { return this._get(`/files/${fId}/content`); }
+}
+
+export class IntercomClnt extends BseApiClnt {
+  constructor(h, a) { super('intrcm', h, a, 'oauth2'); }
+  listUsers() { return this._get('/users'); }
+  createUser(d) { return this._post('/users', d); }
+  listConversations() { return this._get('/conversations'); }
+}
+
+export class ZendeskClnt extends BseApiClnt {
+  constructor(h, a) { super('zndsk', h, a, 'apiKey'); }
+  listTickets() { return this._get('/tickets.json'); }
+  createTicket(d) { return this._post('/tickets.json', { ticket: d }); }
+  getUsers() { return this._get('/users.json'); }
+}
+
+export class DocusignClnt extends BseApiClnt {
+  constructor(h, a) { super('docusign', h, a, 'oauth2'); }
+  getUsrInf() { return this._get('/oauth/userinfo'); }
+  lstEnvs() { return this._get('/envelopes'); }
+  crtEnv(d) { return this._post('/envelopes', d); }
+}
+
+export class CalendlyClnt extends BseApiClnt {
+  constructor(h, a) { super('clndly', h, a, 'oauth2'); }
+  getUser() { return this._get('/users/me'); }
+  listWebhooks(orgUri) { return this._get(`/webhook_subscriptions?organization=${orgUri}`); }
+  listEvents() { return this._get('/scheduled_events'); }
+}
+
+export class TypeformClnt extends BseApiClnt {
+  constructor(h, a) { super('typfrm', h, a, 'oauth2'); }
+  getForms() { return this._get('/forms'); }
+  getForm(fId) { return this._get(`/forms/${fId}`); }
+  getResponses(fId) { return this._get(`/forms/${fId}/responses`); }
+}
+
+export class FigmaClnt extends BseApiClnt {
+  constructor(h, a) { super('figma', h, a, 'apiKey'); }
+  getFile(key) { return this._get(`/files/${key}`); }
+  getFileNodes(fileKey, ids) { return this._get(`/files/${fileKey}/nodes?ids=${ids.join(',')}`); }
+  getComments(fileKey) { return this._get(`/files/${fileKey}/comments`); }
+}
+
+export class MiroClnt extends BseApiClnt {
+  constructor(h, a) { super('miro', h, a, 'oauth2'); }
+  getBoard(bId) { return this._get(`/boards/${bId}`); }
+  getBoardMembers(bId) { return this._get(`/boards/${bId}/members`); }
+  createAppCard(bId, d) { return this._post(`/boards/${bId}/app_cards`, d); }
+}
+
+export class CdbFinTechLedgerAcctFrm {
+  constructor(c) {
+    this.cfg = { ...CdbGlblCfg, ...c };
+    this.http = new HttpPrcsrV2(this.cfg);
+    this.auth = new AuthMgrV2(this.http);
+    this.st = this.initSt();
+    this.clnts = this.initApiClnts();
+    this.vDOM = null;
+    this.evtBus = new EvtBus();
+  }
+
+  initSt() {
+    return {
+      frm: { acctNm: '', acctNum: '', crncy: 'USD', typ: 'asset', lnkdSvc: null, lnkdAcctId: null },
+      isLdng: false,
+      err: null,
+      lnkdAccts: [],
+      svcData: {},
+      uiPhase: 'entry',
+    };
+  }
+
+  initApiClnts() {
+    return {
+      gmni: new GeminiClnt(this.http, this.auth),
+      chtht: new ChatHotClnt(this.http, this.auth),
+      ppdrm: new PipedreamClnt(this.http, this.auth),
+      ghub: new GitHubClnt(this.http, this.auth),
+      hgfce: new HuggingFaceClnt(this.http, this.auth),
+      pld: new PlaidClnt(this.http, this.auth),
+      mdntrsry: new ModernTreasuryClnt(this.http, this.auth),
+      gdrv: new GoogleDriveClnt(this.http, this.auth),
+      ondrv: new OneDriveClnt(this.http, this.auth),
+      azr: new AzureClnt(this.http, this.auth),
+      gcp: new GoogleCloudClnt(this.http, this.auth),
+      spbs: new SupabaseClnt(this.http, this.auth),
+      vrcl: new VercelClnt(this.http, this.auth),
+      slsf: new SalesforceClnt(this.http, this.auth),
+      orcl: new OracleClnt(this.http, this.auth),
+      mrqt: new MarqetaClnt(this.http, this.auth),
+      cbnk: new CitibankClnt(this.http, this.auth),
+      shpfy: new ShopifyClnt(this.http, this.auth),
+      wcmrc: new WooCommerceClnt(this.http, this.auth),
+      gddy: new GoDaddyClnt(this.http, this.auth),
+      cpnl: new CPanelClnt(this.http, this.auth),
+      adbe: new AdobeClnt(this.http, this.auth),
+      twlo: new TwilioClnt(this.http, this.auth),
+      strp: new StripeClnt(this.http, this.auth),
+      slck: new SlackClnt(this.http, this.auth),
+      atlsn: new AtlassianClnt(this.http, this.auth),
+      drsgn: new DocuSignClnt(this.http, this.auth),
+      dbx: new DropboxClnt(this.http, this.auth),
+      sgrd: new SendGridClnt(this.http, this.auth),
+      sqr: new SquareClnt(this.http, this.auth),
+      ppl: new PayPalClnt(this.http, this.auth),
+      hbspot: new HubSpotClnt(this.http, this.auth),
+      qkbks: new QuickBooksClnt(this.http, this.auth),
+      zm: new ZoomClnt(this.http, this.auth),
+      mlchmp: new MailchimpClnt(this.http, this.auth),
+      asna: new AsanaClnt(this.http, this.auth),
+      trllo: new TrelloClnt(this.http, this.auth),
+      airtbl: new AirtableClnt(this.http, this.auth),
+      ntion: new NotionClnt(this.http, this.auth),
+      brex: new BrexClnt(this.http, this.auth),
+      gusto: new GustoClnt(this.http, this.auth),
+      box: new BoxClnt(this.http, this.auth),
+      intrcm: new IntercomClnt(this.http, this.auth),
+      zndsk: new ZendeskClnt(this.http, this.auth),
+      docusign: new DocusignClnt(this.http, this.auth),
+      clndly: new CalendlyClnt(this.http, this.auth),
+      typfrm: new TypeformClnt(this.http, this.auth),
+      figma: new FigmaClnt(this.http, this.auth),
+      miro: new MiroClnt(this.http, this.auth),
+    };
+  }
+
+  updSt(newSt) {
+    this.st = { ...this.st, ...newSt };
+    this.evtBus.emit('state:change', this.st);
+    this.rndr();
+  }
+
+  updFrmFld(fld, val) {
+    this.updSt({ frm: { ...this.st.frm, [fld]: val } });
+  }
+
+  async lnkFinSvc(svcId) {
+    this.updSt({ isLdng: true, err: null });
+    try {
+      const clnt = this.clnts[svcId];
+      if (!clnt) throw new Error(`Client not found: ${svcId}`);
+      
+      let accts = [];
+      if (svcId === 'pld') {
+        const lnkTknRes = await clnt.createLnkTkn('usr_123', this.cfg.coNm);
+        const pubTkn = 'mock_public_token';
+        const exchRes = await clnt.exchPubTkn(pubTkn);
+        const acctsRes = await clnt.getAccts(exchRes.d.access_token);
+        accts = acctsRes.d.accounts.map(a => ({ id: a.account_id, name: a.name, mask: a.mask, type: a.subtype, svc: 'pld' }));
+      } else if (svcId === 'cbnk') {
+        const acctsRes = await clnt.getAccts();
+        accts = acctsRes.d.accounts.map(a => ({ id: a.accountId, name: a.displayName, mask: a.maskedNumber, type: a.accountType, svc: 'cbnk' }));
+      } else {
+        throw new Error(`Linking not implemented for: ${svcId}`);
+      }
+      
+      this.updSt({ isLdng: false, lnkdAccts: accts, uiPhase: 'acct_selection' });
+    } catch (e) {
+      this.updSt({ isLdng: false, err: e.message || 'Failed to link service' });
+    }
+  }
+  
+  selLnkdAcct(acct) {
+      this.updFrmFld('acctNm', acct.name);
+      this.updFrmFld('acctNum', `****${acct.mask}`);
+      this.updFrmFld('lnkdSvc', acct.svc);
+      this.updFrmFld('lnkdAcctId', acct.id);
+      this.updSt({ uiPhase: 'confirm' });
+  }
+
+  vldtFrm() {
+      const { acctNm, acctNum, crncy, typ } = this.st.frm;
+      if (!acctNm || acctNm.length < 3) return { v: false, msg: 'Account name too short' };
+      if (!acctNum) return { v: false, msg: 'Account number required' };
+      if (crncy.length !== 3) return { v: false, msg: 'Invalid currency code' };
+      if (!['asset', 'liability', 'equity', 'revenue', 'expense'].includes(typ)) return { v: false, msg: 'Invalid account type' };
+      return { v: true };
+  }
+
+  async sbmtFrm() {
+    this.updSt({ isLdng: true, err: null });
+    const vld = this.vldtFrm();
+    if (!vld.v) {
+        this.updSt({ isLdng: false, err: vld.msg });
+        return;
+    }
+    
+    try {
+        const ledgerPayload = {
+            name: this.st.frm.acctNm,
+            number: this.st.frm.acctNum,
+            currency: this.st.frm.crncy,
+            type: this.st.frm.typ,
+            linked_integration: {
+                service: this.st.frm.lnkdSvc,
+                id: this.st.frm.lnkdAcctId
+            }
+        };
+        const res = await this.http.post('/ledger-accounts', ledgerPayload);
+        this.updSt({ isLdng: false, uiPhase: 'success' });
+        this.evtBus.emit('form:success', res.d);
+    } catch (e) {
+        this.updSt({ isLdng: false, err: e.message || 'Submission failed' });
+        this.evtBus.emit('form:error', e);
+    }
+  }
+
+  rndr() {
+    const createEl = (tag, props, ...children) => ({ tag, props, children });
+    let content;
+
+    if (this.st.isLdng) {
+        content = createEl('div', { class: 'spinner' }, 'Loading...');
+    } else if (this.st.err) {
+        content = createEl('div', { class: 'error' }, `Error: ${this.st.err}`);
+    } else {
+        switch(this.st.uiPhase) {
+            case 'entry':
+                content = createEl('div', {}, 
+                    createEl('button', { onclick: () => this.lnkFinSvc('pld') }, 'Link with Plaid'),
+                    createEl('button', { onclick: () => this.lnkFinSvc('cbnk') }, 'Link with Citibank')
+                );
+                break;
+            case 'acct_selection':
+                content = createEl('ul', {}, 
+                    ...this.st.lnkdAccts.map(a => 
+                        createEl('li', { onclick: () => this.selLnkdAcct(a) }, `${a.name} (**** ${a.mask})`)
+                    )
+                );
+                break;
+            case 'confirm':
+                content = createEl('div', {},
+                    createEl('p', {}, `Name: ${this.st.frm.acctNm}`),
+                    createEl('p', {}, `Number: ${this.st.frm.acctNum}`),
+                    createEl('button', { onclick: () => this.sbmtFrm() }, 'Confirm & Create Account')
+                );
+                break;
+            case 'success':
+                content = createEl('h2', {}, 'Ledger Account Created Successfully!');
+                break;
+            default:
+                content = createEl('div', {}, 'An unknown error occurred.');
+        }
+    }
+
+    this.vDOM = createEl('div', { class: 'ledger-form-container' }, content);
+    this.evtBus.emit('render', this.vDOM);
+    return this.vDOM;
+  }
+}

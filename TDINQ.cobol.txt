@@ -1,0 +1,289 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. TDINQ.
+       AUTHOR. AI-ASSISTANT.
+      ******************************************************************
+      * GLOBAL FINANCIAL SERVICES - INQUIRE TIME DEPOSIT ACCOUNT
+      * THIS PROGRAM ALLOWS USERS TO INQUIRE ABOUT A SPECIFIC TIME
+      * DEPOSIT (CERTIFICATE OF DEPOSIT) ACCOUNT AND RECEIVE
+      * DETAILED INFORMATION ALONG WITH AI-GENERATED INSIGHTS.
+      *
+      * AI INTEGRATION: THE AI ADVISOR MODULE PROVIDES PROJECTIONS
+      * AND STRATEGIC SUGGESTIONS BASED ON THE ACCOUNT DATA, AIMING
+      * TO ENHANCE FINANCIAL WELL-BEING AND INFORM DECISION-MAKING.
+      ******************************************************************
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT TIME-DEPOSIT-FILE ASSIGN TO TDMAST
+               ORGANIZATION IS INDEXED
+               ACCESS MODE IS RANDOM
+               RECORD KEY IS TD-ACCOUNT-NUMBER
+               FILE STATUS IS FS-TDMAST.
+
+       DATA DIVISION.
+       FILE SECTION.
+       FD TIME-DEPOSIT-FILE.
+       01 TD-FILE-RECORD PIC X(108).
+
+       WORKING-STORAGE SECTION.
+       01 WS-PROGRAM-SWITCHES.
+           05 WS-EOF-FLAG         PIC X VALUE 'N'.
+               88 END-OF-TD-FILE  VALUE 'Y'.
+           05 WS-ACCOUNT-FOUND    PIC X VALUE 'N'.
+               88 TD-ACCOUNT-FOUND VALUE 'Y'.
+
+       01 WS-FILE-STATUS.
+           05 FS-TDMAST           PIC X(2) VALUE "00".
+               88 FILE-OKAY       VALUE "00".
+               88 FILE-NOT-FOUND  VALUE "23".
+               88 INVALID-KEY-READ VALUE "21".
+               88 DUPLICATE-KEY-WRITE VALUE "22".
+
+       01 WS-INQUIRY-DATA.
+           05 WS-INQUIRY-ACCT     PIC 9(12).
+
+       01 WS-CURRENT-DATE-DATA.
+           05 WS-CURRENT-YYYYMMDD PIC 9(8).
+
+       01 WS-DATE-CALCULATION-AREA.
+           05 WS-MATURITY-DATE-NUM PIC 9(8).
+           05 WS-CURRENT-DATE-NUM  PIC 9(8).
+           05 WS-DAYS-DIFFERENCE   PIC S9(9) COMP-5.
+
+       COPY CPTD01.
+      * CPTD01 IS ASSUMED TO DEFINE THE TIME DEPOSIT MASTER RECORD LAYOUT:
+      * 01 TD-MASTER-RECORD.
+      *    05 TD-ACCOUNT-NUMBER      PIC 9(12).
+      *    05 TD-PRINCIPAL           PIC 9(15)V99.
+      *    05 TD-INTEREST-RATE       PIC 9V9(5).   (e.g., 0.03500 for 3.5%)
+      *    05 TD-MATURITY-DATE       PIC 9(8).     (YYYYMMDD)
+      *    05 TD-OPEN-DATE           PIC 9(8).     (YYYYMMDD)
+      *    05 TD-TERM-MONTHS         PIC 999.
+      *    05 TD-CUSTOMER-ID         PIC X(10).
+      *    05 TD-CUSTOMER-NAME       PIC X(30).
+      *    05 TD-RENEWAL-OPTION      PIC X(1).     (A=Auto, M=Manual, C=Cash Out)
+      *        88 RENEW-AUTO        VALUE 'A'.
+      *        88 RENEW-MANUAL      VALUE 'M'.
+      *        88 CASH-OUT          VALUE 'C'.
+      *    05 TD-STATUS              PIC X(1).     (A=Active, M=Matured, C=Closed)
+      *        88 STATUS-ACTIVE     VALUE 'A'.
+      *        88 STATUS-MATURED    VALUE 'M'.
+      *        88 STATUS-CLOSED     VALUE 'C'.
+      *    05 TD-LAST-UPDATE-DATE    PIC 9(8).
+      *    05 TD-FILLER              PIC X(11).    (Total 108 bytes)
+
+       01 AI-INSIGHTS-DATA.
+           05 AI-PROJECTED-EARNINGS    PIC 9(15)V99.
+           05 AI-TOTAL-VALUE-AT-MAT    PIC 9(15)V99.
+           05 AI-ADVISOR-MESSAGE       PIC X(80).
+           05 AI-REINVEST-SUGGESTION   PIC X(80).
+           05 AI-RISK-ASSESSMENT       PIC X(20) VALUE 'Low Risk'.
+           05 AI-MARKET-TREND          PIC X(50) VALUE 'Stable Yields in Current Market'.
+           05 AI-NEXT-BEST-ACTION      PIC X(100).
+           05 AI-SPECIAL-NOTE          PIC X(100).
+
+       PROCEDURE DIVISION.
+       MAIN-LOGIC.
+           DISPLAY "****************************************************".
+           DISPLAY "* GLOBAL FINANCIAL SERVICES - CD INQUIRY SYSTEM    *".
+           DISPLAY "* AI-POWERED ADVISOR FOR TIME DEPOSIT ACCOUNTS     *".
+           DISPLAY "****************************************************".
+
+           PERFORM 1000-INITIALIZE-PROGRAM.
+           PERFORM 2000-GET-INQUIRY-ACCOUNT.
+           PERFORM 3000-PROCESS-INQUIRY.
+           PERFORM 9000-TERMINATE-PROGRAM.
+
+       1000-INITIALIZE-PROGRAM.
+           MOVE 'N' TO WS-EOF-FLAG.
+           MOVE 'N' TO WS-ACCOUNT-FOUND.
+           ACCEPT WS-CURRENT-YYYYMMDD FROM DATE YYYYMMDD.
+           DISPLAY "System initialized. Current Date: " WS-CURRENT-YYYYMMDD.
+
+       2000-GET-INQUIRY-ACCOUNT.
+           DISPLAY " ".
+           DISPLAY "ENTER CD ACCOUNT NUMBER FOR INQUIRY (12 digits): ".
+           ACCEPT WS-INQUIRY-ACCT.
+           IF WS-INQUIRY-ACCT IS NOT NUMERIC OR
+              FUNCTION LENGTH(FUNCTION TRIM(WS-INQUIRY-ACCT)) NOT = 12
+               DISPLAY "Invalid account number format. Please enter a 12-digit numeric value."
+               PERFORM 2000-GET-INQUIRY-ACCOUNT
+           END-IF.
+
+       3000-PROCESS-INQUIRY.
+           PERFORM 3100-OPEN-TIME-DEPOSIT-FILE.
+           IF FILE-OKAY
+               PERFORM 3200-READ-TIME-DEPOSIT-RECORD
+               IF TD-ACCOUNT-FOUND
+                   PERFORM 4000-DISPLAY-ACCOUNT-DETAILS
+                   PERFORM 5000-AI-ADVISOR-INSIGHTS
+               ELSE
+                   DISPLAY "ERROR: CD Account " WS-INQUIRY-ACCT " not found."
+                   DISPLAY "Please verify the account number and try again."
+               END-IF
+           ELSE
+               DISPLAY "FATAL ERROR: Unable to open Time Deposit Master File."
+               DISPLAY "File Status: " FS-TDMAST
+           END-IF.
+           PERFORM 3300-CLOSE-TIME-DEPOSIT-FILE.
+
+       3100-OPEN-TIME-DEPOSIT-FILE.
+           OPEN INPUT TIME-DEPOSIT-FILE.
+           IF NOT FILE-OKAY
+               DISPLAY "File OPEN error for TDMAST. Status: " FS-TDMAST
+               MOVE 'Y' TO WS-EOF-FLAG  *> Prevent further processing
+           END-IF.
+
+       3200-READ-TIME-DEPOSIT-RECORD.
+           MOVE WS-INQUIRY-ACCT TO TD-ACCOUNT-NUMBER OF TD-MASTER-RECORD.
+           READ TIME-DEPOSIT-FILE INTO TD-MASTER-RECORD
+               INVALID KEY
+                   MOVE 'N' TO WS-ACCOUNT-FOUND
+                   MOVE 'Y' TO WS-EOF-FLAG
+               NOT INVALID KEY
+                   MOVE 'Y' TO WS-ACCOUNT-FOUND
+           END-READ.
+           IF NOT TD-ACCOUNT-FOUND AND FILE-NOT-FOUND
+               DISPLAY "File not found or permanently unavailable. Status: " FS-TDMAST
+           ELSE IF NOT TD-ACCOUNT-FOUND AND INVALID-KEY-READ
+               DISPLAY "Account " WS-INQUIRY-ACCT " not present in file."
+           END-IF.
+
+
+       3300-CLOSE-TIME-DEPOSIT-FILE.
+           CLOSE TIME-DEPOSIT-FILE.
+           IF NOT FILE-OKAY
+               DISPLAY "File CLOSE error for TDMAST. Status: " FS-TDMAST
+           END-IF.
+
+       4000-DISPLAY-ACCOUNT-DETAILS.
+           DISPLAY " ".
+           DISPLAY "****************************************************".
+           DISPLAY "* CD ACCOUNT INQUIRY - DETAILS                     *".
+           DISPLAY "****************************************************".
+           DISPLAY "Account Number:    " TD-ACCOUNT-NUMBER.
+           DISPLAY "Customer Name:     " TD-CUSTOMER-NAME.
+           DISPLAY "Customer ID:       " TD-CUSTOMER-ID.
+           DISPLAY "Principal Amount:  " TD-PRINCIPAL.
+           DISPLAY "Interest Rate:     " TD-INTEREST-RATE.
+           DISPLAY "Open Date:         " TD-OPEN-DATE.
+           DISPLAY "Maturity Date:     " TD-MATURITY-DATE.
+           DISPLAY "Term (Months):     " TD-TERM-MONTHS.
+           DISPLAY "Account Status:    " TD-STATUS.
+           IF STATUS-ACTIVE
+               DISPLAY "                   (Currently Active)"
+           ELSE IF STATUS-MATURED
+               DISPLAY "                   (Matured)"
+           ELSE IF STATUS-CLOSED
+               DISPLAY "                   (Closed)"
+           END-IF.
+
+           DISPLAY "Renewal Option:    " TD-RENEWAL-OPTION.
+           IF RENEW-AUTO
+               DISPLAY "                   (Automatic Renewal)"
+           ELSE IF RENEW-MANUAL
+               DISPLAY "                   (Manual Renewal Required)"
+           ELSE IF CASH-OUT
+               DISPLAY "                   (Cash Out at Maturity)"
+           END-IF.
+           DISPLAY "Last Update Date:  " TD-LAST-UPDATE-DATE.
+           DISPLAY "****************************************************".
+
+       5000-AI-ADVISOR-INSIGHTS.
+           DISPLAY " ".
+           DISPLAY "****************************************************".
+           DISPLAY "* AI ADVISOR MODULE: GENERATING INSIGHTS           *".
+           DISPLAY "****************************************************".
+
+           MOVE TD-MATURITY-DATE TO WS-MATURITY-DATE-NUM.
+           MOVE WS-CURRENT-YYYYMMDD TO WS-CURRENT-DATE-NUM.
+
+           COMPUTE WS-DAYS-DIFFERENCE =
+               FUNCTION DAYS-BETWEEN(WS-MATURITY-DATE-NUM, WS-CURRENT-DATE-NUM).
+
+           *> Simple interest calculation for projection
+           COMPUTE AI-PROJECTED-EARNINGS =
+               TD-PRINCIPAL * (TD-INTEREST-RATE / 100) * (TD-TERM-MONTHS / 12)
+           ON SIZE ERROR
+               MOVE 0 TO AI-PROJECTED-EARNINGS
+               DISPLAY "Warning: Calculation error for projected earnings.".
+           
+           COMPUTE AI-TOTAL-VALUE-AT-MAT = TD-PRINCIPAL + AI-PROJECTED-EARNINGS
+           ON SIZE ERROR
+               MOVE 0 TO AI-TOTAL-VALUE-AT-MAT.
+
+           DISPLAY "  Projected Earnings at Maturity:    " AI-PROJECTED-EARNINGS.
+           DISPLAY "  Projected Total Value at Maturity: " AI-TOTAL-VALUE-AT-MAT.
+
+           IF WS-DAYS-DIFFERENCE > 0
+               DISPLAY "  Days Until Maturity:               " WS-DAYS-DIFFERENCE " days."
+               DISPLAY "  Maturity Status:                   Active."
+               MOVE "This CD is currently active and accumulating interest."
+                   TO AI-ADVISOR-MESSAGE
+               IF RENEW-AUTO
+                   MOVE "Automatic renewal is set. Review market rates closer to maturity."
+                       TO AI-REINVEST-SUGGESTION
+                   MOVE "Consider exploring options for future growth once rates are known."
+                       TO AI-NEXT-BEST-ACTION
+               ELSE IF RENEW-MANUAL OR CASH-OUT
+                   MOVE "Manual decision required at maturity. Start planning your next financial move now."
+                       TO AI-REINVEST-SUGGESTION
+                   MOVE "Evaluate current market trends and your financial goals to make an informed choice."
+                       TO AI-NEXT-BEST-ACTION
+               END-IF
+               MOVE "Review your portfolio for diversification opportunities."
+                   TO AI-SPECIAL-NOTE
+
+           ELSE IF WS-DAYS-DIFFERENCE <= 0 AND STATUS-MATURED
+               DISPLAY "  Days Since Maturity:               " WS-DAYS-DIFFERENCE * -1 " days."
+               DISPLAY "  Maturity Status:                   Matured."
+               MOVE "This CD has already matured. Immediate action is recommended."
+                   TO AI-ADVISOR-MESSAGE
+               MOVE "Explore new high-yield savings, new CD terms, or alternative investments."
+                   TO AI-REINVEST-SUGGESTION
+               MOVE "Contact your financial advisor to discuss optimal reinvestment strategies."
+                   TO AI-NEXT-BEST-ACTION
+               MOVE "Ensure funds are not sitting idle; seek productive deployment."
+                   TO AI-SPECIAL-NOTE
+
+           ELSE IF WS-DAYS-DIFFERENCE <= 0 AND STATUS-ACTIVE
+               *> This scenario implies a data inconsistency, but AI should still advise
+               DISPLAY "  Days Since Maturity:               " WS-DAYS-DIFFERENCE * -1 " days."
+               DISPLAY "  Maturity Status:                   Matured (Data Anomaly: Status Active)."
+               MOVE "Potential data inconsistency: CD matured but status is active. Review required."
+                   TO AI-ADVISOR-MESSAGE
+               MOVE "Contact operations for status correction and immediate reinvestment guidance."
+                   TO AI-REINVEST-SUGGESTION
+               MOVE "Verify account records and take prompt action on matured funds."
+                   TO AI-NEXT-BEST-ACTION
+               MOVE "URGENT: Address data discrepancy and fund status."
+                   TO AI-SPECIAL-NOTE
+
+           ELSE
+               DISPLAY "  Maturity Date:                     " TD-MATURITY-DATE " (Unknown Status)."
+               MOVE "Unable to determine exact maturity status. Manual review needed."
+                   TO AI-ADVISOR-MESSAGE
+               MOVE "Consult with a specialist to verify account status and next steps."
+                   TO AI-REINVEST-SUGGESTION
+               MOVE "Ensure account data accuracy for future financial planning."
+                   TO AI-NEXT-BEST-ACTION
+               MOVE "Seek human review for this record."
+                   TO AI-SPECIAL-NOTE
+           END-IF.
+
+           DISPLAY " ".
+           DISPLAY "  AI Advisor Message:      " AI-ADVISOR-MESSAGE.
+           DISPLAY "  Reinvestment Suggestion: " AI-REINVEST-SUGGESTION.
+           DISPLAY "  Next Best Action:        " AI-NEXT-BEST-ACTION.
+           DISPLAY "  Market Trend Analysis:   " AI-MARKET-TREND.
+           DISPLAY "  Risk Assessment:         " AI-RISK-ASSESSMENT.
+           DISPLAY "  Special Note from AI:    " AI-SPECIAL-NOTE.
+           DISPLAY "****************************************************".
+
+       9000-TERMINATE-PROGRAM.
+           DISPLAY " ".
+           DISPLAY "****************************************************".
+           DISPLAY "* PROGRAM TDINQ COMPLETED.                         *".
+           DISPLAY "* THANK YOU FOR USING GLOBAL FINANCIAL AI ADVISOR. *".
+           DISPLAY "****************************************************".
+           STOP RUN.

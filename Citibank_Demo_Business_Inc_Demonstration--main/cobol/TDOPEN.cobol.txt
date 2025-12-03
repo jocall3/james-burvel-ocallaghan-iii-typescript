@@ -1,0 +1,400 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. TDOPEN.
+       AUTHOR. BANKING-SYSTEM-DEVELOPMENT.
+      ******************************************************************
+      * TIME DEPOSIT ACCOUNT OPENING PROCESS
+      * This program facilitates the creation of new Time Deposit (CD)
+      * accounts. It incorporates robust input validation, dynamic
+      * interest rate determination, comprehensive financial
+      * calculations, and strategic integration with simulated
+      * AI capabilities for enhanced customer service and security.
+      * The AI components aim to provide personalized rate insights
+      * and real-time risk assessment, improving efficiency and trust.
+      ******************************************************************
+       ENVIRONMENT DIVISION.
+       FILE-CONTROL.
+           SELECT TIME-DEPOSIT-FILE ASSIGN TO TDMAST
+               ORGANIZATION IS INDEXED
+               ACCESS MODE IS RANDOM
+               RECORD KEY IS TD-ACCOUNT-NUMBER
+               FILE STATUS IS TD-FILE-STATUS.
+       DATA DIVISION.
+       FILE SECTION.
+       FD TIME-DEPOSIT-FILE.
+       01 TD-FILE-RECORD.
+          COPY CPTD01.  *> Assumes CPTD01 defines the structure for a Time Deposit record.
+                         *> Example fields from CPTD01 could include:
+                         *>    05 TD-ACCOUNT-NUMBER     PIC 9(12).
+                         *>    05 TD-CUST-ID            PIC 9(10).
+                         *>    05 TD-OPEN-DATE          PIC 9(08).
+                         *>    05 TD-PRINCIPAL          PIC S9(13)V99.
+                         *>    05 TD-INT-RATE           PIC V9(05).
+                         *>    05 TD-TERM               PIC 9(03).
+                         *>    05 TD-MAT-DATE           PIC 9(08).
+                         *>    05 TD-MAT-VALUE          PIC S9(13)V99.
+                         *>    05 TD-ACCT-STATUS        PIC X(01). *> 'A'ctive, 'M'atured, 'C'losed
+                         *>    05 TD-AI-RATE-ADJ        PIC V9(05). *> AI-driven rate adjustment
+                         *>    05 TD-AI-RISK-SCR        PIC 9(03).  *> AI-driven risk score (000-999)
+                         *>    05 TD-LAST-MAINT-DATE    PIC 9(08).
+                         *>    05 TD-LAST-MAINT-USER    PIC X(08).
+                         *>    05 TD-FILLER             PIC X(XX). *> To pad record to 108 bytes or specified length.
+
+       WORKING-STORAGE SECTION.
+       01 WS-PROGRAM-SWITCHES.
+          05 WS-VALID-INPUT-SW       PIC X(01) VALUE 'N'.
+             88 VALID-INPUT-RECEIVED           VALUE 'Y'.
+          05 WS-RATE-FOUND-SW        PIC X(01) VALUE 'N'.
+             88 RATE-IS-FOUND                  VALUE 'Y'.
+          05 WS-AI-APPROVAL-SW       PIC X(01) VALUE 'N'.
+             88 AI-APPROVED                    VALUE 'Y'.
+          05 WS-FILE-OPEN-SW         PIC X(01) VALUE 'N'.
+             88 FILE-IS-OPEN                   VALUE 'Y'.
+
+       01 WS-INPUT-DETAILS.
+          05 WS-CUST-ID-IN           PIC 9(10).
+          05 WS-PRINCIPAL-IN         PIC S9(13)V99.
+          05 WS-TERM-IN              PIC 9(03).
+          05 WS-REQUESTED-TERM-DESC  PIC X(10).
+
+       01 WS-DATE-FIELDS.
+          05 WS-CURRENT-DATE-YMD.
+             10 WS-CURRENT-YEAR      PIC 9(04).
+             10 WS-CURRENT-MONTH     PIC 9(02).
+             10 WS-CURRENT-DAY       PIC 9(02).
+          05 WS-OPEN-DATE            PIC 9(08). *> YYYYMMDD
+          05 WS-MATURITY-DATE        PIC 9(08). *> YYYYMMDD
+          05 WS-TEMP-DATE-INT        PIC 9(07). *> For date calculations
+          05 WS-DATE-ADD-MONTHS      PIC S9(09) COMP-3. *> For date calculations
+
+       01 WS-CALCULATION-FIELDS.
+          05 WS-BASE-INTEREST-RATE   PIC V9(05) VALUE ZEROS. *> Base rate fetched from table
+          05 WS-FINAL-INTEREST-RATE  PIC V9(05) VALUE ZEROS. *> Rate after AI adjustment
+          05 WS-ANNUAL-INTEREST      PIC S9(13)V99 VALUE ZEROS.
+          05 WS-TOTAL-INTEREST       PIC S9(13)V99 VALUE ZEROS.
+          05 WS-MATURITY-VALUE       PIC S9(13)V99 VALUE ZEROS.
+          05 WS-TERM-MONTHS          PIC 9(03).
+
+       01 WS-TIME-DEPOSIT-DETAIL.
+          *> This structure will be populated and then moved to TD-FILE-RECORD
+          *> for writing to the file. It defines temporary storage for new record data.
+          05 TD-ACCOUNT-NUMBER-GEN   PIC 9(12). *> Placeholder for generated account number
+          05 TD-CUSTOMER-ID-INT      PIC 9(10).
+          05 TD-OPENING-DATE-INT     PIC 9(08).
+          05 TD-PRINCIPAL-AMOUNT-INT PIC S9(13)V99.
+          05 TD-INTEREST-RATE-INT    PIC V9(05).
+          05 TD-TERM-MONTHS-INT      PIC 9(03).
+          05 TD-MATURITY-DATE-INT    PIC 9(08).
+          05 TD-MATURITY-VALUE-INT   PIC S9(13)V99.
+          05 TD-STATUS-INT           PIC X(01) VALUE 'A'. *> A=Active, M=Matured, C=Closed
+          05 TD-AI-RATE-ADJ-INT      PIC V9(05) VALUE ZEROS. *> Stores AI's rate adjustment, if any
+          05 TD-AI-RISK-SCORE-INT    PIC 9(03)  VALUE ZEROS. *> AI's risk assessment score (0-999)
+          05 TD-LAST-MAINT-DATE-INT  PIC 9(08).
+          05 TD-LAST-MAINT-USER-INT  PIC X(08).
+          05 TD-FILLER-INT           PIC X(10). *> Placeholder to ensure length flexibility
+
+       01 WS-TD-GEN-ACCOUNT-NUM     PIC 9(12).
+       01 TD-FILE-STATUS            PIC X(02).
+          88 TD-FILE-OK                        VALUE '00'.
+          88 TD-FILE-EOF                       VALUE '10'.
+          88 TD-DUPLICATE-KEY                  VALUE '22'.
+          88 TD-RECORD-NOT-FOUND               VALUE '23'.
+          88 TD-FILE-NOT-FOUND                 VALUE '35'.
+
+       01 WS-GENERIC-COUNTER        PIC 9(05).
+       01 WS-DISPLAY-MESSAGE        PIC X(80).
+
+       *> Simulated Interest Rate Table
+       01 WS-RATE-TABLE.
+          05 FILLER OCCURS 5 TIMES.
+             10 RT-TERM              PIC 9(03).
+             10 RT-RATE              PIC V9(05).
+       01 WS-RATE-TABLE-VALUES REDEFINES WS-RATE-TABLE.
+          05 FILLER PIC X(08) VALUE '00300300'. *> 3 months, 3.00%
+          05 FILLER PIC X(08) VALUE '00600325'. *> 6 months, 3.25%
+          05 FILLER PIC X(08) VALUE '01200350'. *> 12 months, 3.50%
+          05 FILLER PIC X(08) VALUE '02400375'. *> 24 months, 3.75%
+          05 FILLER PIC X(08) VALUE '03600400'. *> 36 months, 4.00%
+          *> AI will potentially adjust these rates based on individual customer profiles.
+
+       *> Simulated AI output fields for Rate Optimization
+       01 WS-AI-RATE-OUTPUTS.
+          05 WS-AI-ADJ-FACTOR        PIC V9(05) VALUE ZEROS.
+          05 WS-AI-RATE-REC-MSG      PIC X(70)  VALUE SPACES.
+
+       *> Simulated AI output fields for Risk Assessment
+       01 WS-AI-RISK-OUTPUTS.
+          05 WS-AI-RISK-SCORE-OUT    PIC 9(03)  VALUE ZEROS.
+          05 WS-AI-RISK-DECISION     PIC X(10)  VALUE SPACES. *> 'APPROVED', 'REVIEW', 'DENIED'
+          05 WS-AI-RISK-MSG          PIC X(70)  VALUE SPACES.
+
+       PROCEDURE DIVISION.
+       MAIN-LOGIC.
+           PERFORM 1000-INITIALIZE.
+           IF NOT FILE-IS-OPEN
+               PERFORM 9900-END-PROGRAM
+           END-IF.
+
+           PERFORM 2000-GET-AND-VALIDATE-INPUT.
+           IF NOT VALID-INPUT-RECEIVED
+               PERFORM 9000-ABORT-PROCESSING
+           ELSE
+               PERFORM 3000-DETERMINE-BASE-RATE
+               IF NOT RATE-IS-FOUND
+                   PERFORM 9000-ABORT-PROCESSING
+               ELSE
+                   PERFORM 4000-CALL-AI-RATE-OPTIMIZER
+                   PERFORM 5000-CALCULATE-CD-DETAILS
+                   PERFORM 6000-CALL-AI-RISK-ASSESSOR
+                   IF NOT AI-APPROVED
+                       PERFORM 9000-ABORT-PROCESSING
+                   ELSE
+                       PERFORM 7000-CREATE-ACCOUNT-RECORD
+                       PERFORM 8000-FINALIZE-AND-DISPLAY
+                   END-IF
+               END-IF
+           END-IF.
+           PERFORM 9900-END-PROGRAM.
+
+       1000-INITIALIZE.
+           DISPLAY "TDOPEN - Starting New Certificate of Deposit Account Opening Process".
+           MOVE FUNCTION CURRENT-DATE(1:8) TO WS-CURRENT-DATE-YMD.
+           MOVE WS-CURRENT-DATE-YMD TO WS-OPEN-DATE.
+           DISPLAY "Processing Date: " WS-OPEN-DATE.
+
+           OPEN I-O TIME-DEPOSIT-FILE.
+           IF NOT TD-FILE-OK
+               DISPLAY "ERROR: Could not open Time Deposit File. Status Code: "
+                   TD-FILE-STATUS
+               PERFORM 9000-ABORT-PROCESSING
+           ELSE
+               SET FILE-IS-OPEN TO TRUE
+           END-IF.
+
+           MOVE 'N' TO WS-VALID-INPUT-SW.
+           MOVE 'N' TO WS-RATE-FOUND-SW.
+           MOVE 'N' TO WS-AI-APPROVAL-SW.
+           INITIALIZE WS-TIME-DEPOSIT-DETAIL.
+           INITIALIZE WS-AI-RATE-OUTPUTS.
+           INITIALIZE WS-AI-RISK-OUTPUTS.
+           MOVE SPACES TO WS-REQUESTED-TERM-DESC.
+
+       2000-GET-AND-VALIDATE-INPUT.
+           DISPLAY "--------------------------------------------------".
+           DISPLAY "Please provide the following details:".
+           DISPLAY "ENTER CUSTOMER ID (10 digits): ".
+           ACCEPT WS-CUST-ID-IN.
+           IF WS-CUST-ID-IN IS NOT NUMERIC OR WS-CUST-ID-IN = ZEROS
+               DISPLAY "Error: Invalid Customer ID. Must be numeric and non-zero."
+               EXIT PARAGRAPH
+           END-IF.
+           MOVE WS-CUST-ID-IN TO TD-CUSTOMER-ID-INT.
+
+           DISPLAY "ENTER PRINCIPAL AMOUNT (e.g., 1000.00, minimum 100.00): ".
+           ACCEPT WS-PRINCIPAL-IN.
+           IF WS-PRINCIPAL-IN IS NOT NUMERIC OR WS-PRINCIPAL-IN <= ZEROS
+              DISPLAY "Error: Invalid Principal Amount. Must be numeric and positive."
+              EXIT PARAGRAPH
+           END-IF.
+           IF WS-PRINCIPAL-IN < 100.00
+              DISPLAY "Error: Minimum principal amount for a CD is 100.00."
+              EXIT PARAGRAPH
+           END-IF.
+           MOVE WS-PRINCIPAL-IN TO TD-PRINCIPAL-AMOUNT-INT.
+
+           DISPLAY "ENTER TERM IN MONTHS (e.g., 3, 6, 12, 24, 36): ".
+           ACCEPT WS-TERM-IN.
+           IF WS-TERM-IN IS NOT NUMERIC OR WS-TERM-IN = ZEROS
+              DISPLAY "Error: Invalid Term. Must be numeric and non-zero."
+              EXIT PARAGRAPH
+           END-IF.
+           MOVE WS-TERM-IN TO TD-TERM-MONTHS-INT.
+           MOVE WS-TERM-IN TO WS-TERM-MONTHS.
+           
+           SET VALID-INPUT-RECEIVED TO TRUE.
+           DISPLAY "Input successfully received and preliminarily validated."
+           DISPLAY "--------------------------------------------------".
+
+       3000-DETERMINE-BASE-RATE.
+           DISPLAY "Retrieving base interest rates for " WS-TERM-IN " months...".
+           MOVE 'N' TO WS-RATE-FOUND-SW.
+           PERFORM VARYING WS-GENERIC-COUNTER FROM 1 BY 1
+                   UNTIL WS-GENERIC-COUNTER > 5 OR RATE-IS-FOUND
+               IF WS-TERM-IN = RT-TERM(WS-GENERIC-COUNTER)
+                   MOVE RT-RATE(WS-GENERIC-COUNTER) TO WS-BASE-INTEREST-RATE
+                   SET RATE-IS-FOUND TO TRUE
+               END-IF
+           END-PERFORM.
+
+           IF NOT RATE-IS-FOUND
+               DISPLAY "ERROR: No standard base rate found for the requested term (" WS-TERM-IN " months)."
+               DISPLAY "Please contact customer support for special terms or choose from available terms."
+           ELSE
+               DISPLAY "Base Interest Rate for " WS-TERM-IN " months: " WS-BASE-INTEREST-RATE * 100 " %."
+           END-IF.
+           MOVE WS-BASE-INTEREST-RATE TO WS-FINAL-INTEREST-RATE. *> Initialize final rate with base rate.
+
+       4000-CALL-AI-RATE-OPTIMIZER.
+           DISPLAY "--------------------------------------------------".
+           DISPLAY "Initiating AI-driven rate optimization module...".
+           DISPLAY "AI is analyzing customer's historical deposit patterns, relationship tenure,"
+           DISPLAY "and current market dynamics for Customer ID: " WS-CUST-ID-IN.
+
+           *> Simulate AI analysis and potential rate adjustment.
+           *> This AI module aims to enhance customer value by offering personalized incentives.
+           IF WS-CUST-ID-IN = 1234567890 *> Example: A specific high-value customer
+               COMPUTE WS-AI-ADJ-FACTOR = 0.0015 *> Add 0.15% for premium customers
+               MOVE "AI recommends a premium rate enhancement for customer loyalty." TO WS-AI-RATE-REC-MSG
+           ELSE IF WS-PRINCIPAL-IN > 100000.00 AND WS-TERM-IN >= 24 *> Example: High principal, longer term
+               COMPUTE WS-AI-ADJ-FACTOR = 0.0010 *> Add 0.10% for large deposits
+               MOVE "AI suggests a volume-based rate adjustment for significant principal." TO WS-AI-RATE-REC-MSG
+           ELSE
+               COMPUTE WS-AI-ADJ-FACTOR = ZEROS
+               MOVE "AI finds no special rate adjustment required based on current profile." TO WS-AI-RATE-REC-MSG
+           END-IF.
+
+           COMPUTE WS-FINAL-INTEREST-RATE = WS-BASE-INTEREST-RATE + WS-AI-ADJ-FACTOR.
+           MOVE WS-AI-ADJ-FACTOR TO TD-AI-RATE-ADJ-INT.
+
+           DISPLAY "AI Insight: " WS-AI-RATE-REC-MSG.
+           DISPLAY "Final Optimized Interest Rate: " WS-FINAL-INTEREST-RATE * 100 " %."
+           DISPLAY "AI rate optimization complete."
+           DISPLAY "--------------------------------------------------".
+
+       5000-CALCULATE-CD-DETAILS.
+           DISPLAY "Commencing CD maturity calculations...".
+           MOVE WS-OPEN-DATE TO TD-OPENING-DATE-INT.
+           MOVE WS-FINAL-INTEREST-RATE TO TD-INTEREST-RATE-INT.
+
+           *> Calculate Annual Interest: Principal * Rate
+           COMPUTE WS-ANNUAL-INTEREST = TD-PRINCIPAL-AMOUNT-INT * TD-INTEREST-RATE-INT.
+
+           *> Calculate Total Interest: Annual Interest / 12 * Term
+           COMPUTE WS-TOTAL-INTEREST = WS-ANNUAL-INTEREST / 12 * TD-TERM-MONTHS-INT.
+           
+           *> Calculate Maturity Value: Principal + Total Interest
+           COMPUTE WS-MATURITY-VALUE = TD-PRINCIPAL-AMOUNT-INT + WS-TOTAL-INTEREST.
+           MOVE WS-MATURITY-VALUE TO TD-MATURITY-VALUE-INT.
+
+           *> Calculate Maturity Date (using COBOL's intrinsic functions for robustness)
+           MOVE FUNCTION INTEGER-OF-DATE(WS-OPEN-DATE) TO WS-TEMP-DATE-INT.
+           ADD WS-TERM-MONTHS TO WS-DATE-ADD-MONTHS.
+           MOVE FUNCTION DATE-OF-INTEGER(FUNCTION ADD-DURATION(WS-TEMP-DATE-INT, 'MONTHS', WS-DATE-ADD-MONTHS))
+                TO WS-MATURITY-DATE.
+           MOVE WS-MATURITY-DATE TO TD-MATURITY-DATE-INT.
+
+           DISPLAY "Detailed calculations finalized.".
+           DISPLAY "Projected Maturity Date: " TD-MATURITY-DATE-INT.
+           DISPLAY "Total Interest Expected: " WS-TOTAL-INTEREST.
+           DISPLAY "Total Maturity Value:    " TD-MATURITY-VALUE-INT.
+
+       6000-CALL-AI-RISK-ASSESSOR.
+           DISPLAY "--------------------------------------------------".
+           DISPLAY "Activating AI risk and compliance assessment engine...".
+           DISPLAY "AI is performing real-time transaction pattern analysis, compliance checks,"
+           DISPLAY "and fraud detection for this account creation request."
+
+           *> Simulate AI risk assessment. This AI module ensures transaction integrity and security.
+           IF TD-PRINCIPAL-AMOUNT-INT > 500000.00 AND WS-CUST-ID-IN NOT = 1234567890
+               MOVE 750 TO WS-AI-RISK-SCORE-OUT *> Higher score for high value from non-premium customer
+               MOVE "REVIEW" TO WS-AI-RISK-DECISION
+               MOVE "AI detected a high-value deposit from a non-established profile. Requires human review." TO WS-AI-RISK-MSG
+               DISPLAY "AI Alert: " WS-AI-RISK-MSG
+           ELSE IF TD-TERM-MONTHS-INT > 36 AND WS-PRINCIPAL-IN < 500.00
+               MOVE 400 TO WS-AI-RISK-SCORE-OUT
+               MOVE "REVIEW" TO WS-AI-RISK-DECISION
+               MOVE "AI flags unusual small principal for a very long term. Review recommended." TO WS-AI-RISK-MSG
+               DISPLAY "AI Caution: " WS-AI-RISK-MSG
+           ELSE
+               MOVE 150 TO WS-AI-RISK-SCORE-OUT
+               MOVE "APPROVED" TO WS-AI-RISK-DECISION
+               MOVE "AI reports low risk for this transaction. Proceeding securely." TO WS-AI-RISK-MSG
+               DISPLAY "AI Status: " WS-AI-RISK-MSG
+           END-IF.
+
+           MOVE WS-AI-RISK-SCORE-OUT TO TD-AI-RISK-SCORE-INT.
+           
+           IF WS-AI-RISK-DECISION = 'APPROVED'
+               SET AI-APPROVED TO TRUE
+           ELSE
+               DISPLAY "AI decision requires further action. Account creation process halted."
+           END-IF.
+           DISPLAY "AI risk assessment completed."
+           DISPLAY "--------------------------------------------------".
+
+       7000-CREATE-ACCOUNT-RECORD.
+           DISPLAY "Generating a unique new account number...".
+           *> In a production system, this would typically involve a robust sequence generator
+           *> or a database mechanism to guarantee uniqueness and prevent collisions.
+           *> For this demonstration, we use a combination of current time and customer ID.
+           MOVE FUNCTION CURRENT-DATE(9:8) TO WS-TD-GEN-ACCOUNT-NUM(1:8). *> HHMMSScc
+           MOVE WS-CUST-ID-IN(7:4)         TO WS-TD-GEN-ACCOUNT-NUM(9:4).  *> Last 4 digits of Cust ID
+           MOVE WS-TD-GEN-ACCOUNT-NUM TO TD-ACCOUNT-NUMBER-GEN.
+           
+           DISPLAY "New Account Number Proposed: " TD-ACCOUNT-NUMBER-GEN.
+
+           *> Move data from working storage to the file record area.
+           MOVE TD-ACCOUNT-NUMBER-GEN TO TD-ACCOUNT-NUMBER OF TD-FILE-RECORD.
+           MOVE TD-CUSTOMER-ID-INT        TO TD-CUST-ID OF TD-FILE-RECORD.
+           MOVE TD-OPENING-DATE-INT       TO TD-OPEN-DATE OF TD-FILE-RECORD.
+           MOVE TD-PRINCIPAL-AMOUNT-INT   TO TD-PRINCIPAL OF TD-FILE-RECORD.
+           MOVE TD-INTEREST-RATE-INT      TO TD-INT-RATE OF TD-FILE-RECORD.
+           MOVE TD-TERM-MONTHS-INT        TO TD-TERM OF TD-FILE-RECORD.
+           MOVE TD-MATURITY-DATE-INT      TO TD-MAT-DATE OF TD-FILE-RECORD.
+           MOVE TD-MATURITY-VALUE-INT     TO TD-MAT-VALUE OF TD-FILE-RECORD.
+           MOVE TD-STATUS-INT             TO TD-ACCT-STATUS OF TD-FILE-RECORD.
+           MOVE TD-AI-RATE-ADJ-INT        TO TD-AI-RATE-ADJ OF TD-FILE-RECORD.
+           MOVE TD-AI-RISK-SCORE-INT      TO TD-AI-RISK-SCR OF TD-FILE-RECORD.
+
+           *> Populate maintenance fields
+           MOVE WS-OPEN-DATE              TO TD-LAST-MAINT-DATE OF TD-FILE-RECORD.
+           MOVE 'TDOPEN  '                TO TD-LAST-MAINT-USER OF TD-FILE-RECORD.
+           *> Initialize any remaining filler or optional fields from CPTD01
+           *> MOVE SPACES TO TD-FILLER OF TD-FILE-RECORD.
+
+           WRITE TD-FILE-RECORD.
+           IF NOT TD-FILE-OK
+               DISPLAY "ERROR: Failed to write record to Time Deposit File. Status Code: "
+                   TD-FILE-STATUS
+               IF TD-DUPLICATE-KEY
+                   DISPLAY "Critical: Duplicate account number detected. Immediate manual review required."
+                   *> In a real system, robust error handling or retry logic for unique key generation
+                   *> would be in place here.
+               END-IF
+               PERFORM 9000-ABORT-PROCESSING
+           ELSE
+               DISPLAY "New CD account record successfully saved to the system."
+           END-IF.
+
+       8000-FINALIZE-AND-DISPLAY.
+           DISPLAY "--------------------------------------------------".
+           DISPLAY "NEW CERTIFICATE OF DEPOSIT ACCOUNT OPENED - FULL SUMMARY:".
+           DISPLAY "Account Number:       " TD-ACCOUNT-NUMBER OF TD-FILE-RECORD.
+           DISPLAY "Customer ID:          " TD-CUST-ID OF TD-FILE-RECORD.
+           DISPLAY "Principal Amount:     " TD-PRINCIPAL OF TD-FILE-RECORD.
+           DISPLAY "Interest Rate:        " TD-INT-RATE OF TD-FILE-RECORD * 100 " %".
+           DISPLAY "Term (Months):        " TD-TERM OF TD-FILE-RECORD.
+           DISPLAY "Opening Date:         " TD-OPEN-DATE OF TD-FILE-RECORD.
+           DISPLAY "Maturity Date:        " TD-MAT-DATE OF TD-FILE-RECORD.
+           DISPLAY "Maturity Value:       " TD-MAT-VALUE OF TD-FILE-RECORD.
+           DISPLAY "AI Rate Adjustment:   " TD-AI-RATE-ADJ OF TD-FILE-RECORD * 100 " %".
+           DISPLAY "AI Risk Score:        " TD-AI-RISK-SCR OF TD-FILE-RECORD.
+           DISPLAY "Account Status:       " TD-ACCT-STATUS OF TD-FILE-RECORD.
+           DISPLAY "Last Maintained By:   " TD-LAST-MAINT-USER OF TD-FILE-RECORD.
+           DISPLAY "Last Maintenance Date:" TD-LAST-MAINT-DATE OF TD-FILE-RECORD.
+           DISPLAY "--------------------------------------------------".
+           DISPLAY "Thank you for choosing our services.".
+
+       9000-ABORT-PROCESSING.
+           DISPLAY "TDOPEN - Processing aborted due to encountered error or invalid input.".
+           PERFORM 9900-END-PROGRAM.
+
+       9900-END-PROGRAM.
+           IF FILE-IS-OPEN
+               CLOSE TIME-DEPOSIT-FILE
+               IF NOT TD-FILE-OK
+                   DISPLAY "ERROR: Failed to close Time Deposit File. Status Code: "
+                       TD-FILE-STATUS
+               END-IF
+           END-IF.
+           DISPLAY "TDOPEN - Program execution complete.".
+           STOP RUN.

@@ -1,0 +1,1092 @@
+name: Security Reporter
+description: A reusable GitHub Action designed to aggregate security scan results and generate comprehensive reports or notifications for various platforms.
+
+inputs:
+  # Input for paths to security scan result files. Can be a single path, multiple comma-separated paths, or glob patterns.
+  # This input supports various formats like SARIF, Trivy JSON, Snyk JSON.
+  scan-results-paths:
+    description: 'Comma-separated paths or glob patterns to security scan result files (e.g., SARIF, Trivy JSON, Snyk JSON). Example: "results/**/*.sarif,trivy-output.json"'
+    required: true
+    default: '.' # Default to current directory, assuming scans are run there or files are located nearby.
+  
+  # Desired format for the aggregated security report.
+  output-format:
+    description: 'The desired format for the aggregated security report. Supported: `markdown`, `html`, `json`, `sarif-combined` (attempts to combine SARIF, falls back to JSON for internal findings).'
+    required: false
+    default: 'markdown' # Markdown is a good default for GitHub consumption.
+  
+  # The path where the generated report file should be saved, relative to the workspace root.
+  # The actual file extension will be appended based on the `output-format`.
+  report-output-path:
+    description: 'The base path where the aggregated report file should be saved (e.g., "security-reports/report"). The extension (.md, .html, .json, .sarif) will be added automatically.'
+    required: false
+    default: 'security-report' # Base name for the report file.
+  
+  # A custom title to be used in the generated security report.
+  report-title:
+    description: 'Custom title for the generated security report. Defaults to a generic title if not provided.'
+    required: false
+    default: 'Aggregated Security Scan Report for ${{ github.repository }}'
+
+  # A comma-separated list of platforms to send notifications to.
+  # Supported: `github-summary`, `github-issue-comment`, `slack`, `teams`.
+  notification-targets:
+    description: 'Comma-separated list of platforms to send notifications (e.g., `github-summary`, `slack`, `teams`, `github-issue-comment`).'
+    required: false
+    default: 'github-summary' # Always update GitHub Summary by default.
+
+  # The Slack webhook URL for sending notifications. Required if 'slack' is in notification-targets.
+  slack-webhook-url:
+    description: 'The Slack webhook URL for sending notifications. Must be a GitHub secret, e.g., `${{ secrets.SLACK_WEBHOOK_URL }}`.'
+    required: false
+    default: ''
+
+  # The Slack channel name to post the report to. Optional, depends on webhook configuration.
+  slack-channel:
+    description: 'The Slack channel name to post the report to (e.g., `#security-alerts`). Optional.'
+    required: false
+    default: ''
+
+  # The Microsoft Teams webhook URL for sending notifications. Required if 'teams' is in notification-targets.
+  teams-webhook-url:
+    description: 'The Microsoft Teams webhook URL for sending notifications. Must be a GitHub secret, e.g., `${{ secrets.TEAMS_WEBHOOK_URL }}`.'
+    required: false
+    default: ''
+
+  # GitHub Token for interacting with GitHub API (e.g., creating issue comments, updating summaries).
+  # Use `${{ github.token }}` for most scenarios. Needs `pull-requests: write` permissions for comments.
+  github-token:
+    description: 'GitHub token for API access (e.g., to post comments or summary). Typically `${{ github.token }}`. Needs `pull-requests: write` for comments.'
+    required: false
+    default: '' # No default, relies on workflow context.
+
+  # The minimum severity level that should cause the action to fail.
+  # If empty, the action will not fail based on vulnerability severity.
+  fail-on-severity:
+    description: 'The minimum severity level that should cause the action to fail (e.g., `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, `INFO`). If empty, action will not fail based on severity.'
+    required: false
+    default: '' # Do not fail by default.
+
+  # Minimum severity level to include findings in the generated report.
+  report-min-severity:
+    description: 'Minimum severity level to include in the generated report (e.g., `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, `INFO`). Findings below this will be filtered out.'
+    required: false
+    default: 'LOW' # Default to LOW to include most findings for a comprehensive report.
+
+  # Set to true to include full raw details of each vulnerability in the report.
+  # This can make reports very verbose, especially HTML.
+  include-full-details:
+    description: 'Set to `true` to include full raw details for each vulnerability in the report. This increases report size.'
+    required: false
+    default: 'false'
+
+  # Attempt to deduplicate identical findings reported by different scan tools.
+  # Deduplication is based on a combined hash of ID, message, location, and severity.
+  deduplicate-findings:
+    description: 'If `true`, attempts to deduplicate identical findings reported by different scan tools based on key attributes.'
+    required: false
+    default: 'true'
+
+  # Comma-separated list of vulnerability IDs (e.g., CVE-2023-12345) to ignore.
+  # Findings matching these IDs will be excluded from the report and severity-based failure checks.
+  ignore-vulnerability-ids:
+    description: 'Comma-separated list of vulnerability IDs (e.g., `CVE-2023-12345`, `SNYK-JS-EXAMPLE`) to ignore. These findings will not appear in the report.'
+    required: false
+    default: ''
+
+  # Maximum number of individual vulnerabilities to list in the detailed section of the report.
+  # Useful for very large scan results to keep reports readable. The full JSON output will still contain all.
+  max-vulnerabilities-in-report:
+    description: 'Maximum number of individual vulnerabilities to list in the detailed report section for markdown/HTML. All findings are present in JSON output.'
+    required: false
+    default: '100' # Limit detailed listings to 100 entries by default.
+
+  # If true, notification steps will only log messages instead of sending actual notifications.
+  # Useful for testing the action without spamming channels.
+  notification-dry-run:
+    description: 'If `true`, notification steps will only log messages instead of sending actual notifications to configured targets.'
+    required: false
+    default: 'false'
+
+  # A unique identifier for this particular security scan/report generation.
+  # Useful for auditing and correlating reports across systems.
+  scan-id:
+    description: 'A unique identifier for this specific security report generation run. Defaults to `github.run_id-github.run_attempt`.'
+    required: false
+    default: ${{ github.run_id }}-${{ github.run_attempt }}
+
+  # Optional path to a custom template for report generation. (Advanced feature, not fully implemented in current shell script example)
+  custom-template-path:
+    description: 'Optional path to a custom template file for report generation. *Note: Advanced feature, requires specific output-format support.*'
+    required: false
+    default: ''
+
+outputs:
+  report-file-path:
+    description: 'The full path to the generated aggregated security report file (e.g., `/home/runner/work/repo/repo/security-report.md`).'
+    value: ${{ steps.generate_report.outputs.report_path }}
+  
+  vulnerabilities-found:
+    description: '`true` if any vulnerabilities were found above the `report-min-severity` threshold, `false` otherwise.'
+    value: ${{ steps.summarize_results.outputs.vulnerabilities_found }}
+
+  critical-vulnerabilities-count:
+    description: 'Number of critical vulnerabilities found and included in the report after filtering.'
+    value: ${{ steps.summarize_results.outputs.critical_count }}
+
+  high-vulnerabilities-count:
+    description: 'Number of high vulnerabilities found and included in the report after filtering.'
+    value: ${{ steps.summarize_results.outputs.high_count }}
+
+  medium-vulnerabilities-count:
+    description: 'Number of medium vulnerabilities found and included in the report after filtering.'
+    value: ${{ steps.summarize_results.outputs.medium_count }}
+
+  low-vulnerabilities-count:
+    description: 'Number of low vulnerabilities found and included in the report after filtering.'
+    value: ${{ steps.summarize_results.outputs.low_count }}
+
+  info-vulnerabilities-count:
+    description: 'Number of informational findings found and included in the report after filtering.'
+    value: ${{ steps.summarize_results.outputs.info_count }}
+
+  total-vulnerabilities-count:
+    description: 'Total number of vulnerabilities found across all severities after filtering.'
+    value: ${{ steps.summarize_results.outputs.total_count }}
+
+  report-summary-text:
+    description: 'A concise summary of the generated report in plain text format.'
+    value: ${{ steps.summarize_results.outputs.summary_text }}
+
+  action-status:
+    description: 'Overall status of the action, `success` or `failure` based on `fail-on-severity` criteria.'
+    value: ${{ steps.final_status_check.outputs.action_status }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Initialize and Prepare Environment
+      shell: bash
+      run: |
+        echo "## Starting Security Reporter Action ##"
+        echo "-------------------------------------"
+        echo "Date: $(date)"
+        echo "Workflow Run ID: ${{ github.run_id }}"
+        echo "Run Attempt: ${{ github.run_attempt }}"
+        echo "Commit SHA: ${{ github.sha }}"
+        echo "Repository: ${{ github.repository }}"
+        echo "Workspace Directory: ${{ github.workspace }}"
+        echo "Action triggered by: ${{ github.event_name }}"
+        echo "Scan ID for this run: '${{ inputs.scan-id }}'"
+        echo "-------------------------------------"
+
+        echo "Inputs Configuration:"
+        echo "  scan-results-paths: '${{ inputs.scan-results-paths }}'"
+        echo "  output-format:      '${{ inputs.output-format }}'"
+        echo "  report-output-path: '${{ inputs.report-output-path }}'"
+        echo "  report-title:       '${{ inputs.report-title }}'"
+        echo "  notification-targets: '${{ inputs.notification-targets }}'"
+        echo "  slack-channel:      '${{ inputs.slack-channel }}' (Sensitive: Webhook URL not displayed)"
+        echo "  fail-on-severity:   '${{ inputs.fail-on-severity }}'"
+        echo "  report-min-severity: '${{ inputs.report-min-severity }}'"
+        echo "  include-full-details: '${{ inputs.include-full-details }}'"
+        echo "  deduplicate-findings: '${{ inputs.deduplicate-findings }}'"
+        echo "  ignore-vulnerability-ids: '${{ inputs.ignore-vulnerability-ids }}'"
+        echo "  max-vulnerabilities-in-report: '${{ inputs.max-vulnerabilities-in-report }}'"
+        echo "  notification-dry-run: '${{ inputs.notification-dry-run }}'"
+        echo "-------------------------------------"
+
+        # Create a temporary directory for intermediate files, ensuring it's cleaned up by the runner.
+        mkdir -p "${{ github.workspace }}/.security-reporter-tmp" || { echo "Failed to create temp directory"; exit 1; }
+        echo "TEMP_DIR=${{ github.workspace }}/.security-reporter-tmp" >> $GITHUB_ENV
+        echo "INFO: Temporary directory created at $TEMP_DIR"
+
+        # Construct the full report path based on input. The extension will be dynamic.
+        echo "REPORT_BASE_FILE_PATH=${{ github.workspace }}/${{ inputs.report-output-path }}" >> $GITHUB_ENV
+        echo "INFO: Report base file path set to $REPORT_BASE_FILE_PATH"
+
+        # Install necessary tools: jq for JSON processing, yq for YAML processing (if custom templates).
+        # These are common utilities in GitHub Actions environments.
+        echo "Installing 'jq' for JSON parsing and 'yq' for YAML parsing..."
+        # Update package lists silently, then install jq and yq.
+        sudo apt-get update > /dev/null 2>&1 || { echo "WARN: apt-get update failed, continuing anyway."; }
+        sudo apt-get install -y jq yq > /dev/null || { echo "ERROR: Failed to install jq or yq. Please ensure apt-get is available or dependencies are met."; exit 1; }
+        echo "INFO: 'jq' and 'yq' installed successfully."
+
+    - name: Discover and Aggregate Scan Results
+      id: aggregate_results
+      shell: bash
+      run: |
+        # This step scans the file system for specified security report files,
+        # identifies their format (SARIF, Trivy JSON, Snyk JSON), and
+        # aggregates them into a common internal JSON structure for further processing.
+
+        SCAN_RESULT_PATHS="${{ inputs.scan-results-paths }}"
+        TEMP_DIR="${{ env.TEMP_DIR }}"
+        AGGREGATED_FINDINGS_FILE="$TEMP_DIR/aggregated_findings_raw.json"
+        
+        # Initialize an empty JSON array to store all findings.
+        echo '[]' > "$AGGREGATED_FINDINGS_FILE" || { echo "ERROR: Failed to initialize aggregated findings file."; exit 1; }
+        echo "INFO: Initialized aggregated findings file: $AGGREGATED_FINDINGS_FILE"
+
+        ALL_SARIF_FILES=()
+        ALL_TRIVY_JSON_FILES=()
+        ALL_SNYK_JSON_FILES=()
+
+        # Split the input paths by comma and iterate through each glob pattern.
+        IFS=',' read -ra PATH_GLOBS <<< "$SCAN_RESULT_PATHS"
+        for GLOB_PATTERN in "${PATH_GLOBS[@]}"; do
+          echo "DEBUG: Processing glob pattern: '$GLOB_PATTERN'"
+          # Use find to locate files matching the glob pattern, then iterate.
+          # -mindepth 1 prevents matching current directory if glob is '.'
+          find . -path "$GLOB_PATTERN" -type f -print0 2>/dev/null | while IFS= read -r -d $'\0' FILE; do
+            if [[ -f "$FILE" ]]; then
+              echo "  DEBUG: Found potential scan result file: '$FILE'"
+              # Attempt to identify the file type by inspecting content.
+              # This is a heuristic and might not be perfectly robust for all edge cases.
+              if head -n 100 "$FILE" | grep -q "SARIF" && head -n 100 "$FILE" | grep -q "\"$schema\""; then
+                echo "    INFO: Identified as SARIF format."
+                ALL_SARIF_FILES+=("$FILE")
+              elif head -n 100 "$FILE" | grep -q '"SchemaVersion":"trivy"' && head -n 100 "$FILE" | grep -q '"VulnerabilityID"'; then
+                echo "    INFO: Identified as Trivy JSON format."
+                ALL_TRIVY_JSON_FILES+=("$FILE")
+              elif head -n 100 "$FILE" | grep -q '"snyk"' && head -n 100 "$FILE" | grep -q '"vulnerabilities"'; then
+                echo "    INFO: Identified as Snyk JSON format."
+                ALL_SNYK_JSON_FILES+=("$FILE")
+              else
+                echo "    WARN: Unknown or unsupported file type for '$FILE', skipping."
+              fi
+            else
+              echo "    DEBUG: File not found or not a regular file: '$FILE' (after glob expansion)"
+            fi
+          done
+        done
+        echo "INFO: File discovery complete. Found ${#ALL_SARIF_FILES[@]} SARIF, ${#ALL_TRIVY_JSON_FILES[@]} Trivy JSON, ${#ALL_SNYK_JSON_FILES[@]} Snyk JSON files."
+
+        # Process SARIF files
+        if [ ${#ALL_SARIF_FILES[@]} -gt 0 ]; then
+          echo "--- Processing SARIF files ---"
+          for SARIF_FILE in "${ALL_SARIF_FILES[@]}"; do
+            echo "  INFO: Converting SARIF file: '$SARIF_FILE'"
+            # jq command to extract key vulnerability data from SARIF to a normalized JSON format.
+            # This extracts ruleId, message, location (artifact URI + line), and level (mapped to severity).
+            # It also includes the 'tool' as a placeholder and the raw finding for full details if needed later.
+            jq -r '.runs[]?.results[]? | {
+                id: .ruleId,
+                message: .message.text,
+                location: (.locations[]?.physicalLocation?.artifactLocation?.uri + ":" + (.locations[]?.physicalLocation?.region?.startLine | tostring)),
+                severity: (if .level == "error" then "CRITICAL" elif .level == "warning" then "HIGH" elif .level == "note" then "MEDIUM" else "INFO" end),
+                tool: (.ruleId | split("/") | .[0]? // "SARIF"), # Tries to extract tool from ruleId, falls back to "SARIF"
+                raw: .
+              }' "$SARIF_FILE" | jq -s '.[][]' | \
+              jq --argfile existing "$AGGREGATED_FINDINGS_FILE" -n '$existing + input' > "$TEMP_DIR/temp_agg_sarif.json" && \
+              mv "$TEMP_DIR/temp_agg_sarif.json" "$AGGREGATED_FINDINGS_FILE" || { echo "ERROR: Failed to process SARIF file '$SARIF_FILE'."; exit 1; }
+          done
+          echo "INFO: SARIF files processed."
+        fi
+
+        # Process Trivy JSON files
+        if [ ${#ALL_TRIVY_JSON_FILES[@]} -gt 0 ]; then
+          echo "--- Processing Trivy JSON files ---"
+          for TRIVY_FILE in "${ALL_TRIVY_JSON_FILES[@]}"; do
+            echo "  INFO: Converting Trivy JSON file: '$TRIVY_FILE'"
+            # jq command to extract Trivy vulnerabilities.
+            # Trivy's JSON structure often has `Results[].Vulnerabilities[]`.
+            # Location is constructed from package name and installed version.
+            jq -r '.Results[]?.Vulnerabilities[]? | {
+                id: .VulnerabilityID,
+                message: .Title,
+                location: (.PkgName + "@" + .InstalledVersion + " (" + .DataSource.Name + ")"),
+                severity: .Severity, # Trivy reports Critical, High, Medium, Low, Unknown, None
+                tool: "Trivy",
+                raw: .
+              }' "$TRIVY_FILE" | jq -s '.[][]' | \
+              jq --argfile existing "$AGGREGATED_FINDINGS_FILE" -n '$existing + input' > "$TEMP_DIR/temp_agg_trivy.json" && \
+              mv "$TEMP_DIR/temp_agg_trivy.json" "$AGGREGATED_FINDINGS_FILE" || { echo "ERROR: Failed to process Trivy file '$TRIVY_FILE'."; exit 1; }
+          done
+          echo "INFO: Trivy JSON files processed."
+        fi
+
+        # Process Snyk JSON files
+        if [ ${#ALL_SNYK_JSON_FILES[@]} -gt 0 ]; then
+          echo "--- Processing Snyk JSON files ---"
+          for SNYK_FILE in "${ALL_SNYK_JSON_FILES[@]}"; do
+            echo "  INFO: Converting Snyk JSON file: '$SNYK_FILE'"
+            # jq command to extract Snyk vulnerabilities.
+            # Snyk's JSON structure often has `vulnerabilities[]`.
+            # Severity is converted to uppercase to match common internal standard.
+            jq -r '.vulnerabilities[]? | {
+                id: .id,
+                message: .title,
+                location: (.packageName + "@" + .version + " (" + .packageManager + ")"),
+                severity: .severity | ascii_upcase, # Snyk reports low, medium, high, critical
+                tool: "Snyk",
+                raw: .
+              }' "$SNYK_FILE" | jq -s '.[][]' | \
+              jq --argfile existing "$AGGREGATED_FINDINGS_FILE" -n '$existing + input' > "$TEMP_DIR/temp_agg_snyk.json" && \
+              mv "$TEMP_DIR/temp_agg_snyk.json" "$AGGREGATED_FINDINGS_FILE" || { echo "ERROR: Failed to process Snyk file '$SNYK_FILE'."; exit 1; }
+          done
+          echo "INFO: Snyk JSON files processed."
+        fi
+
+        echo "INFO: All identified findings aggregated into $AGGREGATED_FINDINGS_FILE."
+        # Export the path to the aggregated file for subsequent steps.
+        echo "AGGREGATED_FINDINGS_FILE=$AGGREGATED_FINDINGS_FILE" >> $GITHUB_ENV
+
+    - name: Filter and Deduplicate Findings
+      id: filter_deduplicate
+      shell: bash
+      run: |
+        # This step refines the aggregated findings by applying severity filters,
+        # ignoring specified vulnerability IDs, and performing deduplication.
+
+        AGGREGATED_FINDINGS_FILE="${{ env.AGGREGATED_FINDINGS_FILE }}"
+        FINAL_FINDINGS_FILE="${{ env.TEMP_DIR }}/final_findings_processed.json"
+        MIN_REPORT_SEVERITY_LEVEL="${{ inputs.report-min-severity }}"
+        DEDUPLICATE_FINDINGS="${{ inputs.deduplicate-findings }}"
+        IGNORE_VULNERABILITY_IDS="${{ inputs.ignore-vulnerability-ids }}"
+
+        # Convert human-readable severity strings to a numerical scale for comparison.
+        # This mapping allows for easy filtering (e.g., all findings >= HIGH).
+        declare -A SEVERITY_MAP=( ["CRITICAL"]=4 ["HIGH"]=3 ["MEDIUM"]=2 ["LOW"]=1 ["INFO"]=0 ["NONE"]=-1 ["UNKNOWN"]=-1 )
+        MIN_SEVERITY_INT=${SEVERITY_MAP["$(echo "$MIN_REPORT_SEVERITY_LEVEL" | tr '[:lower:]' '[:upper:]')"]}
+        if [[ -z "$MIN_SEVERITY_INT" ]]; then
+          MIN_SEVERITY_INT=0 # Default to INFO if input is invalid
+          echo "WARN: Invalid 'report-min-severity' input: '$MIN_REPORT_SEVERITY_LEVEL'. Defaulting to 'INFO'."
+        fi
+        echo "INFO: Minimum report severity level: '$MIN_REPORT_SEVERITY_LEVEL' (numeric: $MIN_SEVERITY_INT)"
+
+        # Start with all aggregated findings.
+        jq '.' "$AGGREGATED_FINDINGS_FILE" > "$FINAL_FINDINGS_FILE" || { echo "ERROR: Failed to copy aggregated findings."; exit 1; }
+        echo "DEBUG: Initial number of findings: $(jq length "$FINAL_FINDINGS_FILE")"
+
+        # Step 1: Filter by minimum severity level.
+        echo "INFO: Filtering findings to include only those with severity >= '$MIN_REPORT_SEVERITY_LEVEL'..."
+        jq --arg min_sev_int "$MIN_SEVERITY_INT" '
+          map(select(
+            (.severity | ascii_upcase) as $sev_str |
+            (
+              if $sev_str == "CRITICAL" then 4
+              elif $sev_str == "HIGH" then 3
+              elif $sev_str == "MEDIUM" then 2
+              elif $sev_str == "LOW" then 1
+              elif $sev_str == "INFO" then 0
+              else -1 # Treat unknown/none as lowest or exclude
+              end
+            ) >= ($min_sev_int | tonumber)
+          ))
+        ' "$FINAL_FINDINGS_FILE" > "$TEMP_DIR/filter_tmp.json" && \
+        mv "$TEMP_DIR/filter_tmp.json" "$FINAL_FINDINGS_FILE" || { echo "ERROR: Failed to filter by severity."; exit 1; }
+        echo "INFO: Findings after severity filter: $(jq length "$FINAL_FINDINGS_FILE")"
+
+        # Step 2: Filter by ignored vulnerability IDs.
+        if [[ -n "$IGNORE_VULNERABILITY_IDS" ]]; then
+          echo "INFO: Filtering findings by ignored vulnerability IDs: '$IGNORE_VULNERABILITY_IDS'"
+          IFS=',' read -ra IGNORED_ARRAY <<< "$IGNORE_VULNERABILITY_IDS"
+          # Convert bash array to a JSON array for jq.
+          IGNORED_JSON=$(jq -n '$ARGS.positional' --args "${IGNORED_ARRAY[@]}")
+          
+          jq --argjson ignored_ids "$IGNORED_JSON" '
+            map(select(
+              .id | IN($ignored_ids[]) | not # Select findings whose ID is NOT in the ignored_ids list.
+            ))
+          ' "$FINAL_FINDINGS_FILE" > "$TEMP_DIR/filter_tmp.json" && \
+          mv "$TEMP_DIR/filter_tmp.json" "$FINAL_FINDINGS_FILE" || { echo "ERROR: Failed to filter by ignored IDs."; exit 1; }
+          echo "INFO: Findings after ignoring specified IDs: $(jq length "$FINAL_FINDINGS_FILE")"
+        else
+          echo "INFO: No vulnerability IDs specified for ignoring."
+        fi
+
+        # Step 3: Deduplicate findings if enabled.
+        if [[ "$DEDUPLICATE_FINDINGS" == "true" ]]; then
+          echo "INFO: Deduplicating findings based on ID, message, location, and severity..."
+          # Group by a unique key constructed from core finding attributes, then take the first item of each group.
+          jq '
+            group_by(.id + .message + .location + .severity) | map(.[0])
+          ' "$FINAL_FINDINGS_FILE" > "$TEMP_DIR/filter_tmp.json" && \
+          mv "$TEMP_DIR/filter_tmp.json" "$FINAL_FINDINGS_FILE" || { echo "ERROR: Failed during deduplication."; exit 1; }
+          echo "INFO: Findings after deduplication: $(jq length "$FINAL_FINDINGS_FILE")"
+        else
+          echo "INFO: Deduplication is disabled as per input."
+        fi
+
+        echo "INFO: Final number of processed findings: $(jq length "$FINAL_FINDINGS_FILE")"
+        echo "FINAL_FINDINGS_FILE=$FINAL_FINDINGS_FILE" >> $GITHUB_ENV
+
+    - name: Summarize Results
+      id: summarize_results
+      shell: bash
+      run: |
+        # This step calculates counts of vulnerabilities by severity and generates a concise summary text.
+        # These counts and summary text are exposed as action outputs.
+
+        FINAL_FINDINGS_FILE="${{ env.FINAL_FINDINGS_FILE }}"
+        # Use jq to count findings for each severity level.
+        CRITICAL_COUNT=$(jq '[.[] | select(.severity | ascii_upcase == "CRITICAL")] | length' "$FINAL_FINDINGS_FILE")
+        HIGH_COUNT=$(jq '[.[] | select(.severity | ascii_upcase == "HIGH")] | length' "$FINAL_FINDINGS_FILE")
+        MEDIUM_COUNT=$(jq '[.[] | select(.severity | ascii_upcase == "MEDIUM")] | length' "$FINAL_FINDINGS_FILE")
+        LOW_COUNT=$(jq '[.[] | select(.severity | ascii_upcase == "LOW")] | length' "$FINAL_FINDINGS_FILE")
+        INFO_COUNT=$(jq '[.[] | select(.severity | ascii_upcase == "INFO")] | length' "$FINAL_FINDINGS_FILE")
+        TOTAL_COUNT=$(jq 'length' "$FINAL_FINDINGS_FILE")
+
+        VULNERABILITIES_FOUND="false"
+        if [ "$TOTAL_COUNT" -gt 0 ]; then
+          VULNERABILITIES_FOUND="true"
+        fi
+
+        # Construct a human-readable summary string.
+        SUMMARY_TEXT="Security Scan Summary for ${{ github.repository }} (Branch: ${{ github.ref_name }}). Total unique findings: $TOTAL_COUNT\n"
+        SUMMARY_TEXT+="Critical: $CRITICAL_COUNT, High: $HIGH_COUNT, Medium: $MEDIUM_COUNT, Low: $LOW_COUNT, Info: $INFO_COUNT.\n"
+        if [ "$VULNERABILITIES_FOUND" == "true" ]; then
+          SUMMARY_TEXT+="Detailed findings are available in the full report."
+        else
+          SUMMARY_TEXT+="No vulnerabilities found matching the minimum report severity of ${{ inputs.report-min-severity }} after filtering."
+        fi
+
+        # Set action outputs. These can be consumed by subsequent steps or workflows.
+        echo "critical_count=$CRITICAL_COUNT" >> $GITHUB_OUTPUT
+        echo "high_count=$HIGH_COUNT" >> $GITHUB_OUTPUT
+        echo "medium_count=$MEDIUM_COUNT" >> $GITHUB_OUTPUT
+        echo "low_count=$LOW_COUNT" >> $GITHUB_OUTPUT
+        echo "info_count=$INFO_COUNT" >> $GITHUB_OUTPUT
+        echo "total_count=$TOTAL_COUNT" >> $GITHUB_OUTPUT
+        echo "vulnerabilities_found=$VULNERABILITIES_FOUND" >> $GITHUB_OUTPUT
+        echo "summary_text=$SUMMARY_TEXT" >> $GITHUB_OUTPUT
+
+        echo "--- Security Scan Summary ---"
+        echo -e "$SUMMARY_TEXT"
+        echo "-----------------------------"
+
+    - name: Generate Aggregated Report
+      id: generate_report
+      shell: bash
+      run: |
+        # This step is responsible for generating the final report in the specified format (markdown, HTML, JSON).
+        # It uses the filtered and summarized findings and applies reporting logic.
+
+        REPORT_FORMAT="${{ inputs.output-format }}"
+        REPORT_BASE_FILE_PATH="${{ env.REPORT_BASE_FILE_PATH }}" # This is the path without extension
+        FINAL_FINDINGS_FILE="${{ env.FINAL_FINDINGS_FILE }}"
+        REPORT_TITLE="${{ inputs.report-title }}"
+        INCLUDE_FULL_DETAILS="${{ inputs.include-full-details }}"
+        MAX_VULNERABILITIES="${{ inputs.max-vulnerabilities-in-report }}"
+        CUSTOM_TEMPLATE_PATH="${{ inputs.custom-template-path }}"
+
+        GENERATED_REPORT_FILE=""
+
+        echo "INFO: Attempting to generate report in '$REPORT_FORMAT' format..."
+
+        # Function to generate a Markdown report.
+        generate_markdown_report() {
+          local report_file="$1"
+          local findings_json="$2"
+          local title="$3"
+          local include_details="$4"
+          local max_vulnerabilities="$5"
+          local summary_text="${{ steps.summarize_results.outputs.summary_text }}"
+          local total_count="${{ steps.summarize_results.outputs.total_count }}"
+
+          echo "# $title" > "$report_file"
+          echo "" >> "$report_file"
+          echo "## Overview" >> "$report_file"
+          echo "Generated on: $(date)" >> "$report_file"
+          echo "Scan ID: ${{ inputs.scan-id }}" >> "$report_file"
+          echo "" >> "$report_file"
+          echo -e "$summary_text" >> "$report_file"
+          echo "" >> "$report_file"
+          echo "---" >> "$report_file"
+          echo "" >> "$report_file"
+
+          if [ "$(jq 'length' "$findings_json")" -gt 0 ]; then
+            echo "## Detailed Findings ($total_count findings)" >> "$report_file"
+            echo "" >> "$report_file"
+            echo "*(Showing up to $max_vulnerabilities most critical findings.)*" >> "$report_file"
+            echo "" >> "$report_file"
+            
+            # Sort findings by severity (CRITICAL > HIGH > MEDIUM > LOW > INFO) in descending order.
+            # Then, truncate to MAX_VULNERABILITIES.
+            jq --arg max_vuln "$max_vulnerabilities" '
+              sort_by(
+                .severity | ascii_upcase | 
+                if . == "CRITICAL" then 5 
+                elif . == "HIGH" then 4 
+                elif . == "MEDIUM" then 3 
+                elif . == "LOW" then 2 
+                elif . == "INFO" then 1 
+                else 0 # Unknown severities
+                end
+              ) | reverse | .[0:($max_vuln | tonumber)]
+            ' "$findings_json" | jq -c '.[]' | while read -r finding; do
+              ID=$(echo "$finding" | jq -r '.id' | sed 's/\`/\\`/g') # Escape backticks for markdown code blocks
+              MESSAGE=$(echo "$finding" | jq -r '.message' | sed 's/\`/\\`/g')
+              LOCATION=$(echo "$finding" | jq -r '.location' | sed 's/\`/\\`/g')
+              SEVERITY=$(echo "$finding" | jq -r '.severity')
+              TOOL=$(echo "$finding" | jq -r '.tool' | sed 's/\`/\\`/g')
+
+              echo "### <span style=\"color: $(get_severity_color "$SEVERITY")\">$SEVERITY</span>: $MESSAGE (ID: \`$ID\`)" >> "$report_file"
+              echo "" >> "$report_file"
+              echo "- **Source Tool:** \`$TOOL\`" >> "$report_file"
+              echo "- **Location:** \`$LOCATION\`" >> "$report_file"
+              if [[ "$include_details" == "true" ]]; then
+                echo "- **Full Details:**" >> "$report_file"
+                echo '```json' >> "$report_file"
+                echo "$finding" | jq '.' >> "$report_file"
+                echo '```' >> "$report_file"
+              fi
+              echo "" >> "$report_file"
+              echo "---" >> "$report_file" # Separator for individual findings
+              echo "" >> "$report_file"
+            done
+
+            if [ "$(jq 'length' "$findings_json")" -gt "$max_vulnerabilities" ]; then
+              echo "*(Note: Only the top $max_vulnerabilities vulnerabilities are displayed here for brevity. Consult the full JSON report artifact for all findings if generated.)*" >> "$report_file"
+              echo "" >> "$report_file"
+            fi
+          else
+            echo "No detailed findings to report above the minimum severity of '${{ inputs.report-min-severity }}'." >> "$report_file"
+          fi
+          echo "INFO: Markdown report generated."
+        }
+
+        # Function to generate a JSON report. This is essentially the filtered internal findings JSON structure.
+        generate_json_report() {
+          local report_file="$1"
+          local findings_json="$2"
+          local title="$3"
+          local summary_text_escaped=$(echo "${{ steps.summarize_results.outputs.summary_text }}" | jq -sR '.') # Ensure summary text is JSON-safe
+          local critical_count="${{ steps.summarize_results.outputs.critical_count }}"
+          local high_count="${{ steps.summarize_results.outputs.high_count }}"
+          local medium_count="${{ steps.summarize_results.outputs.medium_count }}"
+          local low_count="${{ steps.summarize_results.outputs.low_count }}"
+          local info_count="${{ steps.summarize_results.outputs.info_count }}"
+          local total_count="${{ steps.summarize_results.outputs.total_count }}"
+          local scan_id="${{ inputs.scan-id }}"
+          local repo_name="${{ github.repository }}"
+          local workflow_run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          jq -n \
+            --arg title "$title" \
+            --arg summary "$summary_text_escaped" \
+            --arg scan_id "$scan_id" \
+            --arg repo_name "$repo_name" \
+            --arg workflow_run_url "$workflow_run_url" \
+            --argjson critical_count "$critical_count" \
+            --argjson high_count "$high_count" \
+            --argjson medium_count "$medium_count" \
+            --argjson low_count "$low_count" \
+            --argjson info_count "$info_count" \
+            --argjson total_count "$total_count" \
+            --argjson findings "$(cat "$findings_json")" \
+            '{
+              "reportTitle": $title,
+              "scanId": $scan_id,
+              "repository": $repo_name,
+              "workflowRunUrl": $workflow_run_url,
+              "generatedAt": (now | todateiso8601),
+              "summary": {
+                "text": ($summary | fromjson),
+                "critical": $critical_count,
+                "high": $high_count,
+                "medium": $medium_count,
+                "low": $low_count,
+                "info": $info_count,
+                "total": $total_count,
+                "minReportSeverity": "${{ inputs.report-min-severity }}"
+              },
+              "detailedFindings": $findings
+            }' > "$report_file" || { echo "ERROR: Failed to generate JSON report."; return 1; }
+          echo "INFO: JSON report generated."
+        }
+
+        # Helper function to get a color string based on severity for HTML/Markdown styling.
+        get_severity_color() {
+          case "$(echo "$1" | tr '[:lower:]' '[:upper:]')" in
+            CRITICAL) echo "#D9534F" ;; # Red
+            HIGH)     echo "#F0AD4E" ;; # Orange
+            MEDIUM)   echo "#F0AD4E" ;; # Orange (similar to high for emphasis)
+            LOW)      echo "#5BC0DE" ;; # Light Blue
+            INFO)     echo "#5CB85C" ;; # Green
+            *)        echo "#777777" ;; # Grey for unknown/none
+          esac
+        }
+
+        # Function to generate an HTML report. This includes basic CSS for styling.
+        generate_html_report() {
+          local report_file="$1"
+          local findings_json="$2"
+          local title="$3"
+          local include_details="$4"
+          local max_vulnerabilities="$5"
+          local summary_text="${{ steps.summarize_results.outputs.summary_text }}"
+          local critical_count="${{ steps.summarize_results.outputs.critical_count }}"
+          local high_count="${{ steps.summarize_results.outputs.high_count }}"
+          local medium_count="${{ steps.summarize_results.outputs.medium_count }}"
+          local low_count="${{ steps.summarize_results.outputs.low_count }}"
+          local info_count="${{ steps.summarize_results.outputs.info_count }}"
+          local total_count="${{ steps.summarize_results.outputs.total_count }}"
+          local generated_date=$(date)
+
+          # Inline HTML and CSS for a self-contained report.
+          cat <<EOF > "$report_file"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>$title</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; margin: 0; padding: 20px; background-color: #f8f9fa; color: #343a40; }
+        .container { max-width: 1200px; margin: auto; background: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        h1, h2, h3, h4 { color: #212529; margin-top: 25px; margin-bottom: 15px; }
+        h1 { font-size: 2.2em; border-bottom: 2px solid #e9ecef; padding-bottom: 10px; }
+        h2 { font-size: 1.8em; border-bottom: 1px solid #e9ecef; padding-bottom: 5px; }
+        h3 { font-size: 1.4em; color: #007bff; }
+        p, ul, ol { margin-bottom: 1em; }
+        .summary-box { background-color: #e2f0ff; border-left: 5px solid #007bff; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+        .summary-box ul { list-style: none; padding: 0; margin-top: 10px; }
+        .summary-box ul li { margin-bottom: 5px; font-size: 1.1em; }
+        .severity-critical { color: #dc3545; font-weight: bold; } /* Red */
+        .severity-high { color: #fd7e14; font-weight: bold; }   /* Orange */
+        .severity-medium { color: #ffc107; font-weight: bold; } /* Yellow */
+        .severity-low { color: #17a2b8; }                      /* Teal */
+        .severity-info { color: #28a745; }                     /* Green */
+        .finding-item { background-color: #ffffff; border: 1px solid #e9ecef; padding: 15px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); }
+        .finding-item h3 { margin-top: 0; margin-bottom: 10px; }
+        .finding-item ul { list-style-type: disc; margin-left: 20px; }
+        .finding-item ul li { margin-bottom: 3px; }
+        .finding-details { background-color: #f8f9fa; border-left: 4px solid #007bff; padding: 15px; margin-top: 15px; border-radius: 5px; }
+        pre { background-color: #e9ecef; padding: 15px; border-radius: 5px; overflow-x: auto; font-family: 'Consolas', 'Menlo', 'Courier New', monospace; font-size: 0.9em; tab-size: 4; }
+        code { background-color: #e9ecef; padding: 2px 4px; border-radius: 3px; font-family: 'Consolas', 'Menlo', 'Courier New', monospace; font-size: 0.9em; tab-size: 4; }
+        .footer { text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #e9ecef; font-size: 0.9em; color: #6c757d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>$title</h1>
+        <div class="summary-box">
+            <h2>Report Overview</h2>
+            <p>Generated on: <code>$generated_date</code></p>
+            <p>Scan ID: <code>${{ inputs.scan-id }}</code></p>
+            <p><strong>Summary:</strong></p>
+            <pre>$summary_text</pre>
+            <ul>
+                <li><strong>Critical:</strong> <span class="severity-critical">$critical_count</span></li>
+                <li><strong>High:</strong> <span class="severity-high">$high_count</span></li>
+                <li><strong>Medium:</strong> <span class="severity-medium">$medium_count</span></li>
+                <li><strong>Low:</strong> <span class="severity-low">$low_count</span></li>
+                <li><strong>Info:</strong> <span class="severity-info">$info_count</span></li>
+                <li><strong>Total Unique Findings:</strong> <code>$total_count</code></li>
+            </ul>
+        </div>
+EOF
+
+          if [ "$(jq 'length' "$findings_json")" -gt 0 ]; then
+            cat <<EOF_DETAILED >> "$report_file"
+        <h2 id="detailed-findings">Detailed Findings ($total_count findings)</h2>
+        <p><em>Showing up to $max_vulnerabilities most critical findings.</em></p>
+EOF_DETAILED
+            # Sort findings by severity (Critical > High > Medium > Low > Info)
+            jq --arg max_vuln "$max_vulnerabilities" '
+              sort_by(
+                .severity | ascii_upcase | 
+                if . == "CRITICAL" then 5 
+                elif . == "HIGH" then 4 
+                elif . == "MEDIUM" then 3 
+                elif . == "LOW" then 2 
+                elif . == "INFO" then 1 
+                else 0 
+                end
+              ) | reverse | .[0:($max_vuln | tonumber)]
+            ' "$findings_json" | jq -c '.[]' | while read -r finding_json; do
+              ID=$(echo "$finding_json" | jq -r '.id' | sed 's/"/&quot;/g') # HTML escape
+              MESSAGE=$(echo "$finding_json" | jq -r '.message' | sed 's/"/&quot;/g')
+              LOCATION=$(echo "$finding_json" | jq -r '.location' | sed 's/"/&quot;/g')
+              SEVERITY_RAW=$(echo "$finding_json" | jq -r '.severity')
+              SEVERITY_CLASS="severity-$(echo "$SEVERITY_RAW" | tr '[:upper:]' '[:lower:]')"
+              TOOL=$(echo "$finding_json" | jq -r '.tool' | sed 's/"/&quot;/g')
+
+              cat <<EOF_FINDING >> "$report_file"
+        <div class="finding-item">
+            <h3><span class="$SEVERITY_CLASS">$SEVERITY_RAW</span>: $MESSAGE (ID: <code>$ID</code>)</h3>
+            <ul>
+                <li><strong>Source Tool:</strong> <code>$TOOL</code></li>
+                <li><strong>Location:</b> <code>$LOCATION</code></li>
+            </ul>
+EOF_FINDING
+              if [[ "$include_details" == "true" ]]; then
+                cat <<EOF_DETAILS >> "$report_file"
+            <div class="finding-details">
+                <h4>Full Details (Raw JSON):</h4>
+                <pre><code>$(echo "$finding_json" | jq '.')</code></pre>
+            </div>
+EOF_DETAILS
+              fi
+              cat <<EOF_FINDING_CLOSE >> "$report_file"
+        </div>
+EOF_FINDING_CLOSE
+            done
+
+            if [ "$(jq 'length' "$findings_json")" -gt "$max_vulnerabilities" ]; then
+              echo "<p><em>Note: Only the top $max_vulnerabilities vulnerabilities are displayed here for brevity. Consult the full JSON report artifact for all findings if generated.</em></p>" >> "$report_file"
+            fi
+          else
+            echo "<p>No detailed findings to report above the minimum severity of '${{ inputs.report-min-severity }}'.</p>" >> "$report_file"
+          fi
+
+          cat <<EOF_FOOTER >> "$report_file"
+        <div class="footer">
+            <p>Generated by Security Reporter Action on GitHub Actions.</p>
+            <p>Repository: <a href="${{ github.server_url }}/${{ github.repository }}">${{ github.repository }}</a> | Workflow Run: <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">#${{ github.run_id }}</a></p>
+        </div>
+    </div>
+</body>
+</html>
+EOF_FOOTER
+          echo "INFO: HTML report generated."
+        }
+
+        # Select the appropriate report generation function based on `output-format`.
+        case "$REPORT_FORMAT" in
+          markdown)
+            GENERATED_REPORT_FILE="${REPORT_BASE_FILE_PATH}.md"
+            generate_markdown_report "$GENERATED_REPORT_FILE" "$FINAL_FINDINGS_FILE" "$REPORT_TITLE" "$INCLUDE_FULL_DETAILS" "$MAX_VULNERABILITIES" || exit 1
+            ;;
+          json)
+            GENERATED_REPORT_FILE="${REPORT_BASE_FILE_PATH}.json"
+            generate_json_report "$GENERATED_REPORT_FILE" "$FINAL_FINDINGS_FILE" "$REPORT_TITLE" || exit 1
+            ;;
+          html)
+            GENERATED_REPORT_FILE="${REPORT_BASE_FILE_PATH}.html"
+            generate_html_report "$GENERATED_REPORT_FILE" "$FINAL_FINDINGS_FILE" "$REPORT_TITLE" "$INCLUDE_FULL_DETAILS" "$MAX_VULNERABILITIES" || exit 1
+            ;;
+          sarif-combined)
+            # SARIF combination is complex. For a composite action using bash,
+            # a full SARIF combiner is out of scope. We'll output our internal JSON format,
+            # which could then be converted to SARIF by another tool if needed.
+            echo "WARN: 'sarif-combined' output format requested. This action does not natively combine SARIF files into a single valid SARIF." >&2
+            echo "      Instead, it will generate a comprehensive JSON report of aggregated findings." >&2
+            GENERATED_REPORT_FILE="${REPORT_BASE_FILE_PATH}.json" # Fallback to JSON
+            generate_json_report "$GENERATED_REPORT_FILE" "$FINAL_FINDINGS_FILE" "$REPORT_TITLE" || exit 1
+            ;;
+          *)
+            echo "WARN: Unsupported report format specified: '$REPORT_FORMAT'. Defaulting to 'markdown'." >&2
+            GENERATED_REPORT_FILE="${REPORT_BASE_FILE_PATH}.md"
+            generate_markdown_report "$GENERATED_REPORT_FILE" "$FINAL_FINDINGS_FILE" "$REPORT_TITLE" "$INCLUDE_FULL_DETAILS" "$MAX_VULNERABILITIES" || exit 1
+            ;;
+        esac
+
+        if [[ -f "$GENERATED_REPORT_FILE" ]]; then
+          echo "INFO: Report successfully generated at: '$GENERATED_REPORT_FILE'"
+          echo "report_path=$GENERATED_REPORT_FILE" >> $GITHUB_OUTPUT
+        else
+          echo "ERROR: Report file could not be generated. Please check previous logs." >&2
+          echo "report_path=" >> $GITHUB_OUTPUT # Ensure output is set even on failure
+          exit 1
+        fi
+
+    - name: Notify Platforms
+      id: notify_platforms
+      shell: bash
+      # This step handles sending notifications to various platforms configured via inputs.
+      # It leverages curl for API calls to Slack/Teams and environment variables for GitHub features.
+      run: |
+        NOTIFICATION_TARGETS="${{ inputs.notification-targets }}"
+        REPORT_FILE_PATH="${{ steps.generate_report.outputs.report_path }}"
+        REPORT_SUMMARY_TEXT="${{ steps.summarize_results.outputs.summary_text }}"
+        GITHUB_TOKEN="${{ inputs.github-token }}"
+        SLACK_WEBHOOK_URL="${{ inputs.slack-webhook-url }}"
+        SLACK_CHANNEL="${{ inputs.slack-channel }}"
+        TEAMS_WEBHOOK_URL="${{ inputs.teams-webhook-url }}"
+        NOTIFICATION_DRY_RUN="${{ inputs.notification-dry-run }}"
+        
+        echo "INFO: Processing notification targets: '$NOTIFICATION_TARGETS'"
+
+        # Verify if the generated report file exists before attempting to use it.
+        if [[ ! -f "$REPORT_FILE_PATH" ]]; then
+          echo "WARN: Generated report file not found at '$REPORT_FILE_PATH'. Skipping notifications that rely on report content."
+          REPORT_FILE_PATH="" # Clear path if file doesn't exist to prevent errors
+        else
+          echo "INFO: Generated report available at '$REPORT_FILE_PATH'."
+        fi
+
+        # Notification to GitHub Job Summary. This is always a good practice.
+        if [[ "$NOTIFICATION_TARGETS" =~ "github-summary" ]]; then
+          echo "INFO: Sending summary to GitHub Job Summary (GITHUB_STEP_SUMMARY)..."
+          if [[ "$NOTIFICATION_DRY_RUN" == "true" ]]; then
+            echo "DRY RUN: Would have added summary to GITHUB_STEP_SUMMARY."
+          else
+            echo "## Security Scan Report Summary" >> "$GITHUB_STEP_SUMMARY"
+            echo "---" >> "$GITHUB_STEP_SUMMARY"
+            echo -e "$REPORT_SUMMARY_TEXT" >> "$GITHUB_STEP_SUMMARY"
+            if [[ -n "$REPORT_FILE_PATH" ]]; then
+              echo "" >> "$GITHUB_STEP_SUMMARY"
+              echo "A detailed report is available as a workflow artifact: [\`$(basename "$REPORT_FILE_PATH")\`](#)" >> "$GITHUB_STEP_SUMMARY"
+              echo "To make it available, ensure you have an `actions/upload-artifact` step after this action." >> "$GITHUB_STEP_SUMMARY"
+              echo "Example for uploading the report:" >> "$GITHUB_STEP_SUMMARY"
+              echo "\`\`\`yaml" >> "$GITHUB_STEP_SUMMARY"
+              echo "- name: Upload Security Report Artifact" >> "$GITHUB_STEP_SUMMARY"
+              echo "  uses: actions/upload-artifact@v4" >> "$GITHUB_STEP_SUMMARY"
+              echo "  if: always()" >> "$GITHUB_STEP_SUMMARY"
+              echo "  with:" >> "$GITHUB_STEP_SUMMARY"
+              echo "    name: security-report-${{ inputs.scan-id }}" >> "$GITHUB_STEP_SUMMARY"
+              echo "    path: '${{ inputs.report-output-path }}.${{ inputs.output-format | replace(\"sarif-combined\", \"json\") | replace(\"markdown\", \"md\") }}'" >> "$GITHUB_STEP_SUMMARY"
+              echo "    retention-days: 7" >> "$GITHUB_STEP_SUMMARY"
+              echo "\`\`\`" >> "$GITHUB_STEP_SUMMARY"
+            fi
+            echo "INFO: Summary added to GITHUB_STEP_SUMMARY."
+          fi
+        fi
+
+        # Notification to GitHub Issue Comment (specifically for Pull Requests).
+        if [[ "$NOTIFICATION_TARGETS" =~ "github-issue-comment" && -n "$GITHUB_TOKEN" ]]; then
+          # Check if the workflow is running on a Pull Request.
+          if [[ -n "${{ github.event.pull_request.number }}" ]]; then
+            echo "INFO: Preparing to post comment to GitHub Pull Request #${{ github.event.pull_request.number }}..."
+            PR_NUMBER="${{ github.event.pull_request.number }}"
+            COMMENT_BODY="## Security Scan Report for PR #$PR_NUMBER\n"
+            COMMENT_BODY+="### Overview\n"
+            COMMENT_BODY+="$REPORT_SUMMARY_TEXT\n"
+
+            if [[ -n "$REPORT_FILE_PATH" ]]; then
+              # Attempt to read a truncated version of the report file if it's text-based.
+              if file -b --mime-type "$REPORT_FILE_PATH" | grep -q "^text/"; then
+                COMMENT_BODY+="### Report Details (Truncated Preview)\n\`\`\`${{ inputs.output-format | replace(\"md\", \"markdown\") }}\n"
+                # Read up to 200 lines or 10KB to prevent excessively large comments.
+                REPORT_CONTENT_PREVIEW=$(head -n 200 "$REPORT_FILE_PATH" | head -c 10240) # 10KB limit
+                COMMENT_BODY+="$REPORT_CONTENT_PREVIEW"
+                if [ $(wc -l < "$REPORT_FILE_PATH") -gt 200 ] || [ $(wc -c < "$REPORT_FILE_PATH") -gt 10240 ]; then
+                  COMMENT_BODY+="\n...(Report truncated. See workflow artifacts for full report.)"
+                fi
+                COMMENT_BODY+="\n\`\`\`\n\n"
+              else
+                COMMENT_BODY+="### Report Details\nA detailed report file (\`$(basename "$REPORT_FILE_PATH")\`) is available as a <a href=\"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts\">workflow artifact</a>.\n\n"
+              fi
+            else
+              COMMENT_BODY+="No detailed report file generated or found for preview."
+            fi
+            
+            # Escape the comment body for JSON payload.
+            ESCAPED_COMMENT_BODY=$(jq -n --arg body "$COMMENT_BODY" '$body')
+
+            if [[ "$NOTIFICATION_DRY_RUN" == "true" ]]; then
+              echo "DRY RUN: Would have posted comment to PR #$PR_NUMBER."
+              echo "Comment body preview (first 10 lines):"
+              echo -e "$COMMENT_BODY" | head -n 10
+            else
+              # Use curl to post the comment to the GitHub API.
+              curl -s -S -f \
+                -H "Authorization: token $GITHUB_TOKEN" \
+                -H "Accept: application/vnd.github.v3+json" \
+                -X POST \
+                "https://api.github.com/repos/${{ github.repository }}/issues/$PR_NUMBER/comments" \
+                -d "{\"body\": $ESCAPED_COMMENT_BODY}" || { echo "ERROR: Failed to post GitHub PR comment."; }
+              echo "INFO: Posted comment to PR #$PR_NUMBER."
+            fi
+          else
+            echo "INFO: Skipping GitHub issue comment: Not a Pull Request event."
+          fi
+        fi
+
+        # Notification to Slack.
+        if [[ "$NOTIFICATION_TARGETS" =~ "slack" && -n "$SLACK_WEBHOOK_URL" ]]; then
+          echo "INFO: Preparing to send notification to Slack..."
+          SLACK_REPO="${{ github.repository }}"
+          SLACK_RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          SLACK_TITLE="Security Report for $SLACK_REPO (Scan ID: ${{ inputs.scan-id }})"
+          
+          # Construct Slack message payload using Block Kit format for richer messages.
+          SLACK_PAYLOAD=$(jq -n \
+            --arg title "$SLACK_TITLE" \
+            --arg summary "$REPORT_SUMMARY_TEXT" \
+            --arg repo "$SLACK_REPO" \
+            --arg run_url "$SLACK_RUN_URL" \
+            --arg report_file_name "$(basename "$REPORT_FILE_PATH")" \
+            --arg current_branch "${{ github.ref_name }}" \
+            '{
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": $title,
+                    "emoji": true
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    { "type": "mrkdwn", "text": "*Repository:*\n`" + $repo + "`" },
+                    { "type": "mrkdwn", "text": "*Branch:*\n`" + $current_branch + "`" },
+                    { "type": "mrkdwn", "text": "*Workflow Run:*\n<" + $run_url + "|View Run>" }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Summary:*\n" + $summary
+                  }
+                }
+              ]
+            }')"
+          
+          # Add a section for the report artifact link if available.
+          if [[ -n "$REPORT_FILE_PATH" ]]; then
+            SLACK_PAYLOAD=$(echo "$SLACK_PAYLOAD" | jq --arg report_file "$REPORT_FILE_PATH" '
+              .blocks += [{
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "A detailed report is available: \`" + $report_file + "\` (Check workflow artifacts)"
+                }
+              }]
+            ')
+          fi
+
+          # Add Slack channel if specified.
+          if [[ -n "$SLACK_CHANNEL" ]]; then
+            SLACK_PAYLOAD=$(echo "$SLACK_PAYLOAD" | jq --arg channel "$SLACK_CHANNEL" '. + {channel: $channel}')
+          fi
+
+          if [[ "$NOTIFICATION_DRY_RUN" == "true" ]]; then
+            echo "DRY RUN: Would have sent Slack notification to '$SLACK_CHANNEL'."
+            echo "Slack payload preview (first 20 lines):"
+            echo "$SLACK_PAYLOAD" | jq '.' | head -n 20
+          else
+            curl -s -S -f -X POST -H 'Content-type: application/json' \
+              --data "$SLACK_PAYLOAD" "$SLACK_WEBHOOK_URL" || { echo "ERROR: Failed to send Slack notification."; }
+            echo "INFO: Sent Slack notification."
+          fi
+        fi
+
+        # Notification to Microsoft Teams.
+        if [[ "$NOTIFICATION_TARGETS" =~ "teams" && -n "$TEAMS_WEBHOOK_URL" ]]; then
+          echo "INFO: Preparing to send notification to Microsoft Teams..."
+          TEAMS_REPO="${{ github.repository }}"
+          TEAMS_RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          TEAMS_TITLE="Security Report for $TEAMS_REPO"
+          
+          # Construct Teams message payload using MessageCard format.
+          TEAMS_PAYLOAD=$(jq -n \
+            --arg title "$TEAMS_TITLE" \
+            --arg summary "$REPORT_SUMMARY_TEXT" \
+            --arg repo "$TEAMS_REPO" \
+            --arg run_url "$TEAMS_RUN_URL" \
+            --arg scan_id "${{ inputs.scan-id }}" \
+            '{
+              "@type": "MessageCard",
+              "@context": "http://schema.org/extensions",
+              "summary": $title,
+              "themeColor": "0072C6",
+              "title": $title,
+              "sections": [
+                {
+                  "activityTitle": "Security Scan Completed",
+                  "activitySubtitle": "Scan ID: " + $scan_id,
+                  "facts": [
+                    { "name": "Repository", "value": $repo },
+                    { "name": "Workflow Run", "value": "[$run_url](" + $run_url + ")" },
+                    { "name": "Summary", "value": $summary }
+                  ],
+                  "markdown": true
+                }
+              ],
+              "potentialAction": [
+                {
+                  "@type": "OpenUri",
+                  "name": "View Workflow Run",
+                  "targets": [ { "os": "default", "uri": $run_url } ]
+                }
+              ]
+            }')"
+          
+          if [[ -n "$REPORT_FILE_PATH" ]]; then
+            TEAMS_PAYLOAD=$(echo "$TEAMS_PAYLOAD" | jq --arg report_file_name "$(basename "$REPORT_FILE_PATH")" '
+              .sections[0].facts += [{ "name": "Detailed Report", "value": $report_file_name + " (Check workflow artifacts)" }]
+            ')
+          fi
+
+          if [[ "$NOTIFICATION_DRY_RUN" == "true" ]]; then
+            echo "DRY RUN: Would have sent Teams notification."
+            echo "Teams payload preview (first 20 lines):"
+            echo "$TEAMS_PAYLOAD" | jq '.' | head -n 20
+          else
+            curl -s -S -f -X POST -H 'Content-type: application/json' \
+              --data "$TEAMS_PAYLOAD" "$TEAMS_WEBHOOK_URL" || { echo "ERROR: Failed to send Teams notification."; }
+            echo "INFO: Sent Teams notification."
+          fi
+        fi
+        echo "INFO: Notification step completed."
+
+    - name: Final Status Check
+      id: final_status_check
+      shell: bash
+      # This final step determines the overall success or failure of the action
+      # based on the configured `fail-on-severity` threshold and detected vulnerabilities.
+      run: |
+        FAIL_ON_SEVERITY_INPUT="${{ inputs.fail-on-severity }}"
+        CRITICAL_COUNT="${{ steps.summarize_results.outputs.critical_count }}"
+        HIGH_COUNT="${{ steps.summarize_results.outputs.high_count }}"
+        MEDIUM_COUNT="${{ steps.summarize_results.outputs.medium_count }}"
+        LOW_COUNT="${{ steps.summarize_results.outputs.low_count }}"
+        INFO_COUNT="${{ steps.summarize_results.outputs.info_count }}" # Added INFO_COUNT for 'fail-on-severity: INFO'
+
+        ACTION_STATUS="success"
+        EXIT_CODE=0
+
+        if [[ -n "$FAIL_ON_SEVERITY_INPUT" ]]; then
+          FAIL_ON_SEVERITY=$(echo "$FAIL_ON_SEVERITY_INPUT" | tr '[:lower:]' '[:upper:]')
+          echo "INFO: Checking 'fail-on-severity' condition: '$FAIL_ON_SEVERITY'"
+
+          case "$FAIL_ON_SEVERITY" in
+            CRITICAL)
+              if [ "$CRITICAL_COUNT" -gt 0 ]; then
+                echo "ERROR: Critical vulnerabilities found ($CRITICAL_COUNT). Failing action as per 'fail-on-severity: CRITICAL'."
+                ACTION_STATUS="failure"
+                EXIT_CODE=1
+              fi
+              ;;
+            HIGH)
+              if [ "$CRITICAL_COUNT" -gt 0 ] || [ "$HIGH_COUNT" -gt 0 ]; then
+                echo "ERROR: High or Critical vulnerabilities found ($HIGH_COUNT High, $CRITICAL_COUNT Critical). Failing action as per 'fail-on-severity: HIGH'."
+                ACTION_STATUS="failure"
+                EXIT_CODE=1
+              fi
+              ;;
+            MEDIUM)
+              if [ "$CRITICAL_COUNT" -gt 0 ] || [ "$HIGH_COUNT" -gt 0 ] || [ "$MEDIUM_COUNT" -gt 0 ]; then
+                echo "ERROR: Medium, High or Critical vulnerabilities found ($MEDIUM_COUNT Medium, $HIGH_COUNT High, $CRITICAL_COUNT Critical). Failing action as per 'fail-on-severity: MEDIUM'."
+                ACTION_STATUS="failure"
+                EXIT_CODE=1
+              fi
+              ;;
+            LOW)
+              if [ "$CRITICAL_COUNT" -gt 0 ] || [ "$HIGH_COUNT" -gt 0 ] || [ "$MEDIUM_COUNT" -gt 0 ] || [ "$LOW_COUNT" -gt 0 ]; then
+                echo "ERROR: Low, Medium, High or Critical vulnerabilities found ($LOW_COUNT Low, $MEDIUM_COUNT Medium, $HIGH_COUNT High, $CRITICAL_COUNT Critical). Failing action as per 'fail-on-severity: LOW'."
+                ACTION_STATUS="failure"
+                EXIT_CODE=1
+              fi
+              ;;
+            INFO) # If configured to fail on INFO, then any finding counts should fail it.
+              if [ "$CRITICAL_COUNT" -gt 0 ] || [ "$HIGH_COUNT" -gt 0 ] || [ "$MEDIUM_COUNT" -gt 0 ] || [ "$LOW_COUNT" -gt 0 ] || [ "$INFO_COUNT" -gt 0 ]; then
+                echo "ERROR: Informational or higher vulnerabilities found. Failing action as per 'fail-on-severity: INFO'."
+                ACTION_STATUS="failure"
+                EXIT_CODE=1
+              fi
+              ;;
+            *)
+              echo "WARN: Unknown 'fail-on-severity' level: '$FAIL_ON_SEVERITY'. Not failing based on severity."
+              ;;
+          esac
+        else
+          echo "INFO: 'fail-on-severity' is not set. Action will not fail based on vulnerability counts."
+        fi
+
+        echo "action_status=$ACTION_STATUS" >> $GITHUB_OUTPUT
+
+        if [ "$EXIT_CODE" -ne 0 ]; then
+          echo "Security Reporter Action finished with status: FAILURE." >&2
+          exit $EXIT_CODE
+        else
+          echo "Security Reporter Action finished with status: SUCCESS."
+        fi

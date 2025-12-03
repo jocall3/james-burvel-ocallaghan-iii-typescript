@@ -1,0 +1,21 @@
+# === PR Labeler ===
+# This workflow uses an action to automatically add labels to Pull Requests
+# based on the paths of the files that were changed. This helps categorize PRs
+# for easier review.
+
+name: 'PR: Auto-Labeler'
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  labeler:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/labeler@v5
+        with:
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"

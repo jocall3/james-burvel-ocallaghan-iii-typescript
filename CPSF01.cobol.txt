@@ -1,0 +1,21 @@
+
+      ******************************************************************
+      * LIVE BANK - COPYBOOK FOR SAFE DEPOSIT BOX RECORD (V2.0)
+      ******************************************************************
+       01 SAFE-DEPOSIT-RECORD.
+          05 SF-BOX-NUMBER          PIC X(10).
+          05 SF-BOX-DETAILS.
+             10 SF-BOX-SIZE         PIC X(10). *> SMALL, MEDIUM, LARGE
+             10 SF-VAULT-LOCATION   PIC X(20).
+          05 SF-CUSTOMER-ID         PIC 9(10).
+          05 SF-AUTHORIZED-USERS.
+             10 SF-USER-2-ID        PIC 9(10).
+             10 SF-USER-3-ID        PIC 9(10).
+          05 SF-RENTAL-INFO.
+             10 SF-RENTAL-DUE-DATE  PIC X(10).
+             10 SF-RENTAL-FEE       PIC S9(5)V99 COMP-3.
+          05 SF-ACCESS-LOG.
+             10 SF-LAST-ACCESS-DATE PIC X(10).
+             10 SF-LAST-ACCESS-TIME PIC X(08).
+             10 SF-LAST-ACCESS-USER PIC 9(10).
+          05 SF-FILLER              PIC X(30).

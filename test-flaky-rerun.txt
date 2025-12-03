@@ -1,0 +1,70 @@
+name: Rerun Flaky Tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch: {} # Allows manual triggering
+  schedule:
+    - cron: '0 0 * * *' # Daily at midnight UTC
+
+jobs:
+  rerun_flaky_tests:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [ 22 ]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+
+    - name: Install dependencies
+      run: |
+        npm install
+
+    - name: Run specific flaky tests multiple times to identify flakiness
+      # This step will retry the tests multiple times.
+      # It will only pass if the tests eventually succeed at least once.
+      # If all retries fail, the step (and thus the job) will fail.
+      run: |
+        # Define the command to run your specific flaky tests.
+        # Adjust '--testPathPattern' or other options based on your test runner (e.g., Jest, Mocha).
+        TEST_COMMAND="npm test -- --testPathPattern='flaky-tests/.*.test.js'" 
+        MAX_RETRIES=3
+        SUCCESS=false
+        
+        echo "Starting flaky test rerun sequence (max $MAX_RETRIES attempts)..."
+        
+        for i in $(seq 1 $MAX_RETRIES); do
+          echo "--- Attempt $i/$MAX_RETRIES ---"
+          if $TEST_COMMAND; then
+            echo "✅ Flaky tests passed on attempt $i."
+            SUCCESS=true
+            break # Exit loop if tests pass
+          else
+            echo "❌ Flaky tests failed on attempt $i."
+            if [ $i -lt $MAX_RETRIES ]; then
+              echo "Retrying in 5 seconds..."
+              sleep 5 # Wait a bit before retrying
+            fi
+          fi
+        done
+        
+        echo "--- Rerun sequence completed ---"
+
+        if [ "$SUCCESS" = "true" ]; then
+          echo "🟢 Flaky tests eventually passed within $MAX_RETRIES attempts. This suggests potential flakiness."
+          # Optionally, add actions here for notification (e.g., Slack, email, PR comment).
+          # For example, if you want to output a status:
+          # echo "flaky_status=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "🔴 Flaky tests consistently failed after $MAX_RETRIES attempts. This indicates a genuine, consistent failure rather than just flakiness."
+          exit 1 # Fail the step if tests never passed after all retries
+        fi

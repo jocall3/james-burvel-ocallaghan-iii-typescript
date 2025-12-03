@@ -1,0 +1,113 @@
+      ******************************************************************
+      * CUSTOMER MASTER RECORD DEFINITION (V3.0 - Expanded Edition)
+      * This record defines a comprehensive profile for an individual client,
+      * supporting enhanced customer service and intelligent interactions.
+      ******************************************************************
+       01 CUSTOMER-MASTER-RECORD.
+          05 CM-CUSTOMER-ID         PIC 9(10).
+          05 CM-PERSONAL-DETAILS.
+             10 CM-LAST-NAME        PIC X(25).
+             10 CM-FIRST-NAME       PIC X(25).
+             10 CM-MIDDLE-INITIAL   PIC X(01).
+             10 CM-DATE-OF-BIRTH    PIC X(10).  *> YYYY-MM-DD
+             10 CM-GENDER           PIC X(01).  *> M=Male, F=Female, O=Other, U=Unspecified
+                88 IS-MALE          VALUE 'M'.
+                88 IS-FEMALE        VALUE 'F'.
+                88 IS-OTHER-GENDER  VALUE 'O'.
+                88 IS-UNSPECIFIED   VALUE 'U'.
+             10 CM-MARITAL-STATUS   PIC X(01).  *> S=Single, M=Married, D=Divorced, W=Widowed, P=Partnered
+                88 IS-SINGLE        VALUE 'S'.
+                88 IS-MARRIED       VALUE 'M'.
+                88 IS-DIVORCED      VALUE 'D'.
+                88 IS-WIDOWED       VALUE 'W'.
+                88 IS-PARTNERED     VALUE 'P'.
+             10 CM-NATIONALITY      PIC X(03).  *> ISO 3166-1 alpha-3 code
+             10 CM-LANG-PREFERENCE  PIC X(03).  *> ISO 639-2/T alpha-3 code for preferred language
+             10 CM-TAX-ID           PIC X(12).  *> National Tax Identification Number (e.g., SSN, TIN, etc.)
+          05 CM-ADDRESS-MAILING.
+             10 CM-ADDR1-LINE1      PIC X(40).
+             10 CM-ADDR1-LINE2      PIC X(40).
+             10 CM-ADDR1-CITY       PIC X(30).
+             10 CM-ADDR1-STATE      PIC X(02).  *> State/Province code
+             10 CM-ADDR1-ZIP        PIC X(10).
+             10 CM-ADDR1-COUNTRY    PIC X(03).  *> ISO 3166-1 alpha-3 code
+          05 CM-ADDRESS-PHYSICAL.
+             10 CM-ADDR2-LINE1      PIC X(40).
+             10 CM-ADDR2-LINE2      PIC X(40).
+             10 CM-ADDR2-CITY       PIC X(30).
+             10 CM-ADDR2-STATE      PIC X(02).  *> State/Province code
+             10 CM-ADDR2-ZIP        PIC X(10).
+             10 CM-ADDR2-COUNTRY    PIC X(03).  *> ISO 3166-1 alpha-3 code
+          05 CM-CONTACT-INFO.
+             10 CM-PHONE-HOME       PIC X(15).
+             10 CM-PHONE-MOBILE     PIC X(15).
+             10 CM-PHONE-WORK       PIC X(15).
+             10 CM-EMAIL-ADDRESS    PIC X(50).
+             10 CM-EMAIL-SECONDARY  PIC X(50).
+             10 CM-PREF-COMM-METHOD PIC X(01).  *> P=Phone, E=Email, S=SMS, M=Mail
+                88 PREFERS-PHONE    VALUE 'P'.
+                88 PREFERS-EMAIL    VALUE 'E'.
+                88 PREFERS-SMS      VALUE 'S'.
+                88 PREFERS-MAIL     VALUE 'M'.
+          05 CM-EMPLOYMENT-DETAILS.
+             10 CM-OCCUPATION       PIC X(50).  *> Client's current occupation or professional role
+             10 CM-EMPLOYER-NAME    PIC X(50).
+             10 CM-EMPLOYER-ADDR-LINE1 PIC X(40).
+             10 CM-EMPLOYER-ADDR-CITY  PIC X(30).
+             10 CM-EMPLOYER-ADDR-STATE PIC X(02).
+             10 CM-EMPLOYER-ADDR-ZIP   PIC X(10).
+             10 CM-EMPLOYMENT-STATUS PIC X(01). *> F=Full-time, P=Part-time, R=Retired, S=Student, U=Unemployed
+                88 IS-EMPLOYED-FULL VALUE 'F'.
+                88 IS-EMPLOYED-PART VALUE 'P'.
+                88 IS-RETIRED       VALUE 'R'.
+                88 IS-STUDENT       VALUE 'S'.
+                88 IS-UNEMPLOYED    VALUE 'U'.
+          05 CM-FINANCIAL-PROFILE.
+             10 CM-ANNUAL-INCOME    PIC 9(12)V99. *> Current estimated annual income
+             10 CM-NET-WORTH        PIC S9(15)V99. *> Estimated total net worth (can be negative)
+             10 CM-PRIMARY-ACCOUNT-ID PIC 9(10). *> Primary checking or savings account ID
+             10 CM-TOTAL-BALANCES   PIC S9(15)V99. *> Sum of all linked account balances
+             10 CM-LAST-TRANS-DATE  PIC X(10).  *> YYYY-MM-DD, date of last financial transaction
+          05 CM-BANK-RELATIONSHIP.
+             10 CM-OPEN-DATE        PIC X(10).  *> YYYY-MM-DD, date customer relationship began
+             10 CM-CUSTOMER-TYPE    PIC X(01).
+                88 IS-RETAIL       VALUE 'R'.
+                88 IS-COMMERCIAL    VALUE 'C'.
+                88 IS-WEALTH       VALUE 'W'.
+                88 IS-STUDENT-BANKER VALUE 'S'.
+             10 CM-STATUS           PIC X(01).
+                88 IS-ACTIVE        VALUE 'A'.
+                88 IS-DORMANT       VALUE 'D'.
+                88 IS-CLOSED        VALUE 'C'.
+                88 IS-SUSPENDED     VALUE 'S'.
+             10 CM-RM-ID            PIC 9(08).  *> Relationship Manager ID assigned to this client
+             10 CM-OPEN-BRANCH-ID   PIC 9(05).  *> Branch where the initial relationship was established
+             10 CM-PRODUCT-COUNT    PIC 9(03).  *> Number of products/services currently held by client
+             10 CM-LAST-ACTIVITY-DATE PIC X(10). *> YYYY-MM-DD, last non-transactional activity (e.g., login, profile update)
+             10 CM-LOYALTY-POINTS   PIC 9(09).  *> Accumulated loyalty points
+          05 CM-AI-INSIGHTS.
+             10 CM-AI-RISK-SCORE    PIC 9(03).  *> 000-999, AI-derived financial risk assessment. Higher score indicates higher perceived risk.
+             10 CM-AI-SERVICE-PREDICTOR PIC X(01). *> AI prediction of client's future service needs
+                88 AI-HIGH-ASSISTANCE VALUE 'H'. *> AI suggests client may need proactive support
+                88 AI-STANDARD-ASSISTANCE VALUE 'S'. *> AI suggests typical support needs
+                88 AI-LOW-ASSISTANCE VALUE 'L'.   *> AI suggests client is self-sufficient
+             10 CM-AI-PREF-PRODUCTS PIC X(100). *> AI-identified product categories of interest (e.g., 'INVEST,LOAN,MORTGAGE')
+             10 CM-AI-COMM-CHANNEL-SCORE PIC 9(02). *> 00-99, AI-derived score for digital channel preference (higher = more likely to use mobile app/web)
+             10 CM-AI-SENTIMENT-LAST-INT PIC X(01). *> AI analysis of sentiment from last customer interaction
+                88 AI-SENTIMENT-POSITIVE VALUE 'P'.
+                88 AI-SENTIMENT-NEUTRAL  VALUE 'N'.
+                88 AI-SENTIMENT-NEGATIVE VALUE 'G'. *> 'G' for generally unhappy or frustrated
+             10 CM-AI-LIFECYCLE-STAGE PIC X(01). *> AI-assigned client lifecycle stage
+                88 AI-STAGE-ENGAGEMENT VALUE 'E'. *> New client, getting familiar with services
+                88 AI-STAGE-GROWTH    VALUE 'G'. *> Expanding product usage, increasing financial activity
+                88 AI-STAGE-MATURITY  VALUE 'M'. *> Stable, long-term client with consistent patterns
+                88 AI-STAGE-TRANSITION VALUE 'T'. *> Approaching retirement, or major life event requiring financial adjustment
+             10 CM-AI-CHURN-PROBABILITY PIC 9(03). *> 000-100, AI-estimated probability of client closing accounts in next 12 months
+             10 CM-AI-NEXT-BEST-ACTION PIC X(50). *> AI-suggested personalized action or offer for relationship manager to consider
+          05 CM-AUDIT-INFO.
+             10 CM-CREATED-DATE     PIC X(10).  *> YYYY-MM-DD, record creation date
+             10 CM-CREATED-BY-USER  PIC X(10).  *> User ID that created the record
+             10 CM-LAST-UPDATED-DATE PIC X(10). *> YYYY-MM-DD, last modification date
+             10 CM-LAST-UPDATED-BY-USER PIC X(10). *> User ID that last modified the record
+             10 CM-RECORD-VERSION   PIC 9(03).  *> Version of this record's structure (e.g., 001, 002 for data migration)
+          05 CM-FILLER              PIC X(100). *> Reserved for future expansion

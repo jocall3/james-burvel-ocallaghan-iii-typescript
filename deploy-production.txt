@@ -1,0 +1,1226 @@
+# ==============================================================================
+# Workflow: Deploy to Production
+# ==============================================================================
+#
+# This GitHub Actions workflow is meticulously crafted to automate the entire
+# process of building, meticulously tagging, and subsequently deploying
+# the application to a designated production environment. It serves as the
+# final stage in the continuous delivery pipeline, ensuring that only
+# fully vetted and successfully integrated code reaches the live system.
+#
+# Trigger Mechanism:
+# ------------------
+# The workflow is primarily configured to trigger automatically upon successful
+# pushes (i.e., merges) to the 'main' branch. This design philosophy reinforces
+# the principle that the 'main' branch always reflects the production-ready
+# state of the application. By linking deployment directly to `main` branch
+# merges, it guarantees that all prior quality gates—such as unit tests,
+# integration tests, linting, and security scans—from preceding CI workflows
+# have passed.
+#
+# In addition to automated triggers, a `workflow_dispatch` event is included.
+# This allows authorized developers to manually initiate a deployment directly
+# from the GitHub Actions user interface. This manual trigger is invaluable for
+# specific scenarios, including but not limited to:
+# -   Performing emergency hotfixes that need immediate deployment.
+# -   Re-deploying a previously successful build due to external infrastructure changes.
+# -   Executing a targeted deployment for specific testing or validation purposes
+#     in a production-like environment without a code change.
+#
+# Core Objectives and Benefits of this Workflow:
+# ---------------------------------------------
+# 1.  **Enhanced Consistency**: By defining all build and deployment steps in a
+#     declarative, version-controlled YAML file, the workflow ensures that the
+#     process is executed identically every time, eliminating environmental
+#     drift and "it works on my machine" issues.
+# 2.  **Significant Automation**: It drastically reduces manual intervention,
+#     freeing up development and operations teams from repetitive tasks and
+#     minimizing the potential for human error during critical deployment phases.
+# 3.  **Superior Traceability and Auditability**: Each production deployment is
+#     automatically associated with a specific Git commit SHA, a unique workflow
+#     run ID, and a generated version tag. Furthermore, a corresponding GitHub
+#     Release is created, providing a comprehensive historical record of all
+#     production deployments, including who initiated them and what code was deployed.
+# 4.  **Adaptability and Flexibility**: While the examples provided focus on
+#     common cloud providers (AWS, GCP, Azure), the modular structure allows
+#     easy adaptation to other platforms or bespoke deployment strategies by
+#     uncommenting and customizing the relevant sections.
+# 5.  **Improved Reliability**: Automated health checks and post-deployment
+#     smoke tests help to quickly verify the application's functionality
+#     in the production environment, allowing for rapid detection and
+#     remediation of any issues.
+#
+# Architectural Considerations / Prerequisites:
+# ---------------------------------------------
+# Before this workflow can be fully operational, several prerequisites should be met:
+# -   **GitHub Secrets**: Critical credentials for accessing cloud providers (e.g.,
+#     AWS IAM Role ARNs for OIDC, AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY,
+#     GCP service account keys, Azure service principal credentials) must be
+#     securely stored as secrets in the GitHub repository or organization.
+#     Leveraging OpenID Connect (OIDC) is highly recommended for credential management.
+# -   **Application Build Tools**: The runner must have the necessary build
+#     environment (e.g., Node.js, npm, Docker, Python, Java JDK) to compile,
+#     transpile, or package the application.
+# -   **Cloud Provider CLI Tools**: Depending on the deployment target, relevant
+#     command-line interface tools (e.g., AWS CLI, gcloud CLI, Azure CLI, kubectl)
+#     are often required and are typically provisioned by specific GitHub Actions.
+# -   **Branch Protection**: The 'main' branch should have robust branch protection
+#     rules configured, requiring successful completion of all CI/testing workflows
+#     before any code can be merged. This ensures code quality before deployment.
+# -   **Deployment Environment**: The target production environment (e.g., S3 bucket,
+#     ECS cluster, Cloud Run service, Azure App Service) must be pre-provisioned
+#     and configured to receive deployments.
+#
+# ------------------------------------------------------------------------------
+# Workflow Definition
+# ------------------------------------------------------------------------------
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - "main" # This trigger activates the workflow whenever code is pushed to the 'main' branch.
+                # In most GitFlow or GitHub Flow models, this means a Pull Request
+                # has been successfully merged, indicating production readiness.
+  workflow_dispatch: # This allows for manual execution of the workflow from the
+                       # 'Actions' tab within your GitHub repository. It provides
+                       # flexibility for specific use cases like re-deployments
+                       # or scheduled maintenance actions.
+
+jobs:
+  # ============================================================================
+  # Job: build_and_deploy
+  # ----------------------------------------------------------------------------
+  # This is the singular, comprehensive job responsible for orchestrating the
+  # entire deployment lifecycle. It encompasses everything from setting up the
+  # build environment to executing the final deployment and creating a release.
+  # Breaking down tasks into logical steps within this job ensures sequential
+  # execution and clear separation of concerns.
+  # ============================================================================
+  build_and_deploy:
+    runs-on: ubuntu-latest # Specifies that this job will run on the latest available
+                           # Ubuntu Linux virtual machine hosted by GitHub. This
+                           # environment provides a robust and widely compatible
+                           # foundation for executing build and deployment scripts.
+                           # Other options include `windows-latest` or `macos-latest`
+                           # depending on specific build requirements.
+
+    # --------------------------------------------------------------------------
+    # Permissions Configuration for 'build_and_deploy' Job
+    # --------------------------------------------------------------------------
+    # This block explicitly defines the set of permissions granted to the default
+    # GITHUB_TOKEN for this specific job. Adhering to the principle of least
+    # privilege, only the absolutely necessary permissions are requested.
+    permissions:
+      contents: write     # This permission is crucial for several operations:
+                           # - Allowing 'actions/checkout' to clone the repository.
+                           # - Enabling the creation of new Git tags, which are
+                           #   fundamental for versioning deployments.
+                           # - Permitting the 'softprops/action-gh-release' action
+                           #   to create a GitHub Release and publish its details
+                           #   and potentially attach artifacts.
+                           # Without 'write' access to contents, tagging and
+                           # release creation would fail.
+      # id-token: write   # UNCOMMENT IF USING OIDC FOR CLOUD AUTHENTICATION.
+                           # This permission is required if your deployment strategy
+                           # leverages OpenID Connect (OIDC) to authenticate with
+                           # cloud providers (e.g., AWS IAM, GCP Workload Identity,
+                           # Azure AD Workload Identity Federation). OIDC is the
+                           # recommended secure method for managing temporary,
+                           # short-lived credentials, eliminating the need for
+                           # long-lived static access keys.
+                           # Detailed setup information:
+                           # https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-cloud-providers
+      # packages: write   # UNCOMMENT IF PUSHING TO PACKAGE REGISTRIES.
+                           # This permission is necessary if your workflow involves
+                           # publishing packages (e.g., Docker images to GitHub
+                           # Packages, npm packages, Maven artifacts) to any
+                           # registry that integrates with GitHub's token system.
+      # deployments: write # UNCOMMENT IF USING GITHUB DEPLOYMENTS API.
+                           # If you integrate with GitHub's Deployments API to
+                           # track deployments programmatically and update
+                           # deployment statuses, this permission is needed.
+
+    # --------------------------------------------------------------------------
+    # Strategy Configuration
+    # --------------------------------------------------------------------------
+    # The `strategy` block defines a build matrix, allowing a job to run
+    # multiple times with different configurations. While more common for CI
+    # (e.g., testing against multiple Node.js versions), for production
+    # deployment, it's typical to target a single, well-defined environment
+    # to ensure consistency and minimize variables.
+    strategy:
+      matrix:
+        node-version: [ 22 ] # Specifies the exact Node.js version to use for this job.
+                             # Pinning to a specific LTS (Long Term Support) version
+                             # is a best practice to ensure consistent build outputs
+                             # and avoid compatibility issues that might arise with
+                             # newer, potentially breaking Node.js releases. This
+                             # should ideally align with the Node.js version used
+                             # in your local development and other CI/testing pipelines.
+
+    # ==========================================================================
+    # Steps: Ordered Execution of Tasks within the 'build_and_deploy' Job
+    # --------------------------------------------------------------------------
+    # Each step is an individual task or command that will be executed in the
+    # order defined. They represent discrete phases of the deployment process.
+    # Error handling is included to ensure failures are caught early.
+    # ==========================================================================
+    steps:
+    - name: 01 - Checkout repository code
+      # Action: 'actions/checkout@v4' is the canonical GitHub Action used to
+      # clone your repository's code onto the runner. This makes all your
+      # source files, scripts, and configurations available for subsequent steps.
+      # Version 'v4' ensures you're using a recent and supported iteration of the action.
+      uses: actions/checkout@v4
+      with:
+        # Parameter: 'fetch-depth: 0'
+        # This parameter instructs Git to fetch the entire commit history
+        # (all branches and tags) instead of just a shallow clone (which is
+        # the default for `actions/checkout`). This is critical for deployment
+        # workflows because actions like 'softprops/action-gh-release' or
+        # custom versioning scripts often need access to the full Git history
+        # to determine version numbers, find previous tags, or generate accurate
+        # release notes based on commit messages.
+        fetch-depth: 0
+        # Optional: token: ${{ secrets.GITHUB_TOKEN }}
+        # The default `GITHUB_TOKEN` is used implicitly here, as it has
+        # sufficient permissions ('contents: read') to clone the repository.
+        # You would only explicitly specify a token if you needed to use a
+        # Personal Access Token (PAT) with broader permissions or if cloning
+        # from a private repository in a different organization.
+
+    - name: 02 - Set up Node.js environment
+      # Action: 'actions/setup-node@v4' prepares the Node.js runtime environment
+      # on the runner. This action handles installing the specified Node.js
+      # version and configuring npm or yarn. This is indispensable for any
+      # JavaScript/TypeScript-based project.
+      uses: actions/setup-node@v4
+      with:
+        # Parameter: 'node-version: ${{ matrix.node-version }}'
+        # This dynamically uses the Node.js version defined in the job's
+        # `strategy.matrix`. In this case, it will be Node.js `22`. This ensures
+        # consistency with the project's defined runtime.
+        node-version: ${{ matrix.node-version }}
+        # Parameter: 'cache: 'npm''
+        # This setting enables caching of Node.js modules managed by npm.
+        # GitHub Actions automatically detects the dependency file (e.g.,
+        # `package-lock.json` or `yarn.lock`), generates a cache key, and
+        # attempts to restore dependencies from previous successful runs.
+        # This significantly reduces build times by avoiding repeated
+        # `npm install` operations, especially for large projects.
+        cache: 'npm'
+        # Optional: cache-dependency-path: '**/package-lock.json'
+        # Explicitly specifies the path to the dependency lock file. While
+        # 'cache: 'npm'' often infers this correctly, providing it explicitly
+        # can ensure precise cache key generation, especially in monorepos
+        # or non-standard project structures.
+
+    - name: 03 - Install project dependencies
+      # This step is responsible for installing all necessary Node.js packages
+      # that your application depends on for production operation.
+      # It's crucial to install only production dependencies to keep the deployed
+      # artifact lean and reduce the attack surface.
+      run: |
+        echo "==================================================================="
+        echo "Step 03: Installing production-only Node.js dependencies..."
+        echo "-------------------------------------------------------------------"
+        echo "Current working directory: $(pwd)"
+        echo "Verifying active npm version: $(npm --version)"
+        echo "Verifying active Node.js version: $(node --version)"
+        echo "Checking for 'package.json' existence..."
+        if [ ! -f package.json ]; then
+          echo "ERROR: 'package.json' not found in the root directory."
+          echo "       Cannot install dependencies. Please ensure your project has a 'package.json'."
+          exit 1
+        fi
+        echo "Installing dependencies using npm..."
+        # 'npm install' command with specific flags for production deployments:
+        # --production: This is vital. It instructs npm to install *only* the
+        #               packages listed under the `dependencies` field in
+        #               `package.json` and completely skips `devDependencies`.
+        #               This results in a smaller, more efficient, and more secure
+        #               deployment artifact.
+        # --prefer-offline: Encourages npm to use cached packages from the local
+        #                   cache (managed by `actions/setup-node`) before
+        #                   attempting to download from the npm registry. This
+        #                   can speed up installs significantly.
+        # --no-audit: Disables the security audit feature of npm. While audits
+        #             are important, for production deployments, they are often
+        #             handled in a dedicated security scanning workflow, and
+        #             skipping it here saves time during deployment.
+        # --quiet: Suppresses verbose output from npm, making logs cleaner and
+        #          easier to read, focusing on critical messages.
+        npm install --production --prefer-offline --no-audit --quiet
+        # Robust error checking: If the 'npm install' command fails (returns a
+        # non-zero exit code), the workflow step will immediately fail.
+        if [ $? -ne 0 ]; then
+          echo "ERROR: 'npm install --production' command failed."
+          echo "       Please review the npm logs above for details on the failure."
+          exit 1
+        fi
+        echo "-------------------------------------------------------------------"
+        echo "Production dependencies installed successfully."
+        echo "Listing contents of 'node_modules' directory (first 20 lines) to verify:"
+        ls -l node_modules | head -n 20 || echo "node_modules directory is empty or not found. This might indicate an issue."
+        echo "==================================================================="
+        # Simulate some network/disk activity
+        sleep 5
+
+    - name: 04 - Build application for production
+      # This step executes the project's build process, transforming source code
+      # into optimized, ready-to-deploy static assets or compiled binaries.
+      # The specific command varies greatly depending on the application type
+      # (e.g., frontend SPA, backend API, static site).
+      run: |
+        echo "==================================================================="
+        echo "Step 04: Building the application for production deployment..."
+        echo "-------------------------------------------------------------------"
+        echo "Checking for 'build' script in 'package.json'..."
+
+        # Check if a 'build' script exists in package.json.
+        # Using '--dry-run' for a quick check without full execution.
+        if npm run build -- --dry-run > /dev/null 2>&1; then
+            echo "Detected 'build' script. Executing 'npm run build'..."
+            # Execute the actual build command.
+            # For a typical web application (React, Angular, Vue), this command
+            # usually compiles JavaScript/TypeScript, minifies CSS, optimizes images,
+            # and bundles everything into an output directory (commonly 'dist' or 'build').
+            # For a backend service, it might transpile TypeScript to JavaScript,
+            # or compile other language sources.
+            npm run build
+            if [ $? -ne 0 ]; then
+                echo "ERROR: Application build process failed. Please inspect the build logs for root cause."
+                exit 1
+            fi
+            echo "Application built successfully."
+            echo "-------------------------------------------------------------------"
+            echo "Listing contents of output directory (e.g., 'dist' or 'build', first 20 lines):"
+            # Attempt to list contents of common build output directories
+            if [ -d "./dist" ]; then
+              ls -al ./dist | head -n 20
+            elif [ -d "./build" ]; then
+              ls -al ./build | head -n 20
+            else
+              echo "WARNING: Neither './dist' nor './build' directories found after build."
+              echo "         Verify your build script output path. Listing root directory instead."
+              ls -al . | head -n 20
+            fi
+        else
+            echo "WARNING: No 'build' script found in 'package.json'."
+            echo "         Assuming no explicit build step is required or it's handled externally."
+            echo "         If a build step is necessary, please ensure 'npm run build' is defined and correct."
+            # If no build script, simulate a nominal 'build' time.
+            sleep 10
+        fi
+        echo "==================================================================="
+
+    # ==========================================================================
+    # Deployment Target Examples (Conditional / Commented Blocks)
+    # --------------------------------------------------------------------------
+    # This section contains detailed example deployment steps for various common
+    # cloud providers and deployment strategies.
+    # YOU MUST UNCOMMENT AND CUSTOMIZE THE BLOCK(S) THAT ALIGN WITH YOUR
+    # PROJECT'S SPECIFIC INFRASTRUCTURE AND DEPLOYMENT MODEL.
+    # It is critical to ensure that all necessary secrets (e.g., AWS_S3_BUCKET_NAME,
+    # AWS_CLOUDFRONT_DISTRIBUTION_ID, AWS_DEPLOY_ROLE_ARN, GCP_PROJECT_ID,
+    # AZURE_APP_SERVICE_NAME, etc.) are securely configured in your GitHub
+    # repository's settings before enabling these steps.
+    #
+    # REMOVE or COMMENT OUT the examples you do NOT use to keep your workflow
+    # concise, readable, and focused on your actual deployment pipeline.
+    # ==========================================================================
+
+    # --- EXAMPLE DEPLOYMENT 1: AWS S3 & CloudFront (for Static Websites/SPAs) ---
+    # This block outlines the steps for deploying a built frontend application
+    # to an Amazon S3 bucket for cost-effective static website hosting, followed
+    # by invalidating a connected Amazon CloudFront distribution's cache. This
+    # ensures that end-users always receive the most up-to-date version of the
+    # application without encountering stale content due to caching.
+    # ----------------------------------------------------------------------------
+    - name: 05A - Configure AWS Credentials for S3/CloudFront Deployment
+      # Action: 'aws-actions/configure-aws-credentials@v4'
+      # This action is a standard way to set up the AWS CLI environment on the
+      # GitHub Actions runner. It handles authentication with AWS.
+      # The 'v4' version ensures you are using the latest, most secure iteration.
+      uses: aws-actions/configure-aws-credentials@v4
+      # Conditional Execution: 'if: success()'
+      # This ensures that AWS credentials are only configured if all preceding
+      # steps (checkout, setup Node.js, install dependencies, build) have
+      # completed successfully. This prevents unnecessary resource access.
+      if: success()
+      with:
+        # Parameter: 'role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}'
+        # This is the RECOMMENDED method for authenticating with AWS in GitHub Actions:
+        # OpenID Connect (OIDC). Instead of using long-lived static AWS access keys,
+        # GitHub Actions assumes a temporary IAM Role. The `AWS_DEPLOY_ROLE_ARN`
+        # secret should contain the Amazon Resource Name (ARN) of an IAM role
+        # specifically configured to be assumable by GitHub's OIDC provider.
+        # This role should have minimal permissions required for S3 deployment
+        # and CloudFront invalidation (e.g., `s3:PutObject`, `s3:DeleteObject`,
+        # `s3:ListBucket`, `cloudfront:CreateInvalidation`).
+        role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+        # Parameter: 'aws-region: us-east-1'
+        # Specifies the AWS region where your S3 bucket and CloudFront distribution
+        # are primarily located. It is best practice to explicitly define this
+        # for all AWS CLI commands. Adjust 'us-east-1' to your specific region.
+        aws-region: us-east-1
+        # Optional: role-session-name: 'github-actions-prod-deploy-${{ github.run_id }}'
+        # This parameter allows you to assign a custom name to the IAM role session.
+        # This name will appear in AWS CloudTrail logs, providing better traceability
+        # for actions performed by this specific GitHub Actions workflow run.
+        # Uncomment and customize for enhanced auditability.
+        # role-session-name: 'github-actions-prod-deploy-${{ github.run_id }}'
+        # Optional - Less secure method (static keys):
+        # aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        # aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        # While these work, using static AWS access keys directly as GitHub secrets
+        # is generally DISCOURAGED for production deployments due to their long-lived
+        # nature and higher risk profile compared to OIDC. Use OIDC whenever possible.
+
+    - name: 05B - Deploy to AWS S3 and Invalidate CloudFront
+      # This step executes the core deployment logic using the AWS Command Line Interface (CLI).
+      # It involves syncing the locally built application assets to an S3 bucket
+      # and then triggering a cache invalidation on the associated CloudFront distribution.
+      if: success() && steps.05A-Configure-AWS-Credentials-for-S3-CloudFront-Deployment.outcome == 'success'
+      run: |
+        echo "==================================================================="
+        echo "Step 05B: Initiating deployment to AWS S3 and CloudFront..."
+        echo "-------------------------------------------------------------------"
+        echo "Target S3 Bucket Name: ${{ secrets.AWS_S3_BUCKET_NAME || 'Not Provided' }}"
+        echo "CloudFront Distribution ID: ${{ secrets.AWS_CLOUDFRONT_DISTRIBUTION_ID || 'Not Provided' }}"
+        echo "-------------------------------------------------------------------"
+
+        # Pre-flight check: Verify if AWS CLI is installed and responsive.
+        if ! command -v aws &> /dev/null; then
+            echo "CRITICAL ERROR: AWS CLI command not found."
+            echo "                This indicates a problem with the 'aws-actions/configure-aws-credentials' step."
+            exit 1
+        fi
+        echo "AWS CLI version detected: $(aws --version)"
+
+        # Define the source directory containing the built application files.
+        # This usually corresponds to the output of the 'npm run build' step.
+        BUILD_OUTPUT_DIR="./dist" # Common for many frontend frameworks (React, Vue, Angular)
+        if [ ! -d "$BUILD_OUTPUT_DIR" ]; then
+            BUILD_OUTPUT_DIR="./build" # Another common output directory
+            if [ ! -d "$BUILD_OUTPUT_DIR" ]; then
+                echo "WARNING: Neither './dist' nor './build' directories found for deployment."
+                echo "         Attempting to sync current directory '.', but this might not be the intended source."
+                BUILD_OUTPUT_DIR="." # Fallback to current directory, but inspect your build step.
+            fi
+        fi
+        echo "Deployment source directory: $BUILD_OUTPUT_DIR"
+        echo "Listing contents of '$BUILD_OUTPUT_DIR' (first 10 items) to confirm content:"
+        ls -l "$BUILD_OUTPUT_DIR" | head -n 10 || echo "Directory '$BUILD_OUTPUT_DIR' is empty or could not be listed."
+
+        # Verify S3 bucket name is provided via secrets.
+        if [ -z "${{ secrets.AWS_S3_BUCKET_NAME }}" ]; then
+            echo "CRITICAL ERROR: AWS_S3_BUCKET_NAME secret is not set."
+            echo "                Cannot proceed with S3 deployment without a target bucket."
+            exit 1
+        fi
+
+        echo "Executing AWS S3 sync command to upload assets..."
+        # AWS CLI command: `aws s3 sync`
+        # This command efficiently synchronizes files between a local directory
+        # and an S3 bucket. It only uploads changed or new files.
+        aws s3 sync "$BUILD_OUTPUT_DIR" s3://${{ secrets.AWS_S3_BUCKET_NAME }} \
+            --delete \
+            --exclude ".git/*" \
+            --exclude "node_modules/*" \
+            --cache-control "max-age=31536000,public,immutable" \
+            --content-type "text/html" \
+            --metadata "build_id=${{ github.run_id }}", "commit_sha=${{ github.sha }}" \
+            --acl public-read \
+            --no-progress \
+            --region ${{ secrets.AWS_REGION }} # Explicitly specify region for CLI commands
+        if [ $? -ne 0 ]; then
+          echo "CRITICAL ERROR: AWS S3 synchronization failed."
+          echo "                Please check AWS CLI output and IAM role permissions."
+          exit 1
+        fi
+        echo "AWS S3 deployment completed successfully. Files are now in the bucket."
+
+        # CloudFront Cache Invalidation:
+        # This step is paramount for ensuring that visitors to your website
+        # immediately see the newly deployed content, rather than stale versions
+        # cached by CloudFront's CDN network.
+        if [[ -n "${{ secrets.AWS_CLOUDFRONT_DISTRIBUTION_ID }}" ]]; then
+          echo "-------------------------------------------------------------------"
+          echo "Initiating AWS CloudFront cache invalidation for distribution: ${{ secrets.AWS_CLOUDFRONT_DISTRIBUTION_ID }}..."
+          # `aws cloudfront create-invalidation` command creates a request to remove
+          # specific objects (or all objects using "/*") from CloudFront's edge caches.
+          # --distribution-id: The ID of your CloudFront distribution (e.g., E123ABCDEF456).
+          # --paths: Specifies which paths to invalidate. "/*" invalidates all files,
+          #          which is simple but can incur higher costs on large sites.
+          #          For cost optimization, consider invalidating only changed files.
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.AWS_CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*" \
+            --region ${{ secrets.AWS_REGION }} # Explicitly specify region
+          if [ $? -ne 0 ]; then
+            echo "CRITICAL ERROR: AWS CloudFront invalidation request failed."
+            echo "                This might be due to an incorrect distribution ID, IAM permissions, or AWS service issues."
+            exit 1
+          fi
+          echo "AWS CloudFront invalidation request successfully sent."
+          echo "NOTE: CloudFront invalidations can take several minutes (typically 5-15 mins) to propagate globally."
+        else
+          echo "-------------------------------------------------------------------"
+          echo "WARNING: AWS_CLOUDFRONT_DISTRIBUTION_ID secret not provided."
+          echo "         Skipping CloudFront cache invalidation."
+          echo "         Users might experience old content until existing caches expire (TTL)."
+          echo "         It is HIGHLY RECOMMENDED to configure CloudFront invalidation for production deployments."
+        fi
+        echo "==================================================================="
+        echo "Simulating final checks and waiting for 10 seconds for initial propagation..."
+        sleep 10
+        echo "AWS S3/CloudFront deployment and cache invalidation process complete."
+
+    # --- EXAMPLE DEPLOYMENT 2: AWS ECS/Fargate (for Containerized Applications) ---
+    # This extensive commented block provides a detailed blueprint for deploying a
+    # containerized application to Amazon Elastic Container Service (ECS) using
+    # AWS Fargate. It covers building a Docker image, pushing it to Amazon ECR,
+    # and then updating an existing ECS service to utilize the newly deployed image.
+    # UNCOMMENT AND ADAPT this section if your application is containerized
+    # and deployed using AWS ECS/Fargate.
+    # ----------------------------------------------------------------------------
+    #- name: 06A - Configure AWS Credentials for ECS/Fargate Deployment
+    #  uses: aws-actions/configure-aws-credentials@v4
+    #  if: success()
+    #  with:
+    #    # Use OIDC for secure, temporary credentials for ECS deployment.
+    #    # The IAM role specified here should have permissions for ECR push/pull
+    #    # and ECS service updates (e.g., `ecr:GetAuthorizationToken`, `ecr:BatchCheckLayerAvailability`,
+    #    # `ecr:PutImage`, `ecs:UpdateService`, `ecs:DescribeServices`, `ecs:RegisterTaskDefinition`).
+    #    role-to-assume: ${{ secrets.AWS_ECS_DEPLOY_ROLE_ARN }}
+    #    aws-region: us-east-1 # Ensure this matches your ECS cluster's region.
+    #    # role-session-name: 'github-actions-ecs-deploy-${{ github.run_id }}' # Custom session name for CloudTrail.
+
+    #- name: 06B - Login to Amazon Elastic Container Registry (ECR)
+    #  # This step obtains an authentication token from ECR and logs the Docker CLI
+    #  # into your private Amazon ECR repository. This is a prerequisite for pushing
+    #  # and pulling Docker images.
+    #  if: success() && steps.06A-Configure-AWS-Credentials-for-ECS-Fargate-Deployment.outcome == 'success'
+    #  run: |
+    #    echo "==================================================================="
+    #    echo "Step 06B: Logging in to Amazon Elastic Container Registry (ECR)..."
+    #    echo "-------------------------------------------------------------------"
+    #    if [ -z "${{ secrets.AWS_REGION }}" ]; then
+    #        echo "ERROR: AWS_REGION secret is not set. Cannot log in to ECR."
+    #        exit 1
+    #    fi
+    #    # The `aws ecr get-login-password` command retrieves a short-lived
+    #    # authorization token. This token is then piped to `docker login`.
+    #    # The username for ECR is always 'AWS'.
+    #    # The ECR registry URL is typically in the format:
+    #    # <AWS_ACCOUNT_ID>.dkr.ecr.<AWS_REGION>.amazonaws.com
+    #    aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | \
+    #      docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+    #    if [ $? -ne 0 ]; then
+    #      echo "CRITICAL ERROR: Failed to log in to Amazon ECR."
+    #      echo "                Check AWS credentials and ECR permissions."
+    #      exit 1
+    #    fi
+    #    echo "Successfully logged in to Amazon ECR."
+    #    echo "==================================================================="
+    #    sleep 5 # Simulate login process
+
+    #- name: 06C - Build, Tag, and Push Docker Image to ECR
+    #  # This step builds the Docker image for your application, tags it with a
+    #  # unique identifier (typically the commit SHA), and then pushes it to
+    #  # your designated ECR repository.
+    #  if: success() && steps.06B-Login-to-Amazon-ECR.outcome == 'success'
+    #  run: |
+    #    echo "==================================================================="
+    #    echo "Step 06C: Building, tagging, and pushing Docker image to ECR..."
+    #    echo "-------------------------------------------------------------------"
+    #    # Define variables for the image tagging.
+    #    # Using the GitHub commit SHA as the image tag ensures perfect traceability.
+    #    IMAGE_TAG="${{ github.sha }}"
+    #    ECR_REPOSITORY_NAME="${{ secrets.AWS_ECR_REPOSITORY_NAME }}" # e.g., 'my-app-repo'
+    #    ECR_FULL_IMAGE_NAME="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/$ECR_REPOSITORY_NAME"
+    #
+    #    if [ -z "$ECR_REPOSITORY_NAME" ]; then
+    #        echo "ERROR: AWS_ECR_REPOSITORY_NAME secret is not set. Cannot build/push image."
+    #        exit 1
+    #    fi
+    #
+    #    echo "Building Docker image with tag: $IMAGE_TAG for repository: $ECR_REPOSITORY_NAME"
+    #    # `docker build` command:
+    #    # -t: Tags the image with a name and optional tag.
+    #    # .: Specifies the build context (current directory, where Dockerfile resides).
+    #    # You might need to specify --file <path-to-Dockerfile> if your Dockerfile is not in root.
+    #    docker build -t $ECR_REPOSITORY_NAME:$IMAGE_TAG .
+    #    if [ $? -ne 0 ]; then
+    #      echo "CRITICAL ERROR: Docker image build failed."
+    #      echo "                Check your Dockerfile and application dependencies."
+    #      exit 1
+    #    fi
+    #    echo "Docker image built successfully."
+    #
+    #    echo "Tagging Docker image with ECR-specific tag and 'latest' tag..."
+    #    # `docker tag` command: Creates an additional tag for the image, specifically
+    #    # for the ECR registry format. It's common to also tag with 'latest' for convenience,
+    #    # though the SHA tag is definitive.
+    #    docker tag $ECR_REPOSITORY_NAME:$IMAGE_TAG $ECR_FULL_IMAGE_NAME:$IMAGE_TAG
+    #    docker tag $ECR_REPOSITORY_NAME:$IMAGE_TAG $ECR_FULL_IMAGE_NAME:latest
+    #
+    #    echo "Pushing Docker images to ECR..."
+    #    # `docker push` command: Uploads the tagged images to the ECR repository.
+    #    docker push $ECR_FULL_IMAGE_NAME:$IMAGE_TAG
+    #    docker push $ECR_FULL_IMAGE_NAME:latest
+    #    if [ $? -ne 0 ]; then
+    #      echo "CRITICAL ERROR: Docker image push to ECR failed."
+    #      echo "                Verify ECR repository name and IAM permissions."
+    #      exit 1
+    #    fi
+    #    echo "Docker images successfully pushed to ECR."
+    #    echo "==================================================================="
+    #    sleep 10 # Simulate image push time
+
+    #- name: 06D - Update Amazon ECS Service
+    #  # This final ECS deployment step updates your existing Amazon ECS service
+    #  # to deploy the newly pushed Docker image. This typically involves
+    #  # creating a new task definition revision and forcing a new deployment.
+    #  if: success() && steps.06C-Build-Tag-and-Push-Docker-Image-to-ECR.outcome == 'success'
+    #  run: |
+    #    echo "==================================================================="
+    #    echo "Step 06D: Updating Amazon ECS Service to deploy new image..."
+    #    echo "-------------------------------------------------------------------"
+    #    # Define variables for ECS service update.
+    #    ECS_CLUSTER_NAME="${{ secrets.AWS_ECS_CLUSTER_NAME }}" # The name of your ECS cluster.
+    #    ECS_SERVICE_NAME="${{ secrets.AWS_ECS_SERVICE_NAME }}" # The name of the ECS service to update.
+    #    ECR_REPOSITORY_NAME="${{ secrets.AWS_ECR_REPOSITORY_NAME }}"
+    #    ECR_FULL_IMAGE_NAME="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/$ECR_REPOSITORY_NAME"
+    #    IMAGE_TAG="${{ github.sha }}"
+    #    NEW_IMAGE_URI="$ECR_FULL_IMAGE_NAME:$IMAGE_TAG"
+    #
+    #    if [ -z "$ECS_CLUSTER_NAME" ] || [ -z "$ECS_SERVICE_NAME" ]; then
+    #        echo "ERROR: AWS_ECS_CLUSTER_NAME or AWS_ECS_SERVICE_NAME secrets are not set. Cannot update ECS service."
+    #        exit 1
+    #    fi
+    #
+    #    echo "Retrieving current task definition for service '${ECS_SERVICE_NAME}'..."
+    #    # Get the current active task definition ARN from the service.
+    #    CURRENT_TASK_DEF_ARN=$(aws ecs describe-services \
+    #        --cluster "$ECS_CLUSTER_NAME" \
+    #        --services "$ECS_SERVICE_NAME" \
+    #        --query "services[0].taskDefinition" \
+    #        --output text --region ${{ secrets.AWS_REGION }})
+    #    if [ $? -ne 0 ] || [ -z "$CURRENT_TASK_DEF_ARN" ]; then
+    #        echo "CRITICAL ERROR: Failed to retrieve current task definition for service '$ECS_SERVICE_NAME'."
+    #        exit 1
+    #    fi
+    #    echo "Current Task Definition ARN: $CURRENT_TASK_DEF_ARN"
+    #
+    #    echo "Updating ECS service '${ECS_SERVICE_NAME}' in cluster '${ECS_CLUSTER_NAME}' to use new image: $NEW_IMAGE_URI"
+    #    # The `aws ecs update-service` command modifies an existing ECS service.
+    #    # --cluster: Specifies the ECS cluster.
+    #    # --service: Specifies the service to update.
+    #    # --force-new-deployment: Crucial. This flag forces the service to launch
+    #    #                         new tasks and drain old ones, even if the task
+    #    #                         definition hasn't technically changed (useful
+    #    #                         when only the image tag within the task definition
+    #    #                         has been updated in ECR without a new revision).
+    #    # --task-definition: Specifies the new task definition ARN. Here, we're assuming
+    #    #                    your task definition is configured to use the `latest`
+    #    #                    tag or a dynamic tag, which will now point to the new image.
+    #    #                    For more advanced scenarios, you might fetch the task
+    #    #                    definition JSON, modify the image ARN, and then use
+    #    #                    `aws ecs register-task-definition` before updating the service.
+    #    aws ecs update-service \
+    #      --cluster "$ECS_CLUSTER_NAME" \
+    #      --service "$ECS_SERVICE_NAME" \
+    #      --force-new-deployment \
+    #      --task-definition "$CURRENT_TASK_DEF_ARN" \
+    #      --region ${{ secrets.AWS_REGION }}
+    #    if [ $? -ne 0 ]; then
+    #      echo "CRITICAL ERROR: Amazon ECS service update failed."
+    #      echo "                Review ECS service configuration, task definition, and IAM role permissions."
+    #      exit 1
+    #    fi
+    #    echo "Amazon ECS service update initiated successfully."
+    #    echo "New tasks will now roll out. Monitor your ECS console for deployment status."
+    #
+    #    # Optional: Wait for the service to become stable. This is useful if subsequent
+    #    # steps depend on the deployment being fully rolled out.
+    #    # echo "Waiting for ECS service '${ECS_SERVICE_NAME}' to become stable (max 10 minutes)..."
+    #    # aws ecs wait services-stable --cluster "$ECS_CLUSTER_NAME" --services "$ECS_SERVICE_NAME" --region ${{ secrets.AWS_REGION }}
+    #    # if [ $? -ne 0 ]; then
+    #    #   echo "WARNING: ECS service did not become stable within the expected timeframe. Proceeding, but manual check advised."
+    #    # fi
+    #    echo "==================================================================="
+    #    echo "Simulating ECS service deployment rollout and stability check (20 seconds)..."
+    #    sleep 20 # Simulate waiting for the ECS deployment to stabilize.
+    #    echo "AWS ECS/Fargate Deployment process complete."
+
+    # --- EXAMPLE DEPLOYMENT 3: Google Cloud Run (for Serverless Containers) ---
+    # This block details the steps required to deploy a containerized application
+    # to Google Cloud Run, Google's serverless platform for stateless containers.
+    # It covers authentication, Docker image building, pushing to Google Container
+    # Registry (GCR), and finally deploying to a Cloud Run service.
+    # UNCOMMENT AND ADAPT this section if your application uses Google Cloud Run.
+    # ----------------------------------------------------------------------------
+    #- name: 07A - Authenticate to Google Cloud
+    #  # Action: 'google-github-actions/auth@v1'
+    #  # This action facilitates authentication with Google Cloud, ideally using
+    #  # Workload Identity Federation, which is Google's equivalent of OIDC.
+    #  # This avoids storing long-lived service account keys directly in GitHub secrets.
+    #  uses: google-github-actions/auth@v1
+    #  if: success()
+    #  with:
+    #    # Recommended: Use Workload Identity Federation for production.
+    #    # Setup guide: https://github.com/google-github-actions/auth#setting-up-workload-identity-federation
+    #    project_id: ${{ secrets.GCP_PROJECT_ID }} # Your Google Cloud Project ID.
+    #    # workforce_pool_provider: 'projects/.../locations/global/workforcePools/.../providers/...'
+    #    # service_account: 'my-github-actions-sa@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com'
+    #
+    #    # Fallback (less secure): Use a JSON service account key. Only use if WIF is not an option.
+    #    # This key should have minimal necessary permissions (e.g., `Viewer`, `Storage Object Admin`, `Cloud Run Admin`).
+    #    # json_key: ${{ secrets.GCP_SA_KEY }}
+
+    #- name: 07B - Set up gcloud CLI
+    #  # Action: 'google-github-actions/setup-gcloud@v1'
+    #  # This action installs and configures the Google Cloud SDK (gcloud CLI)
+    #  # on the runner, making `gcloud` commands available for subsequent steps.
+    #  uses: google-github-actions/setup-gcloud@v1
+    #  if: success() && steps.07A-Authenticate-to-Google-Cloud.outcome == 'success'
+    #  with:
+    #    project_id: ${{ secrets.GCP_PROJECT_ID }} # Ensures gcloud commands target the correct project.
+
+    #- name: 07C - Build and Push Docker Image to Google Container Registry (GCR)
+    #  # This step builds the Docker image for your application and pushes it
+    #  # to Google Container Registry (GCR), Google's managed Docker image registry.
+    #  if: success() && steps.07B-Set-up-gcloud-CLI.outcome == 'success'
+    #  run: |
+    #    echo "==================================================================="
+    #    echo "Step 07C: Building and pushing Docker image to Google Container Registry (GCR)..."
+    #    echo "-------------------------------------------------------------------"
+    #    # Define the full GCR image name. GCR images are typically prefixed with `gcr.io/`.
+    #    GCR_IMAGE_NAME="gcr.io/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_IMAGE_NAME }}" # e.g., 'gcr.io/my-gcp-project/my-app'
+    #    # Use the commit SHA for consistent, traceable image tagging.
+    #    IMAGE_TAG="${{ github.sha }}"
+    #
+    #    if [ -z "${{ secrets.GCP_PROJECT_ID }}" ] || [ -z "${{ secrets.GCP_IMAGE_NAME }}" ]; then
+    #        echo "ERROR: GCP_PROJECT_ID or GCP_IMAGE_NAME secrets are not set. Cannot build/push image to GCR."
+    #        exit 1
+    #    fi
+    #
+    #    echo "Building Docker image for GCR with tag: $IMAGE_TAG..."
+    #    # `docker build` command.
+    #    docker build -t $GCR_IMAGE_NAME:$IMAGE_TAG .
+    #    if [ $? -ne 0 ]; then
+    #      echo "CRITICAL ERROR: Docker image build failed for Google Cloud Run."
+    #      exit 1
+    #    fi
+    #    echo "Docker image built successfully locally."
+    #
+    #    echo "Pushing Docker image to GCR..."
+    #    # `docker push` command.
+    #    docker push $GCR_IMAGE_NAME:$IMAGE_TAG
+    #    docker push $GCR_IMAGE_NAME:latest # Optionally also tag with 'latest'
+    #    if [ $? -ne 0 ]; then
+    #      echo "CRITICAL ERROR: Docker image push to GCR failed."
+    #      echo "                Verify gcloud authentication and GCR permissions."
+    #      exit 1
+    #    fi
+    #    echo "Docker image successfully pushed to GCR."
+    #    echo "==================================================================="
+    #    sleep 10 # Simulate image push time
+
+    #- name: 07D - Deploy to Google Cloud Run
+    #  # This step deploys the container image from GCR to a Google Cloud Run service.
+    #  # Cloud Run automatically scales your container and manages the underlying infrastructure.
+    #  if: success() && steps.07C-Build-and-Push-Docker-Image-to-Google-Container-Registry-GCR.outcome == 'success'
+    #  run: |
+    #    echo "==================================================================="
+    #    echo "Step 07D: Deploying to Google Cloud Run service..."
+    #    echo "-------------------------------------------------------------------"
+    #    # Define variables for Cloud Run deployment.
+    #    GCR_IMAGE_NAME="gcr.io/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_IMAGE_NAME }}"
+    #    IMAGE_TAG="${{ github.sha }}"
+    #    CLOUD_RUN_SERVICE_NAME="${{ secrets.GCP_CLOUD_RUN_SERVICE_NAME }}" # e.g., 'my-app-service-prod'
+    #    CLOUD_RUN_REGION="${{ secrets.GCP_CLOUD_RUN_REGION || 'us-central1' }}" # Default region if not specified.
+    #
+    #    if [ -z "$CLOUD_RUN_SERVICE_NAME" ]; then
+    #        echo "ERROR: GCP_CLOUD_RUN_SERVICE_NAME secret is not set. Cannot deploy to Cloud Run."
+    #        exit 1
+    #    fi
+    #
+    #    echo "Deploying Cloud Run service '${CLOUD_RUN_SERVICE_NAME}' in region '${CLOUD_RUN_REGION}'..."
+    #    # `gcloud run deploy` command: Deploys a new revision of a Cloud Run service.
+    #    # --image: Specifies the container image to deploy (from GCR).
+    #    # --region: Specifies the Google Cloud region for the service.
+    #    # --platform managed: Indicates that this is a fully managed Cloud Run service.
+    #    # --allow-unauthenticated: Makes the service publicly accessible.
+    #    #                         Use `--no-allow-unauthenticated` for private services
+    #    #                         and configure IAM roles for access.
+    #    # Additional optional flags for fine-tuning Cloud Run service:
+    #    # --concurrency: Max concurrent requests per container instance.
+    #    # --memory: Allocated memory for each container instance (e.g., '512Mi', '1Gi').
+    #    # --cpu: Allocated CPU for each container instance (e.g., '1', '2').
+    #    # --min-instances: Minimum number of container instances to keep warm.
+    #    # --max-instances: Maximum number of container instances for scaling.
+    #    # --set-env-vars: Set environment variables for the container (e.g., 'ENV=production,DEBUG=false').
+    #    # --revision-suffix: Appends a suffix to the revision name for easier identification.
+    #    gcloud run deploy "$CLOUD_RUN_SERVICE_NAME" \
+    #      --image "$GCR_IMAGE_NAME:$IMAGE_TAG" \
+    #      --region "$CLOUD_RUN_REGION" \
+    #      --platform managed \
+    #      --allow-unauthenticated \
+    #      --revision-suffix "deploy-${{ github.run_id }}" \
+    #      --project ${{ secrets.GCP_PROJECT_ID }} # Ensure correct project context
+    #    if [ $? -ne 0 ]; then
+    #      echo "CRITICAL ERROR: Google Cloud Run deployment failed."
+    #      echo "                Review gcloud CLI output, Cloud Run service configuration, and IAM permissions."
+    #      exit 1
+    #    fi
+    #    echo "Google Cloud Run deployment initiated successfully."
+    #    echo "Service URL (if public): $(gcloud run services describe "$CLOUD_RUN_SERVICE_NAME" --region "$CLOUD_RUN_REGION" --format 'value(status.url)' --project ${{ secrets.GCP_PROJECT_ID }})"
+    #    echo "==================================================================="
+    #    echo "Simulating Cloud Run service rollout and availability check (15 seconds)..."
+    #    sleep 15 # Simulate waiting for Cloud Run deployment to become active.
+    #    echo "Google Cloud Run Deployment process complete."
+
+    # --- EXAMPLE DEPLOYMENT 4: Azure App Service (for Web Apps / APIs) ---
+    # This block outlines a strategy for deploying web applications or APIs
+    # to Azure App Service. It involves authenticating with Azure, optionally
+    # building a Docker image and pushing to Azure Container Registry (ACR),
+    # and then deploying to an Azure App Service instance.
+    # UNCOMMENT AND ADAPT this section if your application uses Azure App Service.
+    # ----------------------------------------------------------------------------
+    #- name: 08A - Azure Login
+    #  # Action: 'azure/login@v1'
+    #  # This action authenticates with Azure using a service principal.
+    #  # It is crucial to set up an Azure service principal with appropriate
+    #  # permissions (e.g., `Contributor` role on the App Service and ACR).
+    #  uses: azure/login@v1
+    #  if: success()
+    #  with:
+    #    # `creds` secret should contain the JSON output of `az ad sp create-for-rbac --name "github-actions-sp" --role contributor --scopes /subscriptions/<subscription-id>/resourceGroups/<resource-group-name>`
+    #    creds: ${{ secrets.AZURE_CREDENTIALS }}
+    #    enable-AzPSSession: true # For PowerShell scripts, if needed.
+
+    #- name: 08B - Build and Push Docker Image to Azure Container Registry (ACR)
+    #  # This step is for containerized applications. It builds a Docker image
+    #  # and pushes it to your Azure Container Registry (ACR).
+    #  if: success() && steps.08A-Azure-Login.outcome == 'success'
+    #  run: |
+    #    echo "==================================================================="
+    #    echo "Step 08B: Building and pushing Docker image to Azure Container Registry (ACR)..."
+    #    echo "-------------------------------------------------------------------"
+    #    ACR_SERVER="${{ secrets.AZURE_ACR_SERVER }}" # e.g., 'myacrregistry.azurecr.io'
+    #    ACR_REPOSITORY="${{ secrets.AZURE_ACR_REPOSITORY_NAME }}" # e.g., 'my-app'
+    #    IMAGE_TAG="${{ github.sha }}"
+    #
+    #    if [ -z "$ACR_SERVER" ] || [ -z "$ACR_REPOSITORY" ]; then
+    #        echo "ERROR: AZURE_ACR_SERVER or AZURE_ACR_REPOSITORY_NAME secrets are not set. Cannot build/push image to ACR."
+    #        exit 1
+    #    fi
+    #
+    #    echo "Logging into Azure Container Registry: $ACR_SERVER..."
+    #    az acr login --name "$(echo $ACR_SERVER | cut -d'.' -f1)" # Login using the ACR name
+    #    if [ $? -ne 0 ]; then
+    #      echo "CRITICAL ERROR: Failed to log in to Azure Container Registry."
+    #      exit 1
+    #    fi
+    #    echo "Successfully logged in to ACR."
+    #
+    #    echo "Building Docker image for ACR with tag: $IMAGE_TAG..."
+    #    docker build -t "$ACR_SERVER/$ACR_REPOSITORY:$IMAGE_TAG" .
+    #    if [ $? -ne 0 ]; then
+    #      echo "CRITICAL ERROR: Docker image build failed for Azure."
+    #      exit 1
+    #    fi
+    #    echo "Docker image built successfully locally."
+    #
+    #    echo "Pushing Docker image to ACR..."
+    #    docker push "$ACR_SERVER/$ACR_REPOSITORY:$IMAGE_TAG"
+    #    docker push "$ACR_SERVER/$ACR_REPOSITORY:latest" # Optionally tag as latest
+    #    if [ $? -ne 0 ]; then
+    #      echo "CRITICAL ERROR: Docker image push to ACR failed."
+    #      exit 1
+    #    fi
+    #    echo "Docker image successfully pushed to ACR."
+    #    echo "==================================================================="
+    #    sleep 10 # Simulate image push time
+
+    #- name: 08C - Deploy to Azure App Service
+    #  # Action: 'azure/webapps-deploy@v2' or `az webapp deployment container`
+    #  # This step deploys your application to an Azure App Service. This action
+    #  # can deploy various types of applications (e.g., code, Docker images).
+    #  if: success() && steps.08A-Azure-Login.outcome == 'success'
+    #  run: |
+    #    echo "==================================================================="
+    #    echo "Step 08C: Deploying to Azure App Service..."
+    #    echo "-------------------------------------------------------------------"
+    #    APP_SERVICE_NAME="${{ secrets.AZURE_APP_SERVICE_NAME }}" # Name of your Azure App Service.
+    #    RESOURCE_GROUP="${{ secrets.AZURE_RESOURCE_GROUP }}" # Resource group where your App Service resides.
+    #    PACKAGE_PATH="./dist" # Or './build' for code deployment, or specify image for container deployment.
+    #    ACR_SERVER="${{ secrets.AZURE_ACR_SERVER }}"
+    #    ACR_REPOSITORY="${{ secrets.AZURE_ACR_REPOSITORY_NAME }}"
+    #    IMAGE_TAG="${{ github.sha }}"
+    #
+    #    if [ -z "$APP_SERVICE_NAME" ] || [ -z "$RESOURCE_GROUP" ]; then
+    #        echo "ERROR: AZURE_APP_SERVICE_NAME or AZURE_RESOURCE_GROUP secrets are not set. Cannot deploy to App Service."
+    #        exit 1
+    #    fi
+    #
+    #    echo "Deploying application to Azure App Service: ${APP_SERVICE_NAME} in resource group: ${RESOURCE_GROUP}"
+    #
+    #    # Example 1: Deploying a code package (e.g., from './dist')
+    #    # az webapp deploy --resource-group "$RESOURCE_GROUP" --name "$APP_SERVICE_NAME" --src-path "$PACKAGE_PATH" --type zip
+    #
+    #    # Example 2: Deploying a Docker image from ACR to a containerized App Service
+    #    az webapp config container set \
+    #      --resource-group "$RESOURCE_GROUP" \
+    #      --name "$APP_SERVICE_NAME" \
+    #      --docker-custom-image-name "$ACR_SERVER/$ACR_REPOSITORY:$IMAGE_TAG" \
+    #      --docker-registry-server-url "https://$ACR_SERVER" \
+    #      --docker-registry-server-user "${{ secrets.AZURE_ACR_USERNAME }}" \
+    #      --docker-registry-server-password "${{ secrets.AZURE_ACR_PASSWORD }}"
+    #      # Ensure AZURE_ACR_USERNAME and AZURE_ACR_PASSWORD secrets are configured if not using managed identities.
+    #
+    #    if [ $? -ne 0 ]; then
+    #      echo "CRITICAL ERROR: Azure App Service deployment failed."
+    #      echo "                Review az CLI output, App Service configuration, and Azure permissions."
+    #      exit 1
+    #    fi
+    #    echo "Azure App Service deployment initiated successfully. It may take a moment for changes to reflect."
+    #    echo "Access URL: https://${APP_SERVICE_NAME}.azurewebsites.net"
+    #    echo "==================================================================="
+    #    echo "Simulating Azure App Service deployment wait for 15 seconds..."
+    #    sleep 15 # Simulate waiting for App Service deployment.
+    #    echo "Azure App Service Deployment process complete."
+
+    # --- End of Deployment Examples ---
+
+    - name: 09 - Perform post-deployment smoke tests / health checks
+      # This step is crucial for ensuring the application is not only deployed
+      # but also operational and responsive in the production environment.
+      # Automated smoke tests quickly verify basic functionality and accessibility.
+      if: success() # Only execute if the previous deployment steps were successful.
+      run: |
+        echo "==================================================================="
+        echo "Step 09: Running post-deployment smoke tests and health checks..."
+        echo "-------------------------------------------------------------------"
+        echo "This step typically involves making HTTP requests to your deployed"
+        echo "application's public endpoints or dedicated health check endpoints."
+        echo "It verifies that the application is up, accessible, and responding."
+
+        # Define your application's production URL and a specific health check endpoint.
+        # These should be configured in your repository secrets or environment variables.
+        PRODUCTION_APP_BASE_URL="${{ secrets.PRODUCTION_APP_URL }}" # e.g., "https://api.your-prod-domain.com"
+        HEALTH_CHECK_PATH="/healthz" # Common path for health checks.
+
+        if [ -z "$PRODUCTION_APP_BASE_URL" ]; then
+            echo "WARNING: PRODUCTION_APP_URL secret is not set. Skipping health checks."
+            echo "         Highly recommend configuring this for post-deployment validation."
+            sleep 3
+            echo "Simulating health checks passed without actual execution due to missing URL."
+            echo "==================================================================="
+            exit 0 # Exit successfully if URL not configured, but log warning.
+        fi
+
+        HEALTH_CHECK_URL="${PRODUCTION_APP_BASE_URL}${HEALTH_CHECK_PATH}"
+        echo "Attempting to access application health check endpoint: ${HEALTH_CHECK_URL}"
+
+        # Use 'curl' for making HTTP requests.
+        # -f: Fail silently (no output on HTTP errors).
+        # --retry 5: Retry the request up to 5 times.
+        # --retry-delay 10: Wait 10 seconds between retries. This accounts for
+        #                   application startup time or initial load balancer warm-up.
+        # --max-time 30: Fail if the request takes longer than 30 seconds.
+        # --output /dev/null: Discard the response body.
+        # --write-out '%{http_code}\n': Print the HTTP status code.
+        # Check for HTTP 200 OK.
+        HTTP_STATUS=$(curl -s -f --retry 5 --retry-delay 10 --max-time 30 -o /dev/null -w '%{http_code}' "$HEALTH_CHECK_URL")
+        if [ $? -ne 0 ] || [ "$HTTP_STATUS" -ne 200 ]; then
+          echo "CRITICAL ERROR: Post-deployment health check FAILED!"
+          echo "                Attempted URL: ${HEALTH_CHECK_URL}"
+          echo "                Received HTTP Status: ${HTTP_STATUS}"
+          echo "                This indicates the deployed application is not healthy or accessible."
+          exit 1
+        fi
+
+        echo "Application health check passed successfully (HTTP Status: ${HTTP_STATUS})."
+        echo "You can add more elaborate integration tests or smoke test suites here."
+        echo "==================================================================="
+        sleep 5 # Simulate longer test suite execution
+        echo "Post-deployment smoke tests and health checks passed."
+
+    - name: 10 - Get current date, commit SHA, and generate unique release tag
+      # This step dynamically generates a unique and traceable version string
+      # to be used as the Git tag and GitHub Release name. This ensures that
+      # every production deployment has a distinct, identifiable version.
+      id: get_version # Assigns an ID to this step so its outputs can be referenced.
+      if: success()   # Only generate a version if previous steps were successful.
+      run: |
+        echo "==================================================================="
+        echo "Step 10: Generating a unique production release version tag..."
+        echo "-------------------------------------------------------------------"
+        # 1. Fetch current date in YYYY.MM.DD format.
+        # This provides a human-readable date component for the version.
+        DATE=$(date +%Y.%m.%d)
+        echo "Current Date Component: ${DATE}"
+
+        # 2. Get the short SHA of the current Git commit.
+        # The commit SHA is a unique identifier for the exact code state.
+        SHORT_SHA=$(git rev-parse --short HEAD)
+        echo "Short Commit SHA Component: ${SHORT_SHA}"
+
+        # 3. Incorporate the GitHub workflow run ID.
+        # `github.run_id` is unique for every workflow run, which is crucial
+        # if multiple deployments might occur from the *same* commit (e.g.,
+        # manual re-deploys via `workflow_dispatch`).
+        echo "GitHub Run ID Component: ${{ github.run_id }}"
+
+        # Construct the final release version string.
+        # Example format: 'v2023.10.27-abcdef1-123456789'
+        RELEASE_VERSION="v${DATE}-${SHORT_SHA}-${{ github.run_id }}"
+
+        # Set the 'RELEASE_VERSION' as an output variable for this step.
+        # This makes the generated version accessible to subsequent steps using
+        # the format: `${{ steps.<step_id>.outputs.<output_name> }}`.
+        echo "RELEASE_VERSION=${RELEASE_VERSION}" >> "$GITHUB_OUTPUT"
+        echo "-------------------------------------------------------------------"
+        echo "Generated production release version: ${RELEASE_VERSION}"
+        echo "This version will be used for the Git tag and GitHub Release."
+        echo "==================================================================="
+        sleep 2
+
+    - name: 11 - Create GitHub Release
+      # Action: 'softprops/action-gh-release@v1'
+      # This robust GitHub Action automates the creation of a new Git tag and
+      # a corresponding GitHub Release. This provides invaluable documentation
+      # and traceability for every production deployment.
+      uses: softprops/action-gh-release@v1
+      # Conditional Execution: 'if: success()'
+      # A GitHub Release should only be created if the *entire* deployment
+      # process (including build, deployment, and health checks) has
+      # completed without any errors.
+      if: success()
+      with:
+        # Parameter: 'tag_name: ${{ steps.get_version.outputs.RELEASE_VERSION }}'
+        # The Git tag that will be created. It uses the dynamically generated
+        # unique version string from the previous 'get_version' step.
+        tag_name: ${{ steps.get_version.outputs.RELEASE_VERSION }}
+        # Parameter: 'name: Production Release ${{ steps.get_version.outputs.RELEASE_VERSION }}'
+        # The display name for the release on the GitHub Releases page.
+        # It's good practice to make this descriptive and include the version.
+        name: Production Release ${{ steps.get_version.outputs.RELEASE_VERSION }}
+        # Parameter: 'body'
+        # The content of the release description. This is typically Markdown-formatted
+        # and should include key details about the deployment for future reference.
+        body: |
+          # ✨ Production Deployment Report ✨
+
+          This GitHub Release marks an automated and successful deployment of the application to the **production environment**.
+
+          ---
+
+          ## Deployment Summary
+          - **Version Tag:** `${{ steps.get_version.outputs.RELEASE_VERSION }}`
+            _This unique identifier links directly to this specific deployment instance._
+          - **Triggered By:** `${{ github.actor }}`
+            _The GitHub user or system that initiated this workflow run._
+          - **Commit SHA:** `${{ github.sha }}`
+            _The full Git commit hash that was deployed._
+          - **Deployed From Branch:** `${{ github.ref_name }}`
+            _Typically 'main', indicating the source of the production code._
+          - **Workflow Run ID:** `${{ github.run_id }}`
+            _A unique ID for this specific GitHub Actions workflow execution._
+          - **Deployment Timestamp (UTC):** `$(date -u +"%Y-%m-%d %H:%M:%S UTC")`
+
+          ---
+
+          ## Quick Links
+          - **View Full Workflow Run Details:** [Link to Run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          - **Direct Link to Deployed Commit:** [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
+          - **Browse Commit History on Branch:** [${{ github.ref_name }}](https://github.com/${{ github.repository }}/commits/${{ github.ref_name }})
+          - **Production Application URL:** `${{ secrets.PRODUCTION_APP_URL || 'Not Configured' }}`
+
+          ---
+
+          ## Changes Included
+          This deployment incorporates all code changes merged into the `main` branch up to the commit `${{ github.sha }}`.
+          For a detailed list of changes since the last production release, please refer to the commit history.
+
+          ---
+
+          _This release was automatically generated by the "Deploy to Production" GitHub Actions workflow._
+        
+        # Parameter: 'draft: false'
+        # Setting this to 'false' means the release is immediately published
+        # upon creation. If set to 'true', it would create a draft release
+        # that needs manual publishing from the GitHub UI. For production,
+        # immediate publishing is usually desired.
+        draft: false
+        # Parameter: 'prerelease: false'
+        # Setting this to 'false' marks the release as a stable, general
+        # availability version. If set to 'true', it would indicate a
+        # pre-release (e.g., beta, RC). For production, 'false' is standard.
+        prerelease: false
+        # Optional: 'generate_release_notes: true'
+        # If enabled, GitHub will automatically generate a summary of changes
+        # (e.g., merged pull requests) since the last release. This can be
+        # useful if your PR titles and descriptions are well-maintained.
+        # generate_release_notes: true
+        # Parameter: 'token: ${{ secrets.GITHUB_TOKEN }}'
+        # The default `GITHUB_TOKEN` is used here. It has sufficient permissions
+        # (due to `permissions: contents: write` configured at the job level)
+        # to create tags and releases.
+        token: ${{ secrets.GITHUB_TOKEN }}
+        # Optional: 'files: |'
+        # This parameter allows you to attach build artifacts (e.g., deployment
+        # packages, SBOMs, documentation archives) directly to the GitHub Release.
+        # Each path should be relative to the repository root.
+        # files: |
+        #   ./path/to/my-production-bundle.zip
+        #   ./path/to/security-report.pdf
+        #   ./path/to/CHANGELOG.md
+        echo "==================================================================="
+        echo "Step 11: GitHub Release created successfully."
+        echo "         Tag: ${{ steps.get_version.outputs.RELEASE_VERSION }}"
+        echo "         You can view the new release on your repository's Releases page."
+        echo "==================================================================="
+        sleep 2
+
+    - name: 12 - Notify success (e.g., Slack, Microsoft Teams)
+      # This step sends a success notification to a communication channel
+      # (like Slack or Microsoft Teams) once the entire production deployment
+      # workflow has completed without any errors. This keeps stakeholders
+      # informed of successful deployments.
+      if: success() # Only run this step if all preceding steps completed successfully.
+      run: |
+        echo "==================================================================="
+        echo "Step 12: Sending success notification for production deployment..."
+        echo "-------------------------------------------------------------------"
+        echo "✅ Production deployment for repository: ${{ github.repository }}"
+        echo "   Version: ${{ steps.get_version.outputs.RELEASE_VERSION }}"
+        echo "   Deployed by: ${{ github.actor }}"
+        echo "   Details: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        echo "-------------------------------------------------------------------"
+
+        # Example for sending a Slack notification.
+        # This requires setting `secrets.SLACK_WEBHOOK_URL` with your Slack Incoming Webhook URL.
+        # The `|| true` prevents the workflow from failing if the notification itself fails.
+        # curl -X POST -H 'Content-type: application/json' --data '{
+        #   "text": ":rocket: *Production Deployment SUCCESS!* :rocket:",
+        #   "blocks": [
+        #     { "type": "section", "text": { "type": "mrkdwn", "text": "*Production Deployment SUCCESS!* :rocket:" } },
+        #     { "type": "divider" },
+        #     { "type": "section", "fields": [
+        #         { "type": "mrkdwn", "text": "*Repo:* `${{ github.repository }}`" },
+        #         { "type": "mrkdwn", "text": "*Version:* `${{ steps.get_version.outputs.RELEASE_VERSION }}`" },
+        #         { "type": "mrkdwn", "text": "*Initiated By:* `${{ github.actor }}`" },
+        #         { "type": "mrkdwn", "text": "*Commit:* `<https://github.com/${{ github.repository }}/commit/${{ github.sha }}|${{ github.sha }}>`" }
+        #       ]
+        #     },
+        #     { "type": "section", "text": { "type": "mrkdwn", "text": "View full details: <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Workflow Run>" } }
+        #   ]
+        # }' ${{ secrets.SLACK_WEBHOOK_URL }} || true
+        #
+        # Example for Microsoft Teams (via Incoming Webhook):
+        # curl -H 'Content-Type: application/json' -d '{
+        #   "summary": "Production Deployment Success",
+        #   "sections": [{
+        #     "activityTitle": "Production Deployment SUCCESS! :rocket:",
+        #     "activitySubtitle": "Repo: ${{ github.repository }}",
+        #     "facts": [
+        #       { "name": "Version", "value": "${{ steps.get_version.outputs.RELEASE_VERSION }}" },
+        #       { "name": "Initiated By", "value": "${{ github.actor }}" },
+        #       { "name": "Commit", "value": "${{ github.sha }}" }
+        #     ],
+        #     "markdown": true
+        #   }],
+        #   "potentialAction": [{
+        #     "@type": "OpenUri",
+        #     "name": "View Workflow Run",
+        #     "targets": [{ "os": "default", "uri": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" }]
+        #   }]
+        # }' ${{ secrets.TEAMS_WEBHOOK_URL }} || true
+
+        echo "Notification sent (simulated). Replace with actual curl commands for your messaging platform."
+        echo "==================================================================="
+        sleep 2
+
+    - name: 13 - Notify failure (e.g., Slack, Microsoft Teams)
+      # This step sends a failure notification, ensuring that relevant teams
+      # are immediately alerted if the production deployment workflow encounters
+      # any issues. This allows for prompt investigation and resolution.
+      if: failure() # This step will ONLY run if any preceding step in the job has failed.
+      run: |
+        echo "==================================================================="
+        echo "Step 13: Sending FAILURE notification for production deployment..."
+        echo "-------------------------------------------------------------------"
+        echo "🚨 Production deployment for repository: ${{ github.repository }} FAILED!"
+        echo "   Commit SHA: ${{ github.sha }}"
+        echo "   Initiated by: ${{ github.actor }}"
+        echo "   Please investigate the workflow logs for details."
+        echo "   Workflow Run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        echo "-------------------------------------------------------------------"
+
+        # Example for sending a Slack notification on failure.
+        # curl -X POST -H 'Content-type: application/json' --data '{
+        #   "text": ":red_circle: *Production Deployment FAILED!* :red_circle:",
+        #   "blocks": [
+        #     { "type": "section", "text": { "type": "mrkdwn", "text": "*Production Deployment FAILED!* :red_circle:" } },
+        #     { "type": "divider" },
+        #     { "type": "section", "fields": [
+        #         { "type": "mrkdwn", "text": "*Repo:* `${{ github.repository }}`" },
+        #         { "type": "mrkdwn", "text": "*Commit:* `<https://github.com/${{ github.repository }}/commit/${{ github.sha }}|${{ github.sha }}>`" },
+        #         { "type": "mrkdwn", "text": "*Initiated By:* `${{ github.actor }}`" }
+        #       ]
+        #     },
+        #     { "type": "section", "text": { "type": "mrkdwn", "text": "Please investigate immediately: <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Workflow Run>" } }
+        #   ]
+        # }' ${{ secrets.SLACK_WEBHOOK_URL }} || true
+        #
+        # Example for Microsoft Teams on failure:
+        # curl -H 'Content-Type: application/json' -d '{
+        #   "summary": "Production Deployment Failure",
+        #   "sections": [{
+        #     "activityTitle": "Production Deployment FAILED! :red_circle:",
+        #     "activitySubtitle": "Repo: ${{ github.repository }}",
+        #     "facts": [
+        #       { "name": "Commit", "value": "${{ github.sha }}" },
+        #       { "name": "Initiated By", "value": "${{ github.actor }}" }
+        #     ],
+        #     "markdown": true
+        #   }],
+        #   "potentialAction": [{
+        #     "@type": "OpenUri",
+        #     "name": "View Workflow Run",
+        #     "targets": [{ "os": "default", "uri": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" }]
+        #   }]
+        # }' ${{ secrets.TEAMS_WEBHOOK_URL }} || true
+
+        echo "Failure notification sent (simulated). Replace with actual curl commands for your messaging platform."
+        echo "==================================================================="
+        sleep 2
+
+    - name: 14 - Final cleanup (Optional, best effort)
+      # This is an optional step for any final cleanup tasks.
+      # While GitHub Actions runners are ephemeral and are destroyed after a job,
+      # this step could be used for specific tasks like deleting temporary build
+      # artifacts from a shared storage, or logging final status.
+      if: always() # This ensures the cleanup step always runs, regardless of
+                   # whether previous steps succeeded or failed. This is a good
+                   # practice for resource management.
+      run: |
+        echo "==================================================================="
+        echo "Step 14: Performing final cleanup tasks (if any defined)..."
+        echo "-------------------------------------------------------------------"
+        echo "GitHub Actions runners are ephemeral. The workspace will be automatically"
+        echo "cleaned up and the runner instance will be de-provisioned after this job completes."
+        # Add any specific cleanup commands here, for example:
+        # - Removing sensitive files from a volume if it persists (uncommon for GitHub hosted runners).
+        # - Deleting temporary cloud resources created *during* the workflow.
+        # rm -rf ./tmp-sensitive-data || true
+        # echo "Temporary sensitive data removed."
+        echo "Cleanup complete (simulated)."
+        echo "==================================================================="
+        sleep 1

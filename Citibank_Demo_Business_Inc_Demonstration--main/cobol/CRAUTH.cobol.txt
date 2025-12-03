@@ -1,0 +1,430 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. CRAUTH.
+       AUTHOR. GLOBAL-INTEGRATION-INITIATIVE.
+       DATE-WRITTEN. 1992-01-15.
+       DATE-COMPILED. LOCAL-SYSTEM-DATE.
+      ******************************************************************
+      * TRANSACTION AUTHORIZATION SERVICE
+      *
+      * RECEIVES AN AUTHORIZATION REQUEST FROM A POINT-OF-SALE (POS)
+      * TERMINAL OR E-COMMERCE GATEWAY.
+      * PERFORMS A SERIES OF VALIDATION AND INTELLIGENT FRAUD CHECKS
+      * TO DETERMINE APPROVAL OR DENIAL, AND RETURNS THE RESULT.
+      * INTEGRATES ADVANCED AI MODELS FOR ENHANCED SECURITY.
+      ******************************************************************
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT CARDHOLDER-MASTER-FILE ASSIGN TO CARDMAST
+               ORGANIZATION IS INDEXED
+               ACCESS MODE IS DYNAMIC
+               RECORD KEY IS CR-CARD-NUMBER
+               FILE STATUS IS WS-CARDMAST-STATUS.
+           SELECT TRANSACTION-LOG-FILE ASSIGN TO TRANSLOG
+               ORGANIZATION IS SEQUENTIAL
+               ACCESS MODE IS SEQUENTIAL
+               FILE STATUS IS WS-TRANSLOG-STATUS.
+
+       DATA DIVISION.
+       FILE SECTION.
+       FD CARDHOLDER-MASTER-FILE.
+       01 CARD-FILE-RECORD.
+          COPY CPCR01. *> Assumed to define CR-CARD-NUMBER, etc.
+          05 CR-EXPIRY-DATE          PIC 9(04). *> YYMM
+          05 CR-CVV-HASH             PIC X(04). *> Hashed CVV for comparison
+          05 CR-LAST-TRAN-DETAILS.
+             10 CR-LAST-TRAN-AMOUNT  PIC S9(7)V99.
+             10 CR-LAST-TRAN-DATE    PIC 9(08). *> YYYYMMDD
+             10 CR-LAST-TRAN-TIME    PIC 9(06). *> HHMMSS
+             10 CR-LAST-MERCHANT-ID  PIC X(15).
+          05 CR-BEHAVIORAL-PROFILE   PIC X(100). *> Encoded AI behavioral profile
+
+       FD TRANSACTION-LOG-FILE.
+       01 TRANSACTION-LOG-RECORD.
+          05 TL-TRAN-ID              PIC X(20).
+          05 TL-CARD-NUMBER          PIC 9(16).
+          05 TL-AMOUNT               PIC S9(7)V99.
+          05 TL-MERCHANT-ID          PIC X(15).
+          05 TL-TRANS-DATE           PIC 9(08).
+          05 TL-TRANS-TIME           PIC 9(06).
+          05 TL-RESPONSE-CODE        PIC X(02).
+          05 TL-AUTH-CODE            PIC X(06).
+          05 TL-FRAUD-SCORE          PIC 9(03).
+          05 TL-AI-DECISION-DETAIL   PIC X(50).
+
+       WORKING-STORAGE SECTION.
+       01 WS-PROGRAM-SWITCHES.
+          05 WS-CARDMAST-STATUS     PIC X(02).
+             88 CARDMAST-OK            VALUE '00'.
+             88 CARDMAST-NOT-FOUND     VALUE '23'.
+             88 CARDMAST-ERROR         VALUE '10', '21', '22', '24',
+                                       '30', '90'.
+          05 WS-TRANSLOG-STATUS     PIC X(02).
+             88 TRANSLOG-OK            VALUE '00'.
+             88 TRANSLOG-ERROR         VALUE '10', '21', '22', '30',
+                                       '90'.
+          05 WS-VALIDATION-FLAG     PIC X(01) VALUE 'Y'.
+             88 TRANSACTION-VALID      VALUE 'Y'.
+             88 TRANSACTION-INVALID    VALUE 'N'.
+
+       01 WS-AUTH-REQUEST.
+          05 WS-REQ-TRANSACTION-ID  PIC X(20).
+          05 WS-REQ-CARD-NUMBER     PIC 9(16).
+          05 WS-REQ-AMOUNT          PIC S9(7)V99.
+          05 WS-REQ-MERCHANT-ID     PIC X(15).
+          05 WS-REQ-TRANS-TYPE      PIC X(03). *> e.g., 'PUR', 'CASH', 'RET'
+          05 WS-REQ-EXPIRY-DATE     PIC 9(04). *> YYMM
+          05 WS-REQ-CVV             PIC 9(03).
+          05 WS-REQ-GEO-LOCATION.
+             10 WS-REQ-LATITUDE      PIC S9(2)V9(6).
+             10 WS-REQ-LONGITUDE     PIC S9(3)V9(6).
+          05 WS-REQ-DEVICE-ID       PIC X(10).
+          05 WS-REQ-TIMESTAMP.
+             10 WS-REQ-DATE-YYMMDD   PIC 9(08).
+             10 WS-REQ-TIME-HHMMSS   PIC 9(06).
+
+       01 WS-AUTH-RESPONSE.
+          05 WS-RESP-CODE           PIC X(02).
+             88 AUTH-APPROVED         VALUE '00'.
+             88 AUTH-DENIED-FUNDS     VALUE '51'.
+             88 AUTH-DENIED-STATUS    VALUE '05'.
+             88 AUTH-DENIED-FRAUD     VALUE '59'.
+             88 AUTH-DENIED-EXPIRY    VALUE '54'.
+             88 AUTH-DENIED-CVV       VALUE '58'.
+             88 AUTH-DENIED-DUPLICATE VALUE '62'.
+             88 AUTH-DENIED-INVALID   VALUE '14'.
+             88 AUTH-SYSTEM-ERROR     VALUE '96'.
+          05 WS-RESP-AUTH-CODE      PIC X(06).
+          05 WS-RESP-TIMESTAMP      PIC 9(14). *> YYYYMMDDHHMMSS
+          05 WS-RESP-DETAILED-REASON PIC X(50).
+
+       01 WS-CALCULATION-FIELDS.
+          05 WS-AVAILABLE-CREDIT    PIC S9(7)V99.
+          05 WS-CURRENT-DATE-TIME.
+             10 WS-CURRENT-DATE-CCYYMMDD PIC 9(08).
+             10 WS-CURRENT-TIME-HHMMSS   PIC 9(06).
+          05 WS-CARD-EXPIRY-YEAR    PIC 9(02).
+          05 WS-CARD-EXPIRY-MONTH   PIC 9(02).
+          05 WS-CURRENT-YEAR        PIC 9(02).
+          05 WS-CURRENT-MONTH       PIC 9(02).
+          05 WS-GENERATED-AUTH-NUM  PIC 9(06).
+
+       01 WS-AI-DECISION-FIELDS.
+          05 WS-AI-FRAUD-SCORE      PIC 9(03). *> Overall score
+          05 WS-BEHAVIORAL-SCORE    PIC 9(03). *> Score from behavioral model
+          05 WS-GEOSPATIAL-SCORE    PIC 9(03). *> Score from geospatial model
+          05 WS-AI-THRESHOLD-HIGH   PIC 9(03) VALUE 85.
+          05 WS-AI-THRESHOLD-MEDIUM PIC 9(03) VALUE 60.
+          05 WS-AI-DECISION-DETAIL  PIC X(50).
+
+       01 WS-SYSTEM-CONFIG.
+          05 WS-DEFAULT-FRAUD-THRESHOLD PIC 9(03) VALUE 75.
+          05 WS-MAX-CONSECUTIVE-DECLINES PIC 9(02) VALUE 3.
+
+       PROCEDURE DIVISION.
+       0000-MAIN-LOGIC.
+           PERFORM 0500-INITIALIZE-PROGRAM.
+           DISPLAY "INCOMING AUTHORIZATION REQUEST: " WS-REQ-TRANSACTION-ID.
+           *> In a real mainframe scenario, ACCEPT would be replaced by
+           *> linkage section parameters or a message queue read.
+           *> For demonstration, we'll simulate an incoming request.
+           MOVE "TRN000000001AI" TO WS-REQ-TRANSACTION-ID.
+           MOVE 4111222233334444 TO WS-REQ-CARD-NUMBER.
+           MOVE 125.75 TO WS-REQ-AMOUNT.
+           MOVE "GLOBAL-RETAIL" TO WS-REQ-MERCHANT-ID.
+           MOVE "PUR" TO WS-REQ-TRANS-TYPE.
+           MOVE 2512 TO WS-REQ-EXPIRY-DATE. *> Dec 2025
+           MOVE 123 TO WS-REQ-CVV.
+           MOVE +34.567890 TO WS-REQ-LATITUDE.
+           MOVE -118.123456 TO WS-REQ-LONGITUDE.
+           MOVE "POS-001A" TO WS-REQ-DEVICE-ID.
+           MOVE WS-CURRENT-DATE-CCYYMMDD TO WS-REQ-DATE-YYMMDD.
+           MOVE WS-CURRENT-TIME-HHMMSS TO WS-REQ-TIME-HHMMSS.
+
+           PERFORM 1000-READ-CARD-RECORD.
+           IF NOT CARDMAST-OK
+              IF CARDMAST-NOT-FOUND
+                 MOVE AUTH-DENIED-INVALID TO WS-RESP-CODE
+                 MOVE "CARD NUMBER NOT ON FILE" TO WS-RESP-DETAILED-REASON
+              ELSE
+                 MOVE AUTH-SYSTEM-ERROR TO WS-RESP-CODE
+                 MOVE "CARD MASTER FILE ERROR" TO WS-RESP-DETAILED-REASON
+                 DISPLAY "CARD MASTER FILE ERROR: " WS-CARDMAST-STATUS
+              END-IF
+              SET TRANSACTION-INVALID TO TRUE
+           END-IF.
+
+           IF TRANSACTION-VALID
+              PERFORM 1500-PRE-AUTHORIZATION-CHECKS
+           END-IF.
+
+           IF TRANSACTION-VALID
+              PERFORM 2000-CORE-AUTHORIZATION-LOGIC
+           END-IF.
+
+           PERFORM 3000-FINALIZE-RESPONSE.
+           PERFORM 4000-LOG-TRANSACTION.
+           PERFORM 5000-TERMINATE-PROGRAM.
+
+       0500-INITIALIZE-PROGRAM.
+           INITIALIZE WS-PROGRAM-SWITCHES
+                      WS-AUTH-RESPONSE
+                      WS-CALCULATION-FIELDS
+                      WS-AI-DECISION-FIELDS.
+           ACCEPT WS-CURRENT-DATE-CCYYMMDD FROM DATE YYYYMMDD.
+           ACCEPT WS-CURRENT-TIME-HHMMSS FROM TIME.
+           MOVE WS-CURRENT-DATE-CCYYMMDD TO WS-RESP-TIMESTAMP(1:8).
+           MOVE WS-CURRENT-TIME-HHMMSS TO WS-RESP-TIMESTAMP(9:6).
+           SET TRANSACTION-VALID TO TRUE.
+           MOVE WS-DEFAULT-FRAUD-THRESHOLD TO WS-AI-THRESHOLD-HIGH. *> Default for example
+
+       1000-READ-CARD-RECORD.
+           MOVE WS-REQ-CARD-NUMBER TO CR-CARD-NUMBER.
+           OPEN INPUT CARDHOLDER-MASTER-FILE.
+           IF NOT CARDMAST-OK
+              DISPLAY "ERROR OPENING CARDHOLDER-MASTER-FILE: "
+                      WS-CARDMAST-STATUS
+              MOVE '96' TO WS-CARDMAST-STATUS *> Set to generic error
+              GO TO 1000-EXIT
+           END-IF.
+           READ CARDHOLDER-MASTER-FILE
+               INVALID KEY MOVE '23' TO WS-CARDMAST-STATUS.
+           CLOSE CARDHOLDER-MASTER-FILE.
+       1000-EXIT.
+           EXIT.
+
+       1500-PRE-AUTHORIZATION-CHECKS.
+           DISPLAY "PERFORMING PRE-AUTHORIZATION CHECKS...".
+           IF NOT CARD-ACTIVE
+              MOVE AUTH-DENIED-STATUS TO WS-RESP-CODE
+              MOVE "CARD IS INACTIVE OR BLOCKED" TO WS-RESP-DETAILED-REASON
+              SET TRANSACTION-INVALID TO TRUE
+              GO TO 1500-EXIT
+           END-IF.
+
+           PERFORM 1510-VALIDATE-EXPIRY-CVV.
+           IF NOT TRANSACTION-VALID
+              GO TO 1500-EXIT
+           END-IF.
+
+           PERFORM 1520-CHECK-DUPLICATE-TRANSACTION.
+           IF NOT TRANSACTION-VALID
+              GO TO 1500-EXIT
+           END-IF.
+
+       1500-EXIT.
+           EXIT.
+
+       1510-VALIDATE-EXPIRY-CVV.
+           DISPLAY "VALIDATING EXPIRY DATE AND CVV...".
+           MOVE CR-EXPIRY-DATE(1:2) TO WS-CARD-EXPIRY-YEAR.
+           MOVE CR-EXPIRY-DATE(3:2) TO WS-CARD-EXPIRY-MONTH.
+           MOVE WS-CURRENT-DATE-CCYYMMDD(3:2) TO WS-CURRENT-YEAR.
+           MOVE WS-CURRENT-DATE-CCYYMMDD(5:2) TO WS-CURRENT-MONTH.
+
+           IF WS-REQ-EXPIRY-DATE IS NOT NUMERIC
+              OR WS-REQ-EXPIRY-DATE NOT = CR-EXPIRY-DATE
+              MOVE AUTH-DENIED-EXPIRY TO WS-RESP-CODE
+              MOVE "INVALID OR MISMATCHED EXPIRY DATE" TO WS-RESP-DETAILED-REASON
+              SET TRANSACTION-INVALID TO TRUE
+              GO TO 1510-EXIT
+           END-IF.
+
+           IF WS-CARD-EXPIRY-YEAR < WS-CURRENT-YEAR
+              MOVE AUTH-DENIED-EXPIRY TO WS-RESP-CODE
+              MOVE "CARD EXPIRED (YEAR)" TO WS-RESP-DETAILED-REASON
+              SET TRANSACTION-INVALID TO TRUE
+              GO TO 1510-EXIT
+           END-IF.
+           IF WS-CARD-EXPIRY-YEAR = WS-CURRENT-YEAR AND
+              WS-CARD-EXPIRY-MONTH < WS-CURRENT-MONTH
+              MOVE AUTH-DENIED-EXPIRY TO WS-RESP-CODE
+              MOVE "CARD EXPIRED (MONTH)" TO WS-RESP-DETAILED-REASON
+              SET TRANSACTION-INVALID TO TRUE
+              GO TO 1510-EXIT
+           END-IF.
+
+           *> Simulate CVV hash comparison. In real system, this would be a secure hash.
+           IF WS-REQ-CVV IS NOT NUMERIC
+              OR WS-REQ-CVV NOT = 123 *> Placeholder for actual CVV logic
+              MOVE AUTH-DENIED-CVV TO WS-RESP-CODE
+              MOVE "INVALID CVV" TO WS-RESP-DETAILED-REASON
+              SET TRANSACTION-INVALID TO TRUE
+              GO TO 1510-EXIT
+           END-IF.
+       1510-EXIT.
+           EXIT.
+
+       1520-CHECK-DUPLICATE-TRANSACTION.
+           DISPLAY "CHECKING FOR DUPLICATE TRANSACTIONS...".
+           *> Simple check: same amount, merchant, within a very short time.
+           *> More sophisticated systems would use transaction IDs and finer time windows.
+           IF WS-REQ-AMOUNT = CR-LAST-TRAN-AMOUNT AND
+              WS-REQ-MERCHANT-ID = CR-LAST-MERCHANT-ID AND
+              WS-CURRENT-DATE-CCYYMMDD = CR-LAST-TRAN-DATE AND
+              (WS-CURRENT-TIME-HHMMSS - CR-LAST-TRAN-TIME < 120) *> Within 2 minutes
+              MOVE AUTH-DENIED-DUPLICATE TO WS-RESP-CODE
+              MOVE "POTENTIAL DUPLICATE TRANSACTION" TO WS-RESP-DETAILED-REASON
+              SET TRANSACTION-INVALID TO TRUE
+           END-IF.
+       1520-EXIT.
+           EXIT.
+
+       2000-CORE-AUTHORIZATION-LOGIC.
+           DISPLAY "PERFORMING CORE AUTHORIZATION CHECKS...".
+           COMPUTE WS-AVAILABLE-CREDIT =
+               CR-CREDIT-LIMIT - CR-CURRENT-BALANCE.
+
+           IF WS-REQ-AMOUNT > WS-AVAILABLE-CREDIT
+              MOVE AUTH-DENIED-FUNDS TO WS-RESP-CODE
+              MOVE "INSUFFICIENT FUNDS" TO WS-RESP-DETAILED-REASON
+              SET TRANSACTION-INVALID TO TRUE
+              GO TO 2000-EXIT
+           END-IF.
+
+           PERFORM 2100-AI-DECISION-ENGINE.
+           IF WS-AI-FRAUD-SCORE > WS-AI-THRESHOLD-HIGH
+              MOVE AUTH-DENIED-FRAUD TO WS-RESP-CODE
+              MOVE WS-AI-DECISION-DETAIL TO WS-RESP-DETAILED-REASON
+              SET TRANSACTION-INVALID TO TRUE
+              GO TO 2000-EXIT
+           END-IF.
+
+           *> If all checks pass, set for approval
+           MOVE AUTH-APPROVED TO WS-RESP-CODE.
+           MOVE "APPROVED" TO WS-RESP-DETAILED-REASON.
+
+           PERFORM 2500-PROCESS-APPROVAL.
+
+       2000-EXIT.
+           EXIT.
+
+       2100-AI-DECISION-ENGINE.
+           DISPLAY "ENGAGING AI GUARDIAN FOR INTELLIGENT FRAUD ANALYSIS...".
+
+           *> CALL AI-BEHAVIORAL-MODEL: Analyze spending patterns,
+           *> merchant history, unusual activity.
+           CALL "AI-BEHAVIORAL-MODEL" USING WS-REQ-CARD-NUMBER
+                                        WS-REQ-AMOUNT
+                                        WS-REQ-MERCHANT-ID
+                                        CR-BEHAVIORAL-PROFILE
+                                  GIVING WS-BEHAVIORAL-SCORE.
+           DISPLAY "AI Behavioral Model Score: " WS-BEHAVIORAL-SCORE.
+
+           *> CALL AI-GEOSPATIAL-MODEL: Analyze transaction location vs.
+           *> typical locations, velocity checks.
+           CALL "AI-GEOSPATIAL-MODEL" USING WS-REQ-CARD-NUMBER
+                                        WS-REQ-GEO-LOCATION
+                                        WS-REQ-DEVICE-ID
+                                  GIVING WS-GEOSPATIAL-SCORE.
+           DISPLAY "AI Geospatial Model Score: " WS-GEOSPATIAL-SCORE.
+
+           PERFORM 2150-AGGREGATE-FRAUD-SCORES.
+           DISPLAY "Overall AI Fraud Score: " WS-AI-FRAUD-SCORE.
+
+       2150-AGGREGATE-FRAUD-SCORES.
+           *> A simple aggregation, a real system would use a weighted model
+           *> or a more complex neural network for final decisioning.
+           COMPUTE WS-AI-FRAUD-SCORE =
+               (WS-BEHAVIORAL-SCORE + WS-GEOSPATIAL-SCORE) / 2.
+
+           IF WS-AI-FRAUD-SCORE > WS-AI-THRESHOLD-HIGH
+              MOVE "HIGH RISK TRANSACTION DETECTED BY AI" TO WS-AI-DECISION-DETAIL
+           ELSE IF WS-AI-FRAUD-SCORE > WS-AI-THRESHOLD-MEDIUM
+              MOVE "MODERATE RISK, FURTHER REVIEW SUGGESTED" TO WS-AI-DECISION-DETAIL
+           ELSE
+              MOVE "LOW RISK, AI APPROVED" TO WS-AI-DECISION-DETAIL
+           END-IF.
+       2150-EXIT.
+           EXIT.
+
+       2500-PROCESS-APPROVAL.
+           DISPLAY "TRANSACTION APPROVED. PROCESSING...".
+           *> Update cardholder balance
+           COMPUTE CR-CURRENT-BALANCE = CR-CURRENT-BALANCE + WS-REQ-AMOUNT.
+
+           *> Update last transaction details
+           MOVE WS-REQ-AMOUNT TO CR-LAST-TRAN-AMOUNT.
+           MOVE WS-REQ-DATE-YYMMDD TO CR-LAST-TRAN-DATE.
+           MOVE WS-REQ-TIME-HHMMSS TO CR-LAST-TRAN-TIME.
+           MOVE WS-REQ-MERCHANT-ID TO CR-LAST-MERCHANT-ID.
+
+           *> Generate a unique authorization code
+           PERFORM 2510-GENERATE-AUTH-CODE.
+           MOVE WS-GENERATED-AUTH-NUM TO WS-RESP-AUTH-CODE.
+
+           OPEN I-O CARDHOLDER-MASTER-FILE.
+           IF NOT CARDMAST-OK
+              DISPLAY "ERROR OPENING CARDHOLDER-MASTER-FILE FOR UPDATE: "
+                      WS-CARDMAST-STATUS
+              MOVE AUTH-SYSTEM-ERROR TO WS-RESP-CODE
+              MOVE "SYSTEM ERROR DURING BALANCE UPDATE" TO WS-RESP-DETAILED-REASON
+              SET TRANSACTION-INVALID TO TRUE
+              GO TO 2500-EXIT
+           END-IF.
+           REWRITE CARD-FILE-RECORD
+               INVALID KEY
+                   DISPLAY "ERROR REWRITING CARD RECORD: " WS-CARDMAST-STATUS
+                   MOVE AUTH-SYSTEM-ERROR TO WS-RESP-CODE
+                   MOVE "SYSTEM ERROR UPDATING CARD RECORD" TO WS-RESP-DETAILED-REASON
+                   SET TRANSACTION-INVALID TO TRUE.
+           CLOSE CARDHOLDER-MASTER-FILE.
+
+       2500-EXIT.
+           EXIT.
+
+       2510-GENERATE-AUTH-CODE.
+           *> Simple pseudo-random generation. A real system would use a secure
+           *> random number generator or a sequence from a central authority.
+           COMPUTE WS-GENERATED-AUTH-NUM =
+               FUNCTION RANDOM * 999999 + 100000.
+           IF WS-GENERATED-AUTH-NUM > 999999
+              COMPUTE WS-GENERATED-AUTH-NUM = WS-GENERATED-AUTH-NUM - 100000.
+       2510-EXIT.
+           EXIT.
+
+       3000-FINALIZE-RESPONSE.
+           IF TRANSACTION-VALID AND NOT AUTH-APPROVED
+              MOVE "TRANSACTION DENIED" TO WS-RESP-DETAILED-REASON
+           END-IF.
+           IF AUTH-APPROVED AND WS-RESP-AUTH-CODE = SPACES
+              MOVE "NOAUTH" TO WS-RESP-AUTH-CODE
+           END-IF.
+           DISPLAY "FINAL RESPONSE CODE: " WS-RESP-CODE
+                   " (AUTH CODE: " WS-RESP-AUTH-CODE ")".
+       3000-EXIT.
+           EXIT.
+
+       4000-LOG-TRANSACTION.
+           DISPLAY "LOGGING TRANSACTION...".
+           OPEN EXTEND TRANSACTION-LOG-FILE.
+           IF NOT TRANSLOG-OK
+              DISPLAY "ERROR OPENING TRANSACTION-LOG-FILE: " WS-TRANSLOG-STATUS
+              GO TO 4000-EXIT
+           END-IF.
+
+           MOVE WS-REQ-TRANSACTION-ID TO TL-TRAN-ID.
+           MOVE WS-REQ-CARD-NUMBER TO TL-CARD-NUMBER.
+           MOVE WS-REQ-AMOUNT TO TL-AMOUNT.
+           MOVE WS-REQ-MERCHANT-ID TO TL-MERCHANT-ID.
+           MOVE WS-CURRENT-DATE-CCYYMMDD TO TL-TRANS-DATE.
+           MOVE WS-CURRENT-TIME-HHMMSS TO TL-TRANS-TIME.
+           MOVE WS-RESP-CODE TO TL-RESPONSE-CODE.
+           MOVE WS-RESP-AUTH-CODE TO TL-AUTH-CODE.
+           MOVE WS-AI-FRAUD-SCORE TO TL-FRAUD-SCORE.
+           MOVE WS-AI-DECISION-DETAIL TO TL-AI-DECISION-DETAIL.
+
+           WRITE TRANSACTION-LOG-RECORD
+               INVALID KEY
+                   DISPLAY "ERROR WRITING TO TRANSACTION-LOG-FILE: "
+                           WS-TRANSLOG-STATUS.
+           CLOSE TRANSACTION-LOG-FILE.
+       4000-EXIT.
+           EXIT.
+
+       5000-TERMINATE-PROGRAM.
+           DISPLAY "TRANSACTION PROCESSING COMPLETE FOR " WS-REQ-TRANSACTION-ID.
+           DISPLAY "**************************************************".
+           STOP RUN.
+
+       END PROGRAM CRAUTH.

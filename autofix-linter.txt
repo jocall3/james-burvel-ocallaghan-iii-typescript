@@ -1,0 +1,75 @@
+name: Autofix Linting and Formatting
+
+on:
+  push:
+    branches: [ "main" ] # Trigger on push to the main branch
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  autofix:
+    runs-on: ubuntu-latest
+
+    # Permissions required to check out code, push changes, and create pull requests
+    permissions:
+      contents: write
+      pull-requests: write
+
+    strategy:
+      matrix:
+        node-version: [ 22 ] # Use the same Node.js version as the build workflow
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        # Fetch entire history for the `create-pull-request` action to work correctly
+        fetch-depth: 0
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm' # Cache npm dependencies
+
+    - name: Install dependencies
+      run: npm install --prefer-offline --no-audit
+
+    - name: Run lint and format fix
+      run: |
+        # Example commands for fixing linting and formatting.
+        # Adjust these commands based on your project's specific tools (e.g., Prettier, ESLint, Stylelint, etc.)
+        # The '|| true' ensures the step doesn't fail if the fix command exits with a non-zero status
+        # but still made some changes.
+        echo "Running Prettier fix..."
+        npx prettier --write . || true
+
+        echo "Running ESLint fix..."
+        npx eslint --fix . || true
+
+        # Add more autofix commands here if needed, e.g.,
+        # npx stylelint --fix "**/*.{css,scss}" || true
+
+    - name: Check for modified files
+      id: git_status
+      run: |
+        # Check if any files were changed by the autofix steps
+        echo "changes_made=$(git status --porcelain | wc -l)" >> "$GITHUB_OUTPUT"
+
+    - name: Create Pull Request if changes detected
+      if: steps.git_status.outputs.changes_made > 0
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: "chore: Auto-fix linting and formatting issues"
+        title: "chore: Auto-fix linting and formatting issues"
+        body: |
+          This pull request was automatically created by the `Autofix Linting and Formatting` workflow.
+          It addresses linting and formatting issues found in the codebase.
+        branch: autofix/lint-format-fixes-${{ github.ref_name }}-${{ github.run_id }}
+        base: ${{ github.ref_name }} # Target branch for the PR (e.g., 'main')
+        labels: |
+          autofix
+          chore
+        # Add assignees or reviewers if desired:
+        # assignees: 'your-github-username'
+        # reviewers: 'another-github-username'

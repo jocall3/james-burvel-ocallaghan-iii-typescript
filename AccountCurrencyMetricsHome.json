@@ -1,0 +1,2839 @@
+// Copyright James Burvel Oâ€™Callaghan III
+// President Citibank Demo Business Inc.
+
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import ReactDOM from 'react-dom'; // Assuming it's the root of a React app
+import {
+  ApolloClient,
+  InMemoryCache,
+  ApolloProvider,
+  useQuery,
+  gql,
+  NormalizedCacheObject,
+  ApolloLink,
+} from '@apollo/client';
+import { RestLink } from 'apollo-link-rest'; // Could use a REST link for some parts, or just mock entirely.
+import { onError } from '@apollo/client/link/error';
+import { HttpLink } from '@apollo/client';
+
+// Assuming a router like react-router-dom would be used
+import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation, useParams } from 'react-router-dom';
+
+// --- Global Type Definitions (Extracted from JSON and expanded for commercial application capability) ---
+
+/**
+ * Enumeration for supported currencies.
+ * Expanded to include more real-world currencies.
+ */
+export type CurrencyEnum = 'USD' | 'EUR' | 'GBP' | 'JPY' | 'AUD' | 'CAD' | 'CHF' | 'CNY' | 'SEK' | 'NZD' | 'MXN' | 'SGD' | 'HKD' | 'INR' | 'BRL';
+
+/**
+ * Interface for the detailed information of an account currency metric.
+ * This represents a specific currency view for a bank account.
+ * Extensively expanded to cover many aspects of a commercial banking account.
+ */
+export interface AccountCurrencyMetricNode {
+  typename: string; // __typename from GraphQL
+  id: string; // Unique identifier for this currency-specific account view
+  accountId: string; // The underlying primary account ID (e.g., 'ACC-001')
+  accountName: string; // User-friendly name of the account (e.g., 'Main Operating Account')
+  currency: CurrencyEnum;
+  priorDayBalanceCents: number; // Balance at the end of the previous business day, in cents for precision
+  availableBalanceCents: number; // Current available balance, considering pending transactions, in cents
+  prettyPriorDayBalance: string; // Formatted string for display
+  prettyAvailableBalance: string; // Formatted string for display
+  ledgerVarianceCents: number; // Difference between ledger and available balance, in cents
+  highlightLedgerVariance: boolean; // Flag to highlight significant variance
+  unreconciledAmountCents: number; // Total amount of unreconciled items, in cents
+  unreconciledPercent: number; // Percentage of available balance that is unreconciled (0-100%)
+  path: string; // Internal path for deep linking (e.g., /accounts/details/USD/ACC-001)
+  lastUpdated: string; // ISO string of when these metrics were last refreshed
+  transactionsLast24H: Transaction[]; // A snapshot of recent transactions
+  potentialOverdraftRisk: boolean; // Indicates if the account is at risk of overdraft
+  complianceStatus: 'GREEN' | 'YELLOW' | 'RED' | 'REVIEW'; // Compliance health of the account
+  riskScore: number; // Calculated risk score (e.g., 0-100) based on various factors
+  budgetAllocatedCents: number; // Total budget allocated for this account/currency, in cents
+  budgetUsedCents: number; // Total budget used for this account/currency, in cents
+  projectedBalanceCents: number; // Future balance projection based on known upcoming transactions, in cents
+  associatedAccounts: { // Linked or subsidiary accounts relevant to this metric
+    id: string;
+    name: string;
+    type: string; // e.g., 'Checking', 'Savings', 'Investment', 'Loan'
+    currentBalanceCents: number;
+    currency: CurrencyEnum;
+    relationshipType: 'PARENT' | 'CHILD' | 'RELATED';
+  }[];
+  spendingCategories: { // Breakdown of spending by categories
+    category: string;
+    amountCents: number;
+    percentOfTotal: number;
+  }[];
+  transactionCountLast30Days: number; // Number of transactions in the last 30 days
+  averageDailyBalanceCents: number; // Average daily balance over a period, in cents
+  netCashFlowLast30DaysCents: number; // Net inflow/outflow over the last 30 days, in cents
+  creditLimitCents?: number; // Applicable for credit facilities, in cents
+  interestRatePercent?: number; // For interest-bearing accounts or loans
+  feesAndChargesLast30DaysCents: number; // Total fees incurred in the last 30 days, in cents
+  monthlyStatements?: { // List of available monthly statements
+    id: string;
+    period: string; // e.g., "JUL-2024"
+    downloadUrl: string;
+    status: 'AVAILABLE' | 'GENERATING' | 'ERROR';
+  }[];
+  authorizedUsers?: { // Users authorized to access this specific account metric
+    userId: string;
+    userName: string;
+    permissions: string[]; // e.g., ['VIEW', 'TRANSACT', 'APPROVE']
+  }[];
+  pendingDepositsCents: number; // Sum of pending deposits
+  pendingWithdrawalsCents: number; // Sum of pending withdrawals
+  holdsCents: number; // Amount currently on hold, in cents
+  lastStatementBalanceCents: number; // Balance from the last official statement
+}
+
+/**
+ * Interface for an edge in a paginated connection of AccountCurrencyMetrics.
+ */
+export interface AccountCurrencyMetricEdge {
+  node: AccountCurrencyMetricNode;
+  typename: string; // __typename
+}
+
+/**
+ * Interface for pagination information.
+ */
+export interface PageInfo {
+  startCursor: string | null;
+  endCursor: string | null;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+  typename: string; // __typename
+}
+
+/**
+ * Interface for the connection of AccountCurrencyMetrics, including edges and page info.
+ */
+export interface AccountCurrencyMetricConnection {
+  edges: AccountCurrencyMetricEdge[];
+  pageInfo: PageInfo;
+  typename: string; // __typename
+}
+
+/**
+ * Interface for a user profile in the banking application.
+ * Extended with more banking-specific roles and preferences.
+ */
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  roles: ('ADMIN' | 'ACCOUNT_MANAGER' | 'VIEWER' | 'PAYMENT_APPROVER' | 'REPORT_ANALYST')[]; // Expanded roles
+  preferredCurrency: CurrencyEnum;
+  themePreference: 'light' | 'dark';
+  notificationsEnabled: boolean;
+  twoFactorEnabled: boolean;
+  lastLogin: string; // ISO string
+  branchId: string; // Associated bank branch
+  securityLevel: 'LOW' | 'MEDIUM' | 'HIGH'; // Security level classification
+  customDashboardLayout: string; // JSON string or ID of a custom layout
+}
+
+/**
+ * Interface for a financial transaction.
+ * Expanded with more real-world transaction details.
+ */
+export interface Transaction {
+  id: string;
+  accountId: string; // To link to an account currency metric
+  date: string; // ISO string
+  effectiveDate: string; // When the transaction actually impacts balance
+  description: string;
+  amountCents: number;
+  currency: CurrencyEnum;
+  type: 'DEBIT' | 'CREDIT' | 'TRANSFER' | 'FEE' | 'INTEREST'; // Expanded types
+  status: 'PENDING' | 'CLEARED' | 'REVERSED' | 'FAILED' | 'VOIDED'; // Expanded statuses
+  category: string; // e.g., 'Payroll', 'Supplies', 'Rent', 'Sales', 'Utilities', 'Software', 'Investments'
+  subCategory?: string; // e.g., 'Office Supplies', 'Software Subscriptions'
+  referenceNumber: string;
+  counterparty: string; // Who the transaction is with
+  counterpartyAccount?: string; // Counterparty bank account info
+  isReconciled: boolean;
+  isFlagged: boolean; // For manual review/suspicious activity
+  attachmentUrl?: string; // URL to an attached invoice or receipt
+  notes?: string; // User-added notes
+}
+
+/**
+ * Interface for a budget definition.
+ * Expanded for more robust budget tracking.
+ */
+export interface Budget {
+  id: string;
+  name: string;
+  currency: CurrencyEnum;
+  period: 'MONTHLY' | 'QUARTERLY' | 'ANNUAL' | 'CUSTOM';
+  startDate: string; // ISO string
+  endDate: string; // ISO string
+  totalAllocatedCents: number;
+  totalUsedCents: number;
+  categories: {
+    name: string;
+    allocatedCents: number;
+    usedCents: number;
+    alertThresholdPercent: number; // Category-specific alert threshold
+  }[];
+  alertThresholdPercent: number; // Global budget alert threshold
+  status: 'ACTIVE' | 'ARCHIVED' | 'EXPIRED' | 'DRAFT';
+  associatedAccountIds: string[]; // Which accounts this budget applies to
+  recurrence: 'NONE' | 'MONTHLY' | 'ANNUAL';
+}
+
+/**
+ * Interface for an alert notification.
+ * Expanded for more types and details.
+ */
+export interface AlertNotification {
+  id: string;
+  type: 'INFO' | 'WARNING' | 'CRITICAL' | 'SECURITY';
+  message: string;
+  timestamp: string; // ISO string
+  isRead: boolean;
+  accountId?: string; // Optional: Link to a specific account
+  relatedMetric?: keyof AccountCurrencyMetricNode; // Optional: Link to a specific metric
+  actionRequired: boolean; // Does this alert require user action?
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  link?: string; // A link to take action or view more details
+}
+
+/**
+ * Interface for a generated or configured report.
+ * Expanded with more report generation parameters.
+ */
+export interface ReportConfiguration {
+  id: string;
+  name: string;
+  reportType: 'BALANCE_SHEET' | 'INCOME_STATEMENT' | 'CASH_FLOW' | 'LEDGER_SUMMARY' | 'TRANSACTION_DETAIL' | 'BUDGET_PERFORMANCE' | 'COMPLIANCE_REVIEW';
+  currency: CurrencyEnum;
+  startDate: string; // ISO string
+  endDate: string; // ISO string
+  frequency: 'ONCE' | 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUAL';
+  includeAccounts: string[]; // List of primary account IDs (e.g., 'ACC-001')
+  generatedAt: string; // ISO string
+  exportFormat: 'PDF' | 'CSV' | 'XLSX' | 'JSON';
+  scheduledBy: string; // User ID who scheduled it
+  status: 'COMPLETED' | 'PENDING' | 'FAILED' | 'SCHEDULED';
+  recipients?: string[]; // Email addresses for scheduled reports
+}
+
+/**
+ * Interface for an audit log entry.
+ * Expanded for more detailed security and activity tracking.
+ */
+export interface AuditLogEntry {
+  id: string;
+  timestamp: string; // ISO string
+  userId: string;
+  userName: string;
+  action: string; // e.g., 'LOGIN', 'VIEW_ACCOUNT', 'INITIATE_TRANSFER', 'UPDATE_USER_ROLE'
+  details: string; // More specific info (e.g., 'Transferred $1000 from ACC-001 to Vendor X')
+  ipAddress: string;
+  status: 'SUCCESS' | 'FAILURE';
+  objectType: 'ACCOUNT' | 'TRANSACTION' | 'USER' | 'REPORT' | 'SYSTEM'; // Type of object affected
+  objectId?: string; // ID of the affected object
+}
+
+/**
+ * Interface for a payment beneficiary.
+ */
+export interface Beneficiary {
+  id: string;
+  name: string;
+  accountNumber: string;
+  bankName: string;
+  swiftCode?: string;
+  iban?: string;
+  currency: CurrencyEnum;
+  isInternational: boolean;
+  addedBy: string;
+  addedDate: string;
+}
+
+/**
+ * Interface for a scheduled payment or recurring transfer.
+ */
+export interface ScheduledPayment {
+  id: string;
+  fromAccountId: string;
+  beneficiaryId: string;
+  amountCents: number;
+  currency: CurrencyEnum;
+  frequency: 'DAILY' | 'WEEKLY' | 'BI_WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUAL';
+  nextPaymentDate: string;
+  endDate?: string;
+  status: 'ACTIVE' | 'PAUSED' | 'COMPLETED';
+  description: string;
+}
+
+// --- Mock Data Generation Utilities ---
+const generateRandomId = () => Math.random().toString(36).substr(2, 9).toUpperCase();
+const getRandomDate = (start: Date, end: Date) => new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+const getRandomInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
+const getRandomFloat = (min: number, max: number) => parseFloat((Math.random() * (max - min) + min).toFixed(2));
+
+const ALL_CURRENCIES: CurrencyEnum[] = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 'CNY', 'SEK', 'NZD', 'MXN', 'SGD', 'HKD', 'INR', 'BRL'];
+const getRandomCurrency = (): CurrencyEnum => ALL_CURRENCIES[Math.floor(Math.random() * ALL_CURRENCIES.length)];
+
+export const formatCentsToCurrency = (amountCents: number, currency: CurrencyEnum = 'USD'): string => {
+  const formatter = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return formatter.format(amountCents / 100);
+};
+
+// Generate a large set of mock transactions
+const mockTransactions: Transaction[] = [];
+for (let i = 0; i < 2000; i++) {
+  const currency = getRandomCurrency();
+  const amountCents = getRandomInt(1000, 50000000); // $10 to $500,000
+  const type = ['DEBIT', 'CREDIT', 'TRANSFER', 'FEE', 'INTEREST'][getRandomInt(0, 4)];
+  const status = ['PENDING', 'CLEARED', 'REVERSED', 'FAILED'][getRandomInt(0, 3)];
+  const category = ['Payroll', 'Supplies', 'Rent', 'Sales', 'Utilities', 'Software', 'Investments', 'Taxes', 'Travel', 'Marketing', 'Legal Fees'][getRandomInt(0, 10)];
+  const isReconciled = status === 'CLEARED' && Math.random() < 0.9;
+
+  mockTransactions.push({
+    id: generateRandomId(),
+    accountId: `acc-${getRandomInt(1, 10)}`, // Link to 10 mock primary accounts
+    date: getRandomDate(new Date(2023, 0, 1), new Date()).toISOString(),
+    effectiveDate: getRandomDate(new Date(2023, 0, 1), new Date()).toISOString(),
+    description: `${type === 'DEBIT' ? 'Payment to' : (type === 'CREDIT' ? 'Deposit from' : 'Transfer')}: ${category}`,
+    amountCents: type === 'DEBIT' || type === 'FEE' ? -amountCents : amountCents,
+    currency,
+    type,
+    status,
+    category,
+    subCategory: category === 'Supplies' ? 'Office Supplies' : (category === 'Software' ? 'Software Subscriptions' : undefined),
+    referenceNumber: `REF-${generateRandomId()}`,
+    counterparty: `Vendor/Client ${getRandomInt(1, 50)}`,
+    counterpartyAccount: Math.random() > 0.5 ? `ACCT-${getRandomInt(10000, 99999)}` : undefined,
+    isReconciled,
+    isFlagged: Math.random() < 0.03, // 3% flagged transactions
+    attachmentUrl: Math.random() < 0.1 ? `https://example.com/invoice-${generateRandomId()}.pdf` : undefined,
+  });
+}
+
+const generateMockAccountCurrencyMetrics = (count: number = 10, currencyFilter?: CurrencyEnum): AccountCurrencyMetricConnection => {
+  const nodes: AccountCurrencyMetricNode[] = [];
+  const primaryAccountIds = Array.from({ length: 10 }, (_, i) => `acc-${i + 1}`);
+
+  primaryAccountIds.forEach(primaryAccountId => {
+    // Generate metrics for a few currencies per primary account
+    const currenciesForAccount = Array.from(new Set([getRandomCurrency(), getRandomCurrency(), currencyFilter].filter(Boolean) as CurrencyEnum[]));
+    currenciesForAccount.forEach(currency => {
+      const priorDayBalanceCents = getRandomInt(10000000, 10000000000); // $100k to $100M
+      const availableBalanceCents = priorDayBalanceCents + getRandomInt(-500000000, 500000000); // +/- $5M
+      const ledgerVarianceCents = getRandomInt(-100000, 100000); // +/- $1k
+      const unreconciledAmountCents = Math.abs(ledgerVarianceCents) + getRandomInt(0, 50000); // $0 to $500
+      const unreconciledPercent = parseFloat(((unreconciledAmountCents / Math.max(1, availableBalanceCents)) * 100).toFixed(2));
+
+      const accountTransactions = mockTransactions.filter(t => t.accountId === primaryAccountId && t.currency === currency);
+      const budgetAllocatedCents = getRandomInt(1000000, 50000000);
+      const budgetUsedCents = getRandomInt(500000, budgetAllocatedCents * 0.9);
+
+      const transactionCountLast30Days = accountTransactions.filter(t => new Date(t.date) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length;
+      const averageDailyBalanceCents = getRandomInt(priorDayBalanceCents * 0.8, priorDayBalanceCents * 1.2);
+      const netCashFlowLast30DaysCents = accountTransactions
+        .filter(t => new Date(t.date) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))
+        .reduce((sum, t) => sum + t.amountCents, 0);
+
+      const associatedAccounts = [
+        { id: `linked-${generateRandomId()}`, name: `Subsidiary A ${currency}`, type: 'Checking', currentBalanceCents: getRandomInt(1000000, 10000000), currency, relationshipType: 'CHILD' as const },
+        { id: `linked-${generateRandomId()}`, name: `Investment B ${currency}`, type: 'Investment', currentBalanceCents: getRandomInt(5000000, 50000000), currency, relationshipType: 'RELATED' as const },
+      ];
+
+      const spendingCategories: { category: string; amountCents: number; percentOfTotal: number; }[] = [
+        { category: 'Payroll', amountCents: getRandomInt(1000000, 5000000), percentOfTotal: 0 },
+        { category: 'Rent', amountCents: getRandomInt(500000, 2000000), percentOfTotal: 0 },
+        { category: 'Supplies', amountCents: getRandomInt(100000, 1000000), percentOfTotal: 0 },
+        { category: 'Utilities', amountCents: getRandomInt(50000, 500000), percentOfTotal: 0 },
+      ];
+      const totalSpending = spendingCategories.reduce((sum, cat) => sum + cat.amountCents, 0);
+      spendingCategories.forEach(cat => cat.percentOfTotal = parseFloat(((cat.amountCents / totalSpending) * 100).toFixed(2)));
+
+      const creditLimitCents = Math.random() < 0.3 ? getRandomInt(10000000, 100000000) : undefined;
+      const interestRatePercent = Math.random() < 0.4 ? getRandomFloat(0.1, 5.0) : undefined;
+
+      nodes.push({
+        typename: 'AccountCurrencyMetric',
+        id: `${primaryAccountId}-${currency}`,
+        accountId: primaryAccountId,
+        accountName: `Business Account ${primaryAccountId.split('-')[1]}`,
+        currency,
+        priorDayBalanceCents,
+        availableBalanceCents,
+        prettyPriorDayBalance: formatCentsToCurrency(priorDayBalanceCents, currency),
+        prettyAvailableBalance: formatCentsToCurrency(availableBalanceCents, currency),
+        ledgerVarianceCents,
+        highlightLedgerVariance: Math.abs(ledgerVarianceCents) > 50000, // over $500 variance
+        unreconciledAmountCents,
+        unreconciledPercent,
+        path: `/accounts/${primaryAccountId.split('-')[1]}/${currency}`,
+        lastUpdated: getRandomDate(new Date(2024, 0, 1), new Date()).toISOString(),
+        transactionsLast24H: accountTransactions.slice(0, 5), // limited for dashboard
+        potentialOverdraftRisk: availableBalanceCents < 0 || availableBalanceCents < (priorDayBalanceCents * 0.05), // 5% buffer
+        complianceStatus: Math.random() > 0.95 ? 'RED' : (Math.random() > 0.8 ? 'YELLOW' : 'GREEN'),
+        riskScore: getRandomInt(10, 90),
+        budgetAllocatedCents,
+        budgetUsedCents,
+        projectedBalanceCents: availableBalanceCents + getRandomInt(-10000000, 10000000), // simplistic projection
+        associatedAccounts,
+        spendingCategories,
+        transactionCountLast30Days,
+        averageDailyBalanceCents,
+        netCashFlowLast30DaysCents,
+        creditLimitCents,
+        interestRatePercent,
+        feesAndChargesLast30DaysCents: getRandomInt(0, 200000), // $0 to $2000
+        monthlyStatements: [
+          { id: generateRandomId(), period: 'JUL-2024', downloadUrl: '#', status: 'AVAILABLE' },
+          { id: generateRandomId(), period: 'JUN-2024', downloadUrl: '#', status: 'AVAILABLE' },
+        ],
+        authorizedUsers: [
+          { userId: 'usr-123', userName: 'James Burvel', permissions: ['VIEW', 'TRANSACT', 'APPROVE'] },
+          { userId: 'usr-456', userName: 'Jane Doe', permissions: ['VIEW'] },
+        ],
+        pendingDepositsCents: getRandomInt(0, 500000),
+        pendingWithdrawalsCents: getRandomInt(0, 300000),
+        holdsCents: getRandomInt(0, 100000),
+        lastStatementBalanceCents: getRandomInt(priorDayBalanceCents * 0.9, priorDayBalanceCents * 1.1),
+      });
+    });
+  });
+
+  // Apply currency filter at the end
+  const filteredNodes = currencyFilter ? nodes.filter(node => node.currency === currencyFilter) : nodes;
+
+  return {
+    edges: filteredNodes.map(node => ({ node, typename: 'AccountCurrencyMetricEdge' })),
+    pageInfo: {
+      startCursor: 'cursor-1',
+      endCursor: `cursor-${filteredNodes.length}`,
+      hasNextPage: filteredNodes.length > count, // Simulate more data than shown
+      hasPreviousPage: false,
+      typename: 'PageInfo',
+    },
+    typename: 'AccountCurrencyMetricConnection',
+  };
+};
+
+const mockUser: UserProfile = {
+  id: 'usr-123',
+  name: 'James Burvel O’Callaghan III',
+  email: 'james.burvel@citibankdemo.com',
+  roles: ['ADMIN', 'ACCOUNT_MANAGER', 'PAYMENT_APPROVER', 'REPORT_ANALYST'],
+  preferredCurrency: 'USD',
+  themePreference: 'light',
+  notificationsEnabled: true,
+  twoFactorEnabled: true,
+  lastLogin: new Date().toISOString(),
+  branchId: 'BR-001-NYC',
+  securityLevel: 'HIGH',
+  customDashboardLayout: 'default',
+};
+
+const mockBudgets: Budget[] = [
+  { id: 'bgt-1', name: 'Monthly Operating Expenses', currency: 'USD', period: 'MONTHLY', startDate: '2024-01-01', endDate: '2024-12-31', totalAllocatedCents: 100000000, totalUsedCents: 85000000, categories: [{name: 'Payroll', allocatedCents: 50000000, usedCents: 45000000, alertThresholdPercent: 90}], alertThresholdPercent: 80, status: 'ACTIVE', associatedAccountIds: ['acc-1', 'acc-2'], recurrence: 'MONTHLY' },
+  { id: 'bgt-2', name: 'Q3 Marketing Campaign', currency: 'EUR', period: 'QUARTERLY', startDate: '2024-07-01', endDate: '2024-09-30', totalAllocatedCents: 20000000, totalUsedCents: 18000000, categories: [{name: 'Advertising', allocatedCents: 15000000, usedCents: 13000000, alertThresholdPercent: 85}], alertThresholdPercent: 90, status: 'ACTIVE', associatedAccountIds: ['acc-3'], recurrence: 'NONE' },
+  { id: 'bgt-3', name: 'Annual IT Budget', currency: 'GBP', period: 'ANNUAL', startDate: '2024-01-01', endDate: '2024-12-31', totalAllocatedCents: 50000000, totalUsedCents: 20000000, categories: [{name: 'Software', allocatedCents: 25000000, usedCents: 10000000}, {name: 'Hardware', allocatedCents: 15000000, usedCents: 8000000}], alertThresholdPercent: 70, status: 'ACTIVE', associatedAccountIds: ['acc-4'], recurrence: 'ANNUAL' },
+];
+
+const mockAlerts: AlertNotification[] = [
+  { id: generateRandomId(), type: 'CRITICAL', message: 'Potential overdraft risk detected on Main USD Account (ACC-1-USD). Immediate action required.', timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(), isRead: false, accountId: 'acc-1', relatedMetric: 'potentialOverdraftRisk', actionRequired: true, severity: 'URGENT', link: '/accounts/1/USD' },
+  { id: generateRandomId(), type: 'WARNING', message: 'Budget "Monthly Operating Expenses" is 85% utilized. Review spending.', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), isRead: false, relatedMetric: 'budgetUsedCents', actionRequired: false, severity: 'HIGH', link: '/reports' },
+  { id: generateRandomId(), type: 'SECURITY', message: 'Unusual login attempt from a new IP address (103.20.10.5) detected. Please verify.', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), isRead: false, actionRequired: true, severity: 'CRITICAL', link: '/settings' },
+  { id: generateRandomId(), type: 'INFO', message: 'Your Q2 2024 Balance Sheet report is now available for download.', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(), isRead: true, relatedMetric: 'complianceStatus', actionRequired: false, severity: 'LOW', link: '/reports' },
+];
+
+const mockBeneficiaries: Beneficiary[] = [
+  { id: 'ben-1', name: 'Global Suppliers Corp', accountNumber: '0011223344', bankName: 'First National Bank', swiftCode: 'FNBLUS33', currency: 'USD', isInternational: false, addedBy: 'usr-123', addedDate: '2023-01-15' },
+  { id: 'ben-2', name: 'EuroTech Solutions', accountNumber: 'DE12345678901234567890', bankName: 'Deutsche Bank', iban: 'DE12345678901234567890', swiftCode: 'DEUTDEFF', currency: 'EUR', isInternational: true, addedBy: 'usr-123', addedDate: '2023-03-20' },
+  { id: 'ben-3', name: 'Payroll Department', accountNumber: '5566778899', bankName: 'Citibank', currency: 'USD', isInternational: false, addedBy: 'usr-123', addedDate: '2023-02-01' },
+];
+
+const mockScheduledPayments: ScheduledPayment[] = [
+  { id: 'sch-1', fromAccountId: 'acc-1-USD', beneficiaryId: 'ben-1', amountCents: 2500000, currency: 'USD', frequency: 'MONTHLY', nextPaymentDate: '2024-08-01', description: 'Monthly Supplier Payment', status: 'ACTIVE' },
+  { id: 'sch-2', fromAccountId: 'acc-3-EUR', beneficiaryId: 'ben-2', amountCents: 1000000, currency: 'EUR', frequency: 'QUARTERLY', nextPaymentDate: '2024-09-15', description: 'Quarterly Software License', status: 'ACTIVE' },
+  { id: 'sch-3', fromAccountId: 'acc-1-USD', beneficiaryId: 'ben-3', amountCents: 5000000, currency: 'USD', frequency: 'BI_WEEKLY', nextPaymentDate: '2024-07-26', description: 'Bi-Weekly Payroll', status: 'ACTIVE' },
+];
+
+
+// --- GraphQL Query Definitions (from original JSON and expanded) ---
+
+// Define fragments separately for reusability
+export const ACCOUNT_CURRENCY_METRIC_LIST_FRAGMENT = gql`
+  fragment AccountCurrencyMetricList on AccountCurrencyMetricConnection {
+    edges {
+      node {
+        typename: __typename
+        id
+        accountId
+        accountName
+        currency
+        priorDayBalanceCents
+        availableBalanceCents
+        prettyPriorDayBalance
+        prettyAvailableBalance
+        ledgerVarianceCents
+        highlightLedgerVariance
+        unreconciledAmountCents
+        unreconciledPercent
+        path
+        lastUpdated
+        potentialOverdraftRisk
+        complianceStatus
+        riskScore
+        budgetAllocatedCents
+        budgetUsedCents
+        projectedBalanceCents
+        associatedAccounts {
+          id
+          name
+          type
+          currentBalanceCents
+          currency
+          relationshipType
+        }
+        spendingCategories {
+          category
+          amountCents
+          percentOfTotal
+        }
+        transactionCountLast30Days
+        averageDailyBalanceCents
+        netCashFlowLast30DaysCents
+        pendingDepositsCents
+        pendingWithdrawalsCents
+        holdsCents
+        lastStatementBalanceCents
+        creditLimitCents
+        interestRatePercent
+        feesAndChargesLast30DaysCents
+      }
+      __typename
+    }
+    pageInfo {
+      startCursor
+      endCursor
+      hasNextPage
+      hasPreviousPage
+      __typename
+    }
+    __typename
+  }
+`;
+
+// Re-define main query using fragment
+export const ACCOUNT_CURRENCY_METRICS_HOME_QUERY = gql`
+  query AccountCurrencyMetricsHome($first: Int, $after: String, $last: Int, $before: String, $currency: CurrencyEnum) {
+    accountCurrencyMetrics(
+      first: $first
+      after: $after
+      last: $last
+      before: $before
+      currency: $currency
+    ) {
+      ...AccountCurrencyMetricList
+      edges {
+        node {
+          id
+          __typename
+        }
+        __typename
+      }
+      __typename
+    }
+  }
+  ${ACCOUNT_CURRENCY_METRIC_LIST_FRAGMENT}
+`;
+
+// Define details query using fragment
+export const ACCOUNT_DETAILS_QUERY = gql`
+  query GetAccountDetails($accountId: String!, $currency: CurrencyEnum!) {
+    accountDetails(accountId: $accountId, currency: $currency) {
+      ...AccountCurrencyMetricList
+      # The fragment brings in most fields, but some are specific to a detailed view
+      # and might not be part of the connection/list fragment if they are very large or rarely needed.
+      # For demonstration, we include a few explicit ones that might be deferred in a real app.
+      id
+      accountId
+      accountName
+      currency
+      prettyPriorDayBalance
+      prettyAvailableBalance
+      ledgerVarianceCents
+      unreconciledAmountCents
+      unreconciledPercent
+      path
+      lastUpdated
+      potentialOverdraftRisk
+      complianceStatus
+      riskScore
+      budgetAllocatedCents
+      budgetUsedCents
+      projectedBalanceCents
+      associatedAccounts {
+        id
+        name
+        type
+        currentBalanceCents
+        currency
+        relationshipType
+      }
+      spendingCategories {
+        category
+        amountCents
+        percentOfTotal
+      }
+      transactions { # New field for detailed view, might be paginated in a real API
+        id
+        date
+        effectiveDate
+        description
+        amountCents
+        currency
+        type
+        status
+        category
+        subCategory
+        referenceNumber
+        counterparty
+        counterpartyAccount
+        isReconciled
+        isFlagged
+        attachmentUrl
+        notes
+      }
+      recentActivity { # Simplified for quick display on dashboard
+        id
+        date
+        description
+        amountCents
+        currency
+        type
+        status
+      }
+      monthlyStatements {
+        id
+        period
+        downloadUrl
+        status
+      }
+      authorizedUsers {
+        userId
+        userName
+        permissions
+      }
+      creditLimitCents
+      interestRatePercent
+      feesAndChargesLast30DaysCents
+      pendingDepositsCents
+      pendingWithdrawalsCents
+      holdsCents
+      lastStatementBalanceCents
+    }
+  }
+  ${ACCOUNT_CURRENCY_METRIC_LIST_FRAGMENT}
+`;
+
+export const GET_TRANSACTIONS_QUERY = gql`
+  query GetTransactions($accountId: String!, $currency: CurrencyEnum!, $first: Int, $after: String, $search: String, $category: String, $status: String, $startDate: String, $endDate: String) {
+    transactions(accountId: $accountId, currency: $currency, first: $first, after: $after, search: $search, category: $category, status: $status, startDate: $startDate, endDate: $endDate) {
+      edges {
+        node {
+          id
+          date
+          effectiveDate
+          description
+          amountCents
+          currency
+          type
+          status
+          category
+          subCategory
+          referenceNumber
+          counterparty
+          counterpartyAccount
+          isReconciled
+          isFlagged
+          attachmentUrl
+          notes
+        }
+        typename
+      }
+      pageInfo {
+        endCursor
+        hasNextPage
+        typename
+      }
+      typename
+    }
+  }
+`;
+
+export const GET_BUDGETS_QUERY = gql`
+  query GetBudgets {
+    budgets {
+      id
+      name
+      currency
+      period
+      startDate
+      endDate
+      totalAllocatedCents
+      totalUsedCents
+      categories {
+        name
+        allocatedCents
+        usedCents
+        alertThresholdPercent
+      }
+      alertThresholdPercent
+      status
+      associatedAccountIds
+      recurrence
+    }
+  }
+`;
+
+export const GET_NOTIFICATIONS_QUERY = gql`
+  query GetNotifications($isRead: Boolean) {
+    notifications(isRead: $isRead) {
+      id
+      type
+      message
+      timestamp
+      isRead
+      accountId
+      relatedMetric
+      actionRequired
+      severity
+      link
+    }
+  }
+`;
+
+export const GET_USER_PROFILE_QUERY = gql`
+  query GetUserProfile {
+    userProfile {
+      id
+      name
+      email
+      roles
+      preferredCurrency
+      themePreference
+      notificationsEnabled
+      twoFactorEnabled
+      lastLogin
+      branchId
+      securityLevel
+      customDashboardLayout
+    }
+  }
+`;
+
+export const GET_BENEFICIARIES_QUERY = gql`
+  query GetBeneficiaries {
+    beneficiaries {
+      id
+      name
+      accountNumber
+      bankName
+      swiftCode
+      iban
+      currency
+      isInternational
+      addedBy
+      addedDate
+    }
+  }
+`;
+
+export const GET_SCHEDULED_PAYMENTS_QUERY = gql`
+  query GetScheduledPayments {
+    scheduledPayments {
+      id
+      fromAccountId
+      beneficiaryId
+      amountCents
+      currency
+      frequency
+      nextPaymentDate
+      endDate
+      status
+      description
+    }
+  }
+`;
+
+
+// --- Apollo Client Setup ---
+// In a real app, this would point to a real GraphQL endpoint.
+// For this demo, we'll use a mock `execute` function for `ApolloLink`.
+const MOCK_GRAPHQL_ENDPOINT = 'http://localhost:4000/graphql';
+
+const mockLink = new ApolloLink((operation) => {
+  const { operationName, variables } = operation;
+
+  return new Promise((resolve) => {
+    // Simulate network delay
+    setTimeout(() => {
+      let result: any = null;
+      if (operationName === 'AccountCurrencyMetricsHome') {
+        const { currency } = variables as { currency?: CurrencyEnum };
+        const mockData = generateMockAccountCurrencyMetrics(10, currency);
+        result = {
+          data: {
+            accountCurrencyMetrics: mockData,
+          },
+        };
+      } else if (operationName === 'GetAccountDetails') {
+        const { accountId, currency } = variables as { accountId: string, currency: CurrencyEnum };
+        const allMockMetrics = generateMockAccountCurrencyMetrics(10);
+        const account = allMockMetrics.edges.find(e => e.node.accountId === accountId && e.node.currency === currency)?.node;
+        const accountTransactions = mockTransactions.filter(t => t.accountId === accountId && t.currency === currency);
+
+        if (account) {
+          result = {
+            data: {
+              accountDetails: {
+                ...account,
+                transactions: accountTransactions.slice(0, 50), // Return a subset for initial load
+                recentActivity: accountTransactions.slice(0, 10).map(t => ({
+                  ...t, // spreading here ensures all sub-fields of transaction are available
+                  description: `${t.type === 'DEBIT' ? 'Payment to' : (t.type === 'CREDIT' ? 'Deposit from' : 'Transfer to')} ${t.counterparty}`,
+                })),
+              }
+            }
+          };
+        } else {
+          result = { errors: [{ message: `Account ${accountId} not found` }] };
+        }
+      } else if (operationName === 'GetTransactions') {
+        const { accountId, currency, first, after, search, category, status, startDate, endDate } = variables as { accountId: string, currency: CurrencyEnum, first?: number, after?: string, search?: string, category?: string, status?: Transaction['status'], startDate?: string, endDate?: string };
+        let filteredTransactions = mockTransactions.filter(t => t.accountId === accountId && t.currency === currency);
+
+        if (search) {
+          const lowerSearch = search.toLowerCase();
+          filteredTransactions = filteredTransactions.filter(t =>
+            t.description.toLowerCase().includes(lowerSearch) ||
+            t.counterparty.toLowerCase().includes(lowerSearch) ||
+            t.referenceNumber.toLowerCase().includes(lowerSearch)
+          );
+        }
+        if (category) filteredTransactions = filteredTransactions.filter(t => t.category === category);
+        if (status) filteredTransactions = filteredTransactions.filter(t => t.status === status);
+        if (startDate) filteredTransactions = filteredTransactions.filter(t => new Date(t.date) >= new Date(startDate));
+        if (endDate) filteredTransactions = filteredTransactions.filter(t => new Date(t.date) <= new Date(endDate));
+
+        filteredTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+        const startIndex = after ? filteredTransactions.findIndex(t => t.id === after) + 1 : 0;
+        const endIndex = Math.min(startIndex + (first || 10), filteredTransactions.length);
+        const transactionsPage = filteredTransactions.slice(startIndex, endIndex);
+
+        result = {
+          data: {
+            transactions: {
+              edges: transactionsPage.map(t => ({ node: t, typename: 'TransactionEdge' })),
+              pageInfo: {
+                startCursor: transactionsPage[0]?.id || null,
+                endCursor: transactionsPage[transactionsPage.length - 1]?.id || null,
+                hasNextPage: endIndex < filteredTransactions.length,
+                hasPreviousPage: startIndex > 0,
+                typename: 'PageInfo'
+              },
+              typename: 'TransactionConnection'
+            }
+          }
+        };
+      } else if (operationName === 'GetBudgets') {
+        result = { data: { budgets: mockBudgets } };
+      } else if (operationName === 'GetNotifications') {
+        const { isRead } = variables as { isRead?: boolean };
+        const filteredAlerts = isRead === undefined ? mockAlerts : mockAlerts.filter(a => a.isRead === isRead);
+        result = { data: { notifications: filteredAlerts } };
+      } else if (operationName === 'GetUserProfile') {
+        result = { data: { userProfile: mockUser } };
+      } else if (operationName === 'GetBeneficiaries') {
+        result = { data: { beneficiaries: mockBeneficiaries } };
+      } else if (operationName === 'GetScheduledPayments') {
+        result = { data: { scheduledPayments: mockScheduledPayments } };
+      } else {
+        result = { errors: [{ message: `Unknown operation: ${operationName}` }] };
+      }
+      resolve({ data: result?.data, errors: result?.errors });
+    }, getRandomInt(200, 1000)); // Simulate network latency
+  });
+});
+
+const errorLink = onError(({ graphQLErrors, networkError }) => {
+  if (graphQLErrors) {
+    graphQLErrors.forEach(({ message, locations, path }) =>
+      console.error(
+        `[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`,
+      ),
+    );
+  }
+  if (networkError) console.error(`[Network error]: ${networkError}`);
+});
+
+export const client = new ApolloClient({
+  link: ApolloLink.from([errorLink, mockLink]),
+  cache: new InMemoryCache(),
+});
+
+// --- Contexts for Global State Management ---
+
+/**
+ * Authentication Context Type.
+ * Provides user information, login/logout functions, and authentication status.
+ */
+export interface AuthContextType {
+  user: UserProfile | null;
+  isAuthenticated: boolean;
+  login: (credentials: any) => Promise<void>;
+  logout: () => void;
+  isLoading: boolean;
+  updateUserProfile: (profile: Partial<UserProfile>) => void; // Added for settings page
+}
+
+const defaultAuthContext: AuthContextType = {
+  user: null,
+  isAuthenticated: false,
+  login: async () => { console.warn('AuthContext: Login not implemented'); },
+  logout: () => { console.warn('AuthContext: Logout not implemented'); },
+  isLoading: false,
+  updateUserProfile: () => { console.warn('AuthContext: updateUserProfile not implemented'); },
+};
+
+export const AuthContext = createContext<AuthContextType>(defaultAuthContext);
+
+/**
+ * AuthProvider component. Manages user authentication state.
+ */
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Simulate checking for a session or token
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+    setIsLoading(false);
+  }, []);
+
+  const login = useCallback(async (credentials: any) => {
+    setIsLoading(true);
+    // Simulate API call for login
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    if (credentials.username === 'demo' && credentials.password === 'password') {
+      localStorage.setItem('user', JSON.stringify(mockUser));
+      setUser(mockUser);
+    } else {
+      throw new Error('Invalid credentials');
+    }
+    setIsLoading(false);
+  }, []);
+
+  const logout = useCallback(() => {
+    localStorage.removeItem('user');
+    setUser(null);
+  }, []);
+
+  const updateUserProfile = useCallback((profile: Partial<UserProfile>) => {
+    setUser(prevUser => {
+      if (!prevUser) return null;
+      const updated = { ...prevUser, ...profile };
+      localStorage.setItem('user', JSON.stringify(updated)); // Persist mock user
+      return updated;
+    });
+  }, []);
+
+  const isAuthenticated = !!user;
+
+  const contextValue = useMemo(() => ({
+    user,
+    isAuthenticated,
+    login,
+    logout,
+    isLoading,
+    updateUserProfile,
+  }), [user, isAuthenticated, login, logout, isLoading, updateUserProfile]);
+
+  return (
+    <AuthContext.Provider value={contextValue}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+/**
+ * Currency Preference Context Type.
+ * Manages the user's preferred display currency and provides conversion utilities.
+ */
+export interface CurrencyPreferenceContextType {
+  preferredCurrency: CurrencyEnum;
+  setPreferredCurrency: (currency: CurrencyEnum) => void;
+  getConvertedAmount: (amountCents: number, fromCurrency: CurrencyEnum, toCurrency: CurrencyEnum) => number;
+  formatCurrencyDisplay: (amountCents: number, currency?: CurrencyEnum) => string;
+}
+
+export const CurrencyPreferenceContext = createContext<CurrencyPreferenceContextType>({
+  preferredCurrency: 'USD',
+  setPreferredCurrency: () => {},
+  getConvertedAmount: (amount, from, to) => {
+    if (from === to) return amount;
+    const rates: Record<CurrencyEnum, number> = {
+      USD: 1, EUR: 1.08, GBP: 1.25, JPY: 0.0067, AUD: 0.65, CAD: 0.73, CHF: 1.10, CNY: 0.14, SEK: 0.092, NZD: 0.60, MXN: 0.059, SGD: 0.74, HKD: 0.13, INR: 0.012, BRL: 0.19,
+    };
+    return Math.round((amount / rates[from]) * rates[to]);
+  },
+  formatCurrencyDisplay: (amountCents, currency) => formatCentsToCurrency(amountCents, currency || 'USD'),
+});
+
+/**
+ * CurrencyPreferenceProvider component. Manages preferred display currency.
+ */
+export const CurrencyPreferenceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [preferredCurrency, setPreferredCurrencyState] = useState<CurrencyEnum>(() => {
+    const savedCurrency = localStorage.getItem('preferredCurrency');
+    return (savedCurrency as CurrencyEnum) || 'USD';
+  });
+
+  const setPreferredCurrency = useCallback((currency: CurrencyEnum) => {
+    setPreferredCurrencyState(currency);
+    localStorage.setItem('preferredCurrency', currency);
+  }, []);
+
+  const getConvertedAmount = useCallback((amountCents: number, fromCurrency: CurrencyEnum, toCurrency: CurrencyEnum) => {
+    if (fromCurrency === toCurrency) return amountCents;
+    // Mock conversion rates for demo. In real app, fetch from API and ensure refresh.
+    const rates: Record<CurrencyEnum, number> = {
+      USD: 1, EUR: 1.08, GBP: 1.25, JPY: 0.0067, AUD: 0.65, CAD: 0.73, CHF: 1.10, CNY: 0.14, SEK: 0.092, NZD: 0.60, MXN: 0.059, SGD: 0.74, HKD: 0.13, INR: 0.012, BRL: 0.19,
+    };
+    return Math.round((amountCents / rates[fromCurrency]) * rates[toCurrency]);
+  }, []);
+
+  const formatCurrencyDisplay = useCallback((amountCents: number, currency?: CurrencyEnum) => {
+    return formatCentsToCurrency(amountCents, currency || preferredCurrency);
+  }, [preferredCurrency]);
+
+  const contextValue = useMemo(() => ({
+    preferredCurrency,
+    setPreferredCurrency,
+    getConvertedAmount,
+    formatCurrencyDisplay,
+  }), [preferredCurrency, setPreferredCurrency, getConvertedAmount, formatCurrencyDisplay]);
+
+  return (
+    <CurrencyPreferenceContext.Provider value={contextValue}>
+      {children}
+    </CurrencyPreferenceContext.Provider>
+  );
+};
+
+
+// --- UI Components ---
+
+// Base styling utility (simplified for brevity, a real app would use a UI library or robust CSS-in-JS)
+export const styles = {
+  container: { padding: '20px', maxWidth: '1400px', margin: '0 auto', fontFamily: 'Arial, sans-serif' },
+  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 20px', backgroundColor: '#003366', color: 'white', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' },
+  nav: { display: 'flex', gap: '20px' },
+  navLink: { color: 'white', textDecoration: 'none', padding: '8px 15px', borderRadius: '4px', transition: 'background-color 0.2s' },
+  navLinkActive: { backgroundColor: '#0055aa' },
+  sidebar: { width: '250px', backgroundColor: '#f4f7f6', padding: '20px', borderRight: '1px solid #e0e0e0', flexShrink: 0 },
+  mainContent: { flexGrow: 1, padding: '20px', backgroundColor: '#ffffff' },
+  dashboardGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '30px' },
+  card: { backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', border: '1px solid #e0e0e0' },
+  table: { width: '100%', borderCollapse: 'collapse', marginTop: '20px' },
+  th: { padding: '12px 15px', borderBottom: '1px solid #e0e0e0', textAlign: 'left', backgroundColor: '#f8f8f8', fontWeight: 'bold' },
+  td: { padding: '12px 15px', borderBottom: '1px solid #eee', textAlign: 'left' },
+  button: { padding: '10px 15px', borderRadius: '4px', border: 'none', cursor: 'pointer', backgroundColor: '#007bff', color: 'white', transition: 'background-color 0.2s', '&:hover': { backgroundColor: '#0056b3' } },
+  input: { padding: '10px', borderRadius: '4px', border: '1px solid #ccc', marginRight: '10px' },
+  select: { padding: '10px', borderRadius: '4px', border: '1px solid #ccc' },
+  label: { marginBottom: '5px', fontWeight: 'bold', display: 'block', color: '#333' },
+  errorText: { color: 'red', fontSize: '0.9em' },
+  successText: { color: 'green', fontSize: '0.9em' },
+  warningText: { color: 'orange', fontSize: '0.9em' },
+  statusIndicator: (color: string) => ({
+    display: 'inline-block',
+    width: '10px',
+    height: '10px',
+    borderRadius: '50%',
+    backgroundColor: color,
+    marginRight: '5px',
+  }),
+};
+
+// Component: Loading State with a modern spinner
+export const LoadingSpinner: React.FC = () => (
+  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100px' }} aria-live="polite" aria-label="Loading content">
+    <div style={{
+      border: '4px solid #f3f3f3',
+      borderTop: '4px solid #3498db',
+      borderRadius: '50%',
+      width: '30px',
+      height: '30px',
+      animation: 'spin 1s linear infinite',
+    }}></div>
+    <style>{`
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    `}</style>
+  </div>
+);
+
+// Component: Error Message Display
+export const ErrorDisplay: React.FC<{ error: string }> = ({ error }) => (
+  <div style={{ ...styles.card, borderColor: 'red', color: 'red', backgroundColor: '#ffe0e0', margin: '20px 0' }} role="alert">
+    <p><strong>Error:</strong> {error}</p>
+  </div>
+);
+
+// Component: Global Alert/Notification Toast System (Mock)
+export const NotificationToast: React.FC<{ alert: AlertNotification, onClose: (id: string) => void }> = ({ alert, onClose }) => {
+  const toastStyle: React.CSSProperties = {
+    position: 'fixed',
+    bottom: '20px',
+    right: '20px',
+    backgroundColor: alert.type === 'CRITICAL' ? '#dc3545' : (alert.type === 'WARNING' ? '#ffc107' : '#007bff'),
+    color: alert.type === 'WARNING' ? '#333' : 'white',
+    padding: '15px 20px',
+    borderRadius: '8px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+    zIndex: 1000,
+    display: 'flex',
+    alignItems: 'center',
+    maxWidth: '350px',
+  };
+
+  return (
+    <div style={toastStyle} role="status" aria-live="polite">
+      <strong style={{ marginRight: '10px' }}>{alert.type}:</strong>
+      <span>{alert.message}</span>
+      <button
+        onClick={() => onClose(alert.id)}
+        style={{
+          marginLeft: 'auto',
+          backgroundColor: 'transparent',
+          border: 'none',
+          color: alert.type === 'WARNING' ? '#333' : 'white',
+          fontSize: '1.2em',
+          cursor: 'pointer',
+        }}
+        aria-label="Close notification"
+      >
+        &times;
+      </button>
+    </div>
+  );
+};
+
+export const NotificationCenter: React.FC = () => {
+  const { data, loading, error, refetch } = useQuery<{ notifications: AlertNotification[] }>(GET_NOTIFICATIONS_QUERY, {
+    variables: { isRead: false }, // Fetch unread notifications
+    pollInterval: 60000, // Poll every minute for new alerts
+  });
+  const [activeAlerts, setActiveAlerts] = useState<AlertNotification[]>([]);
+
+  useEffect(() => {
+    if (data?.notifications) {
+      // Only show new critical/urgent alerts as toasts
+      const newCriticalAlerts = data.notifications.filter(
+        alert => !activeAlerts.some(a => a.id === alert.id) && (alert.severity === 'URGENT' || alert.severity === 'CRITICAL')
+      );
+      setActiveAlerts(prev => [...prev, ...newCriticalAlerts]);
+    }
+  }, [data]);
+
+  const handleCloseToast = useCallback((id: string) => {
+    setActiveAlerts(prev => prev.filter(alert => alert.id !== id));
+    // In a real app, send API call to mark as read
+    console.log(`Notification ${id} marked as read/dismissed.`);
+    refetch(); // Refetch to remove it from the unread list
+  }, [refetch]);
+
+  const handleMarkAllRead = useCallback(async () => {
+    // Simulate API call to mark all as read
+    await new Promise(resolve => setTimeout(resolve, 500));
+    mockAlerts.forEach(a => a.isRead = true); // Update mock data
+    refetch(); // Update UI
+    setActiveAlerts([]);
+    alert('All notifications marked as read.');
+  }, [refetch]);
+
+  if (loading) return <LoadingSpinner />;
+  if (error) return <ErrorDisplay error={`Failed to load notifications: ${error.message}`} />;
+
+  const unreadNotifications = data?.notifications.filter(n => !n.isRead) || [];
+  const readNotifications = mockAlerts.filter(n => n.isRead); // Assuming mockAlerts is the source of all notifications
+
+  return (
+    <div style={styles.container}>
+      <h1 style={{ marginBottom: '20px', color: '#003366' }}>Notifications</h1>
+      <div style={styles.card}>
+        <h2 style={{ marginBottom: '15px' }}>Unread Alerts ({unreadNotifications.length})</h2>
+        {unreadNotifications.length > 0 && (
+          <button onClick={handleMarkAllRead} style={{ ...styles.button, backgroundColor: '#6c757d', marginBottom: '20px' }}>Mark All as Read</button>
+        )}
+        {unreadNotifications.length === 0 ? (
+          <p>You have no unread notifications.</p>
+        ) : (
+          <ul style={{ listStyleType: 'none', padding: 0 }}>
+            {unreadNotifications.map(alert => (
+              <li key={alert.id} style={{ borderBottom: '1px solid #eee', padding: '10px 0', display: 'flex', alignItems: 'center' }}>
+                <span style={styles.statusIndicator(
+                  alert.severity === 'URGENT' || alert.severity === 'CRITICAL' ? 'red' : (alert.severity === 'HIGH' ? 'orange' : 'blue')
+                )}></span>
+                <span style={{ flexGrow: 1 }}>
+                  <strong style={{ marginRight: '5px' }}>{alert.type} ({alert.severity}):</strong> {alert.message}
+                  {alert.link && <Link to={alert.link} style={{ marginLeft: '10px', color: '#0055aa' }}>View Details</Link>}
+                </span>
+                <span style={{ fontSize: '0.8em', color: 'gray' }}>{new Date(alert.timestamp).toLocaleString()}</span>
+                <button
+                  onClick={() => handleCloseToast(alert.id)}
+                  style={{ ...styles.button, backgroundColor: '#dc3545', marginLeft: '15px', padding: '5px 10px', fontSize: '0.8em' }}
+                >
+                  Dismiss
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div style={{ ...styles.card, marginTop: '30px' }}>
+        <h2 style={{ marginBottom: '15px' }}>Past Notifications ({readNotifications.length})</h2>
+        {readNotifications.length === 0 ? (
+          <p>No past notifications.</p>
+        ) : (
+          <ul style={{ listStyleType: 'none', padding: 0 }}>
+            {readNotifications.map(alert => (
+              <li key={alert.id} style={{ borderBottom: '1px solid #f8f8f8', padding: '8px 0', display: 'flex', alignItems: 'center', fontSize: '0.9em' }}>
+                <span style={styles.statusIndicator(alert.isRead ? 'gray' : 'blue')}></span>
+                <span style={{ flexGrow: 1, color: 'gray' }}>
+                  <strong>{alert.type}:</strong> {alert.message}
+                  {alert.link && <Link to={alert.link} style={{ marginLeft: '10px', color: '#0055aa' }}>View</Link>}
+                </span>
+                <span style={{ fontSize: '0.8em', color: 'lightgray' }}>{new Date(alert.timestamp).toLocaleDateString()}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {activeAlerts.map(alert => (
+        <NotificationToast key={alert.id} alert={alert} onClose={handleCloseToast} />
+      ))}
+    </div>
+  );
+};
+
+
+// Component: Header Navigation
+export const AppHeader: React.FC = () => {
+  const { isAuthenticated, user, logout } = useContext(AuthContext);
+  const { preferredCurrency, setPreferredCurrency } = useContext(CurrencyPreferenceContext);
+  const { data: notificationsData } = useQuery<{ notifications: AlertNotification[] }>(GET_NOTIFICATIONS_QUERY, {
+    variables: { isRead: false },
+  });
+  const unreadCount = notificationsData?.notifications.length || 0;
+
+  const handleCurrencyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setPreferredCurrency(e.target.value as CurrencyEnum);
+  };
+
+  const navLinkStyle = (isActive: boolean) => ({
+    ...styles.navLink,
+    ...(isActive ? styles.navLinkActive : {}),
+  });
+
+  return (
+    <header style={styles.header}>
+      <div style={{ fontSize: '24px', fontWeight: 'bold' }}>Citibank Business Portal</div>
+      {isAuthenticated && (
+        <>
+          <nav style={styles.nav}>
+            <Link to="/" style={navLinkStyle(useLocation().pathname === '/')}>Dashboard</Link>
+            <Link to="/accounts" style={navLinkStyle(useLocation().pathname.startsWith('/accounts'))}>Accounts</Link>
+            <Link to="/payments" style={navLinkStyle(useLocation().pathname.startsWith('/payments'))}>Payments</Link>
+            <Link to="/reports" style={navLinkStyle(useLocation().pathname.startsWith('/reports'))}>Reports</Link>
+            <Link to="/notifications" style={navLinkStyle(useLocation().pathname.startsWith('/notifications'))}>
+              Notifications {unreadCount > 0 && <span style={{ backgroundColor: 'red', borderRadius: '50%', padding: '2px 7px', fontSize: '0.7em', marginLeft: '5px' }}>{unreadCount}</span>}
+            </Link>
+            <Link to="/settings" style={navLinkStyle(useLocation().pathname.startsWith('/settings'))}>Settings</Link>
+            {user?.roles.includes('ADMIN') && <Link to="/admin" style={navLinkStyle(useLocation().pathname.startsWith('/admin'))}>Admin</Link>}
+          </nav>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+            <span style={{ fontSize: '14px' }}>Welcome, {user?.name.split(' ')[0]}!</span>
+            <select
+              style={styles.select}
+              value={preferredCurrency}
+              onChange={handleCurrencyChange}
+              title="Preferred Display Currency"
+              aria-label="Preferred Display Currency"
+            >
+              {ALL_CURRENCIES.map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+            <button onClick={logout} style={{ ...styles.button, backgroundColor: '#dc3545' }}>Logout</button>
+          </div>
+        </>
+      )}
+    </header>
+  );
+};
+
+// Component: Account Metrics Summary Card
+export const AccountMetricCard: React.FC<{ metric: AccountCurrencyMetricNode }> = ({ metric }) => {
+  const { preferredCurrency, getConvertedAmount, formatCurrencyDisplay } = useContext(CurrencyPreferenceContext);
+  const navigate = useNavigate();
+
+  const displayPriorBalance = formatCurrencyDisplay(getConvertedAmount(metric.priorDayBalanceCents, metric.currency, preferredCurrency), preferredCurrency);
+  const displayAvailableBalance = formatCurrencyDisplay(getConvertedAmount(metric.availableBalanceCents, metric.currency, preferredCurrency), preferredCurrency);
+  const displayLedgerVariance = formatCurrencyDisplay(getConvertedAmount(metric.ledgerVarianceCents, metric.currency, preferredCurrency), preferredCurrency);
+  const displayUnreconciled = formatCurrencyDisplay(getConvertedAmount(metric.unreconciledAmountCents, metric.currency, preferredCurrency), preferredCurrency);
+
+  const varianceColor = metric.ledgerVarianceCents > 0 ? 'green' : (metric.ledgerVarianceCents < 0 ? 'red' : 'inherit');
+  const complianceColor = metric.complianceStatus === 'GREEN' ? 'green' : (metric.complianceStatus === 'YELLOW' ? 'orange' : 'red');
+
+  const handleClick = () => {
+    navigate(`/accounts/${metric.accountId.split('-')[1]}/${metric.currency}`);
+  };
+
+  return (
+    <div style={styles.card} role="region" aria-label={`Account summary for ${metric.accountName} in ${metric.currency}`}>
+      <h3 style={{ margin: '0 0 10px', cursor: 'pointer', color: '#0055aa' }} onClick={handleClick}>
+        {metric.accountName} <span style={{ textTransform: 'uppercase' }}>({metric.currency})</span>
+      </h3>
+      <p style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+        <span>Available Balance:</span> <strong>{displayAvailableBalance}</strong>
+      </p>
+      <p style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+        <span>Prior Day Balance:</span> <span>{displayPriorBalance}</span>
+      </p>
+      <p style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', color: varianceColor }}>
+        <span>Ledger Variance:</span> <span>{displayLedgerVariance}</span>
+        {metric.highlightLedgerVariance && <span style={{ color: 'red', marginLeft: '5px' }} aria-label="High Variance!">(High Variance!)</span>}
+      </p>
+      <p style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+        <span>Unreconciled:</span> <span>{displayUnreconciled} ({metric.unreconciledPercent}%)</span>
+      </p>
+      <p style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '0.9em', color: 'gray' }}>
+        <span>Last Updated:</span> {new Date(metric.lastUpdated).toLocaleDateString()}
+      </p>
+      <p style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+        <span>Compliance Status:</span> <span style={{ fontWeight: 'bold', color: complianceColor }}>{metric.complianceStatus}</span>
+      </p>
+      {metric.potentialOverdraftRisk && (
+        <p style={{ ...styles.warningText, marginTop: '10px', fontWeight: 'bold' }} aria-live="polite">
+          Potential Overdraft Risk Detected!
+        </p>
+      )}
+      <button onClick={handleClick} style={{ ...styles.button, marginTop: '15px', width: '100%', backgroundColor: '#0055aa' }} aria-label={`View details for ${metric.accountName} in ${metric.currency}`}>View Details</button>
+    </div>
+  );
+};
+
+// Component: Accounts Overview Table
+export const AccountMetricsTable: React.FC<{ metrics: AccountCurrencyMetricNode[] }> = ({ metrics }) => {
+  const [sortConfig, setSortConfig] = useState<{ key: keyof AccountCurrencyMetricNode; direction: 'ascending' | 'descending' } | null>(null);
+  const { preferredCurrency, getConvertedAmount, formatCurrencyDisplay } = useContext(CurrencyPreferenceContext);
+  const navigate = useNavigate();
+
+  const sortedMetrics = useMemo(() => {
+    let sortableItems = [...metrics];
+    if (sortConfig !== null) {
+      sortableItems.sort((a, b) => {
+        const aValue = a[sortConfig.key];
+        const bValue = b[sortConfig.key];
+
+        if (typeof aValue === 'number' && typeof bValue === 'number') {
+          return sortConfig.direction === 'ascending' ? aValue - bValue : bValue - aValue;
+        }
+        if (typeof aValue === 'string' && typeof bValue === 'string') {
+          return sortConfig.direction === 'ascending' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
+        }
+        if (typeof aValue === 'boolean' && typeof bValue === 'boolean') {
+          return sortConfig.direction === 'ascending' ? (aValue === bValue ? 0 : (aValue ? 1 : -1)) : (aValue === bValue ? 0 : (aValue ? -1 : 1));
+        }
+        return 0;
+      });
+    }
+    return sortableItems;
+  }, [metrics, sortConfig]);
+
+  const requestSort = (key: keyof AccountCurrencyMetricNode) => {
+    let direction: 'ascending' | 'descending' = 'ascending';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIndicator = (key: keyof AccountCurrencyMetricNode) => {
+    if (!sortConfig || sortConfig.key !== key) return null;
+    return sortConfig.direction === 'ascending' ? ' ▲' : ' ▼';
+  };
+
+  return (
+    <div style={styles.card} role="table" aria-label="All Account Balances Table">
+      <h2 style={{ marginBottom: '20px' }}>All Account Balances</h2>
+      <table style={styles.table}>
+        <thead>
+          <tr>
+            <th style={styles.th} onClick={() => requestSort('accountName')} aria-sort={sortConfig?.key === 'accountName' ? sortConfig.direction : 'none'}>Account Name {getSortIndicator('accountName')}</th>
+            <th style={styles.th} onClick={() => requestSort('currency')} aria-sort={sortConfig?.key === 'currency' ? sortConfig.direction : 'none'}>Currency {getSortIndicator('currency')}</th>
+            <th style={styles.th} onClick={() => requestSort('availableBalanceCents')} aria-sort={sortConfig?.key === 'availableBalanceCents' ? sortConfig.direction : 'none'}>Available Balance {getSortIndicator('availableBalanceCents')}</th>
+            <th style={styles.th} onClick={() => requestSort('priorDayBalanceCents')} aria-sort={sortConfig?.key === 'priorDayBalanceCents' ? sortConfig.direction : 'none'}>Prior Day Balance {getSortIndicator('priorDayBalanceCents')}</th>
+            <th style={styles.th} onClick={() => requestSort('ledgerVarianceCents')} aria-sort={sortConfig?.key === 'ledgerVarianceCents' ? sortConfig.direction : 'none'}>Ledger Variance {getSortIndicator('ledgerVarianceCents')}</th>
+            <th style={styles.th} onClick={() => requestSort('unreconciledAmountCents')} aria-sort={sortConfig?.key === 'unreconciledAmountCents' ? sortConfig.direction : 'none'}>Unreconciled {getSortIndicator('unreconciledAmountCents')}</th>
+            <th style={styles.th} onClick={() => requestSort('complianceStatus')} aria-sort={sortConfig?.key === 'complianceStatus' ? sortConfig.direction : 'none'}>Compliance {getSortIndicator('complianceStatus')}</th>
+            <th style={styles.th}>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {sortedMetrics.map((metric) => (
+            <tr key={metric.id}>
+              <td style={styles.td}><Link to={`/accounts/${metric.accountId.split('-')[1]}/${metric.currency}`} style={{ color: '#0055aa', textDecoration: 'none' }}>{metric.accountName}</Link></td>
+              <td style={styles.td}>{metric.currency}</td>
+              <td style={styles.td}>{formatCurrencyDisplay(getConvertedAmount(metric.availableBalanceCents, metric.currency, preferredCurrency))}</td>
+              <td style={styles.td}>{formatCurrencyDisplay(getConvertedAmount(metric.priorDayBalanceCents, metric.currency, preferredCurrency))}</td>
+              <td style={{ ...styles.td, color: metric.ledgerVarianceCents > 0 ? 'green' : (metric.ledgerVarianceCents < 0 ? 'red' : 'inherit') }}>
+                {formatCurrencyDisplay(getConvertedAmount(metric.ledgerVarianceCents, metric.currency, preferredCurrency))}
+                {metric.highlightLedgerVariance && <span style={{ color: 'red', marginLeft: '5px' }}>!</span>}
+              </td>
+              <td style={styles.td}>
+                {formatCurrencyDisplay(getConvertedAmount(metric.unreconciledAmountCents, metric.currency, preferredCurrency))} ({metric.unreconciledPercent}%)
+              </td>
+              <td style={{ ...styles.td, color: metric.complianceStatus === 'GREEN' ? 'green' : (metric.complianceStatus === 'YELLOW' ? 'orange' : 'red') }}>
+                {metric.complianceStatus}
+              </td>
+              <td style={styles.td}>
+                <button
+                  onClick={() => navigate(`/accounts/${metric.accountId.split('-')[1]}/${metric.currency}`)}
+                  style={{ ...styles.button, backgroundColor: '#0055aa', fontSize: '0.8em', padding: '6px 10px' }}
+                >
+                  View
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+// Component: Simple Line Chart (Mock)
+export const SimpleLineChart: React.FC<{ title: string; dataPoints: { label: string; value: number }[]; lineColor?: string }> = ({ title, dataPoints, lineColor = '#007bff' }) => {
+  if (dataPoints.length === 0) return <p>No data to display for {title}.</p>;
+
+  const width = 600;
+  const height = 200;
+  const padding = 30;
+
+  const maxVal = Math.max(...dataPoints.map(d => d.value));
+  const minVal = Math.min(...dataPoints.map(d => d.value));
+
+  // Scale value to y-coordinate
+  const getX = (index: number) => padding + (index / (dataPoints.length - 1)) * (width - 2 * padding);
+  const getY = (value: number) => {
+    if (maxVal === minVal) return height / 2; // Flat line if all values are same
+    return height - padding - ((value - minVal) / (maxVal - minVal)) * (height - 2 * padding);
+  };
+
+  const pathD = dataPoints.map((d, i) => `${i === 0 ? 'M' : 'L'} ${getX(i)} ${getY(d.value)}`).join(' ');
+
+  return (
+    <div style={{ margin: '20px 0' }}>
+      <h3 style={{ marginBottom: '10px' }}>{title}</h3>
+      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ border: '1px solid #ccc', borderRadius: '4px' }}>
+        {/* Y-axis line */}
+        <line x1={padding} y1={height - padding} x2={padding} y2={padding} stroke="#ccc" />
+        {/* X-axis line */}
+        <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#ccc" />
+
+        {/* Y-axis labels (min/max) */}
+        <text x={padding - 5} y={getY(maxVal)} textAnchor="end" fontSize="10" fill="#666">{formatCentsToCurrency(maxVal)}</text>
+        <text x={padding - 5} y={getY(minVal)} textAnchor="end" fontSize="10" fill="#666">{formatCentsToCurrency(minVal)}</text>
+        <text x={padding - 5} y={height / 2} textAnchor="end" fontSize="10" fill="#666">{formatCentsToCurrency((maxVal + minVal) / 2)}</text>
+
+
+        {/* Path */}
+        <path d={pathD} fill="none" stroke={lineColor} strokeWidth="2" />
+
+        {/* X-axis labels (first/last/middle) */}
+        <text x={getX(0)} y={height - padding + 15} textAnchor="middle" fontSize="10" fill="#666">{dataPoints[0].label}</text>
+        {dataPoints.length > 2 && <text x={getX(Math.floor(dataPoints.length / 2))} y={height - padding + 15} textAnchor="middle" fontSize="10" fill="#666">{dataPoints[Math.floor(dataPoints.length / 2)].label}</text>}
+        <text x={getX(dataPoints.length - 1)} y={height - padding + 15} textAnchor="middle" fontSize="10" fill="#666">{dataPoints[dataPoints.length - 1].label}</text>
+
+        {/* Data points as circles */}
+        {dataPoints.map((d, i) => (
+          <circle key={i} cx={getX(i)} cy={getY(d.value)} r="3" fill={lineColor} />
+        ))}
+      </svg>
+    </div>
+  );
+};
+
+
+// Component: Dashboard Overview
+export const DashboardPage: React.FC = () => {
+  const [selectedCurrency, setSelectedCurrency] = useState<CurrencyEnum | undefined>(undefined);
+  const { preferredCurrency, getConvertedAmount, formatCurrencyDisplay } = useContext(CurrencyPreferenceContext);
+  const { user } = useContext(AuthContext);
+
+  const { data, loading, error, refetch } = useQuery<{ accountCurrencyMetrics: AccountCurrencyMetricConnection }>(
+    ACCOUNT_CURRENCY_METRICS_HOME_QUERY,
+    { variables: { currency: selectedCurrency }, fetchPolicy: 'cache-and-network' } // Always try to get fresh data
+  );
+
+  const totalAvailableBalance = useMemo(() => {
+    if (!data?.accountCurrencyMetrics.edges) return 0;
+    return data.accountCurrencyMetrics.edges.reduce((sum, edge) =>
+      sum + getConvertedAmount(edge.node.availableBalanceCents, edge.node.currency, preferredCurrency), 0);
+  }, [data, preferredCurrency, getConvertedAmount]);
+
+  const totalPriorDayBalance = useMemo(() => {
+    if (!data?.accountCurrencyMetrics.edges) return 0;
+    return data.accountCurrencyMetrics.edges.reduce((sum, edge) =>
+      sum + getConvertedAmount(edge.node.priorDayBalanceCents, edge.node.currency, preferredCurrency), 0);
+  }, [data, preferredCurrency, getConvertedAmount]);
+
+  const totalLedgerVariance = useMemo(() => {
+    if (!data?.accountCurrencyMetrics.edges) return 0;
+    return data.accountCurrencyMetrics.edges.reduce((sum, edge) =>
+      sum + getConvertedAmount(edge.node.ledgerVarianceCents, edge.node.currency, preferredCurrency), 0);
+  }, [data, preferredCurrency, getConvertedAmount]);
+
+  const recentActivity = useMemo(() => {
+    const allRecentTxns = data?.accountCurrencyMetrics.edges
+      .flatMap(edge => edge.node.transactionsLast24H.map(txn => ({ ...txn, accountName: edge.node.accountName })))
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 10); // Show top 10 recent transactions
+    return allRecentTxns || [];
+  }, [data]);
+
+  const cashFlowProjectionData = useMemo(() => {
+    // Mocking 7 days of projection
+    const today = new Date();
+    return Array.from({ length: 7 }).map((_, i) => {
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+      const value = totalAvailableBalance + getRandomInt(-100000000, 100000000); // +/- $1M fluctuation
+      return { label: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), value };
+    });
+  }, [totalAvailableBalance]);
+
+
+  if (loading) return <LoadingSpinner />;
+  if (error) return <ErrorDisplay error={`Failed to load dashboard data: ${error.message}`} />;
+
+  const metrics = data?.accountCurrencyMetrics.edges.map(edge => edge.node) || [];
+
+  return (
+    <div style={styles.container}>
+      <h1 style={{ marginBottom: '30px', color: '#003366' }}>{user?.name}'s Financial Dashboard</h1>
+
+      <div style={{ ...styles.card, marginBottom: '30px' }}>
+        <h2 style={{ marginBottom: '15px' }}>Overall Financial Summary</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-around', gap: '20px', flexWrap: 'wrap' }}>
+          <div>
+            <h3 style={{ margin: '0 0 5px' }}>Total Available Balance</h3>
+            <p style={{ fontSize: '2em', fontWeight: 'bold', color: '#007bff' }}>{formatCurrencyDisplay(totalAvailableBalance)}</p>
+          </div>
+          <div>
+            <h3 style={{ margin: '0 0 5px' }}>Total Prior Day Balance</h3>
+            <p style={{ fontSize: '1.5em', color: '#555' }}>{formatCurrencyDisplay(totalPriorDayBalance)}</p>
+          </div>
+          <div>
+            <h3 style={{ margin: '0 0 5px' }}>Total Ledger Variance</h3>
+            <p style={{ fontSize: '1.5em', color: totalLedgerVariance < 0 ? 'red' : 'green' }}>{formatCurrencyDisplay(totalLedgerVariance)}</p>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h2 style={{ margin: 0, color: '#003366' }}>Account Metrics by Currency</h2>
+        <div>
+          <label htmlFor="currencyFilter" style={styles.label}>Filter by Currency:</label>
+          <select
+            id="currencyFilter"
+            style={styles.select}
+            value={selectedCurrency || ''}
+            onChange={(e) => setSelectedCurrency(e.target.value ? (e.target.value as CurrencyEnum) : undefined)}
+            aria-label="Filter accounts by currency"
+          >
+            <option value="">All Currencies</option>
+            {ALL_CURRENCIES.map(c => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div style={styles.dashboardGrid}>
+        {metrics.length === 0 && !loading && <p>No account metrics found for the selected currency.</p>}
+        {metrics.map(metric => (
+          <AccountMetricCard key={metric.id} metric={metric} />
+        ))}
+      </div>
+
+      <AccountMetricsTable metrics={metrics} />
+
+      <div style={{ ...styles.card, marginTop: '30px' }}>
+        <h2>Quick Insights & Recent Activity</h2>
+        {recentActivity.length > 0 ? (
+          <ul style={{ listStyleType: 'none', padding: 0 }}>
+            {recentActivity.map((tx, index) => (
+              <li key={tx.id || index} style={{ borderBottom: '1px solid #eee', padding: '8px 0', display: 'flex', justifyContent: 'space-between', fontSize: '0.9em' }}>
+                <span>{new Date(tx.date).toLocaleDateString()} - <strong>{tx.accountName} ({tx.currency})</strong>: {tx.description}</span>
+                <span style={{ color: tx.amountCents < 0 ? 'red' : 'green', fontWeight: 'bold' }}>
+                  {formatCurrencyDisplay(tx.amountCents, tx.currency)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : <p>No recent activity in the last 24 hours.</p>}
+        <button style={{ ...styles.button, marginTop: '15px', width: '100%', backgroundColor: '#0055aa' }}>View All Transactions</button>
+      </div>
+
+      <div style={{ ...styles.card, marginTop: '30px' }}>
+        <SimpleLineChart
+          title="Projected Cash Flow (Next 7 Days)"
+          dataPoints={cashFlowProjectionData}
+          lineColor="#28a745"
+        />
+        <p style={{ fontSize: '0.9em', color: 'gray', marginTop: '10px' }}>
+          This projection considers scheduled payments, recurring deposits, and historical spending patterns.
+        </p>
+      </div>
+
+      <div style={{ ...styles.card, marginTop: '30px' }}>
+        <h2>Spending Breakdown by Category (Current Month)</h2>
+        <img src="https://via.placeholder.com/600x200?text=Detailed+Spending+Categories+Pie+Chart" alt="Spending Categories Pie Chart" style={{ maxWidth: '100%', height: 'auto' }} />
+        <p style={{ fontSize: '0.9em', color: 'gray', marginTop: '10px' }}>
+          Visualizing outgoing transactions across all linked accounts for the current billing cycle.
+        </p>
+      </div>
+
+      <div style={{ ...styles.card, marginTop: '30px' }}>
+        <h2>Market Watch & Economic Indicators</h2>
+        <p>Monitor key economic data points relevant to your business operations.</p>
+        <ul style={{ listStyleType: 'none', padding: 0, fontSize: '0.9em' }}>
+          <li style={{ borderBottom: '1px solid #eee', padding: '5px 0' }}><strong>USD/EUR:</strong> 1.0825 <span style={{ color: 'green' }}>▲ 0.0012</span></li>
+          <li style={{ borderBottom: '1px solid #eee', padding: '5px 0' }}><strong>Interest Rate (Fed Funds):</strong> 5.50% <span style={{ color: 'gray' }}>─</span></li>
+          <li style={{ borderBottom: '1px solid #eee', padding: '5px 0' }}><strong>Inflation Rate (US):</strong> 3.3% <span style={{ color: 'red' }}>▲ 0.1%</span></li>
+        </ul>
+        <button style={{ ...styles.button, marginTop: '15px', backgroundColor: '#0055aa' }}>View Full Market Data</button>
+      </div>
+    </div>
+  );
+};
+
+// Component: Account Details Page
+export const AccountDetailsPage: React.FC = () => {
+  const { accountId, currency } = useParams<{ accountId: string; currency: CurrencyEnum }>();
+  const { preferredCurrency, getConvertedAmount, formatCurrencyDisplay } = useContext(CurrencyPreferenceContext);
+  const navigate = useNavigate();
+
+  const { data, loading, error } = useQuery<{ accountDetails: AccountCurrencyMetricNode & { transactions: Transaction[], recentActivity: any[] } }>(
+    ACCOUNT_DETAILS_QUERY,
+    {
+      variables: { accountId: `acc-${accountId}`, currency: currency as CurrencyEnum },
+      skip: !accountId || !currency,
+      fetchPolicy: 'cache-and-network',
+    }
+  );
+
+  const account = data?.accountDetails;
+
+  if (loading) return <LoadingSpinner />;
+  if (error) return <ErrorDisplay error={error.message} />;
+  if (!account) return <ErrorDisplay error="Account not found or invalid parameters." />;
+
+  const displayAvailableBalance = formatCurrencyDisplay(getConvertedAmount(account.availableBalanceCents, account.currency, preferredCurrency));
+  const displayProjectedBalance = formatCurrencyDisplay(getConvertedAmount(account.projectedBalanceCents, account.currency, preferredCurrency));
+  const displayBudgetAllocated = formatCurrencyDisplay(getConvertedAmount(account.budgetAllocatedCents, account.currency, preferredCurrency));
+  const displayBudgetUsed = formatCurrencyDisplay(getConvertedAmount(account.budgetUsedCents, account.currency, preferredCurrency));
+  const displayLastStatementBalance = formatCurrencyDisplay(getConvertedAmount(account.lastStatementBalanceCents, account.currency, preferredCurrency));
+  const displayFeesAndCharges = formatCurrencyDisplay(getConvertedAmount(account.feesAndChargesLast30DaysCents, account.currency, preferredCurrency));
+  const displayCreditLimit = account.creditLimitCents ? formatCurrencyDisplay(getConvertedAmount(account.creditLimitCents, account.currency, preferredCurrency)) : 'N/A';
+
+  const budgetProgress = account.budgetAllocatedCents > 0 ? (account.budgetUsedCents / account.budgetAllocatedCents) * 100 : 0;
+  const budgetColor = budgetProgress > 90 ? 'red' : (budgetProgress > 75 ? 'orange' : 'green');
+
+  return (
+    <div style={styles.container}>
+      <h1 style={{ marginBottom: '20px', color: '#003366' }}>{account.accountName} Details: {account.accountId.split('-')[1]} ({account.currency})</h1>
+
+      <div style={{ ...styles.card, marginBottom: '20px', display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: '300px' }}>
+          <h2 style={{ margin: '0 0 10px' }}>Current Account Status</h2>
+          <p><strong>Available Balance:</strong> {displayAvailableBalance}</p>
+          <p><strong>Projected Balance:</strong> {displayProjectedBalance}</p>
+          <p><strong>Last Statement Balance:</strong> {displayLastStatementBalance}</p>
+          <p><strong>Last Updated:</strong> {new Date(account.lastUpdated).toLocaleString()}</p>
+          <p><strong>Compliance Status:</strong> <span style={{ color: account.complianceStatus === 'GREEN' ? 'green' : (account.complianceStatus === 'YELLOW' ? 'orange' : 'red'), fontWeight: 'bold' }}>{account.complianceStatus}</span></p>
+          <p><strong>Risk Score:</strong> {account.riskScore}/100</p>
+          {account.potentialOverdraftRisk && <p style={styles.warningText}>High Overdraft Risk! Monitor closely.</p>}
+        </div>
+        <div style={{ flex: 1, minWidth: '300px', borderLeft: '1px solid #eee', paddingLeft: '20px' }}>
+          <h2 style={{ margin: '0 0 10px' }}>Additional Financial Data</h2>
+          <p><strong>Credit Limit:</strong> {displayCreditLimit}</p>
+          <p><strong>Interest Rate:</strong> {account.interestRatePercent ? `${account.interestRatePercent}%` : 'N/A'}</p>
+          <p><strong>Fees & Charges (30 Days):</strong> {displayFeesAndCharges}</p>
+          <p><strong>Pending Deposits:</strong> {formatCurrencyDisplay(account.pendingDepositsCents, account.currency)}</p>
+          <p><strong>Pending Withdrawals:</strong> {formatCurrencyDisplay(account.pendingWithdrawalsCents, account.currency)}</p>
+          <p><strong>Holds:</strong> {formatCurrencyDisplay(account.holdsCents, account.currency)}</p>
+        </div>
+      </div>
+
+      <div style={{ ...styles.card, marginBottom: '20px', display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: '300px' }}>
+          <h2>Budget Summary ({account.currency})</h2>
+          <p><strong>Allocated:</strong> {displayBudgetAllocated}</p>
+          <p><strong>Used:</strong> {displayBudgetUsed}</p>
+          <p><strong>Remaining:</strong> {formatCurrencyDisplay(getConvertedAmount(account.budgetAllocatedCents - account.budgetUsedCents, account.currency, preferredCurrency))}</p>
+          <div style={{ height: '10px', backgroundColor: '#e0e0e0', borderRadius: '5px', marginTop: '10px' }}>
+            <div
+              style={{
+                width: `${budgetProgress}%`,
+                height: '100%',
+                backgroundColor: budgetColor,
+                borderRadius: '5px',
+                transition: 'width 0.5s ease-in-out',
+              }}
+              role="progressbar"
+              aria-valuenow={budgetProgress}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={`Budget utilization: ${budgetProgress.toFixed(1)}%`}
+            ></div>
+          </div>
+          <p style={{ fontSize: '0.9em', color: 'gray', marginTop: '5px' }}>{budgetProgress.toFixed(1)}% of budget used</p>
+          <button style={{ ...styles.button, backgroundColor: '#0055aa', marginTop: '10px' }}>Manage Budget</button>
+        </div>
+        <div style={{ flex: 1, minWidth: '300px', borderLeft: '1px solid #eee', paddingLeft: '20px' }}>
+          <h2>Unreconciled Items</h2>
+          <p><strong>Amount:</strong> {formatCurrencyDisplay(getConvertedAmount(account.unreconciledAmountCents, account.currency, preferredCurrency))}</p>
+          <p><strong>Percentage:</strong> {account.unreconciledPercent.toFixed(2)}%</p>
+          {account.unreconciledAmountCents > 0 && (
+            <button style={{ ...styles.button, backgroundColor: '#dc3545', marginTop: '10px' }}>Initiate Reconciliation Workflow</button>
+          )}
+          <p style={{ fontSize: '0.9em', color: 'gray', marginTop: '10px' }}>
+            Flagged items: {account.transactions.filter(t => t.isFlagged && !t.isReconciled).length}
+          </p>
+        </div>
+      </div>
+
+      <div style={{ ...styles.card, marginBottom: '20px' }}>
+        <h2>Transactions ({account.currency})</h2>
+        <TransactionTable accountId={account.accountId} currency={account.currency} />
+      </div>
+
+      <div style={{ ...styles.card, marginBottom: '20px' }}>
+        <h2>Associated Accounts</h2>
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              <th style={styles.th}>Account Name</th>
+              <th style={styles.th}>Type</th>
+              <th style={styles.th}>Currency</th>
+              <th style={styles.th}>Balance ({preferredCurrency})</th>
+              <th style={styles.th}>Relationship</th>
+              <th style={styles.th}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {account.associatedAccounts.map((acc) => (
+              <tr key={acc.id}>
+                <td style={styles.td}>{acc.name}</td>
+                <td style={styles.td}>{acc.type}</td>
+                <td style={styles.td}>{acc.currency}</td>
+                <td style={styles.td}>{formatCurrencyDisplay(getConvertedAmount(acc.currentBalanceCents, acc.currency, preferredCurrency))}</td>
+                <td style={styles.td}>{acc.relationshipType}</td>
+                <td style={styles.td}><button onClick={() => navigate(`/accounts/${acc.id.split('-')[1]}/${acc.currency}`)} style={{ ...styles.button, backgroundColor: '#0055aa', fontSize: '0.8em', padding: '6px 10px' }}>View</button></td>
+              </tr>
+            ))}
+            {account.associatedAccounts.length === 0 && <tr><td colSpan={6} style={{ ...styles.td, textAlign: 'center' }}>No associated accounts.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+
+      <div style={{ ...styles.card, marginBottom: '20px' }}>
+        <h2>Spending Categories Analysis</h2>
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              <th style={styles.th}>Category</th>
+              <th style={styles.th}>Amount Spent ({preferredCurrency})</th>
+              <th style={styles.th}>% of Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {account.spendingCategories.map((cat, index) => (
+              <tr key={index}>
+                <td style={styles.td}>{cat.category}</td>
+                <td style={styles.td}>{formatCurrencyDisplay(getConvertedAmount(cat.amountCents, account.currency, preferredCurrency))}</td>
+                <td style={styles.td}>{cat.percentOfTotal.toFixed(1)}%</td>
+              </tr>
+            ))}
+            {account.spendingCategories.length === 0 && <tr><td colSpan={3} style={{ ...styles.td, textAlign: 'center' }}>No spending categories found.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+
+      <div style={{ ...styles.card, marginBottom: '20px' }}>
+        <h2>Monthly Statements</h2>
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              <th style={styles.th}>Period</th>
+              <th style={styles.th}>Status</th>
+              <th style={styles.th}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {account.monthlyStatements?.map((statement) => (
+              <tr key={statement.id}>
+                <td style={styles.td}>{statement.period}</td>
+                <td style={styles.td}>{statement.status}</td>
+                <td style={styles.td}>
+                  {statement.status === 'AVAILABLE' ? (
+                    <a href={statement.downloadUrl} target="_blank" rel="noopener noreferrer" style={{ ...styles.button, backgroundColor: '#0055aa', fontSize: '0.8em', padding: '6px 10px' }}>Download PDF</a>
+                  ) : (
+                    <span style={{ color: 'gray', fontSize: '0.8em' }}>{statement.status}</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+            {account.monthlyStatements?.length === 0 && <tr><td colSpan={3} style={{ ...styles.td, textAlign: 'center' }}>No statements available.</td></tr>}
+          </tbody>
+        </table>
+        <button style={{ ...styles.button, marginTop: '15px', backgroundColor: '#0055aa' }}>Request New Statement</button>
+      </div>
+
+      <div style={{ ...styles.card, marginBottom: '20px' }}>
+        <h2>Authorized Users for this Account</h2>
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              <th style={styles.th}>User Name</th>
+              <th style={styles.th}>Permissions</th>
+              <th style={styles.th}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {account.authorizedUsers?.map((userEntry, index) => (
+              <tr key={userEntry.userId || index}>
+                <td style={styles.td}>{userEntry.userName}</td>
+                <td style={styles.td}>{userEntry.permissions.join(', ')}</td>
+                <td style={styles.td}>
+                  <button style={{ ...styles.button, backgroundColor: '#ffc107', color: '#333', fontSize: '0.8em', padding: '6px 10px', marginRight: '5px' }}>Edit Permissions</button>
+                  <button style={{ ...styles.button, backgroundColor: '#dc3545', fontSize: '0.8em', padding: '6px 10px' }}>Remove</button>
+                </td>
+              </tr>
+            ))}
+            {account.authorizedUsers?.length === 0 && <tr><td colSpan={3} style={{ ...styles.td, textAlign: 'center' }}>No authorized users for this account.</td></tr>}
+          </tbody>
+        </table>
+        <button style={{ ...styles.button, marginTop: '15px', backgroundColor: '#28a745' }}>Add New User Access</button>
+      </div>
+
+    </div>
+  );
+};
+
+// Component: Transaction Table (Paginated, Filterable, Searchable)
+export const TransactionTable: React.FC<{ accountId: string, currency: CurrencyEnum }> = ({ accountId, currency }) => {
+  const { preferredCurrency, getConvertedAmount, formatCurrencyDisplay } = useContext(CurrencyPreferenceContext);
+  const [filterText, setFilterText] = useState('');
+  const [filterCategory, setFilterCategory] = useState<string>('');
+  const [filterStatus, setFilterStatus] = useState<'ALL' | Transaction['status']>('ALL');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
+  const { data, loading, error, fetchMore, refetch } = useQuery<{ transactions: { edges: { node: Transaction }[], pageInfo: PageInfo } }>(
+    GET_TRANSACTIONS_QUERY,
+    {
+      variables: {
+        accountId,
+        currency,
+        first: 15,
+        search: filterText,
+        category: filterCategory === '' ? undefined : filterCategory,
+        status: filterStatus === 'ALL' ? undefined : filterStatus,
+        startDate: startDate === '' ? undefined : startDate,
+        endDate: endDate === '' ? undefined : endDate,
+      },
+      fetchPolicy: 'cache-and-network',
+    }
+  );
+
+  // Refetch when filters change
+  useEffect(() => {
+    refetch();
+  }, [filterText, filterCategory, filterStatus, startDate, endDate, refetch]);
+
+  const transactions = data?.transactions.edges.map(edge => edge.node) || [];
+  const pageInfo = data?.transactions.pageInfo;
+
+  const loadMoreTransactions = () => {
+    if (pageInfo?.hasNextPage) {
+      fetchMore({
+        variables: {
+          after: pageInfo.endCursor,
+          first: 15,
+          accountId,
+          currency,
+          search: filterText,
+          category: filterCategory === '' ? undefined : filterCategory,
+          status: filterStatus === 'ALL' ? undefined : filterStatus,
+          startDate: startDate === '' ? undefined : startDate,
+          endDate: endDate === '' ? undefined : endDate,
+        },
+        updateQuery: (prev, { fetchMoreResult }) => {
+          if (!fetchMoreResult) return prev;
+          return {
+            transactions: {
+              ...fetchMoreResult.transactions,
+              edges: [
+                ...prev.transactions.edges,
+                ...fetchMoreResult.transactions.edges,
+              ],
+            },
+          };
+        },
+      });
+    }
+  };
+
+  const allCategories = Array.from(new Set(mockTransactions.map(t => t.category))).sort();
+  const allStatuses = Array.from(new Set(mockTransactions.map(t => t.status))).sort();
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <div>
+          <label htmlFor="transactionSearch" style={styles.label}>Search:</label>
+          <input
+            id="transactionSearch"
+            type="text"
+            style={{ ...styles.input, width: '200px' }}
+            placeholder="Description, counterparty, ref #"
+            value={filterText}
+            onChange={(e) => setFilterText(e.target.value)}
+          />
+        </div>
+        <div>
+          <label htmlFor="categoryFilter" style={styles.label}>Category:</label>
+          <select id="categoryFilter" style={styles.select} value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
+            <option value="">All Categories</option>
+            {allCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="statusFilter" style={styles.label}>Status:</label>
+          <select id="statusFilter" style={styles.select} value={filterStatus} onChange={(e) => setFilterStatus(e.target.value as 'ALL' | Transaction['status'])}>
+            <option value="ALL">All Statuses</option>
+            {allStatuses.map(status => <option key={status} value={status}>{status}</option>)}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="startDateFilter" style={styles.label}>From Date:</label>
+          <input id="startDateFilter" type="date" style={styles.input} value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+        </div>
+        <div>
+          <label htmlFor="endDateFilter" style={styles.label}>To Date:</label>
+          <input id="endDateFilter" type="date" style={styles.input} value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+        </div>
+        <button style={{ ...styles.button, backgroundColor: '#28a745' }}>Export CSV</button>
+        <button style={{ ...styles.button, backgroundColor: '#ffc107', color: '#333' }}>New Transfer</button>
+      </div>
+
+      <table style={styles.table}>
+        <thead>
+          <tr>
+            <th style={styles.th}>Date</th>
+            <th style={styles.th}>Description</th>
+            <th style={styles.th}>Counterparty</th>
+            <th style={styles.th}>Category</th>
+            <th style={styles.th}>Amount ({preferredCurrency})</th>
+            <th style={styles.th}>Type</th>
+            <th style={styles.th}>Status</th>
+            <th style={styles.th}>Ref #</th>
+            <th style={styles.th}>Reconciled</th>
+            <th style={styles.th}>Flagged</th>
+            <th style={styles.th}>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {loading && transactions.length === 0 ? (
+            <tr><td colSpan={11}><LoadingSpinner /></td></tr>
+          ) : (
+            transactions.length === 0 ? (
+              <tr><td colSpan={11} style={{ ...styles.td, textAlign: 'center' }}>No transactions found for the selected filters.</td></tr>
+            ) : (
+              transactions.map(tx => (
+                <tr key={tx.id}>
+                  <td style={styles.td}>{new Date(tx.date).toLocaleDateString()}</td>
+                  <td style={styles.td}>{tx.description}</td>
+                  <td style={styles.td}>{tx.counterparty}</td>
+                  <td style={styles.td}>{tx.category} {tx.subCategory && `(${tx.subCategory})`}</td>
+                  <td style={{ ...styles.td, color: tx.amountCents < 0 ? 'red' : 'green', fontWeight: 'bold' }}>
+                    {formatCurrencyDisplay(getConvertedAmount(tx.amountCents, tx.currency, preferredCurrency))}
+                  </td>
+                  <td style={styles.td}>{tx.type}</td>
+                  <td style={styles.td}>{tx.status}</td>
+                  <td style={styles.td}>{tx.referenceNumber}</td>
+                  <td style={styles.td}>{tx.isReconciled ? '✅' : '❌'}</td>
+                  <td style={styles.td}>{tx.isFlagged ? '🚩' : ''}</td>
+                  <td style={styles.td}>
+                    {tx.attachmentUrl && <a href={tx.attachmentUrl} target="_blank" rel="noopener noreferrer" style={{ ...styles.button, backgroundColor: '#6c757d', fontSize: '0.7em', padding: '4px 8px', marginRight: '5px' }}>View Doc</a>}
+                    {!tx.isReconciled && <button style={{ ...styles.button, backgroundColor: '#0055aa', fontSize: '0.7em', padding: '4px 8px' }}>Reconcile</button>}
+                  </td>
+                </tr>
+              ))
+            )
+          )}
+        </tbody>
+      </table>
+      {pageInfo?.hasNextPage && (
+        <button onClick={loadMoreTransactions} style={{ ...styles.button, marginTop: '20px', width: '100%', backgroundColor: '#0055aa' }} disabled={loading}>
+          {loading ? 'Loading More...' : 'Load More Transactions'}
+        </button>
+      )}
+      {(loading && transactions.length > 0) && <LoadingSpinner />}
+    </div>
+  );
+};
+
+// Component: Payments Page
+export const PaymentsPage: React.FC = () => {
+  const { user } = useContext(AuthContext);
+  const { preferredCurrency, formatCurrencyDisplay } = useContext(CurrencyPreferenceContext);
+  const [activeTab, setActiveTab] = useState<'new' | 'pending' | 'scheduled' | 'beneficiaries' | 'history'>('new');
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [recipient, setRecipient] = useState('');
+  const [paymentCurrency, setPaymentCurrency] = useState<CurrencyEnum>('USD');
+  const [fromAccount, setFromAccount] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  const { data: beneficiariesData, loading: beneficiariesLoading, error: beneficiariesError, refetch: refetchBeneficiaries } = useQuery<{ beneficiaries: Beneficiary[] }>(GET_BENEFICIARIES_QUERY);
+  const beneficiaries = beneficiariesData?.beneficiaries || [];
+
+  const { data: scheduledPaymentsData, loading: scheduledPaymentsLoading, error: scheduledPaymentsError, refetch: refetchScheduledPayments } = useQuery<{ scheduledPayments: ScheduledPayment[] }>(GET_SCHEDULED_PAYMENTS_QUERY);
+  const scheduledPayments = scheduledPaymentsData?.scheduledPayments || [];
+
+  const handlePaymentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!paymentAmount || !recipient || !fromAccount) {
+      setMessage({ type: 'error', text: 'Please fill all required fields.' });
+      return;
+    }
+    setIsProcessing(true);
+    setMessage(null);
+    // Simulate API call for payment
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    const success = Math.random() > 0.1; // 90% success rate
+    if (success) {
+      setMessage({ type: 'success', text: `Payment of ${formatCurrencyDisplay(parseFloat(paymentAmount) * 100, paymentCurrency)} to ${recipient} initiated successfully!` });
+      setPaymentAmount('');
+      setRecipient('');
+    } else {
+      setMessage({ type: 'error', text: 'Payment failed. Please try again or contact support.' });
+    }
+    setIsProcessing(false);
+  };
+
+  const handleBeneficiarySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    // Simplified, more fields needed for real beneficiary
+    const newBeneficiary: Beneficiary = {
+      id: generateRandomId(),
+      name: recipient,
+      accountNumber: 'XXXXX' + getRandomInt(1000, 9999),
+      bankName: 'Mock Bank Inc.',
+      currency: paymentCurrency,
+      isInternational: false,
+      addedBy: user?.id || 'unknown',
+      addedDate: new Date().toISOString(),
+    };
+    mockBeneficiaries.push(newBeneficiary);
+    refetchBeneficiaries();
+    alert('Beneficiary added successfully! (Mock action)');
+  };
+
+  const mockPendingApprovals = user?.roles.includes('PAYMENT_APPROVER') ? getRandomInt(0, 5) : 0;
+
+  return (
+    <div style={styles.container}>
+      <h1 style={{ marginBottom: '20px', color: '#003366' }}>Payments & Transfers</h1>
+
+      <div style={{ display: 'flex', borderBottom: '1px solid #e0e0e0', marginBottom: '20px' }}>
+        <button style={{ ...styles.button, backgroundColor: activeTab === 'new' ? '#007bff' : '#f0f0f0', color: activeTab === 'new' ? 'white' : '#333', borderRadius: '4px 4px 0 0', border: 'none', marginRight: '5px' }} onClick={() => setActiveTab('new')}>New Payment</button>
+        <button style={{ ...styles.button, backgroundColor: activeTab === 'pending' ? '#007bff' : '#f0f0f0', color: activeTab === 'pending' ? 'white' : '#333', borderRadius: '4px 4px 0 0', border: 'none', marginRight: '5px' }} onClick={() => setActiveTab('pending')}>Pending & Approvals {mockPendingApprovals > 0 && <span style={{ backgroundColor: 'orange', borderRadius: '50%', padding: '2px 7px', fontSize: '0.7em', marginLeft: '5px' }}>{mockPendingApprovals}</span>}</button>
+        <button style={{ ...styles.button, backgroundColor: activeTab === 'scheduled' ? '#007bff' : '#f0f0f0', color: activeTab === 'scheduled' ? 'white' : '#333', borderRadius: '4px 4px 0 0', border: 'none', marginRight: '5px' }} onClick={() => setActiveTab('scheduled')}>Scheduled Payments</button>
+        <button style={{ ...styles.button, backgroundColor: activeTab === 'beneficiaries' ? '#007bff' : '#f0f0f0', color: activeTab === 'beneficiaries' ? 'white' : '#333', borderRadius: '4px 4px 0 0', border: 'none', marginRight: '5px' }} onClick={() => setActiveTab('beneficiaries')}>Beneficiaries</button>
+        <button style={{ ...styles.button, backgroundColor: activeTab === 'history' ? '#007bff' : '#f0f0f0', color: activeTab === 'history' ? 'white' : '#333', borderRadius: '4px 4px 0 0', border: 'none' }} onClick={() => setActiveTab('history')}>Payment History</button>
+      </div>
+
+      {activeTab === 'new' && (
+        <div style={styles.card}>
+          <h2>New Payment / Transfer</h2>
+          <form onSubmit={handlePaymentSubmit} style={{ display: 'grid', gap: '15px', maxWidth: '500px' }}>
+            <div>
+              <label style={styles.label} htmlFor="fromAccount">From Account:</label>
+              <select id="fromAccount" style={{ ...styles.select, width: '100%' }} value={fromAccount} onChange={(e) => setFromAccount(e.target.value)} required aria-label="Select source account">
+                <option value="">Select Account</option>
+                {/* This would be dynamically loaded from user's actual account metrics */}
+                {generateMockAccountCurrencyMetrics(5).edges.map(edge => (
+                  <option key={edge.node.id} value={edge.node.id}>{edge.node.accountName} ({edge.node.currency}) - {formatCurrencyDisplay(edge.node.availableBalanceCents, edge.node.currency)}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label style={styles.label} htmlFor="recipient">Recipient Name/ID:</label>
+              <input id="recipient" type="text" style={{ ...styles.input, width: '100%' }} value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder="e.g., Supplier XYZ, Bank Acct 123..." required aria-label="Recipient Name or ID" />
+            </div>
+            <div>
+              <label style={styles.label} htmlFor="amount">Amount:</label>
+              <input id="amount" type="number" step="0.01" style={{ ...styles.input, width: 'calc(100% - 80px)', display: 'inline-block' }} value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} placeholder="e.g., 123.45" required aria-label="Payment Amount" />
+              <select style={{ ...styles.select, width: '70px', display: 'inline-block', marginLeft: '5px' }} value={paymentCurrency} onChange={(e) => setPaymentCurrency(e.target.value as CurrencyEnum)} aria-label="Payment Currency">
+                {ALL_CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={styles.label} htmlFor="description">Description (Optional):</label>
+              <textarea id="description" style={{ ...styles.input, width: '100%', minHeight: '60px' }} placeholder="Payment for services, invoice #..." aria-label="Payment Description" />
+            </div>
+            <button type="submit" style={{ ...styles.button, backgroundColor: '#28a745' }} disabled={isProcessing}>
+              {isProcessing ? 'Processing...' : 'Initiate Payment'}
+            </button>
+            {message && (
+              <p style={message.type === 'error' ? styles.errorText : styles.successText} aria-live="polite">
+                {message.text}
+              </p>
+            )}
+          </form>
+          <div style={{ marginTop: '30px' }}>
+            <h3>Bulk Payment Processing</h3>
+            <p>Upload a file (CSV/XML) to process multiple payments simultaneously.</p>
+            <input type="file" style={{ margin: '10px 0' }} aria-label="Upload bulk payment file" />
+            <button style={{ ...styles.button, backgroundColor: '#0055aa' }}>Upload & Process Bulk</button>
+          </div>
+          <div style={{ marginTop: '30px' }}>
+            <h3>International Payments</h3>
+            <p>Initiate SWIFT/IBAN payments to international beneficiaries with real-time exchange rates.</p>
+            <button style={{ ...styles.button, backgroundColor: '#0055aa' }}>Go to International Payments</button>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'pending' && (
+        <div style={styles.card}>
+          <h2>Pending Payments & Approvals</h2>
+          {user?.roles.includes('PAYMENT_APPROVER') ? (
+            <div style={{ marginBottom: '20px' }}>
+              <p style={mockPendingApprovals > 0 ? styles.warningText : styles.successText}>You have {mockPendingApprovals} payments awaiting your approval.</p>
+              {mockPendingApprovals > 0 && <button style={{ ...styles.button, backgroundColor: '#ffc107', color: '#333' }}>Review Payments</button>}
+            </div>
+          ) : (
+            <p>No payments awaiting your approval. Your pending transfers are listed below.</p>
+          )}
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={styles.th}>Date</th>
+                <th style={styles.th}>Recipient</th>
+                <th style={styles.th}>Amount</th>
+                <th style={styles.th}>Status</th>
+                <th style={styles.th}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style={styles.td}>2024-07-20</td>
+                <td style={styles.td}>Global Logistics Inc.</td>
+                <td style={styles.td}>{formatCurrencyDisplay(1500000, 'USD')}</td>
+                <td style={styles.td}>Pending Approval</td>
+                <td style={styles.td}><button style={{ ...styles.button, backgroundColor: '#6c757d', fontSize: '0.8em', padding: '6px 10px' }}>Cancel</button></td>
+              </tr>
+              <tr>
+                <td style={styles.td}>2024-07-19</td>
+                <td style={styles.td}>Jane Doe (Payroll)</td>
+                <td style={styles.td}>{formatCurrencyDisplay(500000, 'EUR')}</td>
+                <td style={styles.td}>Processing</td>
+                <td style={styles.td}><button style={{ ...styles.button, backgroundColor: '#0055aa', fontSize: '0.8em', padding: '6px 10px' }}>View Status</button></td>
+              </tr>
+              <tr>
+                <td colSpan={5} style={{ ...styles.td, textAlign: 'center' }}>No other pending payments.</td>
+              </tr>
+            </tbody>
+          </table>
+          <button style={{ ...styles.button, marginTop: '20px', width: '100%', backgroundColor: '#0055aa' }}>View All Pending Payments</button>
+        </div>
+      )}
+
+      {activeTab === 'scheduled' && (
+        <div style={styles.card}>
+          <h2>Scheduled & Recurring Payments</h2>
+          {scheduledPaymentsLoading && <LoadingSpinner />}
+          {scheduledPaymentsError && <ErrorDisplay error={scheduledPaymentsError.message} />}
+          {!scheduledPaymentsLoading && scheduledPayments.length === 0 && <p>No scheduled payments found.</p>}
+          {!scheduledPaymentsLoading && scheduledPayments.length > 0 && (
+            <table style={styles.table}>
+              <thead>
+                <tr>
+                  <th style={styles.th}>From Account</th>
+                  <th style={styles.th}>Beneficiary</th>
+                  <th style={styles.th}>Amount</th>
+                  <th style={styles.th}>Frequency</th>
+                  <th style={styles.th}>Next Payment</th>
+                  <th style={styles.th}>Status</th>
+                  <th style={styles.th}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {scheduledPayments.map(sp => {
+                  const bene = beneficiaries.find(b => b.id === sp.beneficiaryId);
+                  return (
+                    <tr key={sp.id}>
+                      <td style={styles.td}>{sp.fromAccountId}</td>
+                      <td style={styles.td}>{bene?.name || 'N/A'}</td>
+                      <td style={styles.td}>{formatCurrencyDisplay(sp.amountCents, sp.currency)}</td>
+                      <td style={styles.td}>{sp.frequency}</td>
+                      <td style={styles.td}>{new Date(sp.nextPaymentDate).toLocaleDateString()}</td>
+                      <td style={styles.td}>{sp.status}</td>
+                      <td style={styles.td}>
+                        <button style={{ ...styles.button, backgroundColor: '#0055aa', fontSize: '0.7em', padding: '4px 8px', marginRight: '5px' }}>Edit</button>
+                        <button style={{ ...styles.button, backgroundColor: '#dc3545', fontSize: '0.7em', padding: '4px 8px' }}>Cancel</button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+          <button style={{ ...styles.button, marginTop: '20px', backgroundColor: '#28a745' }}>Schedule New Payment</button>
+        </div>
+      )}
+
+      {activeTab === 'beneficiaries' && (
+        <div style={styles.card}>
+          <h2>Manage Beneficiaries</h2>
+          <form onSubmit={handleBeneficiarySubmit} style={{ display: 'grid', gap: '15px', maxWidth: '500px', marginBottom: '30px' }}>
+            <h3>Add New Beneficiary</h3>
+            <div>
+              <label style={styles.label} htmlFor="newBeneName">Beneficiary Name:</label>
+              <input id="newBeneName" type="text" style={{ ...styles.input, width: '100%' }} value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder="e.g., Company Name" required />
+            </div>
+            <div>
+              <label style={styles.label} htmlFor="newBeneCurrency">Currency:</label>
+              <select id="newBeneCurrency" style={{ ...styles.select, width: '100%' }} value={paymentCurrency} onChange={(e) => setPaymentCurrency(e.target.value as CurrencyEnum)} required>
+                {ALL_CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            {/* More fields like Account Number, Bank Name, SWIFT/IBAN would be here */}
+            <button type="submit" style={{ ...styles.button, backgroundColor: '#28a745' }}>Add Beneficiary</button>
+          </form>
+
+          <h3>Existing Beneficiaries</h3>
+          {beneficiariesLoading && <LoadingSpinner />}
+          {beneficiariesError && <ErrorDisplay error={beneficiariesError.message} />}
+          {!beneficiariesLoading && beneficiaries.length === 0 && <p>No beneficiaries added yet.</p>}
+          {!beneficiariesLoading && beneficiaries.length > 0 && (
+            <table style={styles.table}>
+              <thead>
+                <tr>
+                  <th style={styles.th}>Name</th>
+                  <th style={styles.th}>Account # (Mock)</th>
+                  <th style={styles.th}>Bank</th>
+                  <th style={styles.th}>Currency</th>
+                  <th style={styles.th}>Type</th>
+                  <th style={styles.th}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {beneficiaries.map(bene => (
+                  <tr key={bene.id}>
+                    <td style={styles.td}>{bene.name}</td>
+                    <td style={styles.td}>{bene.accountNumber}</td>
+                    <td style={styles.td}>{bene.bankName}</td>
+                    <td style={styles.td}>{bene.currency}</td>
+                    <td style={styles.td}>{bene.isInternational ? 'International' : 'Local'}</td>
+                    <td style={styles.td}>
+                      <button style={{ ...styles.button, backgroundColor: '#ffc107', color: '#333', fontSize: '0.7em', padding: '4px 8px', marginRight: '5px' }}>Edit</button>
+                      <button style={{ ...styles.button, backgroundColor: '#dc3545', fontSize: '0.7em', padding: '4px 8px' }}>Delete</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'history' && (
+        <div style={styles.card}>
+          <h2>Full Payment History</h2>
+          <TransactionTable accountId={'all'} currency={preferredCurrency} /> {/* Mock for all payments */}
+          <button style={{ ...styles.button, marginTop: '15px', width: '100%', backgroundColor: '#0055aa' }}>View Advanced Payment Analytics</button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Component: Reports Page
+export const ReportsPage: React.FC = () => {
+  const { user } = useContext(AuthContext);
+  const { preferredCurrency, formatCurrencyDisplay } = useContext(CurrencyPreferenceContext);
+  const [reportType, setReportType] = useState<ReportConfiguration['reportType']>('BALANCE_SHEET');
+  const [startDate, setStartDate] = useState('2024-01-01');
+  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const [reportCurrency, setReportCurrency] = useState<CurrencyEnum>('USD');
+  const [frequency, setFrequency] = useState<ReportConfiguration['frequency']>('ONCE');
+  const [exportFormat, setExportFormat] = useState<ReportConfiguration['exportFormat']>('PDF');
+  const [includeAccounts, setIncludeAccounts] = useState<string[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedReport, setGeneratedReport] = useState<ReportConfiguration | null>(null);
+
+  const { data: budgetData, loading: budgetLoading, error: budgetError } = useQuery<{ budgets: Budget[] }>(GET_BUDGETS_QUERY);
+  const budgets = budgetData?.budgets || [];
+
+  const { data: accountsData } = useQuery<{ accountCurrencyMetrics: AccountCurrencyMetricConnection }>(ACCOUNT_CURRENCY_METRICS_HOME_QUERY, {
+    variables: { first: 100 },
+  });
+  const allAccounts = useMemo(() => {
+    const uniqueAccountIds = Array.from(new Set(accountsData?.accountCurrencyMetrics.edges.map(e => e.node.accountId) || []));
+    return uniqueAccountIds.map(id => {
+      const firstNode = accountsData?.accountCurrencyMetrics.edges.find(e => e.node.accountId === id)?.node;
+      return {
+        id: id,
+        name: firstNode?.accountName || `Account ${id.split('-')[1]}`,
+        currency: firstNode?.currency || 'USD',
+      };
+    });
+  }, [accountsData]);
+
+  const handleGenerateReport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsGenerating(true);
+    setGeneratedReport(null);
+    await new Promise(resolve => setTimeout(resolve, 2500)); // Simulate generation time
+    const newReport: ReportConfiguration = {
+      id: generateRandomId(),
+      name: `${reportType} Report`,
+      reportType,
+      currency: reportCurrency,
+      startDate,
+      endDate,
+      frequency,
+      includeAccounts,
+      generatedAt: new Date().toISOString(),
+      exportFormat,
+      scheduledBy: user?.id || 'unknown',
+      status: 'COMPLETED',
+    };
+    setGeneratedReport(newReport);
+    setIsGenerating(false);
+    alert(`Report "${newReport.name}" generated successfully!`);
+  };
+
+  const handleAccountSelection = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const options = Array.from(e.target.selectedOptions).map(o => o.value);
+    setIncludeAccounts(options);
+  };
+
+  return (
+    <div style={styles.container}>
+      <h1 style={{ marginBottom: '20px', color: '#003366' }}>Financial Reports & Analytics</h1>
+
+      <div style={styles.card}>
+        <h2>Generate Custom Report</h2>
+        <form onSubmit={handleGenerateReport} style={{ display: 'grid', gap: '15px', maxWidth: '600px' }}>
+          <div>
+            <label style={styles.label} htmlFor="reportType">Report Type:</label>
+            <select id="reportType" style={{ ...styles.select, width: '100%' }} value={reportType} onChange={(e) => setReportType(e.target.value as ReportConfiguration['reportType'])} aria-label="Select report type">
+              <option value="BALANCE_SHEET">Balance Sheet</option>
+              <option value="INCOME_STATEMENT">Income Statement</option>
+              <option value="CASH_FLOW">Cash Flow Statement</option>
+              <option value="LEDGER_SUMMARY">General Ledger Summary</option>
+              <option value="TRANSACTION_DETAIL">Transaction Detail Report</option>
+              <option value="BUDGET_PERFORMANCE">Budget Performance Report</option>
+              <option value="COMPLIANCE_REVIEW">Compliance Review Report</option>
+            </select>
+          </div>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <div style={{ flex: 1 }}>
+              <label style={styles.label} htmlFor="startDate">Start Date:</label>
+              <input id="startDate" type="date" style={{ ...styles.input, width: '100%' }} value={startDate} onChange={(e) => setStartDate(e.target.value)} aria-label="Report start date" />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={styles.label} htmlFor="endDate">End Date:</label>
+              <input id="endDate" type="date" style={{ ...styles.input, width: '100%' }} value={endDate} onChange={(e) => setEndDate(e.target.value)} aria-label="Report end date" />
+            </div>
+          </div>
+          <div>
+            <label style={styles.label} htmlFor="reportCurrency">Report Currency:</label>
+            <select id="reportCurrency" style={{ ...styles.select, width: '100%' }} value={reportCurrency} onChange={(e) => setReportCurrency(e.target.value as CurrencyEnum)} aria-label="Report currency">
+              {ALL_CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={styles.label} htmlFor="includeAccounts">Include Accounts:</label>
+            <select id="includeAccounts" multiple style={{ ...styles.select, width: '100%', minHeight: '80px' }} value={includeAccounts} onChange={handleAccountSelection} aria-label="Select accounts to include">
+              {allAccounts.map(account => (
+                <option key={account.id} value={account.id}>{account.name} ({account.currency})</option>
+              ))}
+            </select>
+            <p style={{ fontSize: '0.8em', color: 'gray', marginTop: '5px' }}>Hold Ctrl/Cmd to select multiple.</p>
+          </div>
+          <div>
+            <label style={styles.label} htmlFor="frequency">Schedule Report:</label>
+            <select id="frequency" style={{ ...styles.select, width: '100%' }} value={frequency} onChange={(e) => setFrequency(e.target.value as ReportConfiguration['frequency'])} aria-label="Report frequency">
+              <option value="ONCE">Generate Once</option>
+              <option value="DAILY">Daily</option>
+              <option value="WEEKLY">Weekly</option>
+              <option value="MONTHLY">Monthly</option>
+              <option value="QUARTERLY">Quarterly</option>
+              <option value="ANNUAL">Annually</option>
+            </select>
+          </div>
+          <div>
+            <label style={styles.label} htmlFor="exportFormat">Export Format:</label>
+            <select id="exportFormat" style={{ ...styles.select, width: '100%' }} value={exportFormat} onChange={(e) => setExportFormat(e.target.value as ReportConfiguration['exportFormat'])} aria-label="Report export format">
+              <option value="PDF">PDF</option>
+              <option value="CSV">CSV</option>
+              <option value="XLSX">Excel (XLSX)</option>
+              <option value="JSON">JSON (for API integration)</option>
+            </select>
+          </div>
+          <button type="submit" style={styles.button} disabled={isGenerating}>
+            {isGenerating ? 'Generating...' : 'Generate Report'}
+          </button>
+        </form>
+
+        {generatedReport && (
+          <div style={{ marginTop: '20px', padding: '15px', border: '1px solid #28a745', borderRadius: '4px', backgroundColor: '#e6ffe6' }} role="status">
+            <p style={styles.successText}>Report generated successfully!</p>
+            <p><strong>Report Name:</strong> {generatedReport.name}</p>
+            <p><strong>Period:</strong> {generatedReport.startDate} to {generatedReport.endDate}</p>
+            <p><strong>Currency:</strong> {generatedReport.currency}</p>
+            <p><strong>Accounts:</strong> {generatedReport.includeAccounts.length > 0 ? generatedReport.includeAccounts.join(', ') : 'All'}</p>
+            <div style={{ marginTop: '10px' }}>
+              <button style={{ ...styles.button, backgroundColor: '#0055aa', marginRight: '10px' }}>View Report ({generatedReport.exportFormat})</button>
+              <button style={{ ...styles.button, backgroundColor: '#6c757d' }}>Download {generatedReport.exportFormat}</button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div style={{ ...styles.card, marginTop: '30px' }}>
+        <h2>Budget Overview</h2>
+        {budgetLoading && <LoadingSpinner />}
+        {budgetError && <ErrorDisplay error={budgetError.message} />}
+        {budgets.length === 0 && !budgetLoading && <p>No active budgets found.</p>}
+        {!budgetLoading && budgets.length > 0 && (
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={styles.th}>Budget Name</th>
+                <th style={styles.th}>Period</th>
+                <th style={styles.th}>Currency</th>
+                <th style={styles.th}>Allocated ({preferredCurrency})</th>
+                <th style={styles.th}>Used ({preferredCurrency})</th>
+                <th style={styles.th}>Remaining ({preferredCurrency})</th>
+                <th style={styles.th}>Progress</th>
+                <th style={styles.th}>Status</th>
+                <th style={styles.th}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {budgets.map(budget => {
+                const totalAllocated = getConvertedAmount(budget.totalAllocatedCents, budget.currency, preferredCurrency);
+                const totalUsed = getConvertedAmount(budget.totalUsedCents, budget.currency, preferredCurrency);
+                const remaining = totalAllocated - totalUsed;
+                const progress = totalAllocated > 0 ? (totalUsed / totalAllocated) * 100 : 0;
+                const progressColor = progress > budget.alertThresholdPercent ? 'red' : (progress > (budget.alertThresholdPercent * 0.75) ? 'orange' : 'green');
+                return (
+                  <tr key={budget.id}>
+                    <td style={styles.td}>{budget.name}</td>
+                    <td style={styles.td}>{budget.period}</td>
+                    <td style={styles.td}>{budget.currency}</td>
+                    <td style={styles.td}>{formatCurrencyDisplay(totalAllocated)}</td>
+                    <td style={styles.td}>{formatCurrencyDisplay(totalUsed)}</td>
+                    <td style={{ ...styles.td, color: remaining < 0 ? 'red' : 'inherit' }}>{formatCurrencyDisplay(remaining)}</td>
+                    <td style={styles.td}>
+                      <div style={{ height: '8px', backgroundColor: '#e0e0e0', borderRadius: '4px' }}>
+                        <div style={{ width: `${Math.min(100, progress)}%`, height: '100%', backgroundColor: progressColor, borderRadius: '4px' }}></div>
+                      </div>
+                      <span style={{ fontSize: '0.8em', color: 'gray' }}>{progress.toFixed(1)}%</span>
+                    </td>
+                    <td style={styles.td}>{budget.status}</td>
+                    <td style={styles.td}>
+                      <button style={{ ...styles.button, backgroundColor: '#0055aa', fontSize: '0.7em', padding: '4px 8px' }}>View</button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+        <button style={{ ...styles.button, marginTop: '20px', backgroundColor: '#0055aa' }}>Manage Budgets</button>
+      </div>
+
+      <div style={{ ...styles.card, marginTop: '30px' }}>
+        <h2>Pre-defined Reports & Templates</h2>
+        <p>Quickly generate standard reports or customize templates for your specific needs.</p>
+        <ul style={{ listStyleType: 'none', padding: 0, marginTop: '15px' }}>
+          <li style={{ borderBottom: '1px solid #eee', padding: '8px 0' }}>
+            <Link to="#" style={{ color: '#0055aa' }}>Monthly Balance Sheet (PDF)</Link>
+            <span style={{ fontSize: '0.8em', color: 'gray', marginLeft: '10px' }}> - Standard template for current month.</span>
+            <button style={{ ...styles.button, backgroundColor: '#0055aa', fontSize: '0.7em', padding: '4px 8px', marginLeft: '10px' }}>Generate</button>
+          </li>
+          <li style={{ borderBottom: '1px solid #eee', padding: '8px 0' }}>
+            <Link to="#" style={{ color: '#0055aa' }}>Quarterly Income Statement (XLSX)</Link>
+            <span style={{ fontSize: '0.8em', color: 'gray', marginLeft: '10px' }}> - Customizable for last fiscal quarter.</span>
+            <button style={{ ...styles.button, backgroundColor: '#0055aa', fontSize: '0.7em', padding: '4px 8px', marginLeft: '10px' }}>Generate</button>
+          </li>
+          <li style={{ borderBottom: '1px solid #eee', padding: '8px 0' }}>
+            <Link to="#" style={{ color: '#0055aa' }}>Annual Cash Flow Projection (PDF)</Link>
+            <span style={{ fontSize: '0.8em', color: 'gray', marginLeft: '10px' }}> - Based on historical data and budgets.</span>
+            <button style={{ ...styles.button, backgroundColor: '#0055aa', fontSize: '0.7em', padding: '4px 8px', marginLeft: '10px' }}>Generate</button>
+          </li>
+          <li style={{ borderBottom: '1px solid #eee', padding: '8px 0' }}>
+            <Link to="#" style={{ color: '#0055aa' }}>Outstanding Payments Summary (CSV)</Link>
+            <span style={{ fontSize: '0.8em', color: 'gray', marginLeft: '10px' }}> - All pending payments and transfers.</span>
+            <button style={{ ...styles.button, backgroundColor: '#0055aa', fontSize: '0.7em', padding: '4px 8px', marginLeft: '10px' }}>Generate</button>
+          </li>
+        </ul>
+        <button style={{ ...styles.button, marginTop: '20px', backgroundColor: '#0055aa' }}>View All Templates</button>
+      </div>
+
+      <div style={{ ...styles.card, marginTop: '30px' }}>
+        <h2>Advanced Analytics & Forecasting Tools</h2>
+        <p>Utilize advanced models to predict cash flow, identify trends, detect anomalies, and optimize your financial strategy.</p>
+        <p style={{ fontSize: '0.9em', color: 'gray', marginTop: '10px' }}>
+          Our AI-powered engine processes millions of data points to provide actionable insights, including:
+        </p>
+        <ul style={{ fontSize: '0.9em', color: '#555' }}>
+          <li>Liquidity Risk Assessment</li>
+          <li>Working Capital Optimization</li>
+          <li>Fraud Detection Patterns</li>
+          <li>Scenario Planning Simulators</li>
+        </ul>
+        <button style={{ ...styles.button, backgroundColor: '#0055aa' }}>Access Analytics Portal</button>
+      </div>
+    </div>
+  );
+};
+
+// Component: Settings Page
+export const SettingsPage: React.FC = () => {
+  const { user, updateUserProfile } = useContext(AuthContext);
+  const { preferredCurrency, setPreferredCurrency } = useContext(CurrencyPreferenceContext);
+  const [name, setName] = useState(user?.name || '');
+  const [email, setEmail] = useState(user?.email || '');
+  const [notificationsEnabled, setNotificationsEnabled] = useState(user?.notificationsEnabled || false);
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(user?.twoFactorEnabled || false);
+  const [themePreference, setThemePreference] = useState(user?.themePreference || 'light');
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  const handleProfileUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setMessage(null);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API call
+      updateUserProfile({ name, email, notificationsEnabled, twoFactorEnabled, themePreference, preferredCurrency });
+      setMessage({ type: 'success', text: 'Profile updated successfully!' });
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Failed to update profile. Please try again.' });
+    }
+  };
+
+  const handleCurrencyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setPreferredCurrency(e.target.value as CurrencyEnum);
+  };
+
+  return (
+    <div style={styles.container}>
+      <h1 style={{ marginBottom: '20px', color: '#003366' }}>User Settings & Preferences</h1>
+
+      <div style={styles.card}>
+        <h2>Personal Information</h2>
+        <form onSubmit={handleProfileUpdate} style={{ display: 'grid', gap: '15px', maxWidth: '500px' }}>
+          <div>
+            <label style={styles.label} htmlFor="name">Full Name:</label>
+            <input id="name" type="text" style={{ ...styles.input, width: '100%' }} value={name} onChange={(e) => setName(e.target.value)} required aria-label="Full Name" />
+          </div>
+          <div>
+            <label style={styles.label} htmlFor="email">Email Address:</label>
+            <input id="email" type="email" style={{ ...styles.input, width: '100%' }} value={email} onChange={(e) => setEmail(e.target.value)} required aria-label="Email Address" />
+          </div>
+          <button type="submit" style={styles.button}>Update Profile</button>
+          {message && message.type === 'success' && <p style={styles.successText} aria-live="polite">{message.text}</p>}
+          {message && message.type === 'error' && <p style={styles.errorText} aria-live="polite">{message.text}</p>}
+        </form>
+      </div>
+
+      <div style={{ ...styles.card, marginTop: '30px' }}>
+        <h2>Currency & Display Preferences</h2>
+        <div style={{ display: 'grid', gap: '15px', maxWidth: '500px' }}>
+          <div>
+            <label style={styles.label} htmlFor="preferredCurrency">Preferred Display Currency:</label>
+            <select
+              id="preferredCurrency"
+              style={{ ...styles.select, width: '100%' }}
+              value={preferredCurrency}
+              onChange={handleCurrencyChange}
+              aria-label="Preferred Display Currency"
+            >
+              {ALL_CURRENCIES.map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label style={styles.label} htmlFor="themePreference">Theme:</label>
+            <select
+              id="themePreference"
+              style={{ ...styles.select, width: '100%' }}
+              value={themePreference}
+              onChange={(e) => setThemePreference(e.target.value as 'light' | 'dark')}
+              aria-label="Theme Preference"
+            >
+              <option value="light">Light</option>
+              <option value="dark">Dark (Coming Soon)</option>
+            </select>
+          </div>
+          <button onClick={handleProfileUpdate} style={styles.button}>Save Display Preferences</button>
+        </div>
+      </div>
+
+      <div style={{ ...styles.card, marginTop: '30px' }}>
+        <h2>Security & Notifications</h2>
+        <div style={{ display: 'grid', gap: '15px', maxWidth: '500px' }}>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <input
+              type="checkbox"
+              id="notificationsEnabled"
+              checked={notificationsEnabled}
+              onChange={(e) => setNotificationsEnabled(e.target.checked)}
+              style={{ marginRight: '10px' }}
+              aria-label="Enable Email Notifications"
+            />
+            <label htmlFor="notificationsEnabled">Enable Email Notifications</label>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <input
+              type="checkbox"
+              id="twoFactorEnabled"
+              checked={twoFactorEnabled}
+              onChange={(e) => setTwoFactorEnabled(e.target.checked)}
+              style={{ marginRight: '10px' }}
+              aria-label="Enable Two-Factor Authentication"
+            />
+            <label htmlFor="twoFactorEnabled">Enable Two-Factor Authentication</label>
+          </div>
+          <button onClick={handleProfileUpdate} style={{ ...styles.button, backgroundColor: '#0055aa' }}>Update Security Settings</button>
+        </div>
+      </div>
+
+      <div style={{ ...styles.card, marginTop: '30px' }}>
+        <h2>Connected Devices & Sessions</h2>
+        <p style={{ fontSize: '0.9em', color: 'gray' }}>Review and manage active sessions on your account.</p>
+        <ul style={{ listStyleType: 'none', padding: 0, marginTop: '15px' }}>
+          <li style={{ borderBottom: '1px solid #eee', padding: '8px 0', fontSize: '0.9em' }}>
+            <strong>Current Session:</strong> Desktop, Chrome, New York, USA (IP: 192.168.1.100) - Active
+          </li>
+          <li style={{ borderBottom: '1px solid #eee', padding: '8px 0', fontSize: '0.9em' }}>
+            <strong>Mobile Session:</strong> iPhone, Safari, Los Angeles, USA (Last Active: 2024-07-21 03:15 PM)
+            <button style={{ ...styles.button, backgroundColor: '#dc3545', fontSize: '0.7em', padding: '4px 8px', marginLeft: '10px' }}>End Session</button>
+          </li>
+        </ul>
+        <button style={{ ...styles.button, backgroundColor: '#0055aa', marginTop: '15px' }}>View All Sessions</button>
+      </div>
+
+      <div style={{ ...styles.card, marginTop: '30px' }}>
+        <h2>Audit Log</h2>
+        <p style={{ fontSize: '0.9em', color: 'gray' }}>Review your recent activities and security events.</p>
+        <button style={{ ...styles.button, backgroundColor: '#6c757d' }}>View Full Audit Log</button>
+        <ul style={{ listStyleType: 'none', padding: 0, marginTop: '15px' }}>
+          <li style={{ borderBottom: '1px solid #eee', padding: '8px 0', fontSize: '0.9em' }}>
+            <strong>2024-07-22 10:30 AM:</strong> Login successful (IP: 192.168.1.100)
+          </li>
+          <li style={{ borderBottom: '1px solid #eee', padding: '8px 0', fontSize: '0.9em' }}>
+            <strong>2024-07-21 03:15 PM:</strong> Viewed Account Details for USD-123
+          </li>
+          <li style={{ borderBottom: '1px solid #eee', padding: '8px 0', fontSize: '0.9em' }}>
+            <strong>2024-07-21 09:00 AM:</strong> Initiated Payment EUR-456 (Pending Approval)
+          </li>
+        </ul>
+      </div>
+    </div>
+  );
+};
+
+
+// Component: Admin Page (Placeholder, restricted access)
+export const AdminPage: React.FC = () => {
+  const { user, isAuthenticated, isLoading } = useContext(AuthContext);
+  const [activeTab, setActiveTab] = useState<'users' | 'system' | 'compliance' | 'configs'>('users');
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const newUserRoleRef = useRef<HTMLSelectElement>(null);
+  const [systemAlertMessage, setSystemAlertMessage] = useState('');
+  const [complianceIssue, setComplianceIssue] = useState('');
+  const [systemConfigKey, setSystemConfigKey] = useState('');
+  const [systemConfigValue, setSystemConfigValue] = useState('');
+
+  if (isLoading) return <LoadingSpinner />;
+  if (!isAuthenticated || !user?.roles.includes('ADMIN')) {
+    return <ErrorDisplay error="Access Denied: You do not have administrative privileges to access this page." />;
+  }
+
+  const handleAddUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const role = newUserRoleRef.current?.value || 'VIEWER';
+    console.log(`Adding user: ${newUserEmail} with role: ${role}`);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    alert(`User ${newUserEmail} added with role ${role}. (Mock action)`);
+    setNewUserEmail('');
+  };
+
+  const handleSystemAlert = async () => {
+    if (!systemAlertMessage) return alert('Alert message cannot be empty.');
+    console.log(`Sending system alert: ${systemAlertMessage}`);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    alert(`System alert "${systemAlertMessage}" broadcasted. (Mock action)`);
+    setSystemAlertMessage('');
+  };
+
+  const handleComplianceReview = async () => {
+    if (!complianceIssue) return alert('Compliance issue/ID cannot be empty.');
+    console.log(`Reviewing compliance for: ${complianceIssue}`);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    alert(`Compliance review initiated for "${complianceIssue}". (Mock action)`);
+    setComplianceIssue('');
+  };
+
+  const handleUpdateConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!systemConfigKey || !systemConfigValue) return alert('Config key and value cannot be empty.');
+    console.log(`Updating system config: ${systemConfigKey} = ${systemConfigValue}`);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    alert(`System config "${systemConfigKey}" updated to "${systemConfigValue}". (Mock action)`);
+    setSystemConfigKey('');
+    setSystemConfigValue('');
+  };
+
+  return (
+    <div style={styles.container}>
+      <h1 style={{ marginBottom: '20px', color: '#003366' }}>Admin Panel - System Management</h1>
+
+      <div style={{ display: 'flex', borderBottom: '1px solid #e0e0e0', marginBottom: '20px' }}>
+        <button
+          style={{ ...styles.button, backgroundColor: activeTab === 'users' ? '#007bff' : '#f0f0f0', color: activeTab === 'users' ? 'white' : '#333', borderRadius: '4px 4px 0 0', border: 'none', marginRight: '5px' }}
+          onClick={() => setActiveTab('users')}
+          aria-controls="admin-user-management"
+        >
+          User Management
+        </button>
+        <button
+          style={{ ...styles.button, backgroundColor: activeTab === 'system' ? '#007bff' : '#f0f0f0', color: activeTab === 'system' ? 'white' : '#333', borderRadius: '4px 4px 0 0', border: 'none', marginRight: '5px' }}
+          onClick={() => setActiveTab('system')}
+          aria-controls="admin-system-health"
+        >
+          System Health & Alerts
+        </button>
+        <button
+          style={{ ...styles.button, backgroundColor: activeTab === 'compliance' ? '#007bff' : '#f0f0f0', color: activeTab === 'compliance' ? 'white' : '#333', borderRadius: '4px 4px 0 0', border: 'none', marginRight: '5px' }}
+          onClick={() => setActiveTab('compliance')}
+          aria-controls="admin-compliance-audit"
+        >
+          Compliance & Audit
+        </button>
+        <button
+          style={{ ...styles.button, backgroundColor: activeTab === 'configs' ? '#007bff' : '#f0f0f0', color: activeTab === 'configs' ? 'white' : '#333', borderRadius: '4px 4px 0 0', border: 'none' }}
+          onClick={() => setActiveTab('configs')}
+          aria-controls="admin-system-configs"
+        >
+          System Configurations
+        </button>
+      </div>
+
+      {activeTab === 'users' && (
+        <div id="admin-user-management" role="tabpanel" style={styles.card}>
+          <h2>Manage Users</h2>
+          <form onSubmit={handleAddUser} style={{ display: 'grid', gap: '15px', maxWidth: '500px', marginBottom: '30px' }}>
+            <h3>Add New User</h3>
+            <div>
+              <label style={styles.label} htmlFor="newUserEmail">Email:</label>
+              <input id="newUserEmail" type="email" style={{ ...styles.input, width: '100%' }} value={newUserEmail} onChange={(e) => setNewUserEmail(e.target.value)} required aria-label="New user email" />
+            </div>
+            <div>
+              <label style={styles.label} htmlFor="newUserRole">Role:</label>
+              <select id="newUserRole" style={{ ...styles.select, width: '100%' }} ref={newUserRoleRef} aria-label="New user role">
+                <option value="VIEWER">Viewer</option>
+                <option value="ACCOUNT_MANAGER">Account Manager</option>
+                <option value="PAYMENT_APPROVER">Payment Approver</option>
+                <option value="REPORT_ANALYST">Report Analyst</option>
+                <option value="ADMIN">Administrator</option>
+              </select>
+            </div>
+            <button type="submit" style={{ ...styles.button, backgroundColor: '#28a745' }}>Add User</button>
+          </form>
+
+          <h3>Existing Users</h3>
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={styles.th}>Name</th>
+                <th style={styles.th}>Email</th>
+                <th style={styles.th}>Roles</th>
+                <th style={styles.th}>Last Login</th>
+                <th style={styles.th}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style={styles.td}>{user?.name} (You)</td>
+                <td style={styles.td}>{user?.email}</td>
+                <td style={styles.td}>{user?.roles.join(', ')}</td>
+                <td style={styles.td}>{new Date(user?.lastLogin || '').toLocaleDateString()}</td>
+                <td style={styles.td}>-</td>
+              </tr>
+              <tr>
+                <td style={styles.td}>Jane Smith</td>
+                <td style={styles.td}>jane.smith@example.com</td>
+                <td style={styles.td}>ACCOUNT_MANAGER, REPORT_ANALYST</td>
+                <td style={styles.td}>2024-07-21</td>
+                <td style={styles.td}><button style={{ ...styles.button, backgroundColor: '#ffc107', color: '#333', fontSize: '0.8em', padding: '6px 10px' }}>Edit</button></td>
+              </tr>
+              <tr>
+                <td style={styles.td}>John Doe</td>
+                <td style={styles.td}>john.doe@example.com</td>
+                <td style={styles.td}>PAYMENT_APPROVER</td>
+                <td style={styles.td}>20

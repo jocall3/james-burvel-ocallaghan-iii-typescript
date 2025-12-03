@@ -1,0 +1,3087 @@
+```tsx
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  useReducer,
+  createContext,
+  useContext,
+  memo,
+  Suspense,
+  lazy,
+} from 'react';
+import ReactDOM from 'react-dom/client';
+import {
+  ApolloClient,
+  InMemoryCache,
+  ApolloProvider,
+  useQuery,
+  gql,
+  NetworkStatus,
+} from '@apollo/client';
+import {
+  MdDashboard,
+  MdAccountBalance,
+  MdSettings,
+  MdPeople,
+  MdNotifications,
+  MdEdit,
+  MdDelete,
+  MdInfo,
+  MdSearch,
+  MdFilterList,
+  MdNavigateNext,
+  MdNavigateBefore,
+  MdFirstPage,
+  MdLastPage,
+  MdSort,
+  MdCheckCircle,
+  MdCancel,
+  MdWarning,
+  MdHistory,
+  MdLock,
+  MdLockOpen,
+  MdVisibility,
+  MdVisibilityOff,
+  MdAdd,
+  MdSave,
+  MdClear,
+  MdCreditCard,
+  MdAttachMoney,
+  MdReceipt,
+  MdTrendingUp,
+  MdPieChart,
+  MdCalendarToday,
+  MdMenu,
+  MdClose,
+  MdHelpOutline,
+} from 'react-icons/md'; // Material Design icons for UI.
+import { v4 as uuidv4 } from 'uuid'; // For generating unique IDs.
+import moment from 'moment'; // For date and time formatting.
+import { AnimatePresence, motion } from 'framer-motion'; // For UI animations.
+
+// --- 1. Global Constants & Configuration ---
+const APP_NAME = 'Citibank Enterprise Capabilities Manager';
+const APP_VERSION = '1.0.0-PROD-CAPACITY-MANAGER';
+const API_BASE_URL = 'https://api.citibank.com/graphql'; // Mock API endpoint
+const ITEMS_PER_PAGE_OPTIONS = [10, 25, 50, 100];
+const DEFAULT_ITEMS_PER_PAGE = 25;
+const NOTIFICATION_DISPLAY_DURATION_MS = 5000;
+const ACCESS_TOKEN_KEY = 'citi_auth_token';
+
+// --- 2. GraphQL Query and Fragment Definitions ---
+const ACCOUNT_CAPABILITY_LIST_QUERY = gql`
+  query AccountCapabilityListView($showDeleted: String, $first: Int, $after: String, $last: Int, $before: String) {
+    accountCapabilities(
+      showDeleted: $showDeleted
+      first: $first
+      after: $after
+      last: $last
+      before: $before
+    ) {
+      ...AccountCapabilityList
+      __typename
+    }
+  }
+
+  fragment AccountCapabilityList on AccountCapabilityConnection {
+    edges {
+      node {
+        typename: __typename
+        id
+        prettyPaymentType
+        prettyDirection
+        identifier
+        partyName
+        currencies
+        currencyTagColors
+        anyCurrency
+        prettyPaymentSubtypes
+        paymentSubtypeTagColors
+        connection {
+          typename: __typename
+          id
+          bestName
+          path
+        }
+        address {
+          typename: __typename
+          id
+          full
+        }
+        discardedAt
+        path
+        _metadata { # Adding mock metadata for extended functionality
+            createdAt
+            createdBy
+            updatedAt
+            updatedBy
+            status
+            approverId
+            approvedAt
+            reviewNotes
+        }
+      }
+      __typename
+    }
+    pageInfo {
+      startCursor
+      endCursor
+      hasNextPage
+      hasPreviousPage
+      __typename
+    }
+    __typename
+  }
+`;
+
+// --- 3. Apollo Client Setup ---
+const apolloClient = new ApolloClient({
+  uri: API_BASE_URL,
+  cache: new InMemoryCache({
+    typePolicies: {
+      Query: {
+        fields: {
+          accountCapabilities: {
+            keyArgs: ['showDeleted'],
+            merge(existing = { edges: [], pageInfo: {} }, incoming) {
+              return {
+                ...incoming,
+                edges: [...existing.edges, ...incoming.edges],
+              };
+            },
+          },
+        },
+      },
+    },
+  }),
+  headers: {
+    authorization: `Bearer ${localStorage.getItem(ACCESS_TOKEN_KEY) || ''}`,
+  },
+});
+
+// --- 4. Type Definitions ---
+
+// Core GraphQL Types
+interface ConnectionDetails {
+  typename: string;
+  id: string;
+  bestName: string;
+  path: string;
+}
+
+interface AddressDetails {
+  typename: string;
+  id: string;
+  full: string;
+}
+
+interface AccountCapabilityMetadata {
+  createdAt: string;
+  createdBy: string;
+  updatedAt: string;
+  updatedBy: string;
+  status: 'ACTIVE' | 'PENDING_APPROVAL' | 'REJECTED' | 'INACTIVE' | 'ARCHIVED';
+  approverId?: string;
+  approvedAt?: string;
+  reviewNotes?: string;
+}
+
+export interface AccountCapabilityNode {
+  typename: string;
+  id: string;
+  prettyPaymentType: string;
+  prettyDirection: 'INCOMING' | 'OUTGOING' | 'BOTH';
+  identifier: string;
+  partyName: string;
+  currencies: string[];
+  currencyTagColors: string[];
+  anyCurrency: boolean;
+  prettyPaymentSubtypes: string[];
+  paymentSubtypeTagColors: string[];
+  connection: ConnectionDetails;
+  address: AddressDetails;
+  discardedAt?: string; // ISO string for Date
+  path: string;
+  _metadata: AccountCapabilityMetadata;
+}
+
+interface PageInfo {
+  startCursor: string;
+  endCursor: string;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+  typename: string;
+}
+
+interface AccountCapabilityConnection {
+  edges: { node: AccountCapabilityNode; typename: string }[];
+  pageInfo: PageInfo;
+  typename: string;
+}
+
+interface AccountCapabilityListViewData {
+  accountCapabilities: AccountCapabilityConnection;
+}
+
+// UI State & Domain Types
+export type UserRole = 'ADMIN' | 'MANAGER' | 'VIEWER' | 'APPROVER' | 'EDITOR';
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  roles: UserRole[];
+  lastLogin: string;
+  preferences: {
+    theme: 'light' | 'dark';
+    language: 'en' | 'es' | 'fr';
+    notificationsEnabled: boolean;
+  };
+}
+
+export interface AuthContextType {
+  user: User | null;
+  isAuthenticated: boolean;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => void;
+  hasRole: (role: UserRole) => boolean;
+  updateUserPreferences: (prefs: Partial<User['preferences']>) => void;
+}
+
+export interface ThemeContextType {
+  theme: 'light' | 'dark';
+  toggleTheme: () => void;
+  colors: Record<string, string>;
+}
+
+export interface Notification {
+  id: string;
+  type: 'success' | 'error' | 'warning' | 'info';
+  message: string;
+  timestamp: string;
+  read: boolean;
+  action?: {
+    label: string;
+    callback: () => void;
+  };
+}
+
+export interface AuditEvent {
+  id: string;
+  timestamp: string;
+  actor: string;
+  action: string; // e.g., 'CREATE_CAPABILITY', 'UPDATE_CAPABILITY', 'APPROVE_CAPABILITY'
+  entityId: string; // ID of the capability or other entity
+  entityType: string;
+  details: Record<string, any>;
+}
+
+export interface DashboardWidgetData {
+  title: string;
+  value: string | number;
+  description: string;
+  icon: React.ReactNode;
+  trend?: 'up' | 'down' | 'stable';
+  trendValue?: string;
+}
+
+export type CapabilityFilterCriteria = {
+  searchQuery?: string;
+  paymentType?: string;
+  direction?: 'INCOMING' | 'OUTGOING' | 'BOTH';
+  currency?: string;
+  status?: AccountCapabilityMetadata['status'][];
+  showDeleted?: boolean;
+  partyName?: string;
+};
+
+export type CapabilitySortCriteria = {
+  field: keyof AccountCapabilityNode | keyof AccountCapabilityMetadata | 'status';
+  direction: 'ASC' | 'DESC';
+};
+
+export interface CapabilityFormValues extends Omit<AccountCapabilityNode, 'id' | '_metadata' | 'connection' | 'address' | 'path' | 'typename'> {
+    // Omitting read-only or derived fields
+    newConnectionName?: string; // For creating a new connection
+    newAddressFull?: string; // For creating a new address
+    statusOverride?: AccountCapabilityMetadata['status']; // For status change actions
+}
+
+
+// --- 5. Mock Data & Services (Simulating a Backend) ---
+
+const MOCK_USERS: User[] = [
+  {
+    id: 'usr-admin-001',
+    name: 'Alice Admin',
+    email: 'alice.admin@citibank.com',
+    roles: ['ADMIN', 'MANAGER', 'APPROVER', 'EDITOR', 'VIEWER'],
+    lastLogin: moment().subtract(1, 'hour').toISOString(),
+    preferences: { theme: 'light', language: 'en', notificationsEnabled: true },
+  },
+  {
+    id: 'usr-mgr-002',
+    name: 'Bob Manager',
+    email: 'bob.manager@citibank.com',
+    roles: ['MANAGER', 'APPROVER', 'EDITOR', 'VIEWER'],
+    lastLogin: moment().subtract(3, 'hours').toISOString(),
+    preferences: { theme: 'dark', language: 'es', notificationsEnabled: true },
+  },
+  {
+    id: 'usr-viewer-003',
+    name: 'Charlie Viewer',
+    email: 'charlie.viewer@citibank.com',
+    roles: ['VIEWER'],
+    lastLogin: moment().subtract(1, 'day').toISOString(),
+    preferences: { theme: 'light', language: 'en', notificationsEnabled: false },
+  },
+  {
+    id: 'usr-approver-004',
+    name: 'Diana Approver',
+    email: 'diana.approver@citibank.com',
+    roles: ['APPROVER', 'VIEWER'],
+    lastLogin: moment().subtract(2, 'days').toISOString(),
+    preferences: { theme: 'dark', language: 'fr', notificationsEnabled: true },
+  },
+];
+
+let MOCK_ACCOUNT_CAPABILITIES: AccountCapabilityNode[] = Array.from({ length: 150 }).map((_, i) => {
+  const isDeleted = i % 15 === 0;
+  const statusOptions: AccountCapabilityMetadata['status'][] = ['ACTIVE', 'PENDING_APPROVAL', 'REJECTED', 'INACTIVE', 'ARCHIVED'];
+  const randomStatus = statusOptions[Math.floor(Math.random() * statusOptions.length)];
+
+  const prettyPaymentTypeOptions = ['Transfer', 'Invoice Payment', 'Payroll', 'Treasury Transaction', 'FX Trade Settlement', 'Loan Repayment'];
+  const prettyDirectionOptions: AccountCapabilityNode['prettyDirection'][] = ['INCOMING', 'OUTGOING', 'BOTH'];
+  const currencyOptions = ['USD', 'EUR', 'GBP', 'JPY', 'CAD'];
+  const partyNames = ['Acme Corp', 'Globex Inc', 'Initech LLC', 'Wayne Enterprises', 'Stark Industries', 'Citadel Securities', 'Gringotts Wizarding Bank'];
+  const connectionNames = ['Custody Account', 'Trading Desk', 'Treasury Department', 'Retail Banking', 'Wealth Management'];
+  const addresses = ['123 Main St, Anytown', '45 Park Ave, Metropolis', '789 Oak Ln, Gotham'];
+
+  const createdAt = moment().subtract(Math.floor(Math.random() * 365), 'days').toISOString();
+  const updatedAt = moment(createdAt).add(Math.floor(Math.random() * 30), 'days').toISOString();
+
+  return {
+    typename: 'AccountCapability',
+    id: `acc-cap-${uuidv4().substring(0, 8)}`,
+    prettyPaymentType: prettyPaymentTypeOptions[Math.floor(Math.random() * prettyPaymentTypeOptions.length)],
+    prettyDirection: prettyDirectionOptions[Math.floor(Math.random() * prettyDirectionOptions.length)],
+    identifier: `ID-${Math.floor(100000 + Math.random() * 900000)}`,
+    partyName: partyNames[Math.floor(Math.random() * partyNames.length)],
+    currencies: Array.from({ length: Math.floor(Math.random() * 3) + 1 }).map(() => currencyOptions[Math.floor(Math.random() * currencyOptions.length)]),
+    currencyTagColors: ['#FFC107', '#2196F3', '#4CAF50', '#9C27B0', '#FF5722'],
+    anyCurrency: Math.random() > 0.8,
+    prettyPaymentSubtypes: ['Domestic', 'International', 'SWIFT', 'ACH', 'SEPA', 'RTGS'],
+    paymentSubtypeTagColors: ['#607D8B', '#795548', '#00BCD4', '#E91E63', '#03A9F4', '#FFEB3B'],
+    connection: {
+      typename: 'ConnectionDetails',
+      id: `conn-${uuidv4().substring(0, 8)}`,
+      bestName: connectionNames[Math.floor(Math.random() * connectionNames.length)],
+      path: `/connections/${uuidv4().substring(0, 8)}`,
+    },
+    address: {
+      typename: 'AddressDetails',
+      id: `addr-${uuidv4().substring(0, 8)}`,
+      full: addresses[Math.floor(Math.random() * addresses.length)],
+    },
+    discardedAt: isDeleted ? moment().subtract(Math.floor(Math.random() * 90), 'days').toISOString() : undefined,
+    path: `/capabilities/${uuidv4().substring(0, 8)}`,
+    _metadata: {
+      createdAt: createdAt,
+      createdBy: MOCK_USERS[Math.floor(Math.random() * MOCK_USERS.length)].name,
+      updatedAt: updatedAt,
+      updatedBy: MOCK_USERS[Math.floor(Math.random() * MOCK_USERS.length)].name,
+      status: randomStatus,
+      approverId: randomStatus === 'ACTIVE' ? MOCK_USERS[3].id : undefined, // Diana Approver
+      approvedAt: randomStatus === 'ACTIVE' ? moment(updatedAt).add(Math.floor(Math.random() * 7), 'days').toISOString() : undefined,
+      reviewNotes: randomStatus === 'REJECTED' ? 'Risk assessment failed compliance check.' : undefined,
+    },
+  };
+});
+
+const mockGraphQLService = {
+  queryAccountCapabilities: async (
+    variables: {
+      showDeleted?: string;
+      first?: number;
+      after?: string;
+      last?: number;
+      before?: string;
+    },
+    filters: CapabilityFilterCriteria,
+    sort: CapabilitySortCriteria,
+  ): Promise<AccountCapabilityListViewData> => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        let filteredCapabilities = MOCK_ACCOUNT_CAPABILITIES.filter((cap) => {
+          const matchSearch = filters.searchQuery
+            ? (cap.prettyPaymentType.toLowerCase().includes(filters.searchQuery.toLowerCase()) ||
+              cap.identifier.toLowerCase().includes(filters.searchQuery.toLowerCase()) ||
+              cap.partyName.toLowerCase().includes(filters.searchQuery.toLowerCase()) ||
+              cap.currencies.some(c => c.toLowerCase().includes(filters.searchQuery.toLowerCase())) ||
+              cap.prettyPaymentSubtypes.some(s => s.toLowerCase().includes(filters.searchQuery.toLowerCase())))
+            : true;
+          const matchPaymentType = filters.paymentType ? cap.prettyPaymentType === filters.paymentType : true;
+          const matchDirection = filters.direction ? cap.prettyDirection === filters.direction : true;
+          const matchCurrency = filters.currency ? cap.currencies.includes(filters.currency) : true;
+          const matchStatus = filters.status?.length ? filters.status.includes(cap._metadata.status) : true;
+          const matchPartyName = filters.partyName ? cap.partyName.toLowerCase().includes(filters.partyName.toLowerCase()) : true;
+          const matchDeleted = filters.showDeleted === true || variables.showDeleted === 'true' ? true : !cap.discardedAt;
+
+          return matchSearch && matchPaymentType && matchDirection && matchCurrency && matchStatus && matchPartyName && matchDeleted;
+        });
+
+        // Apply sorting
+        filteredCapabilities.sort((a, b) => {
+          const valA = sort.field === 'status' ? a._metadata.status : a[sort.field as keyof AccountCapabilityNode] || a._metadata[sort.field as keyof AccountCapabilityMetadata];
+          const valB = sort.field === 'status' ? b._metadata.status : b[sort.field as keyof AccountCapabilityNode] || b._metadata[sort.field as keyof AccountCapabilityMetadata];
+
+          if (typeof valA === 'string' && typeof valB === 'string') {
+            return sort.direction === 'ASC' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+          }
+          if (typeof valA === 'number' && typeof valB === 'number') {
+            return sort.direction === 'ASC' ? valA - valB : valB - valA;
+          }
+          // Fallback for other types or null/undefined
+          if (valA === undefined && valB !== undefined) return sort.direction === 'ASC' ? 1 : -1;
+          if (valA !== undefined && valB === undefined) return sort.direction === 'ASC' ? -1 : 1;
+          return 0;
+        });
+
+
+        // Apply pagination logic
+        const allEdges = filteredCapabilities.map((node) => ({ node, typename: 'AccountCapabilityEdge' }));
+        const totalItems = allEdges.length;
+
+        let startIdx = 0;
+        let endIdx = totalItems;
+
+        if (variables.after) {
+          const cursorIndex = allEdges.findIndex(edge => edge.node.id === variables.after);
+          if (cursorIndex !== -1) {
+            startIdx = cursorIndex + 1;
+          }
+        } else if (variables.before) {
+          const cursorIndex = allEdges.findIndex(edge => edge.node.id === variables.before);
+          if (cursorIndex !== -1) {
+            endIdx = cursorIndex;
+          }
+        }
+
+        let paginatedEdges = allEdges.slice(startIdx, endIdx);
+
+        if (variables.first) {
+          paginatedEdges = paginatedEdges.slice(0, variables.first);
+        } else if (variables.last) {
+          paginatedEdges = paginatedEdges.slice(-variables.last);
+        }
+
+        const hasNextPage = (startIdx + paginatedEdges.length) < totalItems;
+        const hasPreviousPage = startIdx > 0;
+
+        const startCursor = paginatedEdges.length > 0 ? paginatedEdges[0].node.id : null;
+        const endCursor = paginatedEdges.length > 0 ? paginatedEdges[paginatedEdges.length - 1].node.id : null;
+
+        resolve({
+          accountCapabilities: {
+            edges: paginatedEdges,
+            pageInfo: {
+              startCursor: startCursor || '',
+              endCursor: endCursor || '',
+              hasNextPage: hasNextPage,
+              hasPreviousPage: hasPreviousPage,
+              typename: 'PageInfo',
+            },
+            typename: 'AccountCapabilityConnection',
+          },
+        });
+      }, 500); // Simulate network delay
+    });
+  },
+
+  // Mock mutation for updating a capability
+  updateAccountCapability: async (id: string, updates: Partial<CapabilityFormValues>, currentUser: User): Promise<AccountCapabilityNode> => {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const capabilityIndex = MOCK_ACCOUNT_CAPABILITIES.findIndex(cap => cap.id === id);
+        if (capabilityIndex === -1) {
+          return reject(new Error('Capability not found.'));
+        }
+
+        const original = MOCK_ACCOUNT_CAPABILITIES[capabilityIndex];
+        const updatedCap: AccountCapabilityNode = {
+          ...original,
+          ...updates,
+          _metadata: {
+            ...original._metadata,
+            updatedAt: moment().toISOString(),
+            updatedBy: currentUser.name,
+            status: updates.statusOverride || original._metadata.status,
+            approverId: updates.statusOverride === 'ACTIVE' ? currentUser.id : original._metadata.approverId,
+            approvedAt: updates.statusOverride === 'ACTIVE' ? moment().toISOString() : original._metadata.approvedAt,
+          },
+        };
+        MOCK_ACCOUNT_CAPABILITIES[capabilityIndex] = updatedCap;
+        mockAuditService.logEvent({
+          id: uuidv4(),
+          timestamp: moment().toISOString(),
+          actor: currentUser.name,
+          action: 'UPDATE_CAPABILITY',
+          entityId: id,
+          entityType: 'AccountCapability',
+          details: { old: original, new: updatedCap },
+        });
+        resolve(updatedCap);
+      }, 300);
+    });
+  },
+
+  createAccountCapability: async (newCap: CapabilityFormValues, currentUser: User): Promise<AccountCapabilityNode> => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const id = `acc-cap-${uuidv4().substring(0, 8)}`;
+        const now = moment().toISOString();
+        const newConnectionId = newCap.newConnectionName ? `conn-${uuidv4().substring(0, 8)}` : `conn-${uuidv4().substring(0, 8)}`; // Mock new vs existing
+        const newAddressId = newCap.newAddressFull ? `addr-${uuidv4().substring(0, 8)}` : `addr-${uuidv4().substring(0, 8)}`;
+
+        const createdCap: AccountCapabilityNode = {
+          typename: 'AccountCapability',
+          id: id,
+          prettyPaymentType: newCap.prettyPaymentType || 'Transfer',
+          prettyDirection: newCap.prettyDirection || 'BOTH',
+          identifier: newCap.identifier || `NEW-${Math.floor(1000 + Math.random() * 9000)}`,
+          partyName: newCap.partyName || 'New Party',
+          currencies: newCap.currencies || ['USD'],
+          currencyTagColors: ['#FFC107'],
+          anyCurrency: newCap.anyCurrency || false,
+          prettyPaymentSubtypes: newCap.prettyPaymentSubtypes || ['Domestic'],
+          paymentSubtypeTagColors: ['#607D8B'],
+          connection: {
+            typename: 'ConnectionDetails',
+            id: newConnectionId,
+            bestName: newCap.newConnectionName || `Default Connection ${newConnectionId.substring(5)}`,
+            path: `/connections/${newConnectionId.substring(5)}`,
+          },
+          address: {
+            typename: 'AddressDetails',
+            id: newAddressId,
+            full: newCap.newAddressFull || `Default Address ${newAddressId.substring(5)}`,
+          },
+          discardedAt: undefined,
+          path: `/capabilities/${id.substring(8)}`,
+          _metadata: {
+            createdAt: now,
+            createdBy: currentUser.name,
+            updatedAt: now,
+            updatedBy: currentUser.name,
+            status: newCap.statusOverride || 'PENDING_APPROVAL',
+          },
+        };
+        MOCK_ACCOUNT_CAPABILITIES.unshift(createdCap); // Add to beginning
+        mockAuditService.logEvent({
+          id: uuidv4(),
+          timestamp: now,
+          actor: currentUser.name,
+          action: 'CREATE_CAPABILITY',
+          entityId: createdCap.id,
+          entityType: 'AccountCapability',
+          details: { new: createdCap },
+        });
+        resolve(createdCap);
+      }, 300);
+    });
+  },
+
+  deleteAccountCapability: async (id: string, currentUser: User): Promise<boolean> => {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const capabilityIndex = MOCK_ACCOUNT_CAPABILITIES.findIndex(cap => cap.id === id);
+        if (capabilityIndex === -1) {
+          return reject(new Error('Capability not found.'));
+        }
+        const original = MOCK_ACCOUNT_CAPABILITIES[capabilityIndex];
+        MOCK_ACCOUNT_CAPABILITIES[capabilityIndex] = {
+          ...original,
+          discardedAt: moment().toISOString(),
+          _metadata: {
+            ...original._metadata,
+            updatedAt: moment().toISOString(),
+            updatedBy: currentUser.name,
+            status: 'ARCHIVED',
+          },
+        };
+        mockAuditService.logEvent({
+          id: uuidv4(),
+          timestamp: moment().toISOString(),
+          actor: currentUser.name,
+          action: 'DELETE_CAPABILITY',
+          entityId: id,
+          entityType: 'AccountCapability',
+          details: { capabilityId: id, reason: 'Soft delete' },
+        });
+        resolve(true);
+      }, 300);
+    });
+  },
+
+  restoreAccountCapability: async (id: string, currentUser: User): Promise<boolean> => {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const capabilityIndex = MOCK_ACCOUNT_CAPABILITIES.findIndex(cap => cap.id === id);
+        if (capabilityIndex === -1) {
+          return reject(new Error('Capability not found.'));
+        }
+        const original = MOCK_ACCOUNT_CAPABILITIES[capabilityIndex];
+        MOCK_ACCOUNT_CAPABILITIES[capabilityIndex] = {
+          ...original,
+          discardedAt: undefined,
+          _metadata: {
+            ...original._metadata,
+            updatedAt: moment().toISOString(),
+            updatedBy: currentUser.name,
+            status: 'PENDING_APPROVAL', // Restore to pending approval state
+          },
+        };
+        mockAuditService.logEvent({
+          id: uuidv4(),
+          timestamp: moment().toISOString(),
+          actor: currentUser.name,
+          action: 'RESTORE_CAPABILITY',
+          entityId: id,
+          entityType: 'AccountCapability',
+          details: { capabilityId: id, reason: 'Restored from archive' },
+        });
+        resolve(true);
+      }, 300);
+    });
+  },
+};
+
+const mockAuditService = {
+  events: [] as AuditEvent[],
+  logEvent(event: AuditEvent) {
+    this.events.unshift(event); // Add to beginning
+  },
+  getEvents: async (entityId?: string, entityType?: string): Promise<AuditEvent[]> => {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        let result = mockAuditService.events;
+        if (entityId) {
+          result = result.filter(e => e.entityId === entityId);
+        }
+        if (entityType) {
+          result = result.filter(e => e.entityType === entityType);
+        }
+        resolve([...result]); // Return a copy
+      }, 200);
+    });
+  },
+};
+
+
+// --- 6. Contexts ---
+
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+export const NotificationContext = createContext<{
+  addNotification: (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => void;
+  removeNotification: (id: string) => void;
+  notifications: Notification[];
+} | undefined>(undefined);
+export const AppConfigContext = createContext<{
+    paymentTypes: string[];
+    directions: AccountCapabilityNode['prettyDirection'][];
+    currencies: string[];
+    statuses: AccountCapabilityMetadata['status'][];
+} | undefined>(undefined);
+
+
+// --- 7. Utility Functions ---
+
+export const formatDateTime = (isoString?: string | null, format = 'YYYY-MM-DD HH:mm:ss'): string => {
+  if (!isoString) return 'N/A';
+  return moment(isoString).format(format);
+};
+
+export const capitalize = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+
+export const getStatusColor = (status: AccountCapabilityMetadata['status']): string => {
+  switch (status) {
+    case 'ACTIVE':
+      return '#4CAF50'; // Green
+    case 'PENDING_APPROVAL':
+      return '#FFC107'; // Amber
+    case 'REJECTED':
+      return '#F44336'; // Red
+    case 'INACTIVE':
+      return '#9E9E9E'; // Gray
+    case 'ARCHIVED':
+      return '#607D8B'; // Blue-Gray
+    default:
+      return '#2196F3'; // Blue
+  }
+};
+
+export const generateId = (): string => uuidv4();
+
+export const validateCapabilityForm = (values: CapabilityFormValues): Record<string, string> => {
+    const errors: Record<string, string> = {};
+    if (!values.prettyPaymentType) errors.prettyPaymentType = 'Payment Type is required.';
+    if (!values.identifier) errors.identifier = 'Identifier is required.';
+    if (!values.partyName) errors.partyName = 'Party Name is required.';
+    if (!values.currencies || values.currencies.length === 0) errors.currencies = 'At least one currency is required.';
+    if (values.newConnectionName && values.newConnectionName.length < 3) errors.newConnectionName = 'Connection name must be at least 3 characters.';
+    if (values.newAddressFull && values.newAddressFull.length < 5) errors.newAddressFull = 'Address must be at least 5 characters.';
+    return errors;
+};
+
+// --- 8. Generic UI Components (Styled-component like, but inline for single file) ---
+
+const styles = {
+    container: {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '14px',
+        color: '#333',
+        backgroundColor: '#f5f5f5',
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+    },
+    header: (theme: 'light' | 'dark') => ({
+        backgroundColor: theme === 'light' ? '#fff' : '#222',
+        color: theme === 'light' ? '#333' : '#eee',
+        padding: '10px 20px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        borderBottom: `1px solid ${theme === 'light' ? '#eee' : '#333'}`,
+        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+        zIndex: 1000,
+    }),
+    sidebar: (theme: 'light' | 'dark') => ({
+        backgroundColor: theme === 'light' ? '#fff' : '#333',
+        color: theme === 'light' ? '#555' : '#ccc',
+        width: '240px',
+        padding: '20px 0',
+        borderRight: `1px solid ${theme === 'light' ? '#eee' : '#444'}`,
+        boxShadow: '2px 0 5px rgba(0,0,0,0.02)',
+        flexShrink: 0,
+    }),
+    sidebarItem: (active: boolean, theme: 'light' | 'dark') => ({
+        padding: '12px 20px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        cursor: 'pointer',
+        backgroundColor: active
+            ? (theme === 'light' ? '#e0e7ff' : '#444')
+            : 'transparent',
+        color: active
+            ? (theme === 'light' ? '#3f51b5' : '#fff')
+            : (theme === 'light' ? '#555' : '#ccc'),
+        fontWeight: active ? 'bold' : 'normal',
+        '&:hover': {
+            backgroundColor: theme === 'light' ? '#f0f4ff' : '#555',
+        },
+    }),
+    mainContent: {
+        flexGrow: 1,
+        padding: '20px',
+        overflowY: 'auto',
+    },
+    card: (theme: 'light' | 'dark') => ({
+        backgroundColor: theme === 'light' ? '#fff' : '#333',
+        border: `1px solid ${theme === 'light' ? '#e0e0e0' : '#444'}`,
+        borderRadius: '8px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+        padding: '20px',
+        marginBottom: '20px',
+        color: theme === 'light' ? '#333' : '#eee',
+    }),
+    table: (theme: 'light' | 'dark') => ({
+        width: '100%',
+        borderCollapse: 'collapse',
+        marginTop: '15px',
+        color: theme === 'light' ? '#333' : '#eee',
+    }),
+    th: (theme: 'light' | 'dark') => ({
+        padding: '12px 15px',
+        textAlign: 'left',
+        borderBottom: `2px solid ${theme === 'light' ? '#ddd' : '#555'}`,
+        backgroundColor: theme === 'light' ? '#f8f8f8' : '#444',
+        fontSize: '13px',
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
+        cursor: 'pointer',
+    }),
+    td: (theme: 'light' | 'dark') => ({
+        padding: '10px 15px',
+        borderBottom: `1px solid ${theme === 'light' ? '#eee' : '#555'}`,
+        fontSize: '14px',
+    }),
+    button: (type: 'primary' | 'secondary' | 'danger' | 'success' | 'info' | 'text' = 'primary', size: 'small' | 'medium' | 'large' = 'medium') => {
+        let backgroundColor, color, hoverBg;
+        switch (type) {
+            case 'primary': backgroundColor = '#3f51b5'; color = '#fff'; hoverBg = '#303f9f'; break;
+            case 'secondary': backgroundColor = '#6c757d'; color = '#fff'; hoverBg = '#5a6268'; break;
+            case 'danger': backgroundColor = '#dc3545'; color = '#fff'; hoverBg = '#c82333'; break;
+            case 'success': backgroundColor = '#28a745'; color = '#fff'; hoverBg = '#218838'; break;
+            case 'info': backgroundColor = '#17a2b8'; color = '#fff'; hoverBg = '#138496'; break;
+            case 'text': backgroundColor = 'transparent'; color = '#3f51b5'; hoverBg = 'rgba(63,81,181,0.05)'; break;
+        }
+        let padding, fontSize;
+        switch (size) {
+            case 'small': padding = '6px 10px'; fontSize = '12px'; break;
+            case 'medium': padding = '8px 15px'; fontSize = '14px'; break;
+            case 'large': padding = '10px 20px'; fontSize = '16px'; break;
+        }
+        return {
+            backgroundColor: backgroundColor,
+            color: color,
+            border: 'none',
+            borderRadius: '4px',
+            padding: padding,
+            cursor: 'pointer',
+            transition: 'background-color 0.2s ease',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '5px',
+            fontSize: fontSize,
+            '&:hover': { backgroundColor: hoverBg },
+            '&:disabled': { backgroundColor: '#ccc', cursor: 'not-allowed' },
+        };
+    },
+    input: (theme: 'light' | 'dark') => ({
+        padding: '10px',
+        border: `1px solid ${theme === 'light' ? '#ccc' : '#666'}`,
+        borderRadius: '4px',
+        width: '100%',
+        boxSizing: 'border-box',
+        backgroundColor: theme === 'light' ? '#fff' : '#444',
+        color: theme === 'light' ? '#333' : '#eee',
+        '&:focus': {
+            borderColor: '#3f51b5',
+            outline: 'none',
+            boxShadow: '0 0 0 2px rgba(63, 81, 181, 0.2)',
+        },
+    }),
+    select: (theme: 'light' | 'dark') => ({
+        padding: '10px',
+        border: `1px solid ${theme === 'light' ? '#ccc' : '#666'}`,
+        borderRadius: '4px',
+        width: '100%',
+        boxSizing: 'border-box',
+        backgroundColor: theme === 'light' ? '#fff' : '#444',
+        color: theme === 'light' ? '#333' : '#eee',
+        '&:focus': {
+            borderColor: '#3f51b5',
+            outline: 'none',
+            boxShadow: '0 0 0 2px rgba(63, 81, 181, 0.2)',
+        },
+    }),
+    checkbox: (theme: 'light' | 'dark') => ({
+        marginRight: '8px',
+        cursor: 'pointer',
+    }),
+    tag: (color: string) => ({
+        display: 'inline-block',
+        padding: '4px 8px',
+        borderRadius: '12px',
+        backgroundColor: color,
+        color: '#fff',
+        fontSize: '11px',
+        fontWeight: 'bold',
+        marginRight: '5px',
+        marginBottom: '3px',
+    }),
+    modalOverlay: {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 2000,
+    },
+    modalContent: (theme: 'light' | 'dark') => ({
+        backgroundColor: theme === 'light' ? '#fff' : '#222',
+        borderRadius: '8px',
+        padding: '30px',
+        width: '90%',
+        maxWidth: '700px',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+        position: 'relative',
+        color: theme === 'light' ? '#333' : '#eee',
+        maxHeight: '80vh',
+        overflowY: 'auto',
+    }),
+    badge: (type: Notification['type']) => {
+        let backgroundColor, color;
+        switch (type) {
+            case 'success': backgroundColor = '#e8f5e9'; color = '#28a745'; break;
+            case 'error': backgroundColor = '#ffebee'; color = '#dc3545'; break;
+            case 'warning': backgroundColor = '#fffde7'; color = '#ffc107'; break;
+            case 'info': backgroundColor = '#e3f2fd'; color = '#17a2b8'; break;
+        }
+        return {
+            backgroundColor: backgroundColor,
+            color: color,
+            padding: '4px 8px',
+            borderRadius: '12px',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '5px',
+        };
+    },
+    notificationContainer: {
+        position: 'fixed',
+        top: '20px',
+        right: '20px',
+        zIndex: 3000,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '10px',
+    },
+    notificationItem: (type: Notification['type'], theme: 'light' | 'dark') => {
+        let borderColor;
+        switch (type) {
+            case 'success': borderColor = '#4CAF50'; break;
+            case 'error': borderColor = '#F44336'; break;
+            case 'warning': borderColor = '#FFC107'; break;
+            case 'info': borderColor = '#2196F3'; break;
+        }
+        return {
+            backgroundColor: theme === 'light' ? '#fff' : '#333',
+            borderLeft: `5px solid ${borderColor}`,
+            borderRadius: '4px',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+            padding: '15px',
+            maxWidth: '350px',
+            display: 'flex',
+            gap: '10px',
+            alignItems: 'center',
+            color: theme === 'light' ? '#333' : '#eee',
+        };
+    },
+    formGroup: {
+        marginBottom: '15px',
+    },
+    formLabel: (theme: 'light' | 'dark') => ({
+        display: 'block',
+        marginBottom: '5px',
+        fontWeight: 'bold',
+        color: theme === 'light' ? '#555' : '#ccc',
+    }),
+    errorMessage: {
+        color: '#dc3545',
+        fontSize: '12px',
+        marginTop: '5px',
+    },
+    skeleton: (theme: 'light' | 'dark') => ({
+        backgroundColor: theme === 'light' ? '#eee' : '#555',
+        borderRadius: '4px',
+        animation: 'pulse 1.5s infinite ease-in-out',
+    }),
+};
+
+// Keyframes for skeleton loading
+const styleSheet = document.createElement('style');
+styleSheet.type = 'text/css';
+styleSheet.innerText = `
+@keyframes pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+}
+`;
+document.head.appendChild(styleSheet);
+
+
+export const SkeletonLoader: React.FC<{ width?: string; height?: string; theme: 'light' | 'dark' }> = ({ width = '100%', height = '20px', theme }) => (
+  <div style={{ ...styles.skeleton(theme), width, height }} />
+);
+
+export const Button: React.FC<React.PropsWithChildren<{
+  onClick?: () => void;
+  type?: 'primary' | 'secondary' | 'danger' | 'success' | 'info' | 'text';
+  size?: 'small' | 'medium' | 'large';
+  disabled?: boolean;
+  icon?: React.ReactNode;
+  style?: React.CSSProperties;
+}>> = ({ children, onClick, type = 'primary', size = 'medium', disabled = false, icon, style }) => {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{ ...styles.button(type, size), ...style }}
+    >
+      {icon}
+      {children}
+    </button>
+  );
+};
+
+export const Input: React.FC<{
+  label?: string;
+  name: string;
+  value: string | number;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  type?: string;
+  placeholder?: string;
+  error?: string;
+  theme: 'light' | 'dark';
+  readOnly?: boolean;
+}> = ({ label, name, value, onChange, type = 'text', placeholder, error, theme, readOnly }) => (
+  <div style={styles.formGroup}>
+    {label && <label htmlFor={name} style={styles.formLabel(theme)}>{label}</label>}
+    <input
+      id={name}
+      name={name}
+      type={type}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      style={styles.input(theme)}
+      readOnly={readOnly}
+    />
+    {error && <div style={styles.errorMessage}>{error}</div>}
+  </div>
+);
+
+export const Select: React.FC<React.PropsWithChildren<{
+  label?: string;
+  name: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  options: { value: string; label: string }[];
+  error?: string;
+  theme: 'light' | 'dark';
+  multiple?: boolean;
+}>> = ({ label, name, value, onChange, options, error, theme, multiple = false }) => (
+  <div style={styles.formGroup}>
+    {label && <label htmlFor={name} style={styles.formLabel(theme)}>{label}</label>}
+    <select
+      id={name}
+      name={name}
+      value={value}
+      onChange={onChange}
+      style={styles.select(theme)}
+      multiple={multiple}
+    >
+      {!multiple && <option value="">Select an option</option>}
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+    {error && <div style={styles.errorMessage}>{error}</div>}
+  </div>
+);
+
+export const Checkbox: React.FC<{
+  label?: string;
+  name: string;
+  checked: boolean;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  theme: 'light' | 'dark';
+}> = ({ label, name, checked, onChange, theme }) => (
+  <div style={{ ...styles.formGroup, display: 'flex', alignItems: 'center' }}>
+    <input
+      id={name}
+      name={name}
+      type="checkbox"
+      checked={checked}
+      onChange={onChange}
+      style={styles.checkbox(theme)}
+    />
+    {label && <label htmlFor={name} style={styles.formLabel(theme)}>{label}</label>}
+  </div>
+);
+
+
+export const Modal: React.FC<React.PropsWithChildren<{
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+}>> = ({ isOpen, onClose, title, children }) => {
+  const themeContext = useContext(ThemeContext);
+  const theme = themeContext?.theme || 'light';
+
+  if (!isOpen) return null;
+
+  return ReactDOM.createPortal(
+    <div style={styles.modalOverlay}>
+      <motion.div
+        initial={{ opacity: 0, y: -50 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -50 }}
+        style={styles.modalContent(theme)}
+      >
+        <h2 style={{
+            marginTop: 0,
+            marginBottom: '20px',
+            paddingBottom: '10px',
+            borderBottom: `1px solid ${theme === 'light' ? '#eee' : '#555'}`,
+            color: theme === 'light' ? '#333' : '#eee',
+        }}>{title}</h2>
+        <Button onClick={onClose} type="text" style={{ position: 'absolute', top: '15px', right: '15px', padding: '5px' }}>
+          <MdClose size={24} />
+        </Button>
+        {children}
+      </motion.div>
+    </div>,
+    document.body
+  );
+};
+
+
+export const NotificationToast: React.FC<{ notification: Notification; onClose: () => void }> = memo(({ notification, onClose }) => {
+    const themeContext = useContext(ThemeContext);
+    const theme = themeContext?.theme || 'light';
+
+    let IconComponent;
+    switch (notification.type) {
+        case 'success': IconComponent = MdCheckCircle; break;
+        case 'error': IconComponent = MdCancel; break;
+        case 'warning': IconComponent = MdWarning; break;
+        case 'info': IconComponent = MdInfo; break;
+        default: IconComponent = MdInfo;
+    }
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, x: 100 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 100 }}
+            layout
+            style={styles.notificationItem(notification.type, theme)}
+        >
+            <IconComponent size={24} color={styles.badge(notification.type).color} />
+            <div style={{ flexGrow: 1 }}>
+                <div style={{ fontWeight: 'bold' }}>{capitalize(notification.type)}</div>
+                <div>{notification.message}</div>
+                {notification.action && (
+                    <Button onClick={notification.action.callback} type="text" size="small" style={{ marginTop: '5px', textDecoration: 'underline' }}>
+                        {notification.action.label}
+                    </Button>
+                )}
+            </div>
+            <Button onClick={onClose} type="text" size="small"><MdClose /></Button>
+        </motion.div>
+    );
+});
+
+
+// --- 9. Context Providers Implementation ---
+
+export const AuthProvider: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem(ACCESS_TOKEN_KEY);
+    if (token) {
+      // In a real app, validate token with backend
+      const mockUser = MOCK_USERS[0]; // Auto-login as Alice Admin for demo
+      setUser(mockUser);
+      setIsAuthenticated(true);
+      apolloClient.setLink(apolloClient.get and 'http' as any); // Refresh ApolloClient headers
+    }
+  }, []);
+
+  const login = useCallback(async (email: string, password: string) => {
+    // Mock login logic
+    const foundUser = MOCK_USERS.find(u => u.email === email && password === 'password'); // Simple password check
+    if (foundUser) {
+      localStorage.setItem(ACCESS_TOKEN_KEY, `mock-token-${foundUser.id}`);
+      setUser(foundUser);
+      setIsAuthenticated(true);
+      apolloClient.setLink(apolloClient.get and 'http' as any);
+      return true;
+    }
+    return false;
+  }, []);
+
+  const logout = useCallback(() => {
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    setUser(null);
+    setIsAuthenticated(false);
+    apolloClient.setLink(apolloClient.get and 'http' as any);
+  }, []);
+
+  const hasRole = useCallback((role: UserRole) => {
+    return user?.roles.includes(role) || false;
+  }, [user]);
+
+  const updateUserPreferences = useCallback((prefs: Partial<User['preferences']>) => {
+    if (user) {
+      setUser(prevUser => prevUser ? {
+        ...prevUser,
+        preferences: { ...prevUser.preferences, ...prefs }
+      } : null);
+    }
+  }, [user]);
+
+  const authContextValue = useMemo(() => ({
+    user,
+    isAuthenticated,
+    login,
+    logout,
+    hasRole,
+    updateUserPreferences,
+  }), [user, isAuthenticated, login, logout, hasRole, updateUserPreferences]);
+
+  return (
+    <AuthContext.Provider value={authContextValue}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const ThemeProvider: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
+  const authContext = useContext(AuthContext);
+  const [theme, setTheme] = useState<'light' | 'dark'>(authContext?.user?.preferences?.theme || 'light');
+
+  useEffect(() => {
+    if (authContext?.user?.preferences?.theme) {
+      setTheme(authContext.user.preferences.theme);
+    }
+  }, [authContext?.user?.preferences?.theme]);
+
+  const colors = useMemo(() => theme === 'light' ? {
+    primary: '#3f51b5',
+    secondary: '#6c757d',
+    background: '#f5f5f5',
+    cardBackground: '#fff',
+    text: '#333',
+    subtext: '#555',
+    border: '#eee',
+  } : {
+    primary: '#9fa8da',
+    secondary: '#adb5bd',
+    background: '#1a1a1a',
+    cardBackground: '#222',
+    text: '#eee',
+    subtext: '#ccc',
+    border: '#333',
+  }, [theme]);
+
+  const toggleTheme = useCallback(() => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    authContext?.updateUserPreferences({ theme: newTheme });
+  }, [theme, authContext]);
+
+  const themeContextValue = useMemo(() => ({ theme, toggleTheme, colors }), [theme, toggleTheme, colors]);
+
+  return (
+    <ThemeContext.Provider value={themeContextValue}>
+      {children}
+    </ThemeContext.Provider>
+  );
+};
+
+export const NotificationProvider: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  const addNotification = useCallback((notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => {
+    const newNotification: Notification = {
+      id: uuidv4(),
+      timestamp: moment().toISOString(),
+      read: false,
+      ...notification,
+    };
+    setNotifications((prev) => [newNotification, ...prev]);
+
+    setTimeout(() => {
+      removeNotification(newNotification.id);
+    }, NOTIFICATION_DISPLAY_DURATION_MS);
+  }, []);
+
+  const removeNotification = useCallback((id: string) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  }, []);
+
+  const contextValue = useMemo(() => ({ notifications, addNotification, removeNotification }), [notifications, addNotification, removeNotification]);
+
+  return (
+    <NotificationContext.Provider value={contextValue}>
+      {children}
+      <div style={styles.notificationContainer}>
+        <AnimatePresence>
+            {notifications.slice(0, 5).map((n) => ( // Show max 5 notifications
+                <NotificationToast key={n.id} notification={n} onClose={() => removeNotification(n.id)} />
+            ))}
+        </AnimatePresence>
+      </div>
+    </NotificationContext.Provider>
+  );
+};
+
+export const AppConfigProvider: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
+    // In a real app, these would be fetched from a config API
+    const paymentTypes = useMemo(() => ['Transfer', 'Invoice Payment', 'Payroll', 'Treasury Transaction', 'FX Trade Settlement', 'Loan Repayment'], []);
+    const directions = useMemo(() => ['INCOMING', 'OUTGOING', 'BOTH'], []);
+    const currencies = useMemo(() => ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'CHF', 'CNY', 'HKD', 'SGD'], []);
+    const statuses = useMemo(() => ['ACTIVE', 'PENDING_APPROVAL', 'REJECTED', 'INACTIVE', 'ARCHIVED'], []);
+
+    const configValue = useMemo(() => ({
+        paymentTypes,
+        directions,
+        currencies,
+        statuses,
+    }), [paymentTypes, directions, currencies, statuses]);
+
+    return (
+        <AppConfigContext.Provider value={configValue}>
+            {children}
+        </AppConfigContext.Provider>
+    );
+};
+
+
+// --- 10. Main Application Components ---
+
+export const Authenticator: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
+  const authContext = useContext(AuthContext);
+  const themeContext = useContext(ThemeContext);
+  const notificationContext = useContext(NotificationContext);
+  const theme = themeContext?.theme || 'light';
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    if (authContext) {
+      const success = await authContext.login(email, password);
+      if (!success) {
+        setError('Invalid credentials. Try alice.admin@citibank.com/password.');
+        notificationContext?.addNotification({
+            type: 'error',
+            message: 'Login failed. Please check your credentials.',
+        });
+      } else {
+        notificationContext?.addNotification({
+            type: 'success',
+            message: `Welcome back, ${authContext.user?.name}!`,
+        });
+      }
+    }
+    setLoading(false);
+  };
+
+  if (!authContext || !authContext.isAuthenticated) {
+    return (
+      <div style={{ ...styles.container, justifyContent: 'center', alignItems: 'center', backgroundColor: themeContext?.colors.background }}>
+        <div style={{ ...styles.card(theme), width: '400px', padding: '40px', textAlign: 'center' }}>
+          <h1 style={{ color: themeContext?.colors.primary, marginBottom: '20px' }}>{APP_NAME}</h1>
+          <h2 style={{ color: themeContext?.colors.text, marginBottom: '30px', fontSize: '1.5em' }}>Login</h2>
+          <form onSubmit={handleLogin}>
+            <Input
+              label="Email"
+              name="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email"
+              theme={theme}
+            />
+            <Input
+              label="Password"
+              name="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
+              theme={theme}
+              style={{ marginBottom: '20px' }}
+            />
+            {error && <div style={{ ...styles.errorMessage, marginBottom: '15px' }}>{error}</div>}
+            <Button type="primary" size="large" onClick={handleLogin} disabled={loading} style={{ width: '100%' }}>
+              {loading ? 'Logging in...' : 'Login'}
+            </Button>
+            <p style={{ marginTop: '20px', fontSize: '0.9em', color: themeContext?.colors.subtext }}>
+                Hint: Try <code style={{ backgroundColor: theme === 'light' ? '#f0f0f0' : '#444', padding: '2px 4px', borderRadius: '3px' }}>alice.admin@citibank.com</code> with password <code style={{ backgroundColor: theme === 'light' ? '#f0f0f0' : '#444', padding: '2px 4px', borderRadius: '3px' }}>password</code>
+            </p>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+};
+
+export const Header: React.FC<{ onToggleSidebar: () => void }> = ({ onToggleSidebar }) => {
+  const authContext = useContext(AuthContext);
+  const themeContext = useContext(ThemeContext);
+  const theme = themeContext?.theme || 'light';
+
+  const user = authContext?.user;
+
+  return (
+    <div style={styles.header(theme)}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+        <Button onClick={onToggleSidebar} type="text" size="small" style={{ color: themeContext?.colors.text }}><MdMenu size={24} /></Button>
+        <h1 style={{ margin: 0, fontSize: '20px', color: themeContext?.colors.primary }}>{APP_NAME}</h1>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+        <Button onClick={themeContext?.toggleTheme} type="text" size="small" icon={theme === 'light' ? <MdVisibilityOff size={20} /> : <MdVisibility size={20} />} style={{ color: themeContext?.colors.text }}>
+          {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
+        </Button>
+        <span style={{ color: themeContext?.colors.subtext }}>Hello, {user?.name || 'Guest'}</span>
+        <Button onClick={authContext?.logout} type="secondary" size="small">
+          Logout
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+export const Sidebar: React.FC<{ activeTab: string; onSelectTab: (tab: string) => void; isOpen: boolean; onToggleSidebar: () => void }> = ({ activeTab, onSelectTab, isOpen, onToggleSidebar }) => {
+  const themeContext = useContext(ThemeContext);
+  const theme = themeContext?.theme || 'light';
+
+  const navItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: <MdDashboard size={20} /> },
+    { id: 'capabilities', label: 'Account Capabilities', icon: <MdAccountBalance size={20} /> },
+    { id: 'configuration', label: 'Configuration', icon: <MdSettings size={20} /> },
+    { id: 'users', label: 'User Management', icon: <MdPeople size={20} /> },
+    { id: 'notifications', label: 'Notifications', icon: <MdNotifications size={20} /> },
+    { id: 'audit', label: 'Audit Trail', icon: <MdHistory size={20} /> },
+  ];
+
+  if (!isOpen) return null;
+
+  return ReactDOM.createPortal(
+    <motion.div
+        initial={{ x: '-100%' }}
+        animate={{ x: '0%' }}
+        exit={{ x: '-100%' }}
+        transition={{ duration: 0.2 }}
+        style={{
+            ...styles.sidebar(theme),
+            position: 'fixed',
+            height: '100vh',
+            top: 0,
+            left: 0,
+            zIndex: 1001,
+        }}
+    >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 20px 20px 20px', borderBottom: `1px solid ${theme === 'light' ? '#eee' : '#444'}` }}>
+            <h2 style={{ margin: 0, color: themeContext?.colors.primary, fontSize: '1.2em' }}>Navigation</h2>
+            <Button onClick={onToggleSidebar} type="text" size="small" style={{ color: themeContext?.colors.text }}><MdClose size={24} /></Button>
+        </div>
+        <nav>
+            {navItems.map(item => (
+                <div
+                    key={item.id}
+                    onClick={() => { onSelectTab(item.id); onToggleSidebar(); }}
+                    style={styles.sidebarItem(activeTab === item.id, theme)}
+                >
+                    {item.icon}
+                    <span>{item.label}</span>
+                </div>
+            ))}
+        </nav>
+    </motion.div>,
+    document.body
+  );
+};
+
+export const Layout: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const themeContext = useContext(ThemeContext);
+  const theme = themeContext?.theme || 'light';
+
+  const handleToggleSidebar = useCallback(() => {
+    setIsSidebarOpen(prev => !prev);
+  }, []);
+
+  return (
+    <div style={{ ...styles.container, backgroundColor: themeContext?.colors.background }}>
+      <Header onToggleSidebar={handleToggleSidebar} />
+      <div style={{ display: 'flex', flexGrow: 1 }}>
+        <AnimatePresence>
+            {isSidebarOpen && <Sidebar activeTab={activeTab} onSelectTab={setActiveTab} isOpen={isSidebarOpen} onToggleSidebar={handleToggleSidebar} />}
+        </AnimatePresence>
+        <div style={{
+            ...styles.mainContent,
+            marginLeft: isSidebarOpen ? '240px' : '0', // Simulate shifting content, or overlay
+            transition: 'margin-left 0.2s ease',
+            backgroundColor: themeContext?.colors.background,
+            color: themeContext?.colors.text,
+        }}>
+          {activeTab === 'dashboard' && <DashboardPage />}
+          {activeTab === 'capabilities' && <AccountCapabilityPage />}
+          {activeTab === 'configuration' && <ConfigurationPage />}
+          {activeTab === 'users' && <UserManagementPage />}
+          {activeTab === 'notifications' && <NotificationPage />}
+          {activeTab === 'audit' && <AuditTrailPage />}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const DashboardPage: React.FC = () => {
+    const authContext = useContext(AuthContext);
+    const themeContext = useContext(ThemeContext);
+    const theme = themeContext?.theme || 'light';
+
+    const widgets: DashboardWidgetData[] = useMemo(() => [
+        { title: 'Total Capabilities', value: MOCK_ACCOUNT_CAPABILITIES.length, description: 'Number of active and inactive capabilities', icon: <MdCreditCard size={24} />, trend: 'up', trendValue: '+5% last month' },
+        { title: 'Pending Approvals', value: MOCK_ACCOUNT_CAPABILITIES.filter(c => c._metadata.status === 'PENDING_APPROVAL').length, description: 'Capabilities awaiting review', icon: <MdLockOpen size={24} />, trend: 'down', trendValue: '-10% last week' },
+        { title: 'Daily Payment Volume', value: '$1.2B', description: 'Estimated volume through active capabilities', icon: <MdAttachMoney size={24} />, trend: 'up', trendValue: '+2% today' },
+        { title: 'Active Rules', value: MOCK_ACCOUNT_CAPABILITIES.filter(c => c._metadata.status === 'ACTIVE').length, description: 'Currently operational capabilities', icon: <MdCheckCircle size={24} />, trend: 'stable', trendValue: '0% change' },
+    ], []);
+
+    const recentActivities = useMemo(() => mockAuditService.events.slice(0, 5), [mockAuditService.events.length]);
+
+    if (!authContext?.user) {
+        return <div style={{ color: themeContext?.colors.text }}>Please log in to view the dashboard.</div>;
+    }
+
+    return (
+        <div>
+            <h2 style={{ color: themeContext?.colors.text }}>Welcome, {authContext.user.name}!</h2>
+            <p style={{ color: themeContext?.colors.subtext }}>Overview of your account capabilities and system health.</p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginTop: '20px' }}>
+                {widgets.map((widget, index) => (
+                    <div key={index} style={styles.card(theme)}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                            <h3 style={{ margin: 0, fontSize: '1.2em', color: themeContext?.colors.primary }}>{widget.title}</h3>
+                            <span style={{ color: themeContext?.colors.subtext }}>{widget.icon}</span>
+                        </div>
+                        <div style={{ fontSize: '2.5em', fontWeight: 'bold', color: themeContext?.colors.text }}>{widget.value}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.9em', color: themeContext?.colors.subtext }}>
+                            {widget.trend === 'up' && <MdTrendingUp color="green" />}
+                            {widget.trend === 'down' && <MdTrendingUp style={{ transform: 'rotate(180deg)' }} color="red" />}
+                            {widget.trendValue && <span>{widget.trendValue}</span>}
+                            <span>{widget.description}</span>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', marginTop: '30px' }}>
+                <div style={styles.card(theme)}>
+                    <h3 style={{ marginTop: 0, marginBottom: '15px', color: themeContext?.colors.text }}>Recent Activities</h3>
+                    {recentActivities.length === 0 ? (
+                        <p style={{ color: themeContext?.colors.subtext }}>No recent activities.</p>
+                    ) : (
+                        <ul style={{ listStyle: 'none', padding: 0 }}>
+                            {recentActivities.map((event) => (
+                                <li key={event.id} style={{ borderBottom: `1px solid ${theme === 'light' ? '#eee' : '#444'}`, padding: '10px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div>
+                                        <span style={{ fontWeight: 'bold', color: themeContext?.colors.text }}>{event.actor}</span> {event.action.replace(/_/g, ' ').toLowerCase()} for <span style={{ fontFamily: 'monospace', color: themeContext?.colors.primary }}>{event.entityId}</span>
+                                        <div style={{ fontSize: '0.8em', color: themeContext?.colors.subtext }}>{formatDateTime(event.timestamp)}</div>
+                                    </div>
+                                    <Button type="text" size="small" icon={<MdInfo />} />
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+                <div style={styles.card(theme)}>
+                    <h3 style={{ marginTop: 0, marginBottom: '15px', color: themeContext?.colors.text }}>Capability Status Distribution</h3>
+                    {/* Placeholder for a chart. In a real app, integrate a charting library like Chart.js or Recharts */}
+                    <div style={{ height: '200px', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: theme === 'light' ? '#f8f8f8' : '#444', borderRadius: '4px', color: themeContext?.colors.subtext }}>
+                        <MdPieChart size={40} style={{ marginRight: '10px' }}/> Chart Placeholder (e.g., Active: 60%, Pending: 20%, Inactive: 20%)
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
+export const AccountCapabilityPage: React.FC = () => {
+  const authContext = useContext(AuthContext);
+  const notificationContext = useContext(NotificationContext);
+  const themeContext = useContext(ThemeContext);
+  const configContext = useContext(AppConfigContext);
+  const theme = themeContext?.theme || 'light';
+
+  const [filterCriteria, setFilterCriteria] = useState<CapabilityFilterCriteria>({
+    searchQuery: '',
+    showDeleted: false,
+    status: [],
+  });
+  const [sortCriteria, setSortCriteria] = useState<CapabilitySortCriteria>({ field: 'createdAt', direction: 'DESC' });
+  const [paginationVariables, setPaginationVariables] = useState({
+    first: DEFAULT_ITEMS_PER_PAGE,
+    after: '',
+    before: '',
+    currentPage: 1,
+  });
+  const [selectedCapability, setSelectedCapability] = useState<AccountCapabilityNode | null>(null);
+  const [isDetailPanelOpen, setIsDetailPanelOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [tempCapabilityData, setTempCapabilityData] = useState<CapabilityFormValues | null>(null);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  const { loading, error, data, fetchMore, networkStatus, refetch } = useQuery<AccountCapabilityListViewData>(
+    ACCOUNT_CAPABILITY_LIST_QUERY,
+    {
+      variables: {
+        showDeleted: filterCriteria.showDeleted ? 'true' : 'false',
+        first: paginationVariables.first,
+        after: paginationVariables.after,
+        before: paginationVariables.before,
+      },
+      fetchPolicy: 'cache-and-network',
+      notifyOnNetworkStatusChange: true,
+    }
+  );
+
+  const capabilities = useMemo(() => {
+    // Apply client-side filters and sorting that aren't part of GraphQL variables
+    let filtered = (data?.accountCapabilities.edges || [])
+      .map(edge => edge.node)
+      .filter(cap => {
+        // GraphQL `showDeleted` handles the primary filter, but secondary filtering happens here
+        // This is a simplification; in a real app, all filtering would be server-side
+        const matchPaymentType = filterCriteria.paymentType ? cap.prettyPaymentType === filterCriteria.paymentType : true;
+        const matchDirection = filterCriteria.direction ? cap.prettyDirection === filterCriteria.direction : true;
+        const matchCurrency = filterCriteria.currency ? cap.currencies.includes(filterCriteria.currency) : true;
+        const matchStatus = filterCriteria.status?.length ? filterCriteria.status.includes(cap._metadata.status) : true;
+        const matchPartyName = filterCriteria.partyName ? cap.partyName.toLowerCase().includes(filterCriteria.partyName.toLowerCase()) : true;
+        const matchSearch = filterCriteria.searchQuery
+            ? (cap.prettyPaymentType.toLowerCase().includes(filterCriteria.searchQuery.toLowerCase()) ||
+              cap.identifier.toLowerCase().includes(filterCriteria.searchQuery.toLowerCase()) ||
+              cap.partyName.toLowerCase().includes(filterCriteria.searchQuery.toLowerCase()) ||
+              cap.currencies.some(c => c.toLowerCase().includes(filterCriteria.searchQuery.toLowerCase())) ||
+              cap.prettyPaymentSubtypes.some(s => s.toLowerCase().includes(filterCriteria.searchQuery.toLowerCase())))
+            : true;
+
+        return matchPaymentType && matchDirection && matchCurrency && matchStatus && matchPartyName && matchSearch;
+      });
+
+    filtered.sort((a, b) => {
+        const valA = sortCriteria.field === 'status' ? a._metadata.status : a[sortCriteria.field as keyof AccountCapabilityNode] || a._metadata[sortCriteria.field as keyof AccountCapabilityMetadata];
+        const valB = sortCriteria.field === 'status' ? b._metadata.status : b[sortCriteria.field as keyof AccountCapabilityNode] || b._metadata[sortCriteria.field as keyof AccountCapabilityMetadata];
+
+        if (typeof valA === 'string' && typeof valB === 'string') {
+            return sortCriteria.direction === 'ASC' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        }
+        if (typeof valA === 'number' && typeof valB === 'number') {
+            return sortCriteria.direction === 'ASC' ? valA - valB : valB - valA;
+        }
+        // Fallback for other types or null/undefined
+        if (valA === undefined && valB !== undefined) return sortCriteria.direction === 'ASC' ? 1 : -1;
+        if (valA !== undefined && valB === undefined) return sortCriteria.direction === 'ASC' ? -1 : 1;
+        return 0;
+    });
+
+    return filtered;
+  }, [data, filterCriteria, sortCriteria]);
+
+  const pageInfo = data?.accountCapabilities.pageInfo;
+
+  const handleFilterChange = useCallback((newFilters: Partial<CapabilityFilterCriteria>) => {
+    setFilterCriteria(prev => ({ ...prev, ...newFilters }));
+    // Reset pagination when filters change to fetch from start
+    setPaginationVariables({ first: DEFAULT_ITEMS_PER_PAGE, after: '', before: '', currentPage: 1 });
+    refetch(); // Trigger refetch with new filters
+  }, [refetch]);
+
+  const handleSortChange = useCallback((field: CapabilitySortCriteria['field']) => {
+    setSortCriteria(prev => ({
+      field,
+      direction: prev.field === field && prev.direction === 'ASC' ? 'DESC' : 'ASC',
+    }));
+  }, []);
+
+  const handlePageChange = useCallback((direction: 'next' | 'prev' | 'first' | 'last') => {
+    if (direction === 'next' && pageInfo?.hasNextPage) {
+      setPaginationVariables(prev => ({ ...prev, after: pageInfo.endCursor, before: '', currentPage: prev.currentPage + 1 }));
+    } else if (direction === 'prev' && pageInfo?.hasPreviousPage) {
+      setPaginationVariables(prev => ({ ...prev, before: pageInfo.startCursor, after: '', currentPage: prev.currentPage - 1 }));
+    } else if (direction === 'first') {
+        setPaginationVariables(prev => ({ ...prev, after: '', before: '', currentPage: 1 }));
+    }
+  }, [pageInfo]);
+
+  const handleItemsPerPageChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    setPaginationVariables(prev => ({ ...prev, first: parseInt(e.target.value, 10), after: '', before: '', currentPage: 1 }));
+  }, []);
+
+  const handleViewDetails = useCallback((capability: AccountCapabilityNode) => {
+    setSelectedCapability(capability);
+    setIsDetailPanelOpen(true);
+  }, []);
+
+  const handleCloseDetailPanel = useCallback(() => {
+    setIsDetailPanelOpen(false);
+    setSelectedCapability(null);
+  }, []);
+
+  const handleEditCapability = useCallback((capability: AccountCapabilityNode) => {
+    setSelectedCapability(capability);
+    setTempCapabilityData({
+        prettyPaymentType: capability.prettyPaymentType,
+        prettyDirection: capability.prettyDirection,
+        identifier: capability.identifier,
+        partyName: capability.partyName,
+        currencies: capability.currencies,
+        anyCurrency: capability.anyCurrency,
+        prettyPaymentSubtypes: capability.prettyPaymentSubtypes,
+        // _metadata status can be modified in form
+        statusOverride: capability._metadata.status,
+    });
+    setIsEditModalOpen(true);
+  }, []);
+
+  const handleCreateNewCapability = useCallback(() => {
+    setTempCapabilityData({
+        prettyPaymentType: '',
+        prettyDirection: 'BOTH',
+        identifier: '',
+        partyName: '',
+        currencies: [],
+        anyCurrency: false,
+        prettyPaymentSubtypes: [],
+        newConnectionName: '',
+        newAddressFull: '',
+        statusOverride: 'PENDING_APPROVAL',
+    });
+    setFormErrors({});
+    setIsCreateModalOpen(true);
+  }, []);
+
+  const handleSubmitCapability = useCallback(async (formValues: CapabilityFormValues) => {
+    if (!authContext?.user) {
+        notificationContext?.addNotification({ type: 'error', message: 'Authentication required to perform this action.' });
+        return;
+    }
+
+    const errors = validateCapabilityForm(formValues);
+    if (Object.keys(errors).length > 0) {
+        setFormErrors(errors);
+        notificationContext?.addNotification({ type: 'error', message: 'Please correct the form errors.' });
+        return;
+    }
+    setFormErrors({});
+
+    try {
+      if (selectedCapability && isEditModalOpen) {
+        // Update existing
+        await mockGraphQLService.updateAccountCapability(selectedCapability.id, formValues, authContext.user);
+        notificationContext?.addNotification({ type: 'success', message: `Capability ${selectedCapability.identifier} updated successfully.` });
+      } else if (isCreateModalOpen) {
+        // Create new
+        await mockGraphQLService.createAccountCapability(formValues, authContext.user);
+        notificationContext?.addNotification({ type: 'success', message: `New capability created and submitted for approval.` });
+      }
+      refetch(); // Re-fetch data to reflect changes
+      setIsEditModalOpen(false);
+      setIsCreateModalOpen(false);
+      setSelectedCapability(null);
+      setTempCapabilityData(null);
+    } catch (e: any) {
+      notificationContext?.addNotification({ type: 'error', message: `Failed to save capability: ${e.message}` });
+    }
+  }, [selectedCapability, isEditModalOpen, isCreateModalOpen, authContext?.user, notificationContext, refetch]);
+
+
+  const handleDeleteCapability = useCallback(async (capabilityId: string) => {
+    if (!authContext?.hasRole('ADMIN') && !authContext?.hasRole('EDITOR')) {
+      notificationContext?.addNotification({ type: 'error', message: 'You do not have permission to delete capabilities.' });
+      return;
+    }
+    if (!window.confirm('Are you sure you want to permanently delete (archive) this capability? This action cannot be undone easily.')) {
+        return;
+    }
+    try {
+      if (authContext?.user) {
+        await mockGraphQLService.deleteAccountCapability(capabilityId, authContext.user);
+        notificationContext?.addNotification({ type: 'success', message: 'Capability archived successfully.' });
+        refetch();
+        handleCloseDetailPanel();
+      }
+    } catch (e: any) {
+      notificationContext?.addNotification({ type: 'error', message: `Failed to delete capability: ${e.message}` });
+    }
+  }, [authContext, notificationContext, refetch, handleCloseDetailPanel]);
+
+  const handleRestoreCapability = useCallback(async (capabilityId: string) => {
+    if (!authContext?.hasRole('ADMIN') && !authContext?.hasRole('EDITOR')) {
+      notificationContext?.addNotification({ type: 'error', message: 'You do not have permission to restore capabilities.' });
+      return;
+    }
+    if (!window.confirm('Are you sure you want to restore this capability? It will be set to PENDING_APPROVAL status.')) {
+        return;
+    }
+    try {
+      if (authContext?.user) {
+        await mockGraphQLService.restoreAccountCapability(capabilityId, authContext.user);
+        notificationContext?.addNotification({ type: 'success', message: 'Capability restored successfully and is now PENDING_APPROVAL.' });
+        refetch();
+        handleCloseDetailPanel();
+      }
+    } catch (e: any) {
+      notificationContext?.addNotification({ type: 'error', message: `Failed to restore capability: ${e.message}` });
+    }
+  }, [authContext, notificationContext, refetch, handleCloseDetailPanel]);
+
+
+  if (error && networkStatus !== NetworkStatus.refetch) return <div style={{ color: themeContext?.colors.text }}>Error: {error.message}</div>;
+
+  return (
+    <div style={{ color: themeContext?.colors.text }}>
+      <h2 style={{ color: themeContext?.colors.text }}>Account Capabilities Management</h2>
+      <p style={{ color: themeContext?.colors.subtext }}>View, filter, and manage payment and transaction capabilities across accounts.</p>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <Button onClick={handleCreateNewCapability} type="primary" icon={<MdAdd />} disabled={!authContext?.hasRole('EDITOR')}>
+          Create New Capability
+        </Button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <Input
+            name="search"
+            value={filterCriteria.searchQuery || ''}
+            onChange={(e) => handleFilterChange({ searchQuery: e.target.value })}
+            placeholder="Search capabilities..."
+            theme={theme}
+            style={{ width: '250px' }}
+          />
+          <Button onClick={() => refetch()} type="secondary" icon={<MdRefresh />}>Refresh</Button>
+          <Button onClick={() => setFilterCriteria({})} type="secondary" icon={<MdClear />}>Clear Filters</Button>
+        </div>
+      </div>
+
+      <AccountCapabilityFilterBar
+        filters={filterCriteria}
+        onFilterChange={handleFilterChange}
+        theme={theme}
+        config={configContext}
+      />
+
+      <div style={styles.card(theme)}>
+        <AccountCapabilityTable
+          capabilities={capabilities}
+          loading={loading && networkStatus !== NetworkStatus.fetchMore} // Only show loader for initial load/refetch, not fetchMore
+          onViewDetails={handleViewDetails}
+          onEdit={handleEditCapability}
+          onDelete={handleDeleteCapability}
+          onRestore={handleRestoreCapability}
+          sortCriteria={sortCriteria}
+          onSortChange={handleSortChange}
+          theme={theme}
+          authContext={authContext}
+        />
+
+        <PaginationControls
+          pageInfo={pageInfo}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+          itemsPerPage={paginationVariables.first}
+          currentPage={paginationVariables.currentPage}
+          loading={loading}
+          theme={theme}
+        />
+      </div>
+
+      {isDetailPanelOpen && selectedCapability && (
+        <AccountCapabilityDetailPanel
+          capability={selectedCapability}
+          onClose={handleCloseDetailPanel}
+          onEdit={() => handleEditCapability(selectedCapability)}
+          onDelete={() => handleDeleteCapability(selectedCapability.id)}
+          onRestore={() => handleRestoreCapability(selectedCapability.id)}
+          theme={theme}
+          authContext={authContext}
+        />
+      )}
+
+      {(isEditModalOpen || isCreateModalOpen) && (
+        <CapabilityEditorModal
+          isOpen={isEditModalOpen || isCreateModalOpen}
+          onClose={() => { setIsEditModalOpen(false); setIsCreateModalOpen(false); setTempCapabilityData(null); setFormErrors({}); }}
+          onSubmit={handleSubmitCapability}
+          initialData={tempCapabilityData}
+          isEditMode={isEditModalOpen}
+          formErrors={formErrors}
+          theme={theme}
+          config={configContext}
+          currentUser={authContext?.user}
+          addNotification={notificationContext?.addNotification}
+        />
+      )}
+    </div>
+  );
+};
+
+
+export const AccountCapabilityFilterBar: React.FC<{
+  filters: CapabilityFilterCriteria;
+  onFilterChange: (newFilters: Partial<CapabilityFilterCriteria>) => void;
+  theme: 'light' | 'dark';
+  config?: AppConfigContextType;
+}> = memo(({ filters, onFilterChange, theme, config }) => {
+  const handleSelectChange = (name: keyof CapabilityFilterCriteria) => (e: React.ChangeEvent<HTMLSelectElement>) => {
+    onFilterChange({ [name]: e.target.value || undefined });
+  };
+
+  const handleMultiSelectChange = (name: keyof CapabilityFilterCriteria) => (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedOptions = Array.from(e.target.options).filter(option => option.selected).map(option => option.value);
+    onFilterChange({ [name]: selectedOptions.length > 0 ? selectedOptions : undefined });
+  };
+
+  const handleCheckboxChange = (name: keyof CapabilityFilterCriteria) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    onFilterChange({ [name]: e.target.checked });
+  };
+
+  return (
+    <div style={{ ...styles.card(theme), marginBottom: '20px', padding: '15px 20px' }}>
+      <h3 style={{ marginTop: 0, marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px', color: theme === 'light' ? '#333' : '#eee' }}>
+        <MdFilterList /> Advanced Filters
+      </h3>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
+        <Select
+          label="Payment Type"
+          name="paymentType"
+          value={filters.paymentType || ''}
+          onChange={handleSelectChange('paymentType')}
+          options={config?.paymentTypes.map(type => ({ value: type, label: type })) || []}
+          theme={theme}
+        />
+        <Select
+          label="Direction"
+          name="direction"
+          value={filters.direction || ''}
+          onChange={handleSelectChange('direction')}
+          options={config?.directions.map(dir => ({ value: dir, label: capitalize(dir) })) || []}
+          theme={theme}
+        />
+        <Select
+          label="Currency"
+          name="currency"
+          value={filters.currency || ''}
+          onChange={handleSelectChange('currency')}
+          options={config?.currencies.map(curr => ({ value: curr, label: curr })) || []}
+          theme={theme}
+        />
+        <Select
+            label="Status"
+            name="status"
+            value={Array.isArray(filters.status) ? filters.status.join(',') : ''} // This is a simplification for select. Actual multi-select needs custom rendering or component
+            onChange={handleMultiSelectChange('status')}
+            options={config?.statuses.map(status => ({ value: status, label: capitalize(status.replace('_', ' ')) })) || []}
+            theme={theme}
+            multiple={true}
+        />
+        <Input
+          label="Party Name"
+          name="partyName"
+          value={filters.partyName || ''}
+          onChange={(e) => onFilterChange({ partyName: e.target.value })}
+          placeholder="Filter by Party Name"
+          theme={theme}
+        />
+        <Checkbox
+          label="Show Archived"
+          name="showDeleted"
+          checked={filters.showDeleted || false}
+          onChange={handleCheckboxChange('showDeleted')}
+          theme={theme}
+        />
+      </div>
+    </div>
+  );
+});
+
+export const AccountCapabilityTable: React.FC<{
+  capabilities: AccountCapabilityNode[];
+  loading: boolean;
+  onViewDetails: (capability: AccountCapabilityNode) => void;
+  onEdit: (capability: AccountCapabilityNode) => void;
+  onDelete: (id: string) => void;
+  onRestore: (id: string) => void;
+  sortCriteria: CapabilitySortCriteria;
+  onSortChange: (field: CapabilitySortCriteria['field']) => void;
+  theme: 'light' | 'dark';
+  authContext?: AuthContextType;
+}> = memo(({ capabilities, loading, onViewDetails, onEdit, onDelete, onRestore, sortCriteria, onSortChange, theme, authContext }) => {
+  const columns: { label: string; field: keyof AccountCapabilityNode | keyof AccountCapabilityMetadata | 'status'; sortable?: boolean }[] = useMemo(() => [
+    { label: 'Identifier', field: 'identifier', sortable: true },
+    { label: 'Party Name', field: 'partyName', sortable: true },
+    { label: 'Payment Type', field: 'prettyPaymentType', sortable: true },
+    { label: 'Direction', field: 'prettyDirection', sortable: true },
+    { label: 'Currencies', field: 'currencies' },
+    { label: 'Connection', field: 'connection' },
+    { label: 'Status', field: 'status', sortable: true },
+    { label: 'Last Updated', field: 'updatedAt', sortable: true },
+    { label: 'Actions', field: 'id' },
+  ], []);
+
+  const getSortIcon = (field: string) => {
+    if (sortCriteria.field === field) {
+      return sortCriteria.direction === 'ASC' ? <MdSort style={{ transform: 'rotate(180deg)' }} /> : <MdSort />;
+    }
+    return null;
+  };
+
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <table style={styles.table(theme)}>
+        <thead>
+          <tr>
+            {columns.map((col) => (
+              <th
+                key={col.label}
+                style={styles.th(theme)}
+                onClick={col.sortable ? () => onSortChange(col.field) : undefined}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  {col.label} {getSortIcon(col.field as string)}
+                </div>
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {loading ? (
+            Array.from({ length: DEFAULT_ITEMS_PER_PAGE }).map((_, i) => (
+              <tr key={i}>
+                {columns.map((col, j) => (
+                  <td key={j} style={styles.td(theme)}>
+                    <SkeletonLoader theme={theme} width={j === 0 ? '120px' : '80px'} height="16px" />
+                  </td>
+                ))}
+              </tr>
+            ))
+          ) : (
+            capabilities.map((cap) => (
+              <tr key={cap.id}>
+                <td style={styles.td(theme)}>{cap.identifier}</td>
+                <td style={styles.td(theme)}>{cap.partyName}</td>
+                <td style={styles.td(theme)}>{cap.prettyPaymentType}</td>
+                <td style={styles.td(theme)}>{capitalize(cap.prettyDirection)}</td>
+                <td style={styles.td(theme)}>
+                  {cap.anyCurrency ? (
+                    <span style={styles.tag(cap.currencyTagColors[0] || '#607D8B')}>ANY</span>
+                  ) : (
+                    cap.currencies.map((curr, i) => (
+                      <span key={i} style={styles.tag(cap.currencyTagColors[i] || '#2196F3')}>
+                        {curr}
+                      </span>
+                    ))
+                  )}
+                </td>
+                <td style={styles.td(theme)}>{cap.connection.bestName}</td>
+                <td style={styles.td(theme)}>
+                    <span style={styles.badge(cap._metadata.status === 'ACTIVE' ? 'success' : cap._metadata.status === 'REJECTED' ? 'error' : 'info')}>
+                        {capitalize(cap._metadata.status.replace('_', ' '))}
+                    </span>
+                    {cap.discardedAt && (
+                        <span style={{...styles.badge('warning'), marginLeft: '5px'}}>
+                            <MdDelete /> Archived
+                        </span>
+                    )}
+                </td>
+                <td style={styles.td(theme)}>{formatDateTime(cap._metadata.updatedAt, 'YYYY-MM-DD')}</td>
+                <td style={styles.td(theme)}>
+                  <div style={{ display: 'flex', gap: '5px' }}>
+                    <Button onClick={() => onViewDetails(cap)} type="info" size="small" icon={<MdInfo />}>Details</Button>
+                    {(authContext?.hasRole('EDITOR') || authContext?.hasRole('ADMIN')) && !cap.discardedAt && (
+                        <Button onClick={() => onEdit(cap)} type="primary" size="small" icon={<MdEdit />}>Edit</Button>
+                    )}
+                    {(authContext?.hasRole('ADMIN')) && !cap.discardedAt && (
+                        <Button onClick={() => onDelete(cap.id)} type="danger" size="small" icon={<MdDelete />}>Archive</Button>
+                    )}
+                    {(authContext?.hasRole('ADMIN') || authContext?.hasRole('EDITOR')) && cap.discardedAt && (
+                        <Button onClick={() => onRestore(cap.id)} type="success" size="small" icon={<MdRestore />}>Restore</Button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))
+          )}
+          {capabilities.length === 0 && !loading && (
+            <tr>
+              <td colSpan={columns.length} style={{ ...styles.td(theme), textAlign: 'center' }}>No capabilities found matching your criteria.</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+});
+
+// Import MdRefresh and MdRestore for use above
+const MdRefresh = MdRefresh;
+const MdRestore = MdHistory; // Using history icon for restore for now
+
+
+export const PaginationControls: React.FC<{
+  pageInfo?: PageInfo;
+  onPageChange: (direction: 'next' | 'prev' | 'first' | 'last') => void;
+  onItemsPerPageChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  itemsPerPage: number;
+  currentPage: number;
+  loading: boolean;
+  theme: 'light' | 'dark';
+}> = memo(({ pageInfo, onPageChange, onItemsPerPageChange, itemsPerPage, currentPage, loading, theme }) => {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', padding: '10px 0', borderTop: `1px solid ${theme === 'light' ? '#eee' : '#444'}` }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <span style={{ color: theme === 'light' ? '#555' : '#ccc' }}>Items per page:</span>
+        <select value={itemsPerPage} onChange={onItemsPerPageChange} disabled={loading} style={styles.select(theme)}>
+          {ITEMS_PER_PAGE_OPTIONS.map(option => (
+            <option key={option} value={option}>{option}</option>
+          ))}
+        </select>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <span style={{ color: theme === 'light' ? '#555' : '#ccc' }}>Page {currentPage}</span>
+        <Button onClick={() => onPageChange('first')} disabled={loading || !pageInfo?.hasPreviousPage} type="secondary" size="small" icon={<MdFirstPage />} />
+        <Button onClick={() => onPageChange('prev')} disabled={loading || !pageInfo?.hasPreviousPage} type="secondary" size="small" icon={<MdNavigateBefore />} />
+        <Button onClick={() => onPageChange('next')} disabled={loading || !pageInfo?.hasNextPage} type="secondary" size="small" icon={<MdNavigateNext />} />
+        {/* No 'last' page button for cursor-based pagination unless total count is known */}
+      </div>
+    </div>
+  );
+});
+
+
+export const AccountCapabilityDetailPanel: React.FC<{
+  capability: AccountCapabilityNode;
+  onClose: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  onRestore: () => void;
+  theme: 'light' | 'dark';
+  authContext?: AuthContextType;
+}> = memo(({ capability, onClose, onEdit, onDelete, onRestore, theme, authContext }) => {
+    const [auditLogs, setAuditLogs] = useState<AuditEvent[]>([]);
+    const [loadingAudit, setLoadingAudit] = useState(true);
+
+    useEffect(() => {
+        setLoadingAudit(true);
+        mockAuditService.getEvents(capability.id, 'AccountCapability').then(logs => {
+            setAuditLogs(logs);
+            setLoadingAudit(false);
+        }).catch(() => {
+            setAuditLogs([]);
+            setLoadingAudit(false);
+        });
+    }, [capability.id]);
+
+
+    return ReactDOM.createPortal(
+        <motion.div
+            initial={{ x: '100%' }}
+            animate={{ x: '0%' }}
+            exit={{ x: '100%' }}
+            transition={{ duration: 0.3 }}
+            style={{
+                position: 'fixed',
+                top: 0,
+                right: 0,
+                height: '100vh',
+                width: '450px',
+                backgroundColor: theme === 'light' ? '#fff' : '#222',
+                boxShadow: '-4px 0 12px rgba(0,0,0,0.15)',
+                zIndex: 2000,
+                padding: '20px',
+                overflowY: 'auto',
+                color: theme === 'light' ? '#333' : '#eee',
+                display: 'flex',
+                flexDirection: 'column',
+            }}
+        >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${theme === 'light' ? '#eee' : '#444'}`, paddingBottom: '15px', marginBottom: '20px' }}>
+                <h3 style={{ margin: 0, color: theme === 'light' ? '#333' : '#eee' }}>Capability Details: {capability.identifier}</h3>
+                <Button onClick={onClose} type="text" size="small" icon={<MdClose />} />
+            </div>
+
+            <div style={{ flexGrow: 1, overflowY: 'auto' }}>
+                <DetailRow label="ID" value={capability.id} theme={theme} />
+                <DetailRow label="Payment Type" value={capability.prettyPaymentType} theme={theme} />
+                <DetailRow label="Direction" value={capitalize(capability.prettyDirection)} theme={theme} />
+                <DetailRow label="Party Name" value={capability.partyName} theme={theme} />
+                <DetailRow label="Currencies" theme={theme}>
+                    {capability.anyCurrency ? (
+                        <span style={styles.tag(capability.currencyTagColors[0] || '#607D8B')}>ANY</span>
+                    ) : (
+                        capability.currencies.map((curr, i) => (
+                            <span key={i} style={styles.tag(capability.currencyTagColors[i] || '#2196F3')}>
+                                {curr}
+                            </span>
+                        ))
+                    )}
+                </DetailRow>
+                <DetailRow label="Subtypes" theme={theme}>
+                    {capability.prettyPaymentSubtypes.map((subtype, i) => (
+                        <span key={i} style={styles.tag(capability.paymentSubtypeTagColors[i] || '#795548')}>
+                            {subtype}
+                        </span>
+                    ))}
+                </DetailRow>
+                <DetailRow label="Connection" value={capability.connection.bestName} theme={theme} />
+                <DetailRow label="Connection ID" value={capability.connection.id} theme={theme} />
+                <DetailRow label="Address" value={capability.address.full} theme={theme} />
+                <DetailRow label="Status" theme={theme}>
+                    <span style={styles.badge(capability._metadata.status === 'ACTIVE' ? 'success' : capability._metadata.status === 'REJECTED' ? 'error' : 'info')}>
+                        {capitalize(capability._metadata.status.replace('_', ' '))}
+                    </span>
+                </DetailRow>
+                <DetailRow label="Created At" value={formatDateTime(capability._metadata.createdAt)} theme={theme} />
+                <DetailRow label="Created By" value={capability._metadata.createdBy} theme={theme} />
+                <DetailRow label="Last Updated" value={formatDateTime(capability._metadata.updatedAt)} theme={theme} />
+                <DetailRow label="Updated By" value={capability._metadata.updatedBy} theme={theme} />
+                {capability._metadata.approvedAt && <DetailRow label="Approved At" value={formatDateTime(capability._metadata.approvedAt)} theme={theme} />}
+                {capability._metadata.approverId && <DetailRow label="Approved By" value={MOCK_USERS.find(u => u.id === capability._metadata.approverId)?.name || 'N/A'} theme={theme} />}
+                {capability._metadata.reviewNotes && <DetailRow label="Review Notes" value={capability._metadata.reviewNotes} theme={theme} />}
+                {capability.discardedAt && <DetailRow label="Archived At" value={formatDateTime(capability.discardedAt)} theme={theme} isWarning={true} />}
+
+                <h4 style={{ borderTop: `1px solid ${theme === 'light' ? '#eee' : '#444'}`, paddingTop: '15px', marginTop: '20px', color: theme === 'light' ? '#333' : '#eee' }}>Audit History</h4>
+                {loadingAudit ? (
+                    <div style={{ padding: '10px 0' }}>
+                        <SkeletonLoader theme={theme} height="16px" width="90%" /><br/>
+                        <SkeletonLoader theme={theme} height="16px" width="80%" /><br/>
+                        <SkeletonLoader theme={theme} height="16px" width="95%" />
+                    </div>
+                ) : auditLogs.length === 0 ? (
+                    <p style={{ color: theme === 'light' ? '#555' : '#ccc' }}>No audit events for this capability.</p>
+                ) : (
+                    <ul style={{ listStyle: 'none', padding: 0 }}>
+                        {auditLogs.map(log => (
+                            <li key={log.id} style={{ borderBottom: `1px dashed ${theme === 'light' ? '#f0f0f0' : '#333'}`, padding: '8px 0', fontSize: '0.9em' }}>
+                                <span style={{ fontWeight: 'bold' }}>{log.actor}</span> {log.action.replace(/_/g, ' ').toLowerCase()}
+                                <div style={{ color: theme === 'light' ? '#777' : '#999', fontSize: '0.8em' }}>{formatDateTime(log.timestamp)}</div>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
+
+            <div style={{ borderTop: `1px solid ${theme === 'light' ? '#eee' : '#444'}`, paddingTop: '15px', marginTop: '20px', display: 'flex', gap: '10px' }}>
+                {(authContext?.hasRole('EDITOR') || authContext?.hasRole('ADMIN')) && !capability.discardedAt && (
+                    <Button onClick={onEdit} type="primary" icon={<MdEdit />}>Edit Capability</Button>
+                )}
+                {(authContext?.hasRole('ADMIN')) && !capability.discardedAt && (
+                    <Button onClick={onDelete} type="danger" icon={<MdDelete />}>Archive Capability</Button>
+                )}
+                {(authContext?.hasRole('ADMIN') || authContext?.hasRole('EDITOR')) && capability.discardedAt && (
+                    <Button onClick={onRestore} type="success" icon={<MdRestore />}>Restore Capability</Button>
+                )}
+            </div>
+        </motion.div>,
+        document.body
+    );
+});
+
+const DetailRow: React.FC<React.PropsWithChildren<{ label: string; value?: string | React.ReactNode; theme: 'light' | 'dark'; isWarning?: boolean }>> = ({ label, value, children, theme, isWarning }) => (
+    <div style={{ marginBottom: '10px', paddingBottom: '10px', borderBottom: `1px dashed ${theme === 'light' ? '#f0f0f0' : '#333'}` }}>
+        <div style={{ fontWeight: 'bold', color: theme === 'light' ? '#555' : '#ccc', fontSize: '0.9em', marginBottom: '3px' }}>{label}:</div>
+        <div style={{ color: isWarning ? '#F44336' : (theme === 'light' ? '#333' : '#eee'), fontSize: '1em' }}>
+            {children || value || 'N/A'}
+        </div>
+    </div>
+);
+
+
+export const CapabilityEditorModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (values: CapabilityFormValues) => void;
+  initialData: CapabilityFormValues | null;
+  isEditMode: boolean;
+  formErrors: Record<string, string>;
+  theme: 'light' | 'dark';
+  config?: AppConfigContextType;
+  currentUser?: User | null;
+  addNotification?: (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => void;
+}> = memo(({ isOpen, onClose, onSubmit, initialData, isEditMode, formErrors, theme, config, currentUser, addNotification }) => {
+  const [formData, setFormData] = useState<CapabilityFormValues>(initialData || {
+    prettyPaymentType: '',
+    prettyDirection: 'BOTH',
+    identifier: '',
+    partyName: '',
+    currencies: [],
+    anyCurrency: false,
+    prettyPaymentSubtypes: [],
+    newConnectionName: '',
+    newAddressFull: '',
+    statusOverride: 'PENDING_APPROVAL',
+  });
+  const [internalErrors, setInternalErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (isOpen && initialData) {
+      setFormData(initialData);
+    } else if (isOpen) { // Reset for create mode
+        setFormData({
+            prettyPaymentType: '',
+            prettyDirection: 'BOTH',
+            identifier: '',
+            partyName: '',
+            currencies: [],
+            anyCurrency: false,
+            prettyPaymentSubtypes: [],
+            newConnectionName: '',
+            newAddressFull: '',
+            statusOverride: 'PENDING_APPROVAL',
+        });
+    }
+    setInternalErrors({}); // Clear errors on modal open/close
+  }, [isOpen, initialData]);
+
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value, type } = e.target;
+    if (type === 'checkbox') {
+        setFormData(prev => ({ ...prev, [name]: (e.target as HTMLInputElement).checked }));
+    } else if (name === 'currencies' || name === 'prettyPaymentSubtypes') {
+        const selectElement = e.target as HTMLSelectElement;
+        const selectedValues = Array.from(selectElement.options).filter(option => option.selected).map(option => option.value);
+        setFormData(prev => ({ ...prev, [name]: selectedValues }));
+    } else {
+        setFormData(prev => ({ ...prev, [name]: value }));
+    }
+  }, []);
+
+  const handleStatusChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    setFormData(prev => ({ ...prev, statusOverride: e.target.value as AccountCapabilityMetadata['status'] }));
+  }, []);
+
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    const validationErrors = validateCapabilityForm(formData);
+    setInternalErrors(validationErrors);
+    if (Object.keys(validationErrors).length > 0) {
+        addNotification?.({ type: 'error', message: 'Please correct the highlighted form errors.' });
+        return;
+    }
+    onSubmit(formData);
+  }, [formData, onSubmit, addNotification]);
+
+  const allErrors = { ...formErrors, ...internalErrors };
+
+  const canChangeStatus = currentUser?.hasRole('APPROVER') || currentUser?.hasRole('ADMIN');
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={isEditMode ? 'Edit Account Capability' : 'Create New Account Capability'}>
+      <form onSubmit={handleSubmit}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+          <Input
+            label="Payment Type"
+            name="prettyPaymentType"
+            value={formData.prettyPaymentType}
+            onChange={handleChange}
+            error={allErrors.prettyPaymentType}
+            theme={theme}
+            placeholder="e.g., Transfer, Payroll"
+          />
+          <Select
+            label="Direction"
+            name="prettyDirection"
+            value={formData.prettyDirection}
+            onChange={handleChange}
+            error={allErrors.prettyDirection}
+            options={config?.directions.map(d => ({ value: d, label: capitalize(d) })) || []}
+            theme={theme}
+          />
+          <Input
+            label="Identifier"
+            name="identifier"
+            value={formData.identifier}
+            onChange={handleChange}
+            error={allErrors.identifier}
+            theme={theme}
+            placeholder="Unique identifier for the capability"
+          />
+          <Input
+            label="Party Name"
+            name="partyName"
+            value={formData.partyName}
+            onChange={handleChange}
+            error={allErrors.partyName}
+            theme={theme}
+            placeholder="e.g., Acme Corp"
+          />
+          <Select
+            label="Currencies (Multi-select)"
+            name="currencies"
+            value={formData.currencies}
+            onChange={handleChange}
+            error={allErrors.currencies}
+            options={config?.currencies.map(c => ({ value: c, label: c })) || []}
+            theme={theme}
+            multiple={true}
+          />
+          <Checkbox
+            label="Any Currency"
+            name="anyCurrency"
+            checked={formData.anyCurrency}
+            onChange={handleChange}
+            theme={theme}
+          />
+          <Select
+            label="Payment Subtypes (Multi-select)"
+            name="prettyPaymentSubtypes"
+            value={formData.prettyPaymentSubtypes}
+            onChange={handleChange}
+            options={['Domestic', 'International', 'SWIFT', 'ACH', 'SEPA', 'RTGS'].map(s => ({ value: s, label: s }))} // Mock common subtypes
+            theme={theme}
+            multiple={true}
+          />
+          <Input
+            label="New Connection Name (Optional)"
+            name="newConnectionName"
+            value={formData.newConnectionName || ''}
+            onChange={handleChange}
+            error={allErrors.newConnectionName}
+            theme={theme}
+            placeholder="e.g., Global Treasury Desk"
+          />
+          <Input
+            label="New Address Full (Optional)"
+            name="newAddressFull"
+            value={formData.newAddressFull || ''}
+            onChange={handleChange}
+            error={allErrors.newAddressFull}
+            theme={theme}
+            placeholder="e.g., 100 Main Street, New York, NY 10001"
+          />
+          {isEditMode && canChangeStatus && (
+              <Select
+                label="Capability Status"
+                name="statusOverride"
+                value={formData.statusOverride || 'PENDING_APPROVAL'}
+                onChange={handleStatusChange}
+                options={config?.statuses.map(s => ({ value: s, label: capitalize(s.replace('_', ' ')) })) || []}
+                theme={theme}
+                error={allErrors.statusOverride}
+              />
+          )}
+          {isEditMode && !canChangeStatus && (
+              <Input
+                label="Capability Status"
+                name="statusOverride"
+                value={capitalize(formData.statusOverride?.replace('_', ' ') || 'PENDING_APPROVAL')}
+                onChange={() => {}} // Read-only
+                theme={theme}
+                readOnly={true}
+              />
+          )}
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '30px' }}>
+          <Button onClick={onClose} type="secondary" icon={<MdCancel />}>Cancel</Button>
+          <Button type="primary" icon={<MdSave />}>
+            {isEditMode ? 'Save Changes' : 'Create Capability'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+});
+
+
+export const ConfigurationPage: React.FC = () => {
+    const themeContext = useContext(ThemeContext);
+    const authContext = useContext(AuthContext);
+    const notificationContext = useContext(NotificationContext);
+    const theme = themeContext?.theme || 'light';
+
+    const [settings, setSettings] = useState({
+        enableAuditLogging: true,
+        maxCapabilities: 500,
+        defaultItemsPerPage: DEFAULT_ITEMS_PER_PAGE,
+        autoApproveMinorChanges: false,
+        paymentGatewayTimeout: 30000, // in ms
+    });
+    const [isSaving, setIsSaving] = useState(false);
+
+    useEffect(() => {
+        // Simulate fetching settings
+        setTimeout(() => {
+            // This would be from a backend API
+        }, 500);
+    }, []);
+
+    const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { name, value, type } = e.target;
+        setSettings(prev => ({
+            ...prev,
+            [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
+        }));
+    }, []);
+
+    const handleSaveSettings = useCallback(async () => {
+        if (!authContext?.hasRole('ADMIN')) {
+            notificationContext?.addNotification({ type: 'error', message: 'You do not have permission to modify configurations.' });
+            return;
+        }
+        setIsSaving(true);
+        try {
+            // Simulate API call to save settings
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            notificationContext?.addNotification({ type: 'success', message: 'Application settings saved successfully.' });
+        } catch (error) {
+            notificationContext?.addNotification({ type: 'error', message: 'Failed to save settings.' });
+        } finally {
+            setIsSaving(false);
+        }
+    }, [authContext, notificationContext]);
+
+    const canEdit = authContext?.hasRole('ADMIN');
+
+    return (
+        <div style={{ color: themeContext?.colors.text }}>
+            <h2 style={{ color: themeContext?.colors.text }}>Application Configuration</h2>
+            <p style={{ color: themeContext?.colors.subtext }}>Manage global settings for the Account Capabilities Manager.</p>
+
+            <div style={styles.card(theme)}>
+                <h3 style={{ marginTop: 0, color: themeContext?.colors.text }}>General Settings</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '15px' }}>
+                    <Checkbox
+                        label="Enable detailed audit logging"
+                        name="enableAuditLogging"
+                        checked={settings.enableAuditLogging}
+                        onChange={handleChange}
+                        theme={theme}
+                    />
+                    <Input
+                        label="Maximum Capabilities Limit"
+                        name="maxCapabilities"
+                        type="number"
+                        value={settings.maxCapabilities}
+                        onChange={handleChange}
+                        theme={theme}
+                        readOnly={!canEdit}
+                        placeholder="e.g., 500"
+                    />
+                    <Select
+                        label="Default Items per Page in Lists"
+                        name="defaultItemsPerPage"
+                        value={settings.defaultItemsPerPage.toString()}
+                        onChange={handleChange}
+                        options={ITEMS_PER_PAGE_OPTIONS.map(num => ({ value: num.toString(), label: num.toString() }))}
+                        theme={theme}
+                        readOnly={!canEdit}
+                    />
+                    <Checkbox
+                        label="Auto-approve minor capability changes"
+                        name="autoApproveMinorChanges"
+                        checked={settings.autoApproveMinorChanges}
+                        onChange={handleChange}
+                        theme={theme}
+                        // Note: A real banking app might have more granular approval workflows
+                    />
+                    <Input
+                        label="Payment Gateway Timeout (ms)"
+                        name="paymentGatewayTimeout"
+                        type="number"
+                        value={settings.paymentGatewayTimeout}
+                        onChange={handleChange}
+                        theme={theme}
+                        readOnly={!canEdit}
+                    />
+                </div>
+                <div style={{ marginTop: '30px', textAlign: 'right' }}>
+                    <Button onClick={handleSaveSettings} disabled={isSaving || !canEdit} type="primary" icon={<MdSave />}>
+                        {isSaving ? 'Saving...' : 'Save Settings'}
+                    </Button>
+                </div>
+            </div>
+
+            <div style={styles.card(theme)}>
+                <h3 style={{ marginTop: 0, color: themeContext?.colors.text }}>Compliance & Security</h3>
+                <p style={{ color: themeContext?.colors.subtext }}>These settings require higher level approval and may impact regulatory compliance.</p>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
+                    <Button type="secondary" icon={<MdLock />}>Request Compliance Review</Button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export const UserManagementPage: React.FC = () => {
+  const themeContext = useContext(ThemeContext);
+  const authContext = useContext(AuthContext);
+  const notificationContext = useContext(NotificationContext);
+  const theme = themeContext?.theme || 'light';
+
+  const [users, setUsers] = useState<User[]>(MOCK_USERS);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formValues, setFormValues] = useState<Partial<User>>({});
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  const canManageUsers = authContext?.hasRole('ADMIN');
+
+  const handleEdit = (user: User) => {
+    if (!canManageUsers) {
+        notificationContext?.addNotification({ type: 'error', message: 'You do not have permission to edit users.' });
+        return;
+    }
+    setEditingUser(user);
+    setFormValues({ ...user, roles: [...user.roles] }); // Ensure roles is a new array for multi-select
+    setIsModalOpen(true);
+  };
+
+  const handleCreate = () => {
+    if (!canManageUsers) {
+        notificationContext?.addNotification({ type: 'error', message: 'You do not have permission to create users.' });
+        return;
+    }
+    setEditingUser(null);
+    setFormValues({
+      id: generateId(),
+      name: '',
+      email: '',
+      roles: ['VIEWER'],
+      lastLogin: moment().toISOString(),
+      preferences: { theme: 'light', language: 'en', notificationsEnabled: true },
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    if (name === 'roles') {
+        const selectElement = e.target as HTMLSelectElement;
+        const selectedRoles = Array.from(selectElement.options).filter(option => option.selected).map(option => option.value as UserRole);
+        setFormValues(prev => ({ ...prev, roles: selectedRoles }));
+    } else {
+        setFormValues(prev => ({ ...prev, [name]: value }));
+    }
+  }, []);
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormErrors({});
+    if (!formValues.name) setFormErrors(prev => ({ ...prev, name: 'Name is required.' }));
+    if (!formValues.email) setFormErrors(prev => ({ ...prev, email: 'Email is required.' }));
+    if (!formValues.roles || formValues.roles.length === 0) setFormErrors(prev => ({ ...prev, roles: 'At least one role is required.' }));
+
+    if (Object.keys(formErrors).length > 0) {
+        notificationContext?.addNotification({ type: 'error', message: 'Please correct the form errors.' });
+        return;
+    }
+
+    try {
+        await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
+        if (editingUser) {
+            setUsers(prev => prev.map(u => u.id === editingUser.id ? { ...u, ...formValues as User } : u));
+            notificationContext?.addNotification({ type: 'success', message: `User ${formValues.name} updated.` });
+            mockAuditService.logEvent({
+                id: uuidv4(),
+                timestamp: moment().toISOString(),
+                actor: authContext?.user?.name || 'Unknown',
+                action: 'UPDATE_USER',
+                entityId: editingUser.id,
+                entityType: 'User',
+                details: { old: editingUser, new: formValues },
+            });
+        } else {
+            const newUser: User = { ...formValues as User, id: generateId(), lastLogin: moment().toISOString(), preferences: { theme: 'light', language: 'en', notificationsEnabled: true } };
+            setUsers(prev => [...prev, newUser]);
+            notificationContext?.addNotification({ type: 'success', message: `User ${formValues.name} created.` });
+            mockAuditService.logEvent({
+                id: uuidv4(),
+                timestamp: moment().toISOString(),
+                actor: authContext?.user?.name || 'Unknown',
+                action: 'CREATE_USER',
+                entityId: newUser.id,
+                entityType: 'User',
+                details: { new: newUser },
+            });
+        }
+        setIsModalOpen(false);
+        setEditingUser(null);
+        setFormValues({});
+    } catch (e: any) {
+        notificationContext?.addNotification({ type: 'error', message: `Failed to save user: ${e.message}` });
+    }
+  }, [formValues, editingUser, notificationContext, authContext, formErrors]);
+
+  const handleDelete = useCallback(async (id: string) => {
+    if (!canManageUsers) {
+        notificationContext?.addNotification({ type: 'error', message: 'You do not have permission to delete users.' });
+        return;
+    }
+    if (!window.confirm('Are you sure you want to delete this user?')) return;
+    try {
+        await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
+        setUsers(prev => prev.filter(u => u.id !== id));
+        notificationContext?.addNotification({ type: 'success', message: 'User deleted.' });
+        mockAuditService.logEvent({
+            id: uuidv4(),
+            timestamp: moment().toISOString(),
+            actor: authContext?.user?.name || 'Unknown',
+            action: 'DELETE_USER',
+            entityId: id,
+            entityType: 'User',
+            details: { userId: id },
+        });
+    } catch (e: any) {
+        notificationContext?.addNotification({ type: 'error', message: `Failed to delete user: ${e.message}` });
+    }
+  }, [notificationContext, authContext, canManageUsers]);
+
+  const allRoles: UserRole[] = useMemo(() => ['ADMIN', 'MANAGER', 'VIEWER', 'APPROVER', 'EDITOR'], []);
+
+  return (
+    <div style={{ color: themeContext?.colors.text }}>
+      <h2 style={{ color: themeContext?.colors.text }}>User Management</h2>
+      <p style={{ color: themeContext?.colors.subtext }}>Manage user accounts and their assigned roles within the application.</p>
+
+      <div style={{ marginBottom: '20px', textAlign: 'right' }}>
+        <Button onClick={handleCreate} type="primary" icon={<MdAdd />} disabled={!canManageUsers}>
+          Add New User
+        </Button>
+      </div>
+
+      <div style={styles.card(theme)}>
+        <table style={styles.table(theme)}>
+          <thead>
+            <tr>
+              <th style={styles.th(theme)}>Name</th>
+              <th style={styles.th(theme)}>Email</th>
+              <th style={styles.th(theme)}>Roles</th>
+              <th style={styles.th(theme)}>Last Login</th>
+              <th style={styles.th(theme)}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((user) => (
+              <tr key={user.id}>
+                <td style={styles.td(theme)}>{user.name}</td>
+                <td style={styles.td(theme)}>{user.email}</td>
+                <td style={styles.td(theme)}>
+                  {user.roles.map((role, i) => (
+                    <span key={i} style={{ ...styles.tag('#6a1b9a'), marginRight: '5px', marginBottom: '3px' }}>
+                      {capitalize(role)}
+                    </span>
+                  ))}
+                </td>
+                <td style={styles.td(theme)}>{formatDateTime(user.lastLogin)}</td>
+                <td style={styles.td(theme)}>
+                  <div style={{ display: 'flex', gap: '5px' }}>
+                    <Button onClick={() => handleEdit(user)} type="primary" size="small" icon={<MdEdit />} disabled={!canManageUsers}>Edit</Button>
+                    <Button onClick={() => handleDelete(user.id)} type="danger" size="small" icon={<MdDelete />} disabled={!canManageUsers || user.id === authContext?.user?.id}>Delete</Button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <Modal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setFormErrors({}); }} title={editingUser ? 'Edit User' : 'Create User'}>
+        <form onSubmit={handleSubmit}>
+          <Input
+            label="Name"
+            name="name"
+            value={formValues.name || ''}
+            onChange={handleChange}
+            error={formErrors.name}
+            theme={theme}
+          />
+          <Input
+            label="Email"
+            name="email"
+            type="email"
+            value={formValues.email || ''}
+            onChange={handleChange}
+            error={formErrors.email}
+            theme={theme}
+          />
+          <Select
+            label="Roles (Multi-select)"
+            name="roles"
+            value={Array.isArray(formValues.roles) ? formValues.roles : []}
+            onChange={handleChange}
+            error={formErrors.roles}
+            options={allRoles.map(role => ({ value: role, label: capitalize(role) }))}
+            theme={theme}
+            multiple={true}
+          />
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+            <Button onClick={() => { setIsModalOpen(false); setFormErrors({}); }} type="secondary">Cancel</Button>
+            <Button type="primary">Save User</Button>
+          </div>
+        </form>
+      </Modal>
+    </div>
+  );
+};
+
+
+export const NotificationPage: React.FC = () => {
+    const notificationContext = useContext(NotificationContext);
+    const themeContext = useContext(ThemeContext);
+    const theme = themeContext?.theme || 'light';
+
+    const notifications = notificationContext?.notifications || [];
+
+    const handleMarkAsRead = useCallback((id: string) => {
+        // In a real app, update backend state
+        console.log(`Notification ${id} marked as read.`);
+        notificationContext?.removeNotification(id); // For mock, just remove it
+    }, [notificationContext]);
+
+    const handleClearAll = useCallback(() => {
+        // In a real app, clear all from backend
+        notifications.forEach(n => notificationContext?.removeNotification(n.id));
+    }, [notifications, notificationContext]);
+
+    return (
+        <div style={{ color: themeContext?.colors.text }}>
+            <h2 style={{ color: themeContext?.colors.text }}>Notifications</h2>
+            <p style={{ color: themeContext?.colors.subtext }}>Your recent system alerts and updates.</p>
+
+            <div style={{ marginBottom: '20px', textAlign: 'right' }}>
+                <Button onClick={handleClearAll} type="secondary" icon={<MdClear />} disabled={notifications.length === 0}>
+                    Clear All Notifications
+                </Button>
+            </div>
+
+            <div style={styles.card(theme)}>
+                {notifications.length === 0 ? (
+                    <p style={{ textAlign: 'center', color: themeContext?.colors.subtext }}>You have no new notifications.</p>
+                ) : (
+                    <ul style={{ listStyle: 'none', padding: 0 }}>
+                        {notifications.map((notification) => (
+                            <li key={notification.id} style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                borderBottom: `1px solid ${theme === 'light' ? '#eee' : '#444'}`,
+                                padding: '10px 0',
+                                '&:last-child': { borderBottom: 'none' },
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <span style={styles.badge(notification.type)}>{capitalize(notification.type)}</span>
+                                    <span style={{ color: themeContext?.colors.text }}>{notification.message}</span>
+                                    <span style={{ fontSize: '0.8em', color: themeContext?.colors.subtext }}>{formatDateTime(notification.timestamp)}</span>
+                                </div>
+                                <Button onClick={() => handleMarkAsRead(notification.id)} type="text" size="small">Mark as Read</Button>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
+        </div>
+    );
+};
+
+
+export const AuditTrailPage: React.FC = () => {
+    const themeContext = useContext(ThemeContext);
+    const authContext = useContext(AuthContext);
+    const theme = themeContext?.theme || 'light';
+
+    const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [filters, setFilters] = useState<{ actor?: string; action?: string; entityType?: string; entityId?: string }>({});
+
+    useEffect(() => {
+        setLoading(true);
+        mockAuditService.getEvents().then(events => {
+            let filteredEvents = events;
+            if (filters.actor) filteredEvents = filteredEvents.filter(e => e.actor.toLowerCase().includes(filters.actor!.toLowerCase()));
+            if (filters.action) filteredEvents = filteredEvents.filter(e => e.action === filters.action);
+            if (filters.entityType) filteredEvents = filteredEvents.filter(e => e.entityType === filters.entityType);
+            if (filters.entityId) filteredEvents = filteredEvents.filter(e => e.entityId.toLowerCase().includes(filters.entityId!.toLowerCase()));
+            setAuditEvents(filteredEvents);
+            setLoading(false);
+        });
+    }, [filters]);
+
+    const handleFilterChange = useCallback((name: string, value: string) => {
+        setFilters(prev => ({ ...prev, [name]: value || undefined }));
+    }, []);
+
+    const allActions = useMemo(() => Array.from(new Set(mockAuditService.events.map(e => e.action))), [mockAuditService.events.length]);
+    const allEntityTypes = useMemo(() => Array.from(new Set(mockAuditService.events.map(e => e.entityType))), [mockAuditService.events.length]);
+
+
+    if (!authContext?.hasRole('ADMIN') && !authContext?.hasRole('MANAGER')) {
+        return <div style={{ color: themeContext?.colors.text }}>You do not have permission to view the audit trail.</div>;
+    }
+
+    return (
+        <div style={{ color: themeContext?.colors.text }}>
+            <h2 style={{ color: themeContext?.colors.text }}>Audit Trail</h2>
+            <p style={{ color: themeContext?.colors.subtext }}>Review all system activities and changes for compliance and security monitoring.</p>
+
+            <div style={{ ...styles.card(theme), marginBottom: '20px' }}>
+                <h3 style={{ marginTop: 0, color: themeContext?.colors.text }}>Filter Audit Logs</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
+                    <Input
+                        label="Actor Name"
+                        name="actor"
+                        value={filters.actor || ''}
+                        onChange={(e) => handleFilterChange(e.target.name, e.target.value)}
+                        placeholder="e.g., Alice Admin"
+                        theme={theme}
+                    />
+                    <Select
+                        label="Action Type"
+                        name="action"
+                        value={filters.action || ''}
+                        onChange={(e) => handleFilterChange(e.target.name, e.target.value)}
+                        options={allActions.map(action => ({ value: action, label: capitalize(action.replace(/_/g, ' ')) }))}
+                        theme={theme}
+                    />
+                    <Select
+                        label="Entity Type"
+                        name="entityType"
+                        value={filters.entityType || ''}
+                        onChange={(e) => handleFilterChange(e.target.name, e.target.value)}
+                        options={allEntityTypes.map(type => ({ value: type, label: capitalize(type) }))}
+                        theme={theme}
+                    />
+                    <Input
+                        label="Entity ID"
+                        name="entityId"
+                        value={filters.entityId || ''}
+                        onChange={(e) => handleFilterChange(e.target.name, e.target.value)}
+                        placeholder="e.g., acc-cap-1234abcd"
+                        theme={theme}
+                    />
+                </div>
+            </div>
+
+            <div style={styles.card(theme)}>
+                <table style={styles.table(theme)}>
+                    <thead>
+                        <tr>
+                            <th style={styles.th(theme)}>Timestamp</th>
+                            <th style={styles.th(theme)}>Actor</th>
+                            <th style={styles.th(theme)}>Action</th>
+                            <th style={styles.th(theme)}>Entity Type</th>
+                            <th style={styles.th(theme)}>Entity ID</th>
+                            <th style={styles.th(theme)}>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {loading ? (
+                            Array.from({ length: 10 }).map((_, i) => (
+                                <tr key={i}>
+                                    <td style={styles.td(theme)}><SkeletonLoader theme={theme} width="150px" /></td>
+                                    <td style={styles.td(theme)}><SkeletonLoader theme={theme} width="100px" /></td>
+                                    <td style={styles.td(theme)}><SkeletonLoader theme={theme} width="120px" /></td>
+                                    <td style={styles.td(theme)}><SkeletonLoader theme={theme} width="80px" /></td>
+                                    <td style={styles.td(theme)}><SkeletonLoader theme={theme} width="180px" /></td>
+                                    <td style={styles.td(theme)}><SkeletonLoader theme={theme} width="200px" /></td>
+                                </tr>
+                            ))
+                        ) : auditEvents.length === 0 ? (
+                            <tr>
+                                <td colSpan={6} style={{ ...styles.td(theme), textAlign: 'center' }}>No audit events found.</td>
+                            </tr>
+                        ) : (
+                            auditEvents.map((event) => (
+                                <tr key={event.id}>
+                                    <td style={styles.td(theme)}>{formatDateTime(event.timestamp)}</td>
+                                    <td style={styles.td(theme)}>{event.actor}</td>
+                                    <td style={styles.td(theme)}>{capitalize(event.action.replace(/_/g, ' '))}</td>
+                                    <td style={styles.td(theme)}>{event.entityType}</td>
+                                    <td style={styles.td(theme)}>{event.entityId}</td>
+                                    <td style={styles.td(theme)}>
+                                        <details style={{ cursor: 'pointer', color: theme === 'light' ? '#3f51b5' : '#9fa8da' }}>
+                                            <summary>View Details</summary>
+                                            <pre style={{
+                                                backgroundColor: theme === 'light' ? '#f5f5f5' : '#333',
+                                                padding: '10px',
+                                                borderRadius: '4px',
+                                                marginTop: '5px',
+                                                fontSize: '0.8em',
+                                                overflowX: 'auto',
+                                                color: theme === 'light' ? '#333' : '#eee',
+                                            }}>
+                                                {JSON.stringify(event.details, null, 2)}
+                                            </pre>
+                                        </details>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+};
+
+
+// --- 11. Root Application Component ---
+
+export const App: React.FC = () => {
+  return (
+    <ApolloProvider client={apolloClient}>
+      <AuthProvider>
+        <ThemeProvider>
+            <NotificationProvider>
+                <AppConfigProvider>
+                    <Authenticator>
+                        <Layout />
+                    </Authenticator>
+                </AppConfigProvider>
+            </NotificationProvider>
+        </ThemeProvider>
+      </AuthProvider>
+    </ApolloProvider>
+  );
+};
+
+// --- 12. ReactDOM Render ---
+const rootElement = document.getElementById('root');
+if (rootElement) {
+  const root = ReactDOM.createRoot(rootElement);
+  root.render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
+} else {
+  console.error('Root element #root not found. Please ensure it exists in your index.html.');
+  // Dynamically create a root element for demonstration purposes if running standalone
+  const div = document.createElement('div');
+  div.id = 'root';
+  document.body.appendChild(div);
+  const root = ReactDOM.createRoot(div);
+  root.render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
+}
+
+// Ensure the necessary global styles or root div are present in a real index.html:
+/*
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Citibank Enterprise Capabilities Manager</title>
+</head>
+<body>
+    <div id="root"></div>
+</body>
+</html>
+*/
+```

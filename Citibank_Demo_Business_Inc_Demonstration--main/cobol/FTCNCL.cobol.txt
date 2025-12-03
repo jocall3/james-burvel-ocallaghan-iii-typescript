@@ -1,0 +1,552 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. FTCNCL.
+       AUTHOR. CORE-SYSTEMS-UNIT.
+       DATE-WRITTEN. 1993-02-12.
+      ******************************************************************
+      * CORE SYSTEM - FUNDS TRANSFER CANCELLATION MODULE
+      *
+      * This module is responsible for processing requests to cancel
+      * pending funds transfers. It incorporates advanced verification
+      * protocols and integrates with the Guardian AI for anomaly
+      * detection and risk assessment, ensuring the integrity and
+      * security of financial operations within the mainframe.
+      *
+      * Key Features:
+      * - Operator Authorization Check: Verifies operator credentials
+      *                                and security levels.
+      * - Real-time Transaction Age and Service Level Agreement (SLA)
+      *   Check: Ensures cancellations are attempted within defined
+      *   operational windows.
+      * - AI-Assisted Pre-cancellation Risk Analysis (Guardian AI):
+      *   An intelligent agent assesses potential risks associated with
+      *   the transfer or the cancellation request itself.
+      * - Multi-Factor Operator Verification: Requires operator PIN and
+      *   simulated biometric hash for high-assurance operations.
+      * - Comprehensive Audit Trail Logging: Records all cancellation
+      *   attempts, successes, and failures for compliance and review.
+      * - Automated User Notification: Sends confirmation upon
+      *   successful cancellation to relevant parties.
+      * - AI-Assisted Post-cancellation Review: Guardian AI performs
+      *   a final check and updates its learning models based on
+      *   cancellation outcomes.
+      ******************************************************************
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT FUNDS-TRANSFER-FILE ASSIGN TO FTMAST
+               ORGANIZATION IS INDEXED
+               ACCESS MODE IS DYNAMIC
+               RECORD KEY IS FT-TRANSACTION-ID
+               FILE STATUS IS WS-FTMAST-STATUS.
+           SELECT AUDIT-LOG-FILE      ASSIGN TO FTALOG
+               ORGANIZATION IS SEQUENTIAL
+               ACCESS MODE IS SEQUENTIAL
+               FILE STATUS IS WS-AUDIT-STATUS.
+           SELECT NOTIFICATION-FILE   ASSIGN TO FTNOTF
+               ORGANIZATION IS SEQUENTIAL
+               ACCESS MODE IS SEQUENTIAL
+               FILE STATUS IS WS-NOTIFY-STATUS.
+
+       DATA DIVISION.
+       FILE SECTION.
+       FD FUNDS-TRANSFER-FILE.
+       01 FT-FILE-RECORD         PIC X(500). *> Expanded for richer data.
+
+       FD AUDIT-LOG-FILE.
+       01 AUDIT-RECORD           PIC X(500).
+
+       FD NOTIFICATION-FILE.
+       01 NOTIFICATION-RECORD    PIC X(500).
+
+       WORKING-STORAGE SECTION.
+       01 WS-PROGRAM-SWITCHES.
+          05 WS-FTMAST-STATUS       PIC X(02).
+             88 FTMAST-OK            VALUE '00'.
+             88 FTMAST-NOT-FOUND     VALUE '23'.
+          05 WS-AUDIT-STATUS        PIC X(02).
+             88 AUDIT-OK             VALUE '00'.
+          05 WS-NOTIFY-STATUS       PIC X(02).
+             88 NOTIFY-OK            VALUE '00'.
+          05 WS-CONFIRMATION        PIC X(01).
+          05 WS-OPERATOR-AUTHORIZED PIC X(01) VALUE 'N'.
+             88 OPERATOR-IS-AUTHORIZED VALUE 'Y'.
+          05 WS-VERIFICATION-PASSED PIC X(01) VALUE 'N'.
+             88 VERIFICATION-SUCCESS VALUE 'Y'.
+          05 WS-SLA-CHECK-PASSED    PIC X(01) VALUE 'N'.
+             88 SLA-OK               VALUE 'Y'.
+          05 WS-AI-RISK-LEVEL       PIC X(01) VALUE 'L'.  *> L=Low, M=Medium, H=High
+             88 AI-RISK-LOW          VALUE 'L'.
+             88 AI-RISK-MEDIUM       VALUE 'M'.
+             88 AI-RISK-HIGH         VALUE 'H'.
+
+       01 WS-INPUT-FIELDS.
+          05 WS-CANCEL-TX-ID        PIC X(16).
+          05 WS-OPERATOR-ID         PIC X(10).
+          05 WS-OPERATOR-PIN        PIC 9(06).
+          05 WS-BIOMETRIC-HASH      PIC X(32). *> Simulate a hash from a biometric scan
+          05 WS-CANCELLATION-REASON PIC X(50).
+             88 REASON-FRAUD         VALUE 'FRAUDULENT TRANSACTION DETECTED'.
+             88 REASON-USER-REQUEST  VALUE 'USER REQUESTED CANCELLATION'.
+             88 REASON-DATA-ERROR    VALUE 'DATA ENTRY ERROR BY SENDER'.
+             88 REASON-OTHER         VALUE 'OTHER REASON'.
+          05 WS-LOG-MESSAGE         PIC X(200).
+
+       01 WS-SYSTEM-DATETIME.
+          05 WS-CURRENT-DATE.
+             10 WS-CURRENT-YEAR    PIC 9(04).
+             10 WS-CURRENT-MONTH   PIC 9(02).
+             10 WS-CURRENT-DAY     PIC 9(02).
+          05 WS-CURRENT-TIME.
+             10 WS-CURRENT-HOUR    PIC 9(02).
+             10 WS-CURRENT-MINUTE  PIC 9(02).
+             10 WS-CURRENT-SECOND  PIC 9(02).
+             10 WS-CURRENT-HUNDRED PIC 9(02).
+
+       01 WS-OPERATOR-AUTH-DATA.
+          05 WS-OP-ID-VALIDATOR     PIC X(10) VALUE 'SECUREOPR1'.
+          05 WS-OP-PIN-VALIDATOR    PIC 9(06) VALUE 123456.
+          05 WS-OP-BIOMETRIC-VAL    PIC X(32) VALUE 'SIMULATED-BIOMETRIC-HASH-OK-123'.
+          05 WS-OP-SEC-LEVEL        PIC 9(01) VALUE 5. *> 1=Low, 5=High
+          05 WS-REQUIRED-SEC-LEVEL  PIC 9(01) VALUE 3.
+
+       01 WS-AI-INTELLIGENCE-DATA.
+          05 WS-AI-PRE-SCAN-SCORE   PIC 9(03) VALUE 0.
+          05 WS-AI-POST-SCAN-SCORE  PIC 9(03) VALUE 0.
+          05 WS-AI-RECOMMENDATION   PIC X(02) VALUE '  '.
+             88 AI-RECOMMEND-PROCEED VALUE 'PR'.
+             88 AI-RECOMMEND-REVIEW  VALUE 'RV'.
+             88 AI-RECOMMEND-BLOCK   VALUE 'BL'.
+          05 WS-AI-CONFIDENCE-LEVEL PIC 9(02) VALUE 0.
+          05 WS-AI-ANOMALY-FLAG     PIC X(01) VALUE 'N'.
+             88 AI-ANOMALY-DETECTED  VALUE 'Y'.
+          05 WS-AI-MODEL-VERSION    PIC X(15) VALUE 'GUARDIAN-V2.1'.
+          05 WS-AI-TRIGGER-THRESHOLD PIC 9(03) VALUE 75. *> Score above which AI flags as high risk.
+
+       01 WS-CALC-FIELDS.
+          05 WS-DATE-DIFF           PIC 9(03).
+
+       COPY CPFT01 REPLACING ==FUNDS-TRANSFER-RECORD== BY
+                             ==WS-FUNDS-TRANSFER==.
+      *> Assumed structure for CPFT01:
+      *> 01 WS-FUNDS-TRANSFER.
+      *>    05 FT-TRANSACTION-ID      PIC X(16).
+      *>    05 FT-SENDER-ACCOUNT      PIC X(16).
+      *>    05 FT-RECEIVER-ACCOUNT    PIC X(16).
+      *>    05 FT-TRANSFER-AMOUNT     PIC S9(13)V99 COMP-3.
+      *>    05 FT-CURRENCY-CODE       PIC X(03).
+      *>    05 FT-INITIATION-DATE     PIC 9(08).
+      *>    05 FT-TRANSFER-STATUS     PIC X(10).
+      *>       88 FT-PENDING          VALUE 'PENDING'.
+      *>       88 FT-COMPLETED        VALUE 'COMPLETED'.
+      *>       88 FT-CANCELLED        VALUE 'CANCELLED'.
+      *>       88 FT-FAILED           VALUE 'FAILED'.
+      *>    05 FT-STATUS-REASON       PIC X(50).
+      *>    05 FT-SENDER-EMAIL        PIC X(50).
+      *>    05 FT-SENDER-PHONE        PIC X(20).
+      *>    05 FT-LAST-UPDATE-BY      PIC X(10).
+      *>    05 FT-LAST-UPDATE-DATE    PIC 9(08).
+      *>    05 FT-LAST-UPDATE-TIME    PIC 9(06).
+      *>    05 FILLER                 PIC X(remaining_length).
+
+       COPY CPAUDIT01.
+      *> Assumed structure for CPAUDIT01:
+      *> 01 AUDIT-LOG-RECORD.
+      *>    05 AL-DATETIME            PIC X(14). *> YYYYMMDDHHMMSS
+      *>    05 AL-OPERATOR-ID         PIC X(10).
+      *>    05 AL-TRANSACTION-ID      PIC X(16).
+      *>    05 AL-ACTION-DESCRIPTION  PIC X(200).
+      *>    05 FILLER                 PIC X(remaining_length).
+
+       COPY CPNOTIFY01.
+      *> Assumed structure for CPNOTIFY01:
+      *> 01 NOTIFICATION-DATA.
+      *>    05 NOTIF-CHANNEL          PIC X(10). *> E.g., 'EMAIL', 'SMS'
+      *>    05 NOTIF-RECIPIENT-EMAIL  PIC X(50).
+      *>    05 NOTIF-RECIPIENT-PHONE  PIC X(20).
+      *>    05 NOTIF-SUBJECT          PIC X(100).
+      *>    05 NOTIF-MESSAGE          PIC X(200).
+      *>    05 FILLER                 PIC X(remaining_length).
+
+       PROCEDURE DIVISION.
+       0000-MAIN-LOGIC.
+           PERFORM 1000-INITIALIZATION.
+           PERFORM 2000-PROCESS-CANCELLATION.
+           PERFORM 9999-TERMINATION.
+           STOP RUN.
+
+       1000-INITIALIZATION.
+           DISPLAY " ".
+           DISPLAY "INITIALIZING FTCNCL - FUNDS TRANSFER CANCELLATION MODULE.".
+           DISPLAY "CORE SYSTEM - Guardian AI integrated for enhanced security.".
+           OPEN I-O FUNDS-TRANSFER-FILE.
+           IF NOT FTMAST-OK
+               DISPLAY "ERROR: FAILED TO OPEN FUNDS TRANSFER FILE. STATUS: " WS-FTMAST-STATUS
+               MOVE "FTMAST FILE OPEN FAILED" TO WS-LOG-MESSAGE
+               PERFORM 2900-LOG-ACTION
+               PERFORM 9999-TERMINATION
+           END-IF.
+           OPEN OUTPUT AUDIT-LOG-FILE.
+           IF NOT AUDIT-OK
+               DISPLAY "ERROR: FAILED TO OPEN AUDIT LOG FILE. STATUS: " WS-AUDIT-STATUS
+               MOVE "AUDIT FILE OPEN FAILED" TO WS-LOG-MESSAGE
+               PERFORM 2900-LOG-ACTION
+               PERFORM 9999-TERMINATION
+           END-IF.
+           OPEN OUTPUT NOTIFICATION-FILE.
+           IF NOT NOTIFY-OK
+               DISPLAY "ERROR: FAILED TO OPEN NOTIFICATION FILE. STATUS: " WS-NOTIFY-STATUS
+               MOVE "NOTIFICATION FILE OPEN FAILED" TO WS-LOG-MESSAGE
+               PERFORM 2900-LOG-ACTION
+               PERFORM 9999-TERMINATION
+           END-IF.
+           ACCEPT WS-CURRENT-DATE FROM DATE YYYYMMDD.
+           ACCEPT WS-CURRENT-TIME FROM TIME.
+           DISPLAY "MODULE INITIALIZED AT " WS-CURRENT-YEAR "/"
+                                      WS-CURRENT-MONTH "/"
+                                      WS-CURRENT-DAY " "
+                                      WS-CURRENT-HOUR ":"
+                                      WS-CURRENT-MINUTE ":"
+                                      WS-CURRENT-SECOND.
+           MOVE "FTCNCL MODULE INITIALIZED" TO WS-LOG-MESSAGE.
+           PERFORM 2900-LOG-ACTION.
+
+       2000-PROCESS-CANCELLATION.
+           DISPLAY " ".
+           DISPLAY "--- FUNDS TRANSFER CANCELLATION REQUEST ---".
+           DISPLAY "ENTER OPERATOR ID: ".
+           ACCEPT WS-OPERATOR-ID.
+           PERFORM 2010-AUTHORIZE-OPERATOR.
+           IF NOT OPERATOR-IS-AUTHORIZED
+               DISPLAY "ERROR: OPERATOR " WS-OPERATOR-ID " NOT AUTHORIZED FOR THIS OPERATION."
+               MOVE "UNAUTHORIZED ACCESS ATTEMPT BY " WS-OPERATOR-ID TO WS-LOG-MESSAGE
+               PERFORM 2900-LOG-ACTION
+               EXIT PARAGRAPH
+           END-IF.
+
+           DISPLAY "ENTER TRANSACTION ID TO CANCEL: ".
+           ACCEPT WS-CANCEL-TX-ID.
+
+           MOVE WS-CANCEL-TX-ID TO FT-TRANSACTION-ID.
+           READ FUNDS-TRANSFER-FILE INTO WS-FUNDS-TRANSFER
+               INVALID KEY MOVE '23' TO WS-FTMAST-STATUS.
+
+           IF FTMAST-NOT-FOUND
+              DISPLAY "ERROR: TRANSACTION ID " WS-CANCEL-TX-ID " NOT FOUND."
+              STRING "TX ID NOT FOUND: " WS-CANCEL-TX-ID DELIMITED BY SIZE
+                     INTO WS-LOG-MESSAGE
+              PERFORM 2900-LOG-ACTION
+           ELSE
+              PERFORM 2100-VALIDATE-AND-CANCEL
+           END-IF.
+
+       2010-AUTHORIZE-OPERATOR.
+           *> In a production system, this would query a central security database
+           *> or an LDAP service. Here, we simulate a simple check.
+           IF WS-OPERATOR-ID = WS-OP-ID-VALIDATOR AND
+              WS-OP-SEC-LEVEL >= WS-REQUIRED-SEC-LEVEL
+              SET OPERATOR-IS-AUTHORIZED TO TRUE
+              DISPLAY "Operator " WS-OPERATOR-ID " authorized. Security Level: " WS-OP-SEC-LEVEL
+              STRING "Operator " WS-OPERATOR-ID " authorized. Level: " WS-OP-SEC-LEVEL DELIMITED BY SIZE
+                     INTO WS-LOG-MESSAGE
+              PERFORM 2900-LOG-ACTION
+           ELSE
+              SET OPERATOR-IS-AUTHORIZED TO FALSE
+              DISPLAY "Authorization failed for operator " WS-OPERATOR-ID
+              STRING "Authorization failed for " WS-OPERATOR-ID DELIMITED BY SIZE
+                     INTO WS-LOG-MESSAGE
+              PERFORM 2900-LOG-ACTION
+           END-IF.
+
+       2100-VALIDATE-AND-CANCEL.
+           PERFORM 2110-DISPLAY-TRANSFER-DETAILS.
+
+           IF NOT FT-PENDING
+              DISPLAY "ERROR: TRANSFER " FT-TRANSACTION-ID " CANNOT BE CANCELLED."
+              DISPLAY "CURRENT STATUS IS '" FT-TRANSFER-STATUS "'. Only 'PENDING' transfers can be cancelled."
+              STRING "CANCELLATION FAILED - NOT PENDING: " FT-TRANSACTION-ID DELIMITED BY SIZE
+                     INTO WS-LOG-MESSAGE
+              PERFORM 2900-LOG-ACTION
+              EXIT PARAGRAPH
+           END-IF.
+
+           PERFORM 2120-CHECK-SLA-AND-AI-PRESCAN.
+           IF NOT SLA-OK OR AI-RECOMMEND-BLOCK
+              DISPLAY "CANCELLATION BLOCKED DUE TO SLA VIOLATION OR HIGH AI RISK ASSESSMENT."
+              DISPLAY "SLA STATUS: " WS-SLA-CHECK-PASSED ", AI RECOMMENDATION: " WS-AI-RECOMMENDATION
+              STRING "CANCELLATION BLOCKED - SLA: " WS-SLA-CHECK-PASSED
+                     " AI-REC: " WS-AI-RECOMMENDATION " TX: " FT-TRANSACTION-ID DELIMITED BY SIZE
+                     INTO WS-LOG-MESSAGE
+              PERFORM 2900-LOG-ACTION
+              EXIT PARAGRAPH
+           END-IF.
+
+           PERFORM 2130-CONDUCT-ADVANCED-VERIFICATION.
+           IF NOT VERIFICATION-SUCCESS
+              DISPLAY "ERROR: ADVANCED OPERATOR VERIFICATION FAILED. CANCELLATION ABORTED."
+              STRING "VERIFICATION FAILED: " WS-OPERATOR-ID " TX: " FT-TRANSACTION-ID DELIMITED BY SIZE
+                     INTO WS-LOG-MESSAGE
+              PERFORM 2900-LOG-ACTION
+              EXIT PARAGRAPH
+           END-IF.
+
+           DISPLAY "TRANSFER IS ELIGIBLE FOR CANCELLATION.".
+           DISPLAY "ENTER REASON FOR CANCELLATION (1=Fraud, 2=User Request, 3=Data Error, 4=Other): ".
+           ACCEPT WS-CONFIRMATION. *> Reusing WS-CONFIRMATION for temporary input
+           EVALUATE WS-CONFIRMATION
+               WHEN '1' MOVE 'FRAUDULENT TRANSACTION DETECTED' TO WS-CANCELLATION-REASON
+                         SET REASON-FRAUD TO TRUE
+               WHEN '2' MOVE 'USER REQUESTED CANCELLATION' TO WS-CANCELLATION-REASON
+                         SET REASON-USER-REQUEST TO TRUE
+               WHEN '3' MOVE 'DATA ENTRY ERROR BY SENDER' TO WS-CANCELLATION-REASON
+                         SET REASON-DATA-ERROR TO TRUE
+               WHEN OTHER MOVE 'OTHER REASON SPECIFIED' TO WS-CANCELLATION-REASON
+                         SET REASON-OTHER TO TRUE
+           END-EVALUATE.
+           DISPLAY "Cancellation Reason: " WS-CANCELLATION-REASON.
+
+           DISPLAY "CONFIRM CANCELLATION OF THIS TRANSFER? (Y/N)".
+           ACCEPT WS-CONFIRMATION.
+           IF WS-CONFIRMATION = 'Y' OR 'y'
+              SET FT-CANCELLED TO TRUE
+              MOVE WS-CANCELLATION-REASON TO FT-STATUS-REASON
+              MOVE WS-OPERATOR-ID TO FT-LAST-UPDATE-BY
+              MOVE WS-CURRENT-DATE TO FT-LAST-UPDATE-DATE
+              MOVE WS-CURRENT-TIME(1:6) TO FT-LAST-UPDATE-TIME *> YYYYMMDD and HHMMSS
+              REWRITE FT-FILE-RECORD FROM WS-FUNDS-TRANSFER
+              IF FTMAST-OK
+                 DISPLAY "TRANSFER " FT-TRANSACTION-ID " CANCELLED SUCCESSFULLY."
+                 STRING "CANCELLATION SUCCESS: " FT-TRANSACTION-ID
+                        " REASON: " WS-CANCELLATION-REASON DELIMITED BY SIZE
+                        INTO WS-LOG-MESSAGE
+                 PERFORM 2900-LOG-ACTION
+                 PERFORM 2140-SEND-CANCELLATION-NOTIFICATION
+                 PERFORM 2150-AI-POST-SCAN-REVIEW
+              ELSE
+                 DISPLAY "ERROR: FAILED TO UPDATE RECORD FOR " FT-TRANSACTION-ID ". STATUS: " WS-FTMAST-STATUS
+                 STRING "CANCELLATION FAILED - REWRITE ERROR: " FT-TRANSACTION-ID
+                        " STATUS: " WS-FTMAST-STATUS DELIMITED BY SIZE
+                        INTO WS-LOG-MESSAGE
+                 PERFORM 2900-LOG-ACTION
+              END-IF
+           ELSE
+              DISPLAY "CANCELLATION ABORTED BY OPERATOR."
+              STRING "CANCELLATION ABORTED BY OPERATOR: " WS-OPERATOR-ID
+                     " TX: " FT-TRANSACTION-ID DELIMITED BY SIZE
+                     INTO WS-LOG-MESSAGE
+              PERFORM 2900-LOG-ACTION
+           END-IF.
+
+       2110-DISPLAY-TRANSFER-DETAILS.
+           DISPLAY "--------------------------------------------------".
+           DISPLAY "TRANSFER DETAILS FOR ID: " FT-TRANSACTION-ID.
+           DISPLAY "  STATUS: " FT-TRANSFER-STATUS.
+           DISPLAY "  AMOUNT: " FT-TRANSFER-AMOUNT.
+           DISPLAY "  CURRENCY: " FT-CURRENCY-CODE.
+           DISPLAY "  SENDER ACC: " FT-SENDER-ACCOUNT.
+           DISPLAY "  RECEIVER ACC: " FT-RECEIVER-ACCOUNT.
+           DISPLAY "  INITIATION DATE: " FT-INITIATION-DATE.
+           DISPLAY "  LAST UPDATE BY: " FT-LAST-UPDATE-BY.
+           DISPLAY "  LAST UPDATE DATE: " FT-LAST-UPDATE-DATE.
+           DISPLAY "  AI Pre-Scan Score: " WS-AI-PRE-SCAN-SCORE.
+           DISPLAY "  AI Recommendation: " WS-AI-RECOMMENDATION.
+           DISPLAY "--------------------------------------------------".
+
+       2120-CHECK-SLA-AND-AI-PRESCAN.
+           *> Simulate SLA check: Can only cancel within 24 hours (1 day) of initiation.
+           *> This is a simplified date difference calculation for demonstration purposes.
+           COMPUTE WS-DATE-DIFF = FUNCTION NUMVAL(WS-CURRENT-DATE) - FUNCTION NUMVAL(FT-INITIATION-DATE).
+           IF WS-DATE-DIFF <= 1  *> Assuming 1 day or less for immediate cancellation
+               SET SLA-OK TO TRUE
+               DISPLAY "SLA CHECK: Transfer is within cancellation window (approx. 24 hours)."
+           ELSE
+               SET SLA-OK TO FALSE
+               DISPLAY "SLA CHECK: Transfer is outside immediate cancellation window (more than 24 hours passed)."
+           END-IF.
+           STRING "SLA CHECK COMPLETE for TX: " FT-TRANSACTION-ID
+                  " Status: " WS-SLA-CHECK-PASSED DELIMITED BY SIZE
+                  INTO WS-LOG-MESSAGE.
+           PERFORM 2900-LOG-ACTION.
+
+           PERFORM 3000-AI-SUBSYSTEM-CALL. *> Invoke Guardian AI pre-scan
+           STRING "AI PRE-SCAN COMPLETE for TX: " FT-TRANSACTION-ID
+                  " Score: " WS-AI-PRE-SCAN-SCORE
+                  " Rec: " WS-AI-RECOMMENDATION DELIMITED BY SIZE
+                  INTO WS-LOG-MESSAGE.
+           PERFORM 2900-LOG-ACTION.
+
+           IF AI-ANOMALY-DETECTED AND WS-AI-PRE-SCAN-SCORE >= WS-AI-TRIGGER-THRESHOLD
+               SET AI-RISK-HIGH TO TRUE
+               SET AI-RECOMMEND-BLOCK TO TRUE
+               DISPLAY "GUARDIAN AI WARNING: High risk transfer, potential anomaly detected (Score: " WS-AI-PRE-SCAN-SCORE ")!"
+           ELSE IF WS-AI-PRE-SCAN-SCORE >= (WS-AI-TRIGGER-THRESHOLD - 20)
+               SET AI-RISK-MEDIUM TO TRUE
+               SET AI-RECOMMEND-REVIEW TO TRUE
+               DISPLAY "GUARDIAN AI ALERT: Medium risk transfer, recommend review (Score: " WS-AI-PRE-SCAN-SCORE ")!"
+           ELSE
+               SET AI-RISK-LOW TO TRUE
+               SET AI-RECOMMEND-PROCEED TO TRUE
+               DISPLAY "GUARDIAN AI: Low risk assessment, proceeding (Score: " WS-AI-PRE-SCAN-SCORE ")."
+           END-IF.
+
+       2130-CONDUCT-ADVANCED-VERIFICATION.
+           DISPLAY "--- ADVANCED OPERATOR VERIFICATION ---".
+           DISPLAY "ENTER OPERATOR PIN: ".
+           ACCEPT WS-OPERATOR-PIN.
+           DISPLAY "ENTER BIOMETRIC HASH (SIMULATED): ". *> In a real scenario, this would come from a secure device.
+           ACCEPT WS-BIOMETRIC-HASH.
+
+           IF WS-OPERATOR-PIN = WS-OP-PIN-VALIDATOR AND
+              WS-BIOMETRIC-HASH = WS-OP-BIOMETRIC-VAL
+              SET VERIFICATION-SUCCESS TO TRUE
+              DISPLAY "Advanced verification successful."
+              STRING "Advanced verification successful for " WS-OPERATOR-ID DELIMITED BY SIZE
+                     INTO WS-LOG-MESSAGE
+              PERFORM 2900-LOG-ACTION
+           ELSE
+              SET WS-VERIFICATION-PASSED TO FALSE
+              DISPLAY "Advanced verification failed. Incorrect PIN or Biometric Hash."
+              STRING "Advanced verification failed for " WS-OPERATOR-ID DELIMITED BY SIZE
+                     INTO WS-LOG-MESSAGE
+              PERFORM 2900-LOG-ACTION
+           END-IF.
+
+       2140-SEND-CANCELLATION-NOTIFICATION.
+           DISPLAY "Attempting to send notification to user...".
+           MOVE FT-SENDER-EMAIL TO NOTIF-RECIPIENT-EMAIL.
+           MOVE FT-SENDER-PHONE TO NOTIF-RECIPIENT-PHONE.
+           MOVE 'FUNDS TRANSFER CANCELLATION CONFIRMATION' TO NOTIF-SUBJECT.
+           STRING 'Your transfer with ID ' FT-TRANSACTION-ID
+                  ' for amount ' FT-TRANSFER-AMOUNT
+                  ' ' FT-CURRENCY-CODE
+                  ' has been successfully cancelled on '
+                  WS-CURRENT-YEAR '/' WS-CURRENT-MONTH '/' WS-CURRENT-DAY
+                  ' at ' WS-CURRENT-HOUR ':' WS-CURRENT-MINUTE
+                  ' due to: ' WS-CANCELLATION-REASON
+                  DELIMITED BY SIZE INTO NOTIF-MESSAGE.
+           MOVE 'EMAIL' TO NOTIF-CHANNEL.
+           PERFORM 3200-NOTIFICATION-SEND.
+           IF NOTIFY-OK
+               DISPLAY "Notification sent successfully.".
+               STRING "Notification sent for TX: " FT-TRANSACTION-ID DELIMITED BY SIZE
+                      INTO WS-LOG-MESSAGE
+               PERFORM 2900-LOG-ACTION
+           ELSE
+               DISPLAY "WARNING: Failed to send notification. Status: " WS-NOTIFY-STATUS.
+               STRING "WARNING: Notification FAILED for TX: " FT-TRANSACTION-ID
+                      " Status: " WS-NOTIFY-STATUS DELIMITED BY SIZE
+                      INTO WS-LOG-MESSAGE
+               PERFORM 2900-LOG-ACTION
+           END-IF.
+
+       2150-AI-POST-SCAN-REVIEW.
+           DISPLAY "Guardian AI performing post-cancellation review...".
+           *> Simulate AI learning or final audit based on cancellation reason and success
+           MOVE 0 TO WS-AI-POST-SCAN-SCORE.
+           IF REASON-FRAUD
+               ADD 10 TO WS-AI-POST-SCAN-SCORE *> Higher score for fraud related action
+               DISPLAY "Guardian AI noted cancellation due to fraud. Learning module updated."
+           ELSE IF REASON-USER-REQUEST
+               ADD 2 TO WS-AI-POST-SCAN-SCORE
+               DISPLAY "Guardian AI noted user-requested cancellation."
+           END-IF.
+
+           IF WS-AI-POST-SCAN-SCORE > 5
+               DISPLAY "Guardian AI flagged this cancellation for internal review (post-scan score: " WS-AI-POST-SCAN-SCORE ")."
+               STRING "AI Post-Scan Review: FLAGGED (Score: " WS-AI-POST-SCAN-SCORE ") TX: " FT-TRANSACTION-ID DELIMITED BY SIZE
+                      INTO WS-LOG-MESSAGE
+               PERFORM 2900-LOG-ACTION
+           ELSE
+               DISPLAY "Guardian AI post-scan review complete. No further action recommended."
+               STRING "AI Post-Scan Review: COMPLETE (Score: " WS-AI-POST-SCAN-SCORE ") TX: " FT-TRANSACTION-ID DELIMITED BY SIZE
+                      INTO WS-LOG-MESSAGE
+               PERFORM 2900-LOG-ACTION
+           END-IF.
+
+       2900-LOG-ACTION.
+           *> This paragraph handles writing to the audit log file.
+           PERFORM 3100-AUDIT-LOG-WRITE.
+
+       3000-AI-SUBSYSTEM-CALL.
+           *> This paragraph simulates a call to the "Guardian AI" subsystem.
+           *> In a real mainframe environment, this might be a CICS LINK, a call to a
+           *> separate batch job, or an external API call handled by middleware.
+           *> Here, we simulate its logic with conditional assignments and
+           *> provide a story-like narrative about the AI's function.
+           DISPLAY "Invoking Guardian AI " WS-AI-MODEL-VERSION " for risk assessment...".
+
+           MOVE ZERO TO WS-AI-PRE-SCAN-SCORE.
+           SET WS-AI-ANOMALY-FLAG TO FALSE.
+
+           *> Simulate AI logic based on transfer characteristics for anomaly detection
+           IF FT-TRANSFER-AMOUNT > 10000.00
+               ADD 30 TO WS-AI-PRE-SCAN-SCORE
+               DISPLAY "AI Note: Guardian AI flags high value transfer."
+           END-IF.
+           IF FT-CURRENCY-CODE NOT = 'USD' AND FT-CURRENCY-CODE NOT = 'EUR'
+               ADD 15 TO WS-AI-PRE-SCAN-SCORE
+               DISPLAY "AI Note: Guardian AI observes non-standard currency."
+           END-IF.
+           IF FT-RECEIVER-ACCOUNT(1:3) = '999' *> Simulate a high-risk receiver pattern
+               ADD 40 TO WS-AI-PRE-SCAN-SCORE
+               SET AI-ANOMALY-DETECTED TO TRUE
+               DISPLAY "AI WARNING: Guardian AI identified receiver account pattern as high-risk!"
+           END-IF.
+           IF FT-TRANSFER-STATUS = 'INITIATED' AND WS-DATE-DIFF < 0.01 *> Very recent, almost instantaneous cancel request
+               ADD 20 TO WS-AI-PRE-SCAN-SCORE
+               SET AI-ANOMALY-DETECTED TO TRUE
+               DISPLAY "AI WARNING: Guardian AI detects immediate cancellation request, potential anomaly."
+           END-IF.
+           IF FT-LAST-UPDATE-BY = WS-OPERATOR-ID AND FT-TRANSFER-STATUS = 'INITIATED'
+              ADD 5 TO WS-AI-PRE-SCAN-SCORE
+              DISPLAY "AI Note: Operator is initiating cancellation for own transfer."
+           END-IF.
+
+
+           *> Based on the simulated score, AI makes a recommendation
+           IF WS-AI-PRE-SCAN-SCORE >= WS-AI-TRIGGER-THRESHOLD
+               SET AI-ANOMALY-DETECTED TO TRUE
+               SET AI-RECOMMEND-BLOCK TO TRUE
+               MOVE 90 TO WS-AI-CONFIDENCE-LEVEL
+               DISPLAY "Guardian AI recommends BLOCK due to high risk."
+           ELSE IF WS-AI-PRE-SCAN-SCORE >= (WS-AI-TRIGGER-THRESHOLD - 20)
+               SET AI-RECOMMEND-REVIEW TO TRUE
+               MOVE 70 TO WS-AI-CONFIDENCE-LEVEL
+               DISPLAY "Guardian AI recommends REVIEW for operator discretion."
+           ELSE
+               SET AI-RECOMMEND-PROCEED TO TRUE
+               MOVE 95 TO WS-AI-CONFIDENCE-LEVEL
+               DISPLAY "Guardian AI recommends PROCEED, low risk detected."
+           END-IF.
+           DISPLAY "Guardian AI assessment complete. Score: " WS-AI-PRE-SCAN-SCORE
+                   ", Recommendation: " WS-AI-RECOMMENDATION
+                   ", Confidence: " WS-AI-CONFIDENCE-LEVEL "%. Anomaly: " WS-AI-ANOMALY-FLAG.
+
+       3100-AUDIT-LOG-WRITE.
+           *> This paragraph handles writing to the audit log file.
+           MOVE SPACES TO AUDIT-RECORD.
+           STRING WS-CURRENT-YEAR WS-CURRENT-MONTH WS-CURRENT-DAY
+                  WS-CURRENT-HOUR WS-CURRENT-MINUTE WS-CURRENT-SECOND
+                  DELIMITED BY SIZE INTO AL-DATETIME.
+           MOVE WS-OPERATOR-ID TO AL-OPERATOR-ID.
+           MOVE FT-TRANSACTION-ID TO AL-TRANSACTION-ID.
+           MOVE WS-LOG-MESSAGE TO AL-ACTION-DESCRIPTION.
+           WRITE AUDIT-RECORD FROM AUDIT-LOG-RECORD.
+           IF NOT AUDIT-OK
+               DISPLAY "CRITICAL ERROR: FAILED TO WRITE TO AUDIT LOG! STATUS: " WS-AUDIT-STATUS
+           END-IF.
+
+       3200-NOTIFICATION-SEND.
+           *> This paragraph simulates sending a notification by writing to a file.
+           *> An external process would then pick up these records and dispatch emails/SMS.
+           MOVE SPACES TO NOTIFICATION-RECORD.
+           WRITE NOTIFICATION-RECORD FROM NOTIFICATION-DATA.
+           IF NOT NOTIFY-OK
+               DISPLAY "CRITICAL ERROR: FAILED TO WRITE TO NOTIFICATION FILE! STATUS: " WS-NOTIFY-STATUS
+           END-IF.
+
+       9999-TERMINATION.
+           CLOSE FUNDS-TRANSFER-FILE.
+           CLOSE AUDIT-LOG-FILE.
+           CLOSE NOTIFICATION-FILE.
+           DISPLAY "FTCNCL MODULE TERMINATED.".
+           DISPLAY " ".

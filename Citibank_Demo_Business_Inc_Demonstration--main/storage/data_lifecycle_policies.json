@@ -1,0 +1,157 @@
+{
+  "policies": [
+    {
+      "policy_id": "PL_FIN_REC_COMPLIANCE_001",
+      "policy_name": "Financial Transaction Records Compliance Policy",
+      "description": "Ensures all financial transaction records adhere to regulatory retention periods, leveraging cost-optimized cold and archive storage tiers.",
+      "enabled": true,
+      "priority": 100,
+      "target_criteria": {
+        "data_classification": "FINANCIAL_TRANSACTION_RECORD",
+        "project_tags": ["finance", "compliance", "audit"],
+        "min_size_mb": 0.01
+      },
+      "rules": [
+        {
+          "rule_id": "RL_FIN_REC_001_HOT_TO_COLD",
+          "action": "move_to_cold_storage",
+          "condition": {
+            "type": "days_since_last_access",
+            "value": 90
+          },
+          "description": "Automatically migrates financial records to cold storage if not accessed for 90 days, optimizing immediate costs while maintaining accessibility.",
+          "compliance_standards": ["SOX", "PCI DSS"]
+        },
+        {
+          "rule_id": "RL_FIN_REC_002_COLD_TO_ARCHIVE",
+          "action": "move_to_archive_storage",
+          "condition": {
+            "type": "days_since_creation",
+            "value": 2555
+          },
+          "description": "Archives financial records to deep, long-term storage after 7 years (2555 days) from creation, meeting extended regulatory retention requirements at minimal cost.",
+          "compliance_standards": ["SOX", "PCI DSS", "GDPR_LTD_7Y"]
+        },
+        {
+          "rule_id": "RL_FIN_REC_003_DELETE_AFTER_10Y",
+          "action": "delete_permanently",
+          "condition": {
+            "type": "days_since_creation",
+            "value": 3650
+          },
+          "description": "Initiates permanent deletion of financial records 10 years after creation, ensuring data minimisation post-legal retention periods.",
+          "compliance_standards": ["GDPR_RTL"]
+        }
+      ]
+    },
+    {
+      "policy_id": "PL_MARKETING_ANALYTICS_002",
+      "policy_name": "Marketing Analytics Data Optimization Policy",
+      "description": "Manages the lifecycle of marketing campaign and analytics data, balancing performance for recent data with cost-efficiency for historical records.",
+      "enabled": true,
+      "priority": 90,
+      "target_criteria": {
+        "path_prefix": "/marketing/analytics/",
+        "data_classification": "MARKETING_DATA",
+        "file_types": ["csv", "json", "log"]
+      },
+      "rules": [
+        {
+          "rule_id": "RL_MKT_ANALYTICS_001_HOT_TO_COLD",
+          "action": "move_to_cold_storage",
+          "condition": {
+            "type": "days_since_last_access",
+            "value": 180
+          },
+          "description": "Moves marketing analytics raw data to cold storage after 180 days of no access, optimizing storage costs for less frequently accessed historical data.",
+          "compliance_standards": []
+        },
+        {
+          "rule_id": "RL_MKT_ANALYTICS_002_DELETE_AFTER_2Y",
+          "action": "delete_permanently",
+          "condition": {
+            "type": "days_since_creation",
+            "value": 730
+          },
+          "description": "Deletes marketing analytics data permanently after 2 years, as its predictive value diminishes and to comply with data minimisation principles.",
+          "compliance_standards": ["CCPA_OptOut"]
+        }
+      ]
+    },
+    {
+      "policy_id": "PL_CUSTOMER_PII_003",
+      "policy_name": "Customer PII Data Privacy & Retention Policy",
+      "description": "Enforces stringent protection and retention policies for Personally Identifiable Information (PII) to comply with global privacy regulations.",
+      "enabled": true,
+      "priority": 110,
+      "target_criteria": {
+        "data_classification": "PII"
+      },
+      "rules": [
+        {
+          "rule_id": "RL_PII_001_ENFORCE_ENCRYPTION",
+          "action": "enforce_encryption",
+          "condition": {
+            "type": "always"
+          },
+          "value": "AES-256",
+          "description": "Mandates AES-256 encryption at rest for all PII data upon ingestion, ensuring foundational data security.",
+          "compliance_standards": ["GDPR", "CCPA", "HIPAA"]
+        },
+        {
+          "rule_id": "RL_PII_002_COLD_AFTER_1Y_INACTIVE",
+          "action": "move_to_cold_storage",
+          "condition": {
+            "type": "days_since_last_access",
+            "value": 365
+          },
+          "description": "Transitions PII data to cold storage after 1 year of inactivity, maintaining compliance and cost-efficiency.",
+          "compliance_standards": ["GDPR"]
+        },
+        {
+          "rule_id": "RL_PII_003_PSEUDONYMIZE_AFTER_INACTIVE_2Y",
+          "action": "pseudonymize_data",
+          "condition": {
+            "type": "customer_account_inactive_for_days",
+            "value": 730
+          },
+          "description": "Pseudonymizes PII data for customer accounts inactive for 2 years, significantly reducing privacy risk while retaining analytical utility.",
+          "compliance_standards": ["GDPR_RTL", "CCPA"]
+        }
+      ]
+    },
+    {
+      "policy_id": "PL_AUDIT_LOGS_IMMUTABLE_004",
+      "policy_name": "Immutable Audit Logs Archival Policy",
+      "description": "Guarantees the immediate, immutable archival of all system audit logs for critical security, forensic, and regulatory compliance requirements.",
+      "enabled": true,
+      "priority": 120,
+      "target_criteria": {
+        "data_classification": "AUDIT_LOGS",
+        "object_tags": ["immutable", "security"]
+      },
+      "rules": [
+        {
+          "rule_id": "RL_AUDIT_001_IMMUTABLE_ARCHIVE",
+          "action": "move_to_immutable_archive",
+          "condition": {
+            "type": "days_since_creation",
+            "value": 0
+          },
+          "description": "Moves audit logs directly to an immutable archive upon creation, ensuring their integrity and preventing modification.",
+          "compliance_standards": ["SOC2", "ISO27001", "SOX"]
+        },
+        {
+          "rule_id": "RL_AUDIT_002_RETENTION_10Y",
+          "action": "set_retention_period",
+          "condition": {
+            "type": "always"
+          "},
+          "value": "10_years",
+          "description": "Establishes a strict 10-year retention period for all immutable audit logs, fulfilling long-term regulatory and security mandates.",
+          "compliance_standards": ["SOC2", "ISO27001", "SOX", "CCPA_LTD_10Y"]
+        }
+      ]
+    }
+  ]
+}

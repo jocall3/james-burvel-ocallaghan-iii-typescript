@@ -1,0 +1,349 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. AULOG.
+       AUTHOR. AI-MAINFRAME-DEVELOPMENT-TEAM.
+      ******************************************************************
+      * MAINFRAME SYSTEM - AUDIT LOG REVIEW AND ANALYSIS
+      * This program allows system administrators to review, filter,
+      * search, and analyze system audit logs. It incorporates
+      * basic "AI-like" pattern recognition for anomaly detection
+      * to assist in proactive system monitoring.
+      ******************************************************************
+       ENVIRONMENT DIVISION.
+       FILE-CONTROL.
+           SELECT AUDIT-LOG-FILE ASSIGN TO AUDITLOG.
+       DATA DIVISION.
+       FILE SECTION.
+       FD AUDIT-LOG-FILE
+           RECORD CONTAINS 200 CHARACTERS
+           DATA RECORD IS AUDIT-LOG-RECORD.
+       01 AUDIT-LOG-RECORD.
+          05 ALR-TIMESTAMP           PIC X(14).  *> YYYYMMDDHHMMSS
+          05 ALR-USER-ID             PIC X(10).
+          05 ALR-EVENT-TYPE          PIC X(15).  *> LOGIN, LOGOUT, ACCESS, MODIFY, ERROR
+          05 ALR-RESOURCE-ID         PIC X(20).  *> File name, module name, etc.
+          05 ALR-STATUS              PIC X(08).  *> SUCCESS, FAILED, INFO
+          05 ALR-DETAILS             PIC X(133). *> Detailed message
+       WORKING-STORAGE SECTION.
+       01 WS-EOF-FLAG                PIC X(01) VALUE 'N'.
+          88 EOF-REACHED                       VALUE 'Y'.
+          88 NOT-EOF                           VALUE 'N'.
+
+       01 WS-FILTER-CRITERIA.
+          05 WS-START-TIMESTAMP      PIC X(14).
+          05 WS-END-TIMESTAMP        PIC X(14).
+          05 WS-SEARCH-KEYWORD       PIC X(30) VALUE SPACES.
+          05 WS-FILTER-ACTIVE-FLAG   PIC X(01) VALUE 'N'.
+          05 WS-KEYWORD-ACTIVE-FLAG  PIC X(01) VALUE 'N'.
+
+       01 WS-PROGRAM-FLAGS.
+          05 WS-MAIN-MENU-CHOICE     PIC X(01).
+          05 WS-EXIT-PROGRAM-FLAG    PIC X(01) VALUE 'N'.
+          88 EXIT-PROGRAM                      VALUE 'Y'.
+
+       01 WS-CURRENT-LOG-RECORD.
+          05 WCL-TIMESTAMP           PIC X(14).
+          05 WCL-USER-ID             PIC X(10).
+          05 WCL-EVENT-TYPE          PIC X(15).
+          05 WCL-RESOURCE-ID         PIC X(20).
+          05 WCL-STATUS              PIC X(08).
+          05 WCL-DETAILS             PIC X(133).
+
+       01 WS-DISPLAY-FIELDS.
+          05 WS-FORMATTED-TIMESTAMP  PIC X(19). *> YYYY-MM-DD HH:MM:SS
+          05 WS-DISPLAY-LINE         PIC X(80).
+
+       01 WS-ANOMALY-DETECTION-DATA.
+          05 WS-ANOMALY-COUNT        PIC 9(05) VALUE ZEROS.
+          05 WS-FAILED-LOGINS        PIC 9(05) VALUE ZEROS.
+          05 WS-UNAUTHORIZED-ATTEMPTS PIC 9(05) VALUE ZEROS.
+          05 WS-HIGH-RISK-EVENTS     PIC 9(05) VALUE ZEROS.
+          05 WS-AI-ANALYSIS-COMPLETE PIC X(01) VALUE 'N'.
+          05 WS-PREVIOUS-USER-ID     PIC X(10) VALUE SPACES.
+          05 WS-PREVIOUS-EVENT-TYPE  PIC X(15) VALUE SPACES.
+          05 WS-CONSECUTIVE-FAILED   PIC 9(03) VALUE ZEROS.
+          05 WS-LAST-ANOMALY-MESSAGE PIC X(80) VALUE SPACES.
+
+
+       PROCEDURE DIVISION.
+       MAIN-LOGIC.
+           PERFORM INITIALIZE-PROGRAM.
+           PERFORM UNTIL EXIT-PROGRAM
+               PERFORM DISPLAY-MAIN-MENU
+               PERFORM ACCEPT-MENU-CHOICE
+               EVALUATE WS-MAIN-MENU-CHOICE
+                   WHEN '1' PERFORM OPTION-DISPLAY-ALL-LOGS
+                   WHEN '2' PERFORM OPTION-FILTER-LOGS-BY-DATE
+                   WHEN '3' PERFORM OPTION-SEARCH-LOGS-BY-KEYWORD
+                   WHEN '4' PERFORM OPTION-PERFORM-AI-ANALYSIS
+                   WHEN '5' MOVE 'Y' TO WS-EXIT-PROGRAM-FLAG
+                   WHEN OTHER DISPLAY "INVALID CHOICE. PLEASE TRY AGAIN."
+               END-EVALUATE
+               IF NOT EXIT-PROGRAM
+                   DISPLAY "PRESS ENTER TO CONTINUE..."
+                   ACCEPT WS-DISPLAY-LINE *> Pause for user
+               END-IF
+           END-PERFORM.
+           PERFORM TERMINATE-PROGRAM.
+           STOP RUN.
+
+       INITIALIZE-PROGRAM.
+           DISPLAY "AULOG - AUDIT LOG REVIEW AND AI INSIGHTS".
+           MOVE 'N' TO WS-EOF-FLAG.
+           MOVE 'N' TO WS-FILTER-ACTIVE-FLAG.
+           MOVE 'N' TO WS-KEYWORD-ACTIVE-FLAG.
+           MOVE 'N' TO WS-AI-ANALYSIS-COMPLETE.
+           MOVE ZEROS TO WS-ANOMALY-COUNT.
+           MOVE ZEROS TO WS-FAILED-LOGINS.
+           MOVE ZEROS TO WS-UNAUTHORIZED-ATTEMPTS.
+           MOVE ZEROS TO WS-HIGH-RISK-EVENTS.
+           MOVE SPACES TO WS-LAST-ANOMALY-MESSAGE.
+
+       TERMINATE-PROGRAM.
+           DISPLAY "AULOG - PROGRAM TERMINATED.".
+
+       DISPLAY-MAIN-MENU.
+           DISPLAY "****************************************".
+           DISPLAY "* AULOG - Mainframe Audit Log Console  *".
+           DISPLAY "****************************************".
+           DISPLAY "1. Display All Audit Logs".
+           DISPLAY "2. Filter Logs by Date/Time Range".
+           DISPLAY "3. Search Logs by Keyword".
+           DISPLAY "4. Perform AI-Driven Anomaly Analysis".
+           DISPLAY "5. Exit".
+           DISPLAY "----------------------------------------".
+           DISPLAY "ENTER YOUR CHOICE: ".
+
+       ACCEPT-MENU-CHOICE.
+           ACCEPT WS-MAIN-MENU-CHOICE.
+
+       OPTION-DISPLAY-ALL-LOGS.
+           DISPLAY "DISPLAYING ALL AUDIT LOGS...".
+           MOVE 'N' TO WS-FILTER-ACTIVE-FLAG.
+           MOVE 'N' TO WS-KEYWORD-ACTIVE-FLAG.
+           PERFORM OPEN-AUDIT-FILE.
+           PERFORM READ-AND-PROCESS-LOGS
+               UNTIL EOF-REACHED.
+           PERFORM CLOSE-AUDIT-FILE.
+
+       OPTION-FILTER-LOGS-BY-DATE.
+           DISPLAY "ENTER START DATE/TIME (YYYYMMDDHHMMSS): ".
+           ACCEPT WS-START-TIMESTAMP.
+           DISPLAY "ENTER END DATE/TIME (YYYYMMDDHHMMSS): ".
+           ACCEPT WS-END-TIMESTAMP.
+           MOVE 'Y' TO WS-FILTER-ACTIVE-FLAG.
+           MOVE 'N' TO WS-KEYWORD-ACTIVE-FLAG.
+           DISPLAY "FILTERING AUDIT LOGS BY DATE/TIME...".
+           PERFORM OPEN-AUDIT-FILE.
+           PERFORM READ-AND-PROCESS-LOGS
+               UNTIL EOF-REACHED.
+           PERFORM CLOSE-AUDIT-FILE.
+
+       OPTION-SEARCH-LOGS-BY-KEYWORD.
+           DISPLAY "ENTER SEARCH KEYWORD: ".
+           ACCEPT WS-SEARCH-KEYWORD.
+           MOVE 'Y' TO WS-KEYWORD-ACTIVE-FLAG.
+           MOVE 'N' TO WS-FILTER-ACTIVE-FLAG.
+           DISPLAY "SEARCHING AUDIT LOGS FOR KEYWORD '"
+                   WS-SEARCH-KEYWORD (1: FUNCTION LENGTH(FUNCTION TRIM(WS-SEARCH-KEYWORD)))
+                   "'...".
+           PERFORM OPEN-AUDIT-FILE.
+           PERFORM READ-AND-PROCESS-LOGS
+               UNTIL EOF-REACHED.
+           PERFORM CLOSE-AUDIT-FILE.
+
+       OPEN-AUDIT-FILE.
+           OPEN INPUT AUDIT-LOG-FILE.
+           IF FILE-STATUS NOT = '00'
+               DISPLAY "ERROR OPENING AUDIT LOG FILE. STATUS: " FILE-STATUS
+               MOVE 'Y' TO WS-EOF-FLAG *> Prevent further processing
+               EXIT PROGRAM *> Terminate program on critical error
+           END-IF.
+           MOVE 'N' TO WS-EOF-FLAG.
+           MOVE ZEROS TO WS-ANOMALY-COUNT.
+           MOVE ZEROS TO WS-FAILED-LOGINS.
+           MOVE ZEROS TO WS-UNAUTHORIZED-ATTEMPTS.
+           MOVE ZEROS TO WS-HIGH-RISK-EVENTS.
+           MOVE SPACES TO WS-PREVIOUS-USER-ID.
+           MOVE SPACES TO WS-PREVIOUS-EVENT-TYPE.
+           MOVE ZEROS TO WS-CONSECUTIVE-FAILED.
+
+       CLOSE-AUDIT-FILE.
+           CLOSE AUDIT-LOG-FILE.
+
+       READ-AND-PROCESS-LOGS.
+           READ AUDIT-LOG-FILE INTO WS-CURRENT-LOG-RECORD
+               AT END MOVE 'Y' TO WS-EOF-FLAG
+           END-READ.
+
+           IF NOT EOF-REACHED
+               PERFORM CHECK-LOG-FOR-DISPLAY
+               PERFORM ANALYZE-LOG-FOR-AI-INSIGHTS
+           END-IF.
+
+       CHECK-LOG-FOR-DISPLAY.
+           DECLARE LOG-MEETS-CRITERIA BOOLEAN INITIALIZED FALSE.
+           MOVE 'Y' TO LOG-MEETS-CRITERIA.
+
+           IF WS-FILTER-ACTIVE-FLAG = 'Y'
+               IF WCL-TIMESTAMP < WS-START-TIMESTAMP OR
+                  WCL-TIMESTAMP > WS-END-TIMESTAMP
+                   MOVE 'N' TO LOG-MEETS-CRITERIA
+               END-IF
+           END-IF.
+
+           IF WS-KEYWORD-ACTIVE-FLAG = 'Y'
+               IF LOG-MEETS-CRITERIA
+                   IF FUNCTION UPPER-CASE(WCL-DETAILS) IS NOT CONTAINED
+                      IN FUNCTION UPPER-CASE(WS-SEARCH-KEYWORD)
+                       MOVE 'N' TO LOG-MEETS-CRITERIA
+                   END-IF
+               END-IF
+           END-IF.
+
+           IF LOG-MEETS-CRITERIA
+               PERFORM FORMAT-AND-DISPLAY-LOG
+           END-IF.
+
+       FORMAT-AND-DISPLAY-LOG.
+           STRING WCL-TIMESTAMP(1:4) DELIMITED BY SIZE
+                  '-'                 DELIMITED BY SIZE
+                  WCL-TIMESTAMP(5:2)  DELIMITED BY SIZE
+                  '-'                 DELIMITED BY SIZE
+                  WCL-TIMESTAMP(7:2)  DELIMITED BY SIZE
+                  ' '                 DELIMITED BY SIZE
+                  WCL-TIMESTAMP(9:2)  DELIMITED BY SIZE
+                  ':'                 DELIMITED BY SIZE
+                  WCL-TIMESTAMP(11:2) DELIMITED BY SIZE
+                  ':'                 DELIMITED BY SIZE
+                  WCL-TIMESTAMP(13:2) DELIMITED BY SIZE
+                  INTO WS-FORMATTED-TIMESTAMP.
+
+           DISPLAY WS-FORMATTED-TIMESTAMP " | "
+                   WCL-USER-ID " | "
+                   WCL-EVENT-TYPE " | "
+                   WCL-STATUS " | "
+                   WCL-RESOURCE-ID " | "
+                   WCL-DETAILS (1: FUNCTION MIN(50, FUNCTION LENGTH(FUNCTION TRIM(WCL-DETAILS)))).
+           *> Display first 50 chars of details for brevity.
+
+       OPTION-PERFORM-AI-ANALYSIS.
+           DISPLAY "INITIATING AI INSIGHT ENGINE FOR AUDIT LOG ANALYSIS...".
+           DISPLAY "THIS MAY TAKE A MOMENT AS THE ENGINE LEARNS PATTERNS...".
+           PERFORM OPEN-AUDIT-FILE.
+           PERFORM READ-AND-ANALYZE-ALL-LOGS
+               UNTIL EOF-REACHED.
+           PERFORM CLOSE-AUDIT-FILE.
+           MOVE 'Y' TO WS-AI-ANALYSIS-COMPLETE.
+           PERFORM DISPLAY-AI-SUMMARY.
+
+       READ-AND-ANALYZE-ALL-LOGS.
+           READ AUDIT-LOG-FILE INTO WS-CURRENT-LOG-RECORD
+               AT END MOVE 'Y' TO WS-EOF-FLAG
+           END-READ.
+
+           IF NOT EOF-REACHED
+               PERFORM ANALYZE-LOG-FOR-AI-INSIGHTS
+           END-IF.
+
+       ANALYZE-LOG-FOR-AI-INSIGHTS.
+           *> This routine simulates AI pattern recognition based on predefined rules.
+           *> It looks for common suspicious activities.
+
+           *> Rule 1: Multiple Failed Login Attempts
+           IF WCL-EVENT-TYPE = "LOGIN" AND WCL-STATUS = "FAILED"
+               ADD 1 TO WS-FAILED-LOGINS
+               ADD 1 TO WS-CONSECUTIVE-FAILED
+               MOVE WCL-USER-ID TO WS-PREVIOUS-USER-ID
+               MOVE WCL-EVENT-TYPE TO WS-PREVIOUS-EVENT-TYPE
+               IF WS-CONSECUTIVE-FAILED >= 3
+                   ADD 1 TO WS-ANOMALY-COUNT
+                   MOVE "High-Risk: 3+ consecutive failed logins for "
+                       TO WS-LAST-ANOMALY-MESSAGE
+                   STRING WS-LAST-ANOMALY-MESSAGE DELIMITED BY SIZE
+                          WCL-USER-ID DELIMITED BY SPACES
+                          " at " DELIMITED BY SIZE
+                          WCL-TIMESTAMP DELIMITED BY SIZE
+                          INTO WS-LAST-ANOMALY-MESSAGE
+                   *> In a real system, this would trigger an alert.
+               END-IF
+           ELSE
+               MOVE ZEROS TO WS-CONSECUTIVE-FAILED
+           END-IF.
+
+           *> Rule 2: Unauthorized Access Attempts
+           IF WCL-STATUS = "FAILED" AND
+              (WCL-EVENT-TYPE = "ACCESS" OR WCL-EVENT-TYPE = "MODIFY") AND
+              (WCL-DETAILS CONTAINS "UNAUTHORIZED" OR WCL-DETAILS CONTAINS "PERMISSION DENIED")
+               ADD 1 TO WS-UNAUTHORIZED-ATTEMPTS
+               ADD 1 TO WS-ANOMALY-COUNT
+               STRING "Medium-Risk: Unauthorized access attempt by " DELIMITED BY SIZE
+                      WCL-USER-ID DELIMITED BY SPACES
+                      " on " DELIMITED BY SIZE
+                      WCL-RESOURCE-ID DELIMITED BY SPACES
+                      " (" DELIMITED BY SIZE
+                      WCL-TIMESTAMP DELIMITED BY SIZE
+                      ")" DELIMITED BY SIZE
+                      INTO WS-LAST-ANOMALY-MESSAGE
+           END-IF.
+
+           *> Rule 3: High-Risk System Events (e.g., system configuration changes, critical errors)
+           IF WCL-EVENT-TYPE = "SYSTEM-CFG" OR WCL-EVENT-TYPE = "CRITICAL-ERROR"
+               ADD 1 TO WS-HIGH-RISK-EVENTS
+               ADD 1 TO WS-ANOMALY-COUNT
+               STRING "High-Risk: Critical System Event '" DELIMITED BY SIZE
+                      WCL-EVENT-TYPE DELIMITED BY SPACES
+                      "' by " DELIMITED BY SIZE
+                      WCL-USER-ID DELIMITED BY SPACES
+                      " at " DELIMITED BY SIZE
+                      WCL-TIMESTAMP DELIMITED BY SIZE
+                      INTO WS-LAST-ANOMALY-MESSAGE
+           END-IF.
+
+           *> Rule 4: Rapid sequence of unrelated events from a single user
+           *> (More complex, requires state tracking. For this example, a simpler check.)
+           *> If a user performs a "LOGIN" then immediately a "MODIFY" on a sensitive resource
+           IF WCL-USER-ID = WS-PREVIOUS-USER-ID AND
+              WS-PREVIOUS-EVENT-TYPE = "LOGIN" AND
+              WCL-EVENT-TYPE = "MODIFY" AND
+              WCL-STATUS = "SUCCESS" AND
+              WCL-RESOURCE-ID IS NOT EQUAL TO SPACES
+               ADD 1 TO WS-HIGH-RISK-EVENTS
+               ADD 1 TO WS-ANOMALY-COUNT
+               STRING "Potential-Risk: Rapid Login-Modify sequence for " DELIMITED BY SIZE
+                      WCL-USER-ID DELIMITED BY SPACES
+                      " on " DELIMITED BY SIZE
+                      WCL-RESOURCE-ID DELIMITED BY SPACES
+                      " (" DELIMITED BY SIZE
+                      WCL-TIMESTAMP DELIMITED BY SIZE
+                      ")" DELIMITED BY SIZE
+                      INTO WS-LAST-ANOMALY-MESSAGE
+           END-IF.
+
+           MOVE WCL-USER-ID TO WS-PREVIOUS-USER-ID.
+           MOVE WCL-EVENT-TYPE TO WS-PREVIOUS-EVENT-TYPE.
+
+
+       DISPLAY-AI-SUMMARY.
+           DISPLAY "****************************************".
+           DISPLAY "* AI INSIGHT ENGINE - ANALYSIS SUMMARY *".
+           DISPLAY "****************************************".
+           IF WS-AI-ANALYSIS-COMPLETE = 'Y'
+               DISPLAY "Analysis Period: " WS-START-TIMESTAMP " to " WS-END-TIMESTAMP.
+               DISPLAY "Total Anomalies Detected: " WS-ANOMALY-COUNT.
+               DISPLAY "----------------------------------------".
+               DISPLAY "Detailed Breakdown:".
+               DISPLAY "  - Failed Login Attempts: " WS-FAILED-LOGINS.
+               DISPLAY "  - Unauthorized Access Attempts: " WS-UNAUTHORIZED-ATTEMPTS.
+               DISPLAY "  - High-Risk System Events: " WS-HIGH-RISK-EVENTS.
+               DISPLAY "----------------------------------------".
+               IF WS-ANOMALY-COUNT > 0
+                   DISPLAY "The AI Insight Engine recommends reviewing these areas for potential security incidents or system misconfigurations.".
+                   DISPLAY "Last detected anomaly message: " WS-LAST-ANOMALY-MESSAGE.
+               ELSE
+                   DISPLAY "No significant anomalies detected by the AI Insight Engine during this period.".
+                   DISPLAY "System appears to be operating within expected parameters.".
+               END-IF
+           ELSE
+               DISPLAY "AI Analysis not yet performed or data is incomplete.".
+           END-IF.
+           DISPLAY "****************************************".
