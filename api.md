@@ -1,3 +1,4 @@
+---
 # Users
 
 Types:
@@ -145,6 +146,29 @@ Types:
 Methods:
 
 - <code title="get /transactions/insights/spending-trends">client.transactions.insights.<a href="./src/resources/transactions/insights.ts">getSpendingTrends</a>() -> InsightGetSpendingTrendsResponse</code>
+
+# Notifications
+
+Types:
+
+- <code><a href="./src/resources/notifications/notifications.ts">Notification</a></code>
+- <code><a href="./src/resources/notifications/notifications.ts">NotificationListResponse</a></code>
+
+Methods:
+
+- <code title="get /notifications">client.notifications.<a href="./src/resources/notifications/notifications.ts">list</a>({ ...params }) -> NotificationListResponse</code>
+- <code title="post /notifications/{notificationId}/read">client.notifications.<a href="./src/resources/notifications/notifications.ts">markRead</a>(notificationID) -> void</code>
+
+## Settings
+
+Types:
+
+- <code><a href="./src/resources/notifications/settings.ts">NotificationSettings</a></code>
+
+Methods:
+
+- <code title="get /notifications/settings">client.notifications.settings.<a href="./src/resources/notifications/settings.ts">retrieve</a>() -> NotificationSettings</code>
+- <code title="put /notifications/settings">client.notifications.settings.<a href="./src/resources/notifications/settings.ts">update</a>({ ...params }) -> NotificationSettings</code>
 
 # Budgets
 
@@ -548,12 +572,24 @@ Methods:
 
 Types:
 
+- <code><a href="./src/resources/marketplace/products.ts">Product</a></code>
 - <code><a href="./src/resources/marketplace/products.ts">ProductListResponse</a></code>
-- <code><a href="./src/resources/marketplace/products.ts">ProductRedeemMarketplaceOfferResponse</a></code>
 - <code><a href="./src/resources/marketplace/products.ts">ProductSimulatePurchaseResponse</a></code>
 
 Methods:
 
 - <code title="get /marketplace/products">client.marketplace.products.<a href="./src/resources/marketplace/products.ts">list</a>({ ...params }) -> ProductListResponse</code>
-- <code title="post /marketplace/offers/{offerId}/redeem">client.marketplace.products.<a href="./src/resources/marketplace/products.ts">redeemMarketplaceOffer</a>(offerID, { ...params }) -> ProductRedeemMarketplaceOfferResponse</code>
 - <code title="post /marketplace/products/{productId}/impact-simulate">client.marketplace.products.<a href="./src/resources/marketplace/products.ts">simulatePurchase</a>(productID, { ...params }) -> ProductSimulatePurchaseResponse</code>
+
+## Offers
+
+Types:
+
+- <code><a href="./src/resources/marketplace/offers.ts">Offer</a></code>
+- <code><a href="./src/resources/marketplace/offers.ts">OfferRedeemResponse</a></code>
+
+Methods:
+
+- <code title="post /marketplace/offers/{offerId}/redeem">client.marketplace.offers.<a href="./src/resources/marketplace/offers.ts">redeem</a>(offerID, { ...params }) -> OfferRedeemResponse</code>
+
+    ---
