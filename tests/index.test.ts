@@ -292,17 +292,13 @@ describe('instantiate client', () => {
     test('empty env variable', () => {
       process.env['JAMES_BURVEL_OCALLAGHAN_III_BASE_URL'] = ''; // empty
       const client = new JamesBurvelOcallaghanIii({});
-      expect(client.baseURL).toEqual(
-        'https://virtserver.swaggerhub.com/JOCALL3_1/jamesburvelocallaghaniiiapi/1.0',
-      );
+      expect(client.baseURL).toEqual('https://ce47fe80-dabc-4ad0-b0e7-cf285695b8b8.mock.pstmn.io');
     });
 
     test('blank env variable', () => {
       process.env['JAMES_BURVEL_OCALLAGHAN_III_BASE_URL'] = '  '; // blank
       const client = new JamesBurvelOcallaghanIii({});
-      expect(client.baseURL).toEqual(
-        'https://virtserver.swaggerhub.com/JOCALL3_1/jamesburvelocallaghaniiiapi/1.0',
-      );
+      expect(client.baseURL).toEqual('https://ce47fe80-dabc-4ad0-b0e7-cf285695b8b8.mock.pstmn.io');
     });
 
     test('in request options', () => {

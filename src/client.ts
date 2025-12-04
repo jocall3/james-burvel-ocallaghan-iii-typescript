@@ -198,7 +198,7 @@ export class JamesBurvelOcallaghanIii {
    *
    * @param {string | null | undefined} [opts.apiKey=process.env['JAMES_BURVEL_OCALLAGHAN_III_API_KEY'] ?? null]
    * @param {string | null | undefined} [opts.bearerToken=process.env['JAMES_BURVEL_OCALLAGHAN_III_BEARER_TOKEN'] ?? null]
-   * @param {string} [opts.baseURL=process.env['JAMES_BURVEL_OCALLAGHAN_III_BASE_URL'] ?? https://virtserver.swaggerhub.com/JOCALL3_1/jamesburvelocallaghaniiiapi/1.0] - Override the default base URL for the API.
+   * @param {string} [opts.baseURL=process.env['JAMES_BURVEL_OCALLAGHAN_III_BASE_URL'] ?? https://ce47fe80-dabc-4ad0-b0e7-cf285695b8b8.mock.pstmn.io] - Override the default base URL for the API.
    * @param {number} [opts.timeout=1 minute] - The maximum amount of time (in milliseconds) the client will wait for a response before timing out.
    * @param {MergedRequestInit} [opts.fetchOptions] - Additional `RequestInit` options to be passed to `fetch` calls.
    * @param {Fetch} [opts.fetch] - Specify a custom `fetch` function implementation.
@@ -216,7 +216,7 @@ export class JamesBurvelOcallaghanIii {
       apiKey,
       bearerToken,
       ...opts,
-      baseURL: baseURL || `https://virtserver.swaggerhub.com/JOCALL3_1/jamesburvelocallaghaniiiapi/1.0`,
+      baseURL: baseURL || `https://ce47fe80-dabc-4ad0-b0e7-cf285695b8b8.mock.pstmn.io`,
     };
 
     this.baseURL = options.baseURL!;
@@ -268,7 +268,7 @@ export class JamesBurvelOcallaghanIii {
    * Check whether the base URL is set to its default.
    */
   #baseURLOverridden(): boolean {
-    return this.baseURL !== 'https://virtserver.swaggerhub.com/JOCALL3_1/jamesburvelocallaghaniiiapi/1.0';
+    return this.baseURL !== 'https://ce47fe80-dabc-4ad0-b0e7-cf285695b8b8.mock.pstmn.io';
   }
 
   protected defaultQuery(): Record<string, string | undefined> | undefined {
