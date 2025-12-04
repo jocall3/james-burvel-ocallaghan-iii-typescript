@@ -1,0 +1,560 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://inventa.ai/schemas/financial_instrument_schemas.json",
+  "title": "Financial Instrument System Data Contracts",
+  "description": "Defines the formal JSON schemas for the structured input prompt to the Autonomous Financial Engineering Cognizance Engine (AFECE) and the detailed financial instrument output, now expanded to include comprehensive analytical and visual elements.",
+  "definitions": {
+    "AFECE_StructuredPromptSchema": {
+      "type": "object",
+      "title": "AFECE Structured Prompt Input",
+      "description": "Schema for the structured prompt sent to the Autonomous Financial Engineering Cognizance Engine (AFECE), translating user desiderata into actionable instructions. This version includes detailed specifications for desired output complexity.",
+      "required": [
+        "role",
+        "task",
+        "constraints",
+        "objectives",
+        "response_schema_id",
+        "reasoning_directive",
+        "output_requirements"
+      ],
+      "properties": {
+        "role": {
+          "type": "string",
+          "description": "The designated role for the AI model within the financial engineering context.",
+          "enum": ["financial_engineer"]
+        },
+        "task": {
+          "type": "string",
+          "description": "The specific task the AI model is instructed to perform for financial instrument design.",
+          "enum": ["design_structured_instrument"]
+        },
+        "constraints": {
+          "type": "object",
+          "description": "A collection of hard constraints that the generated financial instrument must satisfy.",
+          "required": [
+            "principal_protection_level",
+            "market_exposure_indices",
+            "investment_term_years",
+            "max_annual_volatility",
+            "min_income_frequency",
+            "esg_alignment_score_min"
+          ],
+          "properties": {
+            "principal_protection_level": {
+              "type": "number",
+              "description": "Desired capital preservation at maturity, expressed as a fraction (0.0 to 1.0, where 1.0 is 100%).",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            "market_exposure_indices": {
+              "type": "array",
+              "description": "List of identifiers for underlying assets or indices to which the instrument should have exposure.",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            },
+            "investment_term_years": {
+              "type": "integer",
+              "description": "The target duration of the investment in full years.",
+              "minimum": 0
+            },
+            "max_annual_volatility": {
+              "type": "number",
+              "description": "Maximum permissible annualized volatility, expressed as a fraction (e.g., 0.08 for 8%).",
+              "minimum": 0.0
+            },
+            "min_income_frequency": {
+              "type": "string",
+              "description": "Minimum frequency for income distribution (e.g., 'quarterly').",
+              "enum": ["monthly", "quarterly", "semi-annually", "annually", "at maturity", "none"]
+            },
+            "esg_alignment_score_min": {
+              "type": "number",
+              "description": "Minimum Environmental, Social, Governance (ESG) alignment score for underlying assets (0.0 to 1.0).",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            "max_leverage_factor": {
+              "type": "number",
+              "description": "Maximum allowed leverage factor in any embedded derivatives or components.",
+              "minimum": 1.0
+            },
+            "liquidity_preference_rating": {
+              "type": "string",
+              "description": "Desired liquidity profile for the instrument.",
+              "enum": ["very_high", "high", "medium", "low"]
+            }
+          }
+        },
+        "objectives": {
+          "type": "object",
+          "description": "A collection of objectives that the AFECE should optimize for when designing the instrument.",
+          "required": [
+            "target_annual_yield",
+            "upside_participation_preference",
+            "downside_risk_mitigation"
+          ],
+          "properties": {
+            "target_annual_yield": {
+              "type": "object",
+              "description": "Desired range for the annualized yield.",
+              "required": ["min", "max"],
+              "properties": {
+                "min": {
+                  "type": "number",
+                  "description": "Minimum target annual yield as a fraction."
+                },
+                "max": {
+                  "type": "number",
+                  "description": "Maximum target annual yield as a fraction."
+                }
+              }
+            },
+            "upside_participation_preference": {
+              "type": "string",
+              "description": "User's preference for participating in upside market movements.",
+              "enum": ["low", "medium", "high", "very_high"]
+            },
+            "downside_risk_mitigation": {
+              "type": "string",
+              "description": "User's preference for mitigating downside risk.",
+              "enum": ["none", "moderate", "strong", "absolute_preservation"]
+            },
+            "tax_efficiency_preference": {
+              "type": "string",
+              "description": "Preference for tax efficiency in instrument design (e.g., deferral, specific capital gains treatment).",
+              "enum": ["none", "moderate", "high", "maximum"]
+            },
+            "diversification_target": {
+              "type": "number",
+              "description": "Target diversification score (e.g., 0.0 to 1.0, where 1.0 is maximum diversification).",
+              "minimum": 0.0,
+              "maximum": 1.0
+            }
+          }
+        },
+        "response_schema_id": {
+          "type": "string",
+          "description": "Identifier for the expected JSON schema that the AFECE should adhere to for its output."
+        },
+        "reasoning_directive": {
+          "type": "string",
+          "description": "Specific instructions for the AFECE regarding its reasoning process and how to structure its explanation of design choices, including the depth of analysis."
+        },
+        "output_requirements": {
+          "type": "object",
+          "description": "Specifications for the desired format and content detail of the AFECE output, including visual and quantitative elements.",
+          "properties": {
+            "includeMermaidDiagrams": {
+              "type": "integer",
+              "description": "Number of Mermaid diagrams to include in the output (0-10).",
+              "minimum": 0,
+              "maximum": 10
+            },
+            "includeDetailedClaims": {
+              "type": "integer",
+              "description": "Number of detailed design claims/assertions to include (0-10).",
+              "minimum": 0,
+              "maximum": 10
+            },
+            "includeMathematicalEquations": {
+              "type": "integer",
+              "description": "Number of mathematical equations/derivations to include (0-100).",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "equationComplexity": {
+              "type": "string",
+              "description": "Desired complexity level for mathematical equations (e.g., 'basic' for formula definitions, 'expert' for detailed derivations).",
+              "enum": ["basic", "intermediate", "advanced", "expert"]
+            },
+            "diagramTypes": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["flowchart", "gantt", "sequence", "class", "state", "entity_relationship", "journey", "graph", "pie", "quadrant"]
+              },
+              "description": "Preferred types of Mermaid diagrams to illustrate different aspects of the instrument."
+            },
+            "scenarioAnalysisDepth": {
+              "type": "string",
+              "description": "Desired depth and number of scenarios for simulation results.",
+              "enum": ["basic", "standard", "comprehensive", "extreme_stress"]
+            }
+          },
+          "required": [
+            "includeMermaidDiagrams",
+            "includeDetailedClaims",
+            "includeMathematicalEquations"
+          ]
+        }
+      }
+    },
+    "AFECE_InstrumentOutputSchema": {
+      "type": "object",
+      "title": "AFECE Instrument Output Structure",
+      "description": "Schema for the detailed structured data object representing a proposed financial instrument, generated by the AFECE. This enhanced schema provides exhaustive details including visual representations, quantitative models, and a comprehensive audit trail.",
+      "required": [
+        "instrumentName",
+        "instrumentType",
+        "underlyingAssets",
+        "components",
+        "principalProtection",
+        "payoffFormula",
+        "keyTerms",
+        "summary",
+        "riskFactors",
+        "simulationResults",
+        "regulatoryCompliance",
+        "visualRepresentations",
+        "designRationaleAndClaims",
+        "advancedQuantitativeModels",
+        "scenarioAnalysis",
+        "auditTrail"
+      ],
+      "properties": {
+        "instrumentName": { "type": "string", "description": "A unique, descriptive name for the generated financial instrument, reflecting its key features." },
+        "instrumentType": { "type": "string", "description": "Categorization of the financial instrument (e.g., Structured Note, Equity-Linked Note, Credit-Linked Note, Callable Bond)." },
+        "underlyingAssets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "assetIdentifier": { "type": "string", "description": "Ticker symbol, ISIN, or index name for the underlying asset." },
+              "assetType": { "type": "string", "description": "Type of the underlying asset (e.g., Equity, Index, Bond, Commodity, FX, Credit, InterestRate, Fund)." },
+              "weighting": { "type": "number", "description": "Proportional weighting within a basket of assets, if applicable. Sum of weights for a basket should be 1.0.", "minimum": 0.0, "maximum": 1.0 },
+              "esgScore": { "type": "number", "description": "Environmental, Social, Governance (ESG) score of the specific underlying asset.", "minimum": 0.0, "maximum": 1.0 }
+            },
+            "required": ["assetIdentifier", "assetType"]
+          },
+          "description": "A list of primary underlying assets or indices that the instrument is linked to, detailing their type and weighting.",
+          "minItems": 1
+        },
+        "components": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "componentType": { "type": "string", "description": "Type of the financial primitive component (e.g., ZeroCouponBond, CallOption, PutOption, SwapLeg, BarrierOption, DigitalOption, Forward)." },
+              "underlying": { "type": "string", "description": "Identifier of the specific underlying asset for this particular component. Must match an 'assetIdentifier' from 'underlyingAssets'." },
+              "strikePrice": { "type": "number", "nullable": true, "description": "Applicable for options or forwards, representing the exercise price or forward price. Can be a fixed value or a formula." },
+              "maturityDate": { "type": "string", "format": "date", "description": "Maturity or expiry date of the component in 'YYYY-MM-DD' format." },
+              "notionalAmount": { "type": "number", "description": "Notional value or principal allocation for this component. Can be a fixed amount or a percentage of total instrument notional." },
+              "parameters": {
+                "type": "object",
+                "additionalProperties": true,
+                "description": "Component-specific parameters (e.g., participation rate, coupon rate, barrier levels (up/down, knock-in/out), reset frequency, leverage factor, observation frequency, compounding method, volatility assumption)."
+              },
+              "componentDescription": { "type": "string", "description": "A brief textual description of this specific component's role and function." }
+            },
+            "required": ["componentType", "underlying", "maturityDate", "notionalAmount", "componentDescription"]
+          },
+          "description": "Detailed breakdown of the financial primitives constituting the instrument, illustrating its modular construction.",
+          "minItems": 1
+        },
+        "principalProtection": { "type": "number", "description": "Guaranteed principal return percentage at maturity (0-100), based on issuer solvency. This is the minimum return of the initial capital.", "minimum": 0.0, "maximum": 100.0 },
+        "payoffFormula": { "type": "string", "description": "Mathematical expression defining the instrument's payoff at maturity or during its life. E.g., `Notional * (1 + Max(0, ParticipationRate * (SPX_Final / SPX_Initial - 1))) + ZeroCouponBondYield`. This is a high-level representation, detailed breakdown is in 'advancedQuantitativeModels'." },
+        "keyTerms": {
+          "type": "object",
+          "properties": {
+            "issueDate": { "type": "string", "format": "date", "description": "The date the instrument is issued in 'YYYY-MM-DD' format." },
+            "maturityDate": { "type": "string", "format": "date", "description": "The date the instrument matures in 'YYYY-MM-DD' format." },
+            "denomination": { "type": "string", "description": "The currency in which the instrument is denominated (e.g., USD, EUR, GBP)." },
+            "minSubscriptionAmount": { "type": "number", "description": "The minimum investment amount required for the instrument, in the denomination currency.", "minimum": 0.0 },
+            "listingExchange": { "type": "string", "nullable": true, "description": "The exchange where the instrument is listed, if applicable. E.g., 'Luxembourg Stock Exchange', 'SIX Swiss Exchange'." },
+            "issuer": { "type": "string", "description": "The hypothetical issuer entity of the instrument (e.g., 'GlobalBank Corp.', 'Alpha Financial Services')." },
+            "ISIN": { "type": "string", "nullable": true, "description": "International Securities Identification Number for the instrument, if available or assigned." },
+            "couponFrequency": { "type": "string", "nullable": true, "description": "Frequency of coupon payments, if applicable.", "enum": ["monthly", "quarterly", "semi-annually", "annually", "at maturity", "none"] },
+            "autocallBarrier": { "type": "number", "nullable": true, "description": "Barrier level (as a percentage of initial price) at which the instrument automatically calls.", "minimum": 0.0, "maximum": 2.0 }
+          },
+          "required": ["issueDate", "maturityDate", "denomination", "minSubscriptionAmount", "issuer"]
+        },
+        "summary": { "type": "string", "description": "A concise, plain-language description of the instrument's features, benefits, and target investor profile. This includes how it meets the initial prompt's objectives." },
+        "riskFactors": { "type": "array", "items": { "type": "string" }, "description": "A comprehensive list of identified risks associated with the instrument, covering market, credit, liquidity, operational, and other relevant risks.", "minItems": 1 },
+        "simulationResults": {
+          "type": "object",
+          "properties": {
+            "expectedReturnAnnualized": { "type": "number", "description": "The expected annualized return of the instrument based on comprehensive Monte Carlo simulations." },
+            "volatilityAnnualized": { "type": "number", "description": "The simulated annualized volatility of the instrument (standard deviation of returns)." },
+            "maxDrawdownSimulated": { "type": "number", "description": "The maximum simulated drawdown from a peak value, expressed as a percentage." },
+            "probabilityOfPrincipalLoss": { "type": "number", "description": "The simulated probability of experiencing a loss of principal (0.0 to 1.0) under a broad range of scenarios.", "minimum": 0.0, "maximum": 1.0 },
+            "sharpeRatioSimulated": { "type": "number", "description": "The simulated Sharpe Ratio, measuring risk-adjusted return (excess return per unit of volatility)." },
+            "valueAtRisk99Percent": { "type": "number", "description": "Simulated Value at Risk at 99% confidence level over a 1-year horizon." },
+            "conditionalVaR99Percent": { "type": "number", "description": "Simulated Conditional Value at Risk (Expected Shortfall) at 99% confidence level over a 1-year horizon." }
+          },
+          "description": "Key risk and performance metrics generated by the Instrument Validation and Simulation System (IVSS) under base-case assumptions.",
+          "required": [
+            "expectedReturnAnnualized",
+            "volatilityAnnualized",
+            "maxDrawdownSimulated",
+            "probabilityOfPrincipalLoss",
+            "sharpeRatioSimulated",
+            "valueAtRisk99Percent",
+            "conditionalVaR99Percent"
+          ]
+        },
+        "regulatoryCompliance": { "type": "array", "items": { "type": "string" }, "description": "Identified regulatory categories or specific compliance notes and directives applicable to the instrument (e.g., MiFID II, Dodd-Frank, PRIIPs, UCITS, FATCA, CRS).", "minItems": 1 },
+        "visualRepresentations": {
+          "type": "array",
+          "description": "Collection of visual diagrams (e.g., Mermaid) illustrating the instrument's structure, lifecycle, payoff profiles, or risk decomposition. This aids in intuitive understanding.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "diagramType": {
+                "type": "string",
+                "description": "Type of Mermaid diagram syntax used.",
+                "enum": ["flowchart", "sequence", "gantt", "class", "state", "er", "journey", "graph", "pie", "quadrant"]
+              },
+              "title": { "type": "string", "description": "Descriptive title for the diagram." },
+              "description": { "type": "string", "description": "A textual explanation of what the diagram represents and its key insights." },
+              "mermaidSyntax": {
+                "type": "string",
+                "description": "The raw Mermaid diagram syntax string. This string can be rendered by a Mermaid parser to visualize the diagram.",
+                "pattern": "^(graph|sequenceDiagram|gantt|classDiagram|stateDiagram-v2|erDiagram|journey|pie|quadrantChart).*"
+              }
+            },
+            "required": ["diagramType", "title", "description", "mermaidSyntax"]
+          },
+          "minItems": 1,
+          "maxItems": 10
+        },
+        "designRationaleAndClaims": {
+          "type": "object",
+          "description": "Detailed explanations of the AFECE's design choices and key assertions (claims) about the instrument's characteristics and expected performance, backed by evidence.",
+          "properties": {
+            "overallRationale": {
+              "type": "string",
+              "description": "A comprehensive explanation of the instrument's design philosophy, how it addresses the prompt's objectives, and the trade-offs considered during its construction."
+            },
+            "designClaims": {
+              "type": "array",
+              "description": "Specific claims or verifiable assertions about the instrument's performance, risk profile, compliance, or unique features.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "claimText": { "type": "string", "description": "The specific assertion made about the instrument." },
+                  "category": { "type": "string", "enum": ["performance", "risk_mitigation", "capital_protection", "efficiency", "compliance", "liquidity", "ESG", "innovation", "structural_advantage", "market_access"] },
+                  "supportingEvidence": { "type": "array", "items": { "type": "string" }, "description": "References or data points (e.g., specific simulation results, mathematical proofs, regulatory citations, market analysis) that provide evidence for the claim." },
+                  "confidenceLevel": { "type": "number", "description": "AFECE's computed confidence in the validity and robustness of this claim (0.0 to 1.0).", "minimum": 0.0, "maximum": 1.0 }
+                },
+                "required": ["claimText", "category", "supportingEvidence", "confidenceLevel"]
+              },
+              "minItems": 1,
+              "maxItems": 10
+            }
+          },
+          "required": ["overallRationale", "designClaims"]
+        },
+        "advancedQuantitativeModels": {
+          "type": "object",
+          "description": "Collection of detailed mathematical models, formulas, and derivations underpinning the instrument's valuation, risk analytics, and payoff structure. Presented in LaTeX for precise representation.",
+          "properties": {
+            "valuationModels": {
+              "type": "array",
+              "description": "Formulas and models used for pricing and valuation of the instrument and its components.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "modelName": { "type": "string", "description": "Name of the valuation model (e.g., Black-Scholes-Merton, Binomial Tree, Monte Carlo Simulation, Finite Difference Method)." },
+                  "purpose": { "type": "string", "description": "The objective of this model in the instrument's context (e.g., 'option component pricing', 'full instrument valuation')." },
+                  "assumptions": { "type": "array", "items": { "type": "string" }, "description": "Key assumptions underlying the application of this model." },
+                  "equations": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "equationId": { "type": "string", "description": "Unique identifier for the equation within the model." },
+                        "description": { "type": "string", "description": "Description of what the equation calculates or represents." },
+                        "latexSyntax": { "type": "string", "description": "The equation represented in LaTeX syntax for precise mathematical rendering." },
+                        "variables": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "symbol": { "type": "string", "description": "Mathematical symbol used in the equation (e.g., 'S_0', 'K', '\\sigma')." },
+                              "name": { "type": "string", "description": "Full name of the variable (e.g., 'Initial Stock Price', 'Strike Price', 'Volatility')." },
+                              "unit": { "type": "string", "nullable": true, "description": "Unit of measurement for the variable (e.g., 'USD', '% per annum', 'years')." },
+                              "context": { "type": "string", "description": "Context or domain of the variable (e.g., 'underlying asset', 'option parameter', 'time')." }
+                            },
+                            "required": ["symbol", "name", "context"]
+                          }
+                        }
+                      },
+                      "required": ["equationId", "description", "latexSyntax", "variables"]
+                    },
+                    "minItems": 1
+                  }
+                },
+                "required": ["modelName", "purpose", "equations"]
+              },
+              "minItems": 1
+            },
+            "riskMetricsDerivations": {
+              "type": "array",
+              "description": "Formulas and methodologies for calculating various risk metrics specific to the instrument.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "metricName": { "type": "string", "description": "Name of the risk metric (e.g., VaR, CVaR, Delta, Gamma, Vega, Rho, Volatility, Correlation, Duration, Convexity)." },
+                  "methodology": { "type": "string", "description": "Methodology used for derivation (e.g., 'Historical Simulation', 'Parametric', 'Monte Carlo', 'Finite Difference')." },
+                  "equations": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "equationId": { "type": "string" },
+                        "description": { "type": "string" },
+                        "latexSyntax": { "type": "string" },
+                        "variables": { "$ref": "#/definitions/AFECE_InstrumentOutputSchema/properties/advancedQuantitativeModels/properties/valuationModels/items/properties/equations/items/properties/variables" }
+                      },
+                      "required": ["equationId", "description", "latexSyntax", "variables"]
+                    },
+                    "minItems": 1
+                  }
+                },
+                "required": ["metricName", "methodology", "equations"]
+              },
+              "minItems": 1
+            },
+            "payoffFunctionDefinitions": {
+              "type": "array",
+              "description": "Explicit mathematical definitions of the payoff functions for the instrument and its key components.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "component": { "type": "string", "description": "The specific instrument component or the overall instrument to which this payoff function applies." },
+                  "functionDescription": { "type": "string", "description": "Detailed description of the payoff function, including conditions and dependencies." },
+                  "equation": {
+                    "type": "object",
+                    "properties": {
+                      "equationId": { "type": "string" },
+                      "description": { "type": "string" },
+                      "latexSyntax": { "type": "string" },
+                      "variables": { "$ref": "#/definitions/AFECE_InstrumentOutputSchema/properties/advancedQuantitativeModels/properties/valuationModels/items/properties/equations/items/properties/variables" }
+                    },
+                    "required": ["equationId", "description", "latexSyntax", "variables"]
+                  }
+                },
+                "required": ["component", "functionDescription", "equation"]
+              },
+              "minItems": 1
+            },
+            "stochasticProcesses": {
+              "type": "array",
+              "description": "Stochastic differential equations (SDEs) and related equations used to model underlying asset dynamics.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "processName": { "type": "string", "description": "Name of the stochastic process (e.g., Geometric Brownian Motion, Vasicek, CIR, Jump-Diffusion)." },
+                  "application": { "type": "string", "description": "Application context of this process (e.g., 'equity modeling', 'interest rate dynamics')." },
+                  "equations": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "equationId": { "type": "string" },
+                        "description": { "type": "string" },
+                        "latexSyntax": { "type": "string" },
+                        "variables": { "$ref": "#/definitions/AFECE_InstrumentOutputSchema/properties/advancedQuantitativeModels/properties/valuationModels/items/properties/equations/items/properties/variables" }
+                      },
+                      "required": ["equationId", "description", "latexSyntax", "variables"]
+                    }
+                  }
+                },
+                "required": ["processName", "application", "equations"]
+              },
+              "minItems": 1
+            }
+          },
+          "minItems": 1
+        },
+        "scenarioAnalysis": {
+          "type": "array",
+          "description": "Detailed simulation and stress testing results under various hypothetical market conditions, showcasing instrument behavior.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "scenarioName": { "type": "string", "description": "Name of the market scenario (e.g., 'Bull Market - Moderate Growth', 'Bear Market - Severe Downturn', 'High Volatility Spike', 'Interest Rate Shock Up')." },
+              "scenarioDescription": { "type": "string", "description": "Detailed qualitative description of the market conditions and assumptions for this specific scenario." },
+              "simulatedReturns": {
+                "type": "object",
+                "properties": {
+                  "meanAnnualizedReturn": { "type": "number", "description": "Mean annualized return across all simulation paths for this scenario." },
+                  "medianAnnualizedReturn": { "type": "number", "description": "Median annualized return across all simulation paths for this scenario." },
+                  "minReturnObserved": { "type": "number", "description": "Minimum annualized return observed in any simulation path for this scenario." },
+                  "maxReturnObserved": { "type": "number", "description": "Maximum annualized return observed in any simulation path for this scenario." },
+                  "standardDeviationReturn": { "type": "number", "description": "Standard deviation of annualized returns for this scenario." }
+                },
+                "required": ["meanAnnualizedReturn", "medianAnnualizedReturn", "minReturnObserved", "maxReturnObserved", "standardDeviationReturn"]
+              },
+              "impactOnPrincipal": {
+                "type": "object",
+                "properties": {
+                  "principalAtMaturityPercentile25": { "type": "number", "description": "25th percentile of principal return at maturity (as a percentage of initial principal)." },
+                  "principalAtMaturityPercentile50": { "type": "number", "description": "50th percentile (median) of principal return at maturity (as a percentage)." },
+                  "principalAtMaturityPercentile75": { "type": "number", "description": "75th percentile of principal return at maturity (as a percentage)." },
+                  "principalLossProbability": { "type": "number", "description": "Probability of experiencing any loss of principal in this specific scenario (0.0 to 1.0)." }
+                },
+                "required": ["principalAtMaturityPercentile25", "principalAtMaturityPercentile50", "principalAtMaturityPercentile75", "principalLossProbability"]
+              },
+              "keyIndicatorsAtMaturity": {
+                "type": "object",
+                "description": "Other relevant metrics at maturity under this scenario (e.g., number of autocalls, total coupons paid).",
+                "additionalProperties": { "type": "number" }
+              }
+            },
+            "required": ["scenarioName", "scenarioDescription", "simulatedReturns", "impactOnPrincipal"]
+          },
+          "minItems": 1
+        },
+        "auditTrail": {
+          "type": "object",
+          "description": "Detailed log of the AFECE's internal reasoning process, decision points, constraint resolution, and computational metrics, providing transparency and traceability.",
+          "properties": {
+            "designDecisions": {
+              "type": "array",
+              "description": "A chronological record of significant design decisions made during the instrument generation process.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "decisionPoint": { "type": "string", "description": "The specific design aspect addressed (e.g., 'Underlying Asset Selection', 'Payoff Structure Refinement', 'Pricing Model Choice', 'Risk Hedging Strategy')." },
+                  "rationale": { "type": "string", "description": "Detailed explanation of why this particular choice was made, referencing objectives and constraints." },
+                  "alternativesConsidered": { "type": "array", "items": { "type": "string" }, "description": "Other viable options that were evaluated and their perceived drawbacks or advantages." },
+                  "impactAnalysisSummary": { "type": "string", "description": "Summary of the expected impact of the chosen decision on the instrument's performance, risk profile, and adherence to requirements." }
+                },
+                "required": ["decisionPoint", "rationale", "alternativesConsidered", "impactAnalysisSummary"]
+              }
+            },
+            "constraintResolutionLog": {
+              "type": "array",
+              "description": "Log of how identified constraints were addressed and resolved or justified.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "constraintViolated": { "type": "string", "description": "The specific constraint that was initially challenged or could not be perfectly met." },
+                  "resolutionStrategy": { "type": "string", "description": "The strategy employed to resolve the constraint violation (e.g., 'parameter adjustment', 'structural modification', 'justification for deviation')." },
+                  "finalStatus": { "type": "string", "enum": ["resolved", "mitigated", "accepted_with_justification", "not_applicable"] },
+                  "justification": { "type": "string", "nullable": true, "description": "If accepted with justification, the explicit reason for accepting a partial or limited violation of the constraint." }
+                },
+                "required": ["constraintViolated", "resolutionStrategy", "finalStatus"]
+              }
+            },
+            "computationalResources": {
+              "type": "object",
+              "description": "Metrics related to the computational effort involved in generating this instrument design.",
+              "properties": {
+                "cpuTimeSeconds": { "type": "number", "description": "Total CPU time consumed in seconds." },
+                "memoryUsageMB": { "type": "number", "description": "Peak memory usage in megabytes." },
+                "modelVersion": { "type": "string", "description": "Version identifier of the AFECE engine that generated the output." },
+                "generationTimestamp": { "type": "string", "format": "date-time", "description": "Timestamp of when the instrument design was finalized." },
+                "iterationsPerformed": { "type": "integer", "description": "Number of optimization/simulation iterations performed." }
+              },
+              "required": ["cpuTimeSeconds", "memoryUsageMB", "modelVersion", "generationTimestamp", "iterationsPerformed"]
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,361 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. GLBAL.
+       AUTHOR. MAINFRAME-DEVELOPERS.
+       DATE-WRITTEN. 1991-05-22.
+       DATE-COMPILED. <CURRENT-DATE>.
+      ******************************************************************
+      * GENERAL LEDGER BALANCE INQUIRY AND ANALYTICS MODULE
+      *
+      * RETRIEVES AND DISPLAYS DETAILED BALANCE INFORMATION FOR A
+      * GENERAL LEDGER ACCOUNT. INCLUDES EXTENDED ACCOUNT DETAILS
+      * AND INTEGRATES WITH A SIMULATED MAINFRAME ANALYTICAL ENGINE (MAE)
+      * TO PROVIDE BASIC INSIGHTS IN A STORY-LIKE MANNER.
+      ******************************************************************
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT GL-MASTER-FILE ASSIGN TO GLMAST
+               ORGANIZATION IS INDEXED
+               ACCESS MODE IS RANDOM
+               RECORD KEY IS GL-ACCOUNT-NUMBER
+               FILE STATUS IS WS-GLMAST-STATUS.
+
+       DATA DIVISION.
+       FILE SECTION.
+       FD GL-MASTER-FILE.
+       01 GL-FILE-RECORD                 PIC X(300).
+
+       WORKING-STORAGE SECTION.
+       01 WS-PROGRAM-SWITCHES.
+          05 WS-GLMAST-STATUS     PIC X(02).
+             88 GLMAST-OK            VALUE '00'.
+             88 GLMAST-NOT-FOUND     VALUE '23'.
+             88 GLMAST-ERROR         VALUE '10', '21', '30', '90'.
+          05 WS-EXIT-PROGRAM-FLAG PIC X(01) VALUE 'N'.
+             88 EXIT-PROGRAM         VALUE 'Y'.
+          05 WS-DATA-FOUND-FLAG   PIC X(01) VALUE 'N'.
+             88 DATA-FOUND           VALUE 'Y'.
+
+       01 WS-INPUT-FIELDS.
+          05 WS-INQUIRY-ACCT      PIC X(15).
+          05 WS-MENU-CHOICE       PIC X(01).
+
+       01 WS-DATE-FIELDS.
+          05 WS-CURRENT-DATE-YYMMDD.
+             10 WS-CURRENT-YY     PIC 9(02).
+             10 WS-CURRENT-MM     PIC 9(02).
+             10 WS-CURRENT-DD     PIC 9(02).
+          05 WS-CURRENT-DATE-CCYYMMDD.
+             10 WS-CURRENT-CC     PIC 9(02).
+             10 WS-CURRENT-YYYY   PIC 9(04).
+             10 FILLER            PIC X(04).
+          05 WS-TODAY-DATE         PIC X(08).
+          05 WS-LAST-REVIEW-DATE   PIC X(08).
+
+       01 WS-GL-ACCOUNT.
+      *   The following fields align with what CPGL01 might provide,
+      *   and are extended for rich functionality.
+          05 GL-ACCOUNT-NUMBER      PIC X(15).
+          05 GL-ACCOUNT-DESC        PIC X(50).
+          05 GL-CURRENT-BALANCE     PIC S9(15)V99 COMP-3.
+          05 GL-YTD-DEBITS          PIC S9(15)V99 COMP-3.
+          05 GL-YTD-CREDITS         PIC S9(15)V99 COMP-3.
+      *   New fields for expanded functionality
+          05 GL-ACCOUNT-TYPE        PIC X(10).
+             88 GL-TYPE-ASSET          VALUE 'ASSET'.
+             88 GL-TYPE-LIABILITY      VALUE 'LIABILITY'.
+             88 GL-TYPE-EQUITY         VALUE 'EQUITY'.
+             88 GL-TYPE-REVENUE        VALUE 'REVENUE'.
+             88 GL-TYPE-EXPENSE        VALUE 'EXPENSE'.
+          05 GL-LAST-ACTIVITY-DT    PIC X(08).
+          05 GL-BUDGET-AMOUNT       PIC S9(15)V99 COMP-3.
+          05 GL-PRIOR-YEAR-BALANCE  PIC S9(15)V99 COMP-3.
+          05 GL-STATUS-CODE         PIC X(01).
+             88 GL-STATUS-ACTIVE       VALUE 'A'.
+             88 GL-STATUS-INACTIVE     VALUE 'I'.
+             88 GL-STATUS-CLOSED       VALUE 'C'.
+          05 GL-ANALYTICS-FLAG      PIC X(01).
+             88 ANALYTICS-ENABLED      VALUE 'Y'.
+             88 ANALYTICS-DISABLED     VALUE 'N'.
+          05 GL-LAST-AI-REVIEW-DT   PIC X(08).
+          05 GL-AI-INSIGHT-SUMMARY  PIC X(150).
+          05 GL-ADDITIONAL-INFO     PIC X(45).
+
+       COPY CPGL01 REPLACING ==GL-ACCOUNT-RECORD== BY ==WS-GL-ACCOUNT==.
+
+       01 WS-DISPLAY-SCREEN.
+          05 DS-LINE-1.
+             10 FILLER            PIC X(10) VALUE "ACCOUNT: ".
+             10 DS-ACCT-NUM       PIC X(15).
+             10 FILLER            PIC X(02) VALUE " ".
+             10 DS-ACCT-DESC      PIC X(50).
+          05 DS-LINE-2.
+             10 FILLER            PIC X(20) VALUE "CURRENT BALANCE: ".
+             10 DS-CURR-BAL       PIC ----,---,---,---,--9.99.
+          05 DS-LINE-3.
+             10 FILLER            PIC X(20) VALUE "YTD DEBITS: ".
+             10 DS-YTD-DR         PIC ----,---,---,---,--9.99.
+          05 DS-LINE-4.
+             10 FILLER            PIC X(20) VALUE "YTD CREDITS: ".
+             10 DS-YTD-CR         PIC ----,---,---,---,--9.99.
+          05 DS-LINE-5.
+             10 FILLER            PIC X(20) VALUE "ACCOUNT TYPE: ".
+             10 DS-ACCT-TYPE      PIC X(10).
+             10 FILLER            PIC X(10) VALUE " STATUS: ".
+             10 DS-ACCT-STATUS    PIC X(01).
+          05 DS-LINE-6.
+             10 FILLER            PIC X(20) VALUE "LAST ACTIVITY: ".
+             10 DS-LAST-ACT-DT    PIC X(08).
+             10 FILLER            PIC X(10) VALUE " BUDGET: ".
+             10 DS-BUDGET-AMT     PIC ----,---,---,---,--9.99.
+          05 DS-LINE-7.
+             10 FILLER            PIC X(20) VALUE "PRIOR YEAR BAL: ".
+             10 DS-PRIOR-YR-BAL   PIC ----,---,---,---,--9.99.
+          05 DS-LINE-AI-FLAG.
+             10 FILLER            PIC X(20) VALUE "ANALYTICS ENABLED: ".
+             10 DS-AI-FLAG        PIC X(01).
+             10 FILLER            PIC X(15) VALUE " LAST REVIEW: ".
+             10 DS-AI-REVIEW-DT   PIC X(08).
+          05 DS-LINE-AI-INSIGHT.
+             10 FILLER            PIC X(20) VALUE "MAE INSIGHT: ".
+             10 DS-AI-INSIGHT-SUM PIC X(150).
+
+       01 WS-MENU-DISPLAY.
+          05 FILLER                PIC X(80) VALUE ALL "-".
+          05 FILLER                PIC X(80) VALUE "        G/L ACCOUNT OPERATIONS MENU        ".
+          05 FILLER                PIC X(80) VALUE "        ---------------------------        ".
+          05 FILLER                PIC X(80) VALUE "        1. Inquire New Account           ".
+          05 FILLER                PIC X(80) VALUE "        2. View Extended Account Details ".
+          05 FILLER                PIC X(80) VALUE "        3. Request MAE Financial Insights".
+          05 FILLER                PIC X(80) VALUE "        4. Update Account Record (Simulated)".
+          05 FILLER                PIC X(80) VALUE "        X. Exit Program                    ".
+          05 FILLER                PIC X(80) VALUE ALL "-".
+          05 FILLER                PIC X(80) VALUE "        ENTER CHOICE: ".
+
+       01 WS-AI-WORKING-FIELDS.
+          05 WS-BALANCE-VS-BUDGET  PIC S9(15)V99.
+          05 WS-YTD-VARIANCE       PIC S9(15)V99.
+          05 WS-AI-MESSAGE-1       PIC X(75).
+          05 WS-AI-MESSAGE-2       PIC X(75).
+
+
+       PROCEDURE DIVISION.
+       0000-MAIN-LOGIC.
+           PERFORM 1000-INITIALIZATION.
+           PERFORM 0500-MAIN-MENU-LOOP
+               UNTIL EXIT-PROGRAM.
+           PERFORM 9999-TERMINATION.
+           STOP RUN.
+
+       0500-MAIN-MENU-LOOP.
+           DISPLAY WS-MENU-DISPLAY.
+           ACCEPT WS-MENU-CHOICE.
+           EVALUATE WS-MENU-CHOICE
+               WHEN '1'
+                   PERFORM 2000-ACCEPT-INQUIRY
+                   PERFORM 3000-READ-GL-RECORD
+                   IF DATA-FOUND
+                       PERFORM 4000-DISPLAY-BALANCE-SUMMARY
+                   END-IF
+               WHEN '2'
+                   IF NOT DATA-FOUND
+                       DISPLAY "ERROR: No account loaded. Please inquire first."
+                   ELSE
+                       PERFORM 5000-DISPLAY-DETAILED-DATA
+                   END-IF
+               WHEN '3'
+                   IF NOT DATA-FOUND
+                       DISPLAY "ERROR: No account loaded. Please inquire first."
+                   ELSE
+                       PERFORM 6000-ANALYZE-MAE-INSIGHTS
+                   END-IF
+               WHEN '4'
+                   IF NOT DATA-FOUND
+                       DISPLAY "ERROR: No account loaded. Please inquire first."
+                   ELSE
+                       PERFORM 8000-UPDATE-GL-ACCOUNT-SIM
+                   END-IF
+               WHEN 'X'
+                   SET EXIT-PROGRAM TO TRUE
+                   DISPLAY "Exiting G/L Balance Inquiry Module."
+               WHEN OTHER
+                   DISPLAY "Invalid option. Please try again."
+           END-EVALUATE.
+           DISPLAY " ".
+
+       1000-INITIALIZATION.
+           DISPLAY " ".
+           DISPLAY "INITIALIZING GLBAL - GENERAL LEDGER ANALYTICS MODULE.".
+           ACCEPT WS-TODAY-DATE FROM DATE YYYYMMDD.
+           OPEN I-O GL-MASTER-FILE.
+           IF NOT GLMAST-OK
+               DISPLAY "ERROR: Failed to open GL-MASTER-FILE. Status: " WS-GLMAST-STATUS
+               SET EXIT-PROGRAM TO TRUE
+           END-IF.
+
+       2000-ACCEPT-INQUIRY.
+           MOVE 'N' TO WS-DATA-FOUND-FLAG.
+           INITIALIZE WS-INQUIRY-ACCT.
+           DISPLAY " ".
+           DISPLAY "ENTER G/L ACCOUNT NUMBER FOR BALANCE INQUIRY (15 chars): ".
+           ACCEPT WS-INQUIRY-ACCT.
+           PERFORM 9000-VALIDATE-INPUT-ACCT.
+           IF WS-INQUIRY-ACCT = SPACES
+               DISPLAY "Account number cannot be blank. Returning to menu."
+               MOVE 'Y' TO WS-DATA-FOUND-FLAG
+           END-IF.
+
+       3000-READ-GL-RECORD.
+           IF WS-INQUIRY-ACCT NOT = SPACES
+               MOVE WS-INQUIRY-ACCT TO GL-ACCOUNT-NUMBER OF WS-GL-ACCOUNT
+               READ GL-MASTER-FILE INTO WS-GL-ACCOUNT
+                   INVALID KEY
+                       MOVE 'N' TO WS-DATA-FOUND-FLAG
+                       DISPLAY "ERROR: G/L ACCOUNT " WS-INQUIRY-ACCT " NOT FOUND."
+                       MOVE '23' TO WS-GLMAST-STATUS
+                   NOT INVALID KEY
+                       MOVE 'Y' TO WS-DATA-FOUND-FLAG
+                       DISPLAY "G/L Account " WS-INQUIRY-ACCT " retrieved successfully."
+               END-READ
+           END-IF.
+
+       4000-DISPLAY-BALANCE-SUMMARY.
+           IF DATA-FOUND
+               MOVE GL-ACCOUNT-NUMBER OF WS-GL-ACCOUNT TO DS-ACCT-NUM
+               MOVE GL-ACCOUNT-DESC OF WS-GL-ACCOUNT TO DS-ACCT-DESC
+               MOVE GL-CURRENT-BALANCE OF WS-GL-ACCOUNT TO DS-CURR-BAL
+               MOVE GL-YTD-DEBITS OF WS-GL-ACCOUNT TO DS-YTD-DR
+               MOVE GL-YTD-CREDITS OF WS-GL-ACCOUNT TO DS-YTD-CR
+               DISPLAY " "
+               DISPLAY "--------------- G/L ACCOUNT BALANCE SUMMARY ---------------"
+               DISPLAY DS-LINE-1
+               DISPLAY " "
+               DISPLAY DS-LINE-2
+               DISPLAY DS-LINE-3
+               DISPLAY DS-LINE-4
+               DISPLAY "-----------------------------------------------------------"
+           END-IF.
+
+       5000-DISPLAY-DETAILED-DATA.
+           IF DATA-FOUND
+               PERFORM 4000-DISPLAY-BALANCE-SUMMARY
+               MOVE GL-ACCOUNT-TYPE OF WS-GL-ACCOUNT TO DS-ACCT-TYPE
+               MOVE GL-STATUS-CODE OF WS-GL-ACCOUNT TO DS-ACCT-STATUS
+               MOVE GL-LAST-ACTIVITY-DT OF WS-GL-ACCOUNT TO DS-LAST-ACT-DT
+               MOVE GL-BUDGET-AMOUNT OF WS-GL-ACCOUNT TO DS-BUDGET-AMT
+               MOVE GL-PRIOR-YEAR-BALANCE OF WS-GL-ACCOUNT TO DS-PRIOR-YR-BAL
+               MOVE GL-ANALYTICS-FLAG OF WS-GL-ACCOUNT TO DS-AI-FLAG
+               MOVE GL-LAST-AI-REVIEW-DT OF WS-GL-ACCOUNT TO DS-AI-REVIEW-DT
+               MOVE GL-AI-INSIGHT-SUMMARY OF WS-GL-ACCOUNT TO DS-AI-INSIGHT-SUM
+
+               DISPLAY " "
+               DISPLAY "------------ EXTENDED G/L ACCOUNT DETAILS -------------"
+               DISPLAY DS-LINE-5
+               DISPLAY DS-LINE-6
+               DISPLAY DS-LINE-7
+               DISPLAY DS-LINE-AI-FLAG
+               DISPLAY DS-LINE-AI-INSIGHT
+               DISPLAY "-------------------------------------------------------"
+           END-IF.
+
+       6000-ANALYZE-MAE-INSIGHTS.
+           DISPLAY " "
+           DISPLAY "-------- MAINFRAME ANALYTICAL ENGINE (MAE) INSIGHTS --------"
+           IF ANALYTICS-DISABLED OF WS-GL-ACCOUNT
+               DISPLAY "  MAE insights are disabled for this account."
+               DISPLAY "  Please contact system administrator if activation is needed."
+               DISPLAY "-------------------------------------------------------"
+               EXIT SECTION
+           END-IF.
+
+           MOVE SPACES TO WS-AI-MESSAGE-1 WS-AI-MESSAGE-2.
+           MOVE SPACES TO GL-AI-INSIGHT-SUMMARY OF WS-GL-ACCOUNT.
+
+           COMPUTE WS-BALANCE-VS-BUDGET = GL-CURRENT-BALANCE OF WS-GL-ACCOUNT - GL-BUDGET-AMOUNT OF WS-GL-ACCOUNT.
+           COMPUTE WS-YTD-VARIANCE = GL-YTD-DEBITS OF WS-GL-ACCOUNT - GL-YTD-CREDITS OF WS-GL-ACCOUNT.
+
+           STRING "MAE performing analysis for Account " GL-ACCOUNT-NUMBER OF WS-GL-ACCOUNT
+               DELIMITED BY SIZE INTO WS-AI-MESSAGE-1.
+           DISPLAY WS-AI-MESSAGE-1.
+
+           IF GL-BUDGET-AMOUNT OF WS-GL-ACCOUNT = 0
+               STRING "  Insight: Budget amount is zero, cannot compare accurately."
+                   DELIMITED BY SIZE INTO WS-AI-MESSAGE-1
+           ELSE IF WS-BALANCE-VS-BUDGET > 0.05 * GL-BUDGET-AMOUNT OF WS-GL-ACCOUNT
+               STRING "  Insight: Current balance is significantly above budget."
+                   DELIMITED BY SIZE INTO WS-AI-MESSAGE-1
+           ELSE IF WS-BALANCE-VS-BUDGET < -0.05 * GL-BUDGET-AMOUNT OF WS-GL-ACCOUNT
+               STRING "  Insight: Current balance is significantly below budget."
+                   DELIMITED BY SIZE INTO WS-AI-MESSAGE-1
+           ELSE
+               STRING "  Insight: Current balance is generally aligned with budget."
+                   DELIMITED BY SIZE INTO WS-AI-MESSAGE-1
+           END-IF.
+           DISPLAY WS-AI-MESSAGE-1.
+           MOVE WS-AI-MESSAGE-1 TO GL-AI-INSIGHT-SUMMARY OF WS-GL-ACCOUNT.
+
+
+           IF GL-YTD-DEBITS OF WS-GL-ACCOUNT > (GL-YTD-CREDITS OF WS-GL-ACCOUNT * 1.5)
+               STRING "  Trend: Year-to-date debits show a pronounced upward trend."
+                   DELIMITED BY SIZE INTO WS-AI-MESSAGE-2
+           ELSE IF GL-YTD-CREDITS OF WS-GL-ACCOUNT > (GL-YTD-DEBITS OF WS-GL-ACCOUNT * 1.5)
+               STRING "  Trend: Year-to-date credits show a pronounced upward trend."
+                   DELIMITED BY SIZE INTO WS-AI-MESSAGE-2
+           ELSE
+               STRING "  Trend: Year-to-date debit/credit flow is relatively balanced."
+                   DELIMITED BY SIZE INTO WS-AI-MESSAGE-2
+           END-IF.
+           DISPLAY WS-AI-MESSAGE-2.
+           STRING GL-AI-INSIGHT-SUMMARY OF WS-GL-ACCOUNT DELIMITED BY SPACE
+                  " | " DELIMITED BY SIZE
+                  WS-AI-MESSAGE-2 DELIMITED BY SPACE
+               INTO GL-AI-INSIGHT-SUMMARY OF WS-GL-ACCOUNT.
+
+           IF GL-LAST-ACTIVITY-DT OF WS-GL-ACCOUNT < WS-TODAY-DATE
+               MOVE WS-TODAY-DATE(1:4) TO WS-LAST-REVIEW-DATE(1:4)
+               MOVE WS-TODAY-DATE(5:2) TO WS-LAST-REVIEW-DATE(5:2)
+               MOVE WS-TODAY-DATE(7:2) TO WS-LAST-REVIEW-DATE(7:2)
+               SUBTRACT 0001 FROM WS-LAST-REVIEW-DATE(1:4)
+               IF GL-LAST-ACTIVITY-DT OF WS-GL-ACCOUNT < WS-LAST-REVIEW-DATE
+                   DISPLAY "  Alert: Last activity date is more than a year old. Review needed."
+                   STRING GL-AI-INSIGHT-SUMMARY OF WS-GL-ACCOUNT DELIMITED BY SPACE
+                          " | " DELIMITED BY SIZE
+                          "Alert: Old activity." DELIMITED BY SIZE
+                       INTO GL-AI-INSIGHT-SUMMARY OF WS-GL-ACCOUNT
+               END-IF
+           END-IF.
+
+           MOVE WS-TODAY-DATE TO GL-LAST-AI-REVIEW-DT OF WS-GL-ACCOUNT.
+           DISPLAY "  MAE analysis complete. Insight summary updated."
+           DISPLAY "------------------------------------------------------------"
+           PERFORM 8000-UPDATE-GL-ACCOUNT-SIM.
+
+       8000-UPDATE-GL-ACCOUNT-SIM.
+           DISPLAY " "
+           DISPLAY "-------- SIMULATING G/L ACCOUNT UPDATE --------"
+           IF NOT DATA-FOUND
+               DISPLAY "  No account loaded. Cannot perform update."
+               EXIT SECTION
+           END-IF.
+
+           REWRITE GL-FILE-RECORD FROM WS-GL-ACCOUNT
+               INVALID KEY
+                   DISPLAY "  ERROR: Failed to update G/L Account " GL-ACCOUNT-NUMBER OF WS-GL-ACCOUNT
+                   DISPLAY "  File Status: " WS-GLMAST-STATUS
+               NOT INVALID KEY
+                   DISPLAY "  G/L Account " GL-ACCOUNT-NUMBER OF WS-GL-ACCOUNT " updated successfully."
+           END-REWRITE.
+           DISPLAY "--------------------------------------------------"
+           DISPLAY " " .
+
+       9000-VALIDATE-INPUT-ACCT.
+           IF WS-INQUIRY-ACCT = SPACES
+               DISPLAY "Account number cannot be blank."
+               MOVE SPACES TO WS-INQUIRY-ACCT
+               EXIT SECTION
+           END-IF.
+
+       9999-TERMINATION.
+           CLOSE GL-MASTER-FILE.
+           DISPLAY "GLBAL MAINFRAME ANALYTICS MODULE TERMINATED GRACEFULLY.".
+           DISPLAY " ".

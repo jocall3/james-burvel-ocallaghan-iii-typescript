@@ -1,0 +1,101 @@
+      ******************************************************************
+      * FINANCIAL INSTITUTION - COPYBOOK FOR TELLER MASTER RECORD (V2.0)
+      ******************************************************************
+       01 TELLER-MASTER-RECORD.
+          05 TM-TELLER-ID           PIC X(08).
+          05 TM-TELLER-NAME         PIC X(50).
+          05 TM-TELLER-LOGIN-ID     PIC X(10).
+          05 TM-HIRE-DATE           PIC 9(08) COMP-3. * YYYYMMDD
+          05 TM-EMPLOYEE-STATUS     PIC X(01).
+             88 STATUS-ACTIVE       VALUE 'A'.
+             88 STATUS-INACTIVE     VALUE 'I'.
+             88 STATUS-ON-LEAVE     VALUE 'L'.
+             88 STATUS-TERMINATED   VALUE 'T'.
+
+          05 TM-CONTACT-INFO.
+             10 TM-PHONE-NUMBER     PIC X(15).
+             10 TM-EMAIL-ADDRESS    PIC X(50).
+             10 TM-ADDRESS-LINE1    PIC X(40).
+             10 TM-ADDRESS-LINE2    PIC X(40).
+             10 TM-CITY             PIC X(30).
+             10 TM-STATE-PROVINCE   PIC X(02).
+             10 TM-POSTAL-CODE      PIC X(10).
+
+          05 TM-BRANCH-INFO.
+             10 TM-BRANCH-ID        PIC X(04).
+             10 TM-BRANCH-LOCATION  PIC X(30).
+             10 TM-BRANCH-MANAGER-ID PIC X(08).
+
+          05 TM-DRAWER-INFO.
+             10 TM-DRAWER-ID        PIC X(10).
+             10 TM-DRAWER-STATUS    PIC X(01).
+                88 DRAWER-OPEN       VALUE 'O'.
+                88 DRAWER-CLOSED     VALUE 'C'.
+                88 DRAWER-PENDING    VALUE 'P'.
+             10 TM-DRAWER-CASH-LIMIT PIC S9(9)V99 COMP-3.
+             10 TM-LAST-DRAWER-OPEN-TS PIC 9(14) COMP-3. * YYYYMMDDHHMMSS
+             10 TM-LAST-DRAWER-CLOSE-TS PIC 9(14) COMP-3. * YYYYMMDDHHMMSS
+
+          05 TM-AUTHORIZATION-LEVELS.
+             10 TM-AUTH-LEVEL       PIC 9(01).
+             10 TM-CASH-ADV-LIMIT   PIC S9(7)V99 COMP-3.
+             10 TM-CHECK-CASH-LIMIT PIC S9(7)V99 COMP-3.
+             10 TM-OVERRIDE-LIMIT   PIC S9(7)V99 COMP-3.
+             10 TM-LOAN-APPROVAL-LIMIT PIC S9(7)V99 COMP-3.
+
+          05 TM-DAILY-TOTALS.
+             10 TM-TOTAL-CASH-IN    PIC S9(11)V99 COMP-3.
+             10 TM-TOTAL-CASH-OUT   PIC S9(11)V99 COMP-3.
+             10 TM-TOTAL-DEPOSITS   PIC S9(11)V99 COMP-3.
+             10 TM-TOTAL-WITHDRAWLS PIC S9(11)V99 COMP-3.
+             10 TM-TOTAL-CHECKS-CAS PIC S9(11)V99 COMP-3.
+             10 TM-TX-COUNT         PIC 9(05).
+             10 TM-LAST-TX-TIMESTAMP PIC 9(14) COMP-3. * YYYYMMDDHHMMSS
+
+          05 TM-PERFORMANCE-METRICS.
+             10 TM-AVG-TX-TIME      PIC S9(03)V99 COMP-3. * Seconds
+             10 TM-ERROR-RATE       PIC S9(01)V999 COMP-3. * Percentage (e.g., 0.015 for 1.5%)
+             10 TM-CUSTOMER-SAT-SCORE PIC S9(03) COMP-3. * 0-100 scale
+             10 TM-PRODUCT-SALES-COUNT PIC 9(03).
+             10 TM-REFERRAL-COUNT   PIC 9(03).
+
+          05 TM-TRAINING-CERTIFICATIONS.
+             10 TM-LAST-COMPLIANCE-TRAINING-DATE PIC 9(08) COMP-3.
+             10 TM-PRODUCT-CERTIFICATION-FLAGS.
+                15 TM-CERT-LOANS    PIC X(01).
+                15 TM-CERT-INVESTMENTS PIC X(01).
+                15 TM-CERT-FOREIGN-EXCHANGE PIC X(01).
+                15 TM-CERT-ADVANCED-PRODUCTS PIC X(01).
+                15 TM-CERT-FILLER   PIC X(06).
+
+          05 TM-AI-ASSISTANT-DATA.
+             10 TM-AI-RISK-SCORE    PIC S9(03) COMP-3. * 0-100, higher means higher risk
+             10 TM-AI-RECOMMENDATION PIC X(80). * AI suggested action or insight
+             10 TM-AI-MODEL-VERSION PIC X(10). * Version of the AI model used
+             10 TM-AI-LAST-UPDATE-TS PIC 9(14) COMP-3. * YYYYMMDDHHMMSS
+             10 TM-AI-FLAG-STATUS   PIC X(01).
+                88 AI-ACTIVE         VALUE 'A'.
+                88 AI-RECOMMENDED    VALUE 'R'.
+                88 AI-BYPASSED       VALUE 'B'.
+                88 AI-DISABLED       VALUE 'D'.
+             10 TM-AI-COMPLIANCE-ALERTS PIC 9(03) COMP-3.
+             10 TM-AI-FRAUD-ALERTS  PIC 9(03) COMP-3.
+             10 TM-AI-PRODUCT-SUGGESTIONS PIC X(50). * AI generated product suggestions for customers
+
+          05 TM-AUDIT-CONTROL-INFO.
+             10 TM-LAST-UPDATE-USER  PIC X(08).
+             10 TM-LAST-UPDATE-DATE  PIC 9(08) COMP-3.
+             10 TM-LAST-UPDATE-TIME  PIC 9(06) COMP-3.
+             10 TM-CREATE-USER       PIC X(08).
+             10 TM-CREATE-DATE       PIC 9(08) COMP-3.
+             10 TM-CREATE-TIME       PIC 9(06) COMP-3.
+
+          05 TM-SYSTEM-FLAGS.
+             10 TM-SYSTEM-LOCK-FLAG PIC X(01).
+                88 SYSTEM-LOCKED    VALUE 'Y'.
+                88 SYSTEM-UNLOCKED  VALUE 'N'.
+             10 TM-TEMP-SUSPEND-FLAG PIC X(01).
+                88 SUSPENDED        VALUE 'Y'.
+                88 NOT-SUSPENDED    VALUE 'N'.
+
+          05 TM-FILLER              PIC X(100).

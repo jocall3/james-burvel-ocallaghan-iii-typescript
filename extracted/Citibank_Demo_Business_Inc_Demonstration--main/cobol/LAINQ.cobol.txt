@@ -1,0 +1,444 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. LAINQ.
+       AUTHOR. TECH-VISIONARY-TEAM.
+       DATE-WRITTEN. 1990-03-05.
+       DATE-COMPILED. A_DATE.
+      ******************************************************************
+      * NEURALNET FINANCE - LOAN INSIGHT INQUIRY
+      *
+      * RETRIEVES, DISPLAYS, AND PROVIDES AI-ASSISTED INSIGHTS FOR
+      * A LOAN RECORD FROM THE MASTER FILE.
+      * This module showcases interaction with a simulated AI subsystem
+      * to augment traditional financial data inquiries with predictive
+      * and analytical capabilities, offering a holistic view of loan
+      * health and customer engagement.
+      ******************************************************************
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT LOAN-MASTER-FILE ASSIGN TO LOANMAST
+               ORGANIZATION IS INDEXED
+               ACCESS MODE IS RANDOM
+               RECORD KEY IS LM-LOAN-ID
+               FILE STATUS IS WS-LOANMAST-STATUS.
+
+       DATA DIVISION.
+       FILE SECTION.
+       FD LOAN-MASTER-FILE.
+       01 LOAN-FILE-RECORD    PIC X(131).
+
+       WORKING-STORAGE SECTION.
+       01 WS-PROGRAM-SWITCHES.
+          05 WS-LOANMAST-STATUS     PIC X(02).
+             88 LOANMAST-OK            VALUE '00'.
+             88 LOANMAST-NOT-FOUND     VALUE '23'.
+          05 WS-CONTINUE-FLAG       PIC X(01) VALUE 'Y'.
+             88 CONTINUE-PROCESSING    VALUE 'Y'.
+             88 STOP-PROCESSING        VALUE 'N'.
+          05 WS-VALID-INPUT-FLAG    PIC X(01) VALUE 'N'.
+             88 INPUT-IS-VALID         VALUE 'Y'.
+             88 INPUT-IS-INVALID       VALUE 'N'.
+
+       01 WS-INPUT-FIELDS.
+          05 WS-INQUIRY-OPTION    PIC 9(01).
+             88 INQUIRE-BY-LOAN-ID     VALUE 1.
+             88 INQUIRE-BY-CUST-ID     VALUE 2.
+             88 INQUIRE-BY-AI-RECOMM   VALUE 3.
+             88 EXIT-INQUIRY           VALUE 9.
+          05 WS-INQUIRY-ID        PIC 9(12).
+          05 WS-INQUIRY-CUST-ID   PIC 9(10).
+          05 WS-TEMP-LOAN-ID      PIC 9(12). *> For AI search simulation
+
+       COPY CPLA01 REPLACING ==LOAN-MASTER-RECORD== BY
+                               ==WS-LOAN-MASTER==.
+       *> Assuming CPLA01 provides:
+       *>    LM-LOAN-ID        PIC 9(12)
+       *>    LM-CUSTOMER-ID    PIC 9(10)
+       *>    LM-ORIGINAL-PRINCIPAL PIC S9(11)V99 COMP-3
+       *>    LM-CURRENT-PRINCIPAL  PIC S9(11)V99 COMP-3
+       *>    LM-STATUS         PIC X(01) ('A', 'P', 'D')
+       *> We are enhancing the 'view' of this data and adding AI insights.
+
+       *> Expanded Loan Master Structure (for display enrichment)
+       *> In a real system, these would be part of CPLA01 or another comprehensive
+       *> loan data copybook that includes all relevant attributes.
+       01 WS-LOAN-MASTER-EXP.
+          05 LME-LOAN-ID           PIC 9(12).
+          05 LME-CUSTOMER-ID       PIC 9(10).
+          05 LME-ORIGINAL-PRINCIPAL PIC S9(11)V99.
+          05 LME-CURRENT-PRINCIPAL  PIC S9(11)V99.
+          05 LME-INTEREST-RATE     PIC S9V9(04). *> e.g., 0.0575
+          05 LME-LOAN-TYPE         PIC X(10). *> e.g., 'PERSONAL', 'MORTGAGE'
+          05 LME-TERM-MONTHS       PIC 9(03).
+          05 LME-LAST-PAYMENT-DATE PIC 9(08). *> YYYYMMDD
+          05 LME-NEXT-PAYMENT-DATE PIC 9(08). *> YYYYMMDD
+          05 LME-STATUS            PIC X(01).
+          05 LME-LAST-UPDATED-BY   PIC X(08).
+          05 LME-BRANCH-CODE       PIC X(04).
+
+       *> AI-Generated Insights
+       *> This structure would typically be populated by an AI service
+       *> through an API call or inter-program communication.
+       01 WS-AI-INSIGHTS.
+          05 AI-RISK-SCORE         PIC 9(03) VALUE ZEROS. *> 0-100, lower is better
+          05 AI-HEALTH-GRADE       PIC X(05). *> 'EXCEL', 'GOOD', 'FAIR', 'RISKY'
+          05 AI-PREDICTIVE-ALERT   PIC X(60). *> e.g., 'Payment anomaly detected. Recommend review.'
+          05 AI-RECOMMENDATION     PIC X(60). *> e.g., 'Suggest reaching out for financial counseling.'
+          05 AI-CONFIDENCE-LEVEL   PIC 9(02) VALUE ZEROS. *> 0-99%
+
+       01 WS-DISPLAY-SCREEN.
+          05 FILLER PIC X(80) VALUE ALL "-".
+          05 DS-TITLE-LINE.
+             10 FILLER         PIC X(25) VALUE SPACES.
+             10 FILLER         PIC X(30) VALUE "NEURALNET FINANCE LOAN INQUIRY".
+             10 FILLER         PIC X(25) VALUE SPACES.
+          05 FILLER PIC X(80) VALUE ALL "-".
+          05 DS-LOAN-DETAIL-HEADER.
+             10 FILLER         PIC X(25) VALUE SPACES.
+             10 FILLER         PIC X(30) VALUE "LOAN DETAILS".
+             10 FILLER         PIC X(25) VALUE SPACES.
+          05 FILLER PIC X(80) VALUE ALL "-".
+          05 DS-LINE-1.
+             10 FILLER         PIC X(15) VALUE "LOAN ID: ".
+             10 DS-LOAN-ID     PIC 9(12).
+             10 FILLER         PIC X(05) VALUE SPACES.
+             10 FILLER         PIC X(15) VALUE "CUST ID: ".
+             10 DS-CUST-ID     PIC 9(10).
+          05 DS-LINE-2.
+             10 FILLER         PIC X(15) VALUE "LOAN TYPE: ".
+             10 DS-LOAN-TYPE   PIC X(10).
+             10 FILLER         PIC X(05) VALUE SPACES.
+             10 FILLER         PIC X(15) VALUE "TERM (Mths): ".
+             10 DS-TERM-MONTHS PIC 9(03).
+          05 DS-LINE-3.
+             10 FILLER         PIC X(15) VALUE "ORIG. PRIN.: ".
+             10 DS-ORIG-PRIN   PIC $$$,$$$,$$9.99.
+             10 FILLER         PIC X(05) VALUE SPACES.
+             10 FILLER         PIC X(15) VALUE "CURR. PRIN.: ".
+             10 DS-CURR-PRIN   PIC $$$,$$$,$$9.99.
+          05 DS-LINE-4.
+             10 FILLER         PIC X(15) VALUE "INT. RATE: ".
+             10 DS-INT-RATE    PIC .9(04).
+             10 FILLER         PIC X(05) VALUE SPACES.
+             10 FILLER         PIC X(15) VALUE "STATUS: ".
+             10 DS-STATUS      PIC X(15).
+          05 DS-LINE-5.
+             10 FILLER         PIC X(15) VALUE "LAST PMT DATE: ".
+             10 DS-LAST-PMT    PIC 9(08).
+             10 FILLER         PIC X(05) VALUE SPACES.
+             10 FILLER         PIC X(15) VALUE "NEXT PMT DATE: ".
+             10 DS-NEXT-PMT    PIC 9(08).
+          05 DS-LINE-6.
+             10 FILLER         PIC X(15) VALUE "BRANCH: ".
+             10 DS-BRANCH-CODE PIC X(04).
+             10 FILLER         PIC X(05) VALUE SPACES.
+             10 FILLER         PIC X(15) VALUE "LAST UPDATED: ".
+             10 DS-LAST-UPD-BY PIC X(08).
+          05 FILLER PIC X(80) VALUE ALL "-".
+          05 DS-AI-HEADER-LINE.
+             10 FILLER         PIC X(25) VALUE SPACES.
+             10 FILLER         PIC X(30) VALUE "AI INSIGHTS".
+             10 FILLER         PIC X(25) VALUE SPACES.
+          05 FILLER PIC X(80) VALUE ALL "-".
+          05 DS-AI-LINE-1.
+             10 FILLER         PIC X(15) VALUE "RISK SCORE: ".
+             10 DS-AI-RISK     PIC 9(03).
+             10 FILLER         PIC X(05) VALUE SPACES.
+             10 FILLER         PIC X(15) VALUE "HEALTH GRADE: ".
+             10 DS-AI-GRADE    PIC X(05).
+          05 DS-AI-LINE-2.
+             10 FILLER         PIC X(15) VALUE "PREDICTIVE ALERT: ".
+             10 DS-AI-ALERT    PIC X(60).
+          05 DS-AI-LINE-3.
+             10 FILLER         PIC X(15) VALUE "RECOMMENDATION: ".
+             10 DS-AI-RECOM    PIC X(60).
+          05 DS-AI-LINE-4.
+             10 FILLER         PIC X(15) VALUE "CONFIDENCE: ".
+             10 DS-AI-CONFID   PIC 9(02).
+             10 FILLER         PIC X(01) VALUE '%'.
+          05 FILLER PIC X(80) VALUE ALL "-".
+
+       01 WS-DUMMY-INPUT           PIC X(01). *> Added for pause functionality.
+
+       PROCEDURE DIVISION.
+       0000-MAIN-LOGIC.
+           PERFORM 1000-INITIALIZATION.
+           PERFORM 2000-PROCESS-INQUIRIES UNTIL STOP-PROCESSING.
+           PERFORM 9999-TERMINATION.
+           STOP RUN.
+
+       1000-INITIALIZATION.
+           DISPLAY " ".
+           DISPLAY "INITIALIZING LAINQ - NEURALNET LOAN INSIGHT MODULE.".
+           OPEN INPUT LOAN-MASTER-FILE.
+           IF NOT LOANMAST-OK
+               DISPLAY "ERROR: UNABLE TO OPEN LOAN MASTER FILE. STATUS: "
+                   WS-LOANMAST-STATUS
+               MOVE 'N' TO WS-CONTINUE-FLAG
+           END-IF.
+
+       2000-PROCESS-INQUIRIES.
+           PERFORM 2010-DISPLAY-MAIN-MENU.
+           PERFORM 2020-ACCEPT-MENU-OPTION.
+           EVALUATE TRUE
+               WHEN INQUIRE-BY-LOAN-ID
+                   PERFORM 2100-ACCEPT-LOAN-ID
+                   PERFORM 3000-READ-LOAN-RECORD-BY-KEY
+                   IF LOANMAST-OK
+                       PERFORM 3500-SIMULATE-AI-ANALYSIS
+                       PERFORM 4000-DISPLAY-LOAN-DATA
+                       PERFORM 4500-DISPLAY-AI-INSIGHTS
+                   ELSE
+                       DISPLAY "ERROR: LOAN ID " WS-INQUIRY-ID " NOT FOUND."
+                   END-IF
+               WHEN INQUIRE-BY-CUST-ID
+                   PERFORM 2200-ACCEPT-CUSTOMER-ID
+                   PERFORM 3100-SEARCH-BY-CUSTOMER-ID *> New search logic
+                   IF LOANMAST-OK
+                       PERFORM 3500-SIMULATE-AI-ANALYSIS
+                       PERFORM 4000-DISPLAY-LOAN-DATA
+                       PERFORM 4500-DISPLAY-AI-INSIGHTS
+                   ELSE
+                       DISPLAY "ERROR: CUSTOMER ID " WS-INQUIRY-CUST-ID " NOT FOUND OR NO ACTIVE LOANS."
+                   END-IF
+               WHEN INQUIRE-BY-AI-RECOMM
+                   PERFORM 2300-TRIGGER-AI-ASSISTED-SEARCH
+                   IF LOANMAST-OK
+                       PERFORM 3500-SIMULATE-AI-ANALYSIS
+                       PERFORM 4000-DISPLAY-LOAN-DATA
+                       PERFORM 4500-DISPLAY-AI-INSIGHTS
+                   ELSE
+                       DISPLAY "AI Could Not Identify a Loan for Immediate Attention."
+                   END-IF
+               WHEN EXIT-INQUIRY
+                   MOVE 'N' TO WS-CONTINUE-FLAG
+               WHEN OTHER
+                   DISPLAY "INVALID OPTION. PLEASE TRY AGAIN."
+           END-EVALUATE.
+           IF CONTINUE-PROCESSING
+               DISPLAY "PRESS ENTER TO CONTINUE..."
+               ACCEPT WS-DUMMY-INPUT
+           END-IF.
+
+       2010-DISPLAY-MAIN-MENU.
+           DISPLAY " ".
+           DISPLAY "--------------------------------------------------------------------------------".
+           DISPLAY "           NEURALNET FINANCE - LOAN INSIGHT INQUIRY SYSTEM                      ".
+           DISPLAY "--------------------------------------------------------------------------------".
+           DISPLAY "1. INQUIRE BY LOAN ID".
+           DISPLAY "2. INQUIRE BY CUSTOMER ID (First Active Loan)".
+           DISPLAY "3. AI-ASSISTED LOAN RECOMMENDATION (High Risk/Engagement)".
+           DISPLAY "9. EXIT".
+           DISPLAY "--------------------------------------------------------------------------------".
+
+       2020-ACCEPT-MENU-OPTION.
+           MOVE 'N' TO WS-VALID-INPUT-FLAG.
+           PERFORM UNTIL INPUT-IS-VALID
+               DISPLAY "ENTER YOUR OPTION: " WITH NO ADVANCING
+               ACCEPT WS-INQUIRY-OPTION
+               IF WS-INQUIRY-OPTION IS NUMERIC AND
+                  (WS-INQUIRY-OPTION = 1 OR
+                   WS-INQUIRY-OPTION = 2 OR
+                   WS-INQUIRY-OPTION = 3 OR
+                   WS-INQUIRY-OPTION = 9)
+                   MOVE 'Y' TO WS-VALID-INPUT-FLAG
+               ELSE
+                   DISPLAY "INVALID INPUT. PLEASE ENTER 1, 2, 3, or 9."
+               END-IF
+           END-PERFORM.
+
+       2100-ACCEPT-LOAN-ID.
+           MOVE 'N' TO WS-VALID-INPUT-FLAG.
+           PERFORM UNTIL INPUT-IS-VALID
+               DISPLAY "ENTER LOAN ID (12 digits): " WITH NO ADVANCING
+               ACCEPT WS-INQUIRY-ID
+               IF WS-INQUIRY-ID IS NUMERIC AND
+                  FUNCTION LENGTH(WS-INQUIRY-ID) = 12
+                   MOVE 'Y' TO WS-VALID-INPUT-FLAG
+               ELSE
+                   DISPLAY "INVALID LOAN ID. MUST BE 12 NUMERIC DIGITS."
+               END-IF
+           END-PERFORM.
+
+       2200-ACCEPT-CUSTOMER-ID.
+           MOVE 'N' TO WS-VALID-INPUT-FLAG.
+           PERFORM UNTIL INPUT-IS-VALID
+               DISPLAY "ENTER CUSTOMER ID (10 digits): " WITH NO ADVANCING
+               ACCEPT WS-INQUIRY-CUST-ID
+               IF WS-INQUIRY-CUST-ID IS NUMERIC AND
+                  FUNCTION LENGTH(WS-INQUIRY-CUST-ID) = 10
+                   MOVE 'Y' TO WS-VALID-INPUT-FLAG
+               ELSE
+                   DISPLAY "INVALID CUSTOMER ID. MUST BE 10 NUMERIC DIGITS."
+               END-IF
+           END-PERFORM.
+
+       2300-TRIGGER-AI-ASSISTED-SEARCH.
+           DISPLAY "AI is analyzing the portfolio for high-priority loans...".
+           *> In a real scenario, this would involve calling a subprogram
+           *> or an external service that uses AI to identify a loan.
+           *> For simulation, we'll pick a fixed ID that is likely to exist.
+           MOVE '123456789012' TO WS-TEMP-LOAN-ID. *> A specific loan for AI to recommend
+           MOVE WS-TEMP-LOAN-ID TO WS-INQUIRY-ID.
+           DISPLAY "AI suggests reviewing Loan ID: " WS-INQUIRY-ID.
+           *> This step will then proceed to 3000-READ-LOAN-RECORD-BY-KEY.
+
+       3000-READ-LOAN-RECORD-BY-KEY.
+           MOVE WS-INQUIRY-ID TO LM-LOAN-ID OF WS-LOAN-MASTER.
+           READ LOAN-MASTER-FILE INTO WS-LOAN-MASTER
+               INVALID KEY MOVE '23' TO WS-LOANMAST-STATUS.
+           IF LOANMAST-OK
+              DISPLAY "LOAN RECORD FOUND."
+              *> Populate WS-LOAN-MASTER-EXP with base data from WS-LOAN-MASTER
+              MOVE LM-LOAN-ID OF WS-LOAN-MASTER TO LME-LOAN-ID.
+              MOVE LM-CUSTOMER-ID OF WS-LOAN-MASTER TO LME-CUSTOMER-ID.
+              MOVE LM-ORIGINAL-PRINCIPAL OF WS-LOAN-MASTER TO LME-ORIGINAL-PRINCIPAL.
+              MOVE LM-CURRENT-PRINCIPAL OF WS-LOAN-MASTER TO LME-CURRENT-PRINCIPAL.
+              MOVE LM-STATUS OF WS-LOAN-MASTER TO LME-STATUS.
+
+              *> Simulate additional fields for expanded display.
+              *> In a real application, these would also come from the master record.
+              MOVE 0057 TO LME-INTEREST-RATE. *> Simulating 5.7% (V9(04) means 4 implied decimals)
+              MOVE 'PERSONAL' TO LME-LOAN-TYPE.
+              MOVE 060 TO LME-TERM-MONTHS.
+              MOVE 20231215 TO LME-LAST-PAYMENT-DATE.
+              MOVE 20240115 TO LME-NEXT-PAYMENT-DATE.
+              MOVE 'BR01' TO LME-BRANCH-CODE.
+              MOVE 'SYSUSER' TO LME-LAST-UPDATED-BY.
+           END-IF.
+
+       3100-SEARCH-BY-CUSTOMER-ID.
+           MOVE '00' TO WS-LOANMAST-STATUS. *> Assume success until proven otherwise
+           
+           *> Rewind file for sequential read to search by customer ID.
+           CLOSE LOAN-MASTER-FILE.
+           OPEN INPUT LOAN-MASTER-FILE.
+           
+           READ LOAN-MASTER-FILE NEXT RECORD
+               AT END
+                   MOVE '23' TO WS-LOANMAST-STATUS
+                   GO TO 3100-SEARCH-BY-CUSTOMER-ID-EXIT
+           END-READ.
+
+           PERFORM UNTIL LOANMAST-NOT-FOUND OR
+                         (LM-CUSTOMER-ID OF WS-LOAN-MASTER = WS-INQUIRY-CUST-ID AND
+                          LM-STATUS OF WS-LOAN-MASTER = 'A')
+
+               READ LOAN-MASTER-FILE NEXT RECORD
+                   AT END
+                       MOVE '23' TO WS-LOANMAST-STATUS
+                       GO TO 3100-SEARCH-BY-CUSTOMER-ID-EXIT
+               END-READ
+           END-PERFORM.
+
+           IF LOANMAST-OK
+               *> Found an active loan for this customer.
+               MOVE LM-LOAN-ID OF WS-LOAN-MASTER TO WS-INQUIRY-ID
+               *> Populate LME with the found record's data.
+               DISPLAY "Found active loan for customer. Processing Loan ID: " WS-INQUIRY-ID.
+               MOVE LM-LOAN-ID OF WS-LOAN-MASTER TO LME-LOAN-ID.
+               MOVE LM-CUSTOMER-ID OF WS-LOAN-MASTER TO LME-CUSTOMER-ID.
+               MOVE LM-ORIGINAL-PRINCIPAL OF WS-LOAN-MASTER TO LME-ORIGINAL-PRINCIPAL.
+               MOVE LM-CURRENT-PRINCIPAL OF WS-LOAN-MASTER TO LME-CURRENT-PRINCIPAL.
+               MOVE LM-STATUS OF WS-LOAN-MASTER TO LME-STATUS.
+               
+               *> Simulate additional fields.
+               MOVE 0057 TO LME-INTEREST-RATE.
+               MOVE 'PERSONAL' TO LME-LOAN-TYPE.
+               MOVE 060 TO LME-TERM-MONTHS.
+               MOVE 20231215 TO LME-LAST-PAYMENT-DATE.
+               MOVE 20240115 TO LME-NEXT-PAYMENT-DATE.
+               MOVE 'BR01' TO LME-BRANCH-CODE.
+               MOVE 'SYSUSER' TO LME-LAST-UPDATED-BY.
+           ELSE
+               DISPLAY "No active loans found for Customer ID: " WS-INQUIRY-CUST-ID
+           END-IF.
+
+       3100-SEARCH-BY-CUSTOMER-ID-EXIT.
+           CONTINUE.
+
+
+       3500-SIMULATE-AI-ANALYSIS.
+           DISPLAY "AI-MAINFRAME INTERFACE: Sending loan data for analysis...".
+           *> This is where the COBOL program would interact with an AI component.
+           *> For this simulation, we'll just populate `WS-AI-INSIGHTS` based on
+           *> a few simple rules, mimicking AI processing without actual ML.
+           INITIALIZE WS-AI-INSIGHTS.
+
+           IF LME-CURRENT-PRINCIPAL OF WS-LOAN-MASTER <
+              (LME-ORIGINAL-PRINCIPAL OF WS-LOAN-MASTER * 0.50)
+               MOVE 20 TO AI-RISK-SCORE
+               MOVE 'EXCEL' TO AI-HEALTH-GRADE
+               MOVE 'Loan performing exceptionally well. Low risk.' TO AI-PREDICTIVE-ALERT
+               MOVE 'Consider offering preferred customer benefits.' TO AI-RECOMMENDATION
+               MOVE 95 TO AI-CONFIDENCE-LEVEL
+           ELSE IF LME-CURRENT-PRINCIPAL OF WS-LOAN-MASTER <
+                   (LME-ORIGINAL-PRINCIPAL OF WS-LOAN-MASTER * 0.80) AND
+                   LME-STATUS OF WS-LOAN-MASTER = 'A'
+               MOVE 40 TO AI-RISK-SCORE
+               MOVE 'GOOD' TO AI-HEALTH-GRADE
+               MOVE 'Stable performance. Consistent payment history.' TO AI-PREDICTIVE-ALERT
+               MOVE 'Monitor regularly for any changes in financial health.' TO AI-RECOMMENDATION
+               MOVE 88 TO AI-CONFIDENCE-LEVEL
+           ELSE IF LME-STATUS OF WS-LOAN-MASTER = 'A'
+               MOVE 65 TO AI-RISK-SCORE
+               MOVE 'FAIR' TO AI-HEALTH-GRADE
+               MOVE 'Approaching higher utilization. Potential for changes.' TO AI-PREDICTIVE-ALERT
+               MOVE 'Proactive outreach for financial review advised.' TO AI-RECOMMENDATION
+               MOVE 75 TO AI-CONFIDENCE-LEVEL
+           ELSE IF LME-STATUS OF WS-LOAN-MASTER = 'D'
+               MOVE 90 TO AI-RISK-SCORE
+               MOVE 'RISKY' TO AI-HEALTH-GRADE
+               MOVE 'Critical: Loan in default. Immediate action required.' TO AI-PREDICTIVE-ALERT
+               MOVE 'Initiate recovery process or restructure discussion.' TO AI-RECOMMENDATION
+               MOVE 99 TO AI-CONFIDENCE-LEVEL
+           ELSE
+               MOVE 50 TO AI-RISK-SCORE
+               MOVE 'FAIR' TO AI-HEALTH-GRADE
+               MOVE 'Data incomplete or unusual status. Review manually.' TO AI-PREDICTIVE-ALERT
+               MOVE 'Further investigation needed to ascertain loan health.' TO AI-RECOMMENDATION
+               MOVE 60 TO AI-CONFIDENCE-LEVEL
+           END-IF.
+           DISPLAY "AI-MAINFRAME INTERFACE: Analysis complete. Insights received.".
+
+       4000-DISPLAY-LOAN-DATA.
+           MOVE LME-LOAN-ID TO DS-LOAN-ID.
+           MOVE LME-CUSTOMER-ID TO DS-CUST-ID.
+           MOVE LME-LOAN-TYPE TO DS-LOAN-TYPE.
+           MOVE LME-TERM-MONTHS TO DS-TERM-MONTHS.
+           MOVE LME-ORIGINAL-PRINCIPAL TO DS-ORIG-PRIN.
+           MOVE LME-CURRENT-PRINCIPAL TO DS-CURR-PRIN.
+           MOVE LME-INTEREST-RATE TO DS-INT-RATE.
+           MOVE LME-LAST-PAYMENT-DATE TO DS-LAST-PMT.
+           MOVE LME-NEXT-PAYMENT-DATE TO DS-NEXT-PMT.
+           MOVE LME-BRANCH-CODE TO DS-BRANCH-CODE.
+           MOVE LME-LAST-UPDATED-BY TO DS-LAST-UPD-BY.
+
+           EVALUATE LME-STATUS
+               WHEN 'A' MOVE 'ACTIVE' TO DS-STATUS
+               WHEN 'P' MOVE 'PAID IN FULL' TO DS-STATUS
+               WHEN 'D' MOVE 'DEFAULT' TO DS-STATUS
+               WHEN OTHER MOVE 'UNKNOWN' TO DS-STATUS
+           END-EVALUATE.
+
+           DISPLAY WS-DISPLAY-SCREEN.
+
+       4500-DISPLAY-AI-INSIGHTS.
+           MOVE AI-RISK-SCORE TO DS-AI-RISK.
+           MOVE AI-HEALTH-GRADE TO DS-AI-GRADE.
+           MOVE AI-PREDICTIVE-ALERT TO DS-AI-ALERT.
+           MOVE AI-RECOMMENDATION TO DS-AI-RECOM.
+           MOVE AI-CONFIDENCE-LEVEL TO DS-AI-CONFID.
+
+           DISPLAY DS-AI-HEADER-LINE.
+           DISPLAY DS-AI-LINE-1.
+           DISPLAY DS-AI-LINE-2.
+           DISPLAY DS-AI-LINE-3.
+           DISPLAY DS-AI-LINE-4.
+           DISPLAY FILLER PIC X(80) VALUE ALL "-".
+
+       9999-TERMINATION.
+           CLOSE LOAN-MASTER-FILE.
+           DISPLAY "LAINQ NEURALNET LOAN INSIGHT MODULE TERMINATED.".
+           DISPLAY " ".
+           ACCEPT WS-DUMMY-INPUT.

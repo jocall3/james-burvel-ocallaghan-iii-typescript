@@ -1,0 +1,113 @@
+      ******************************************************************
+      * QUANTUM OS - COPYBOOK FOR ACCOUNTS PAYABLE VENDOR BILL
+      * This copybook defines the data structure for Accounts Payable
+      * Vendor Bills within the Quantum OS financial system. It
+      * includes standard billing information as well as fields for
+      * advanced analytical processing, potentially involving AI-driven
+      * insights and automated decision support, aimed at optimizing
+      * financial operations.
+      ******************************************************************
+       01 AP-VENDOR-BILL-RECORD.
+      *
+      * Standard Bill Identification and Core Details
+      *
+          05 AP-BILL-ID                PIC X(18).   *> Unique identifier for the bill
+          05 AP-VENDOR-ID              PIC 9(12).   *> Identifier for the vendor
+          05 AP-VENDOR-NAME            PIC X(50).   *> Name of the vendor
+          05 AP-INVOICE-NUMBER         PIC X(25).   *> Vendor's invoice number for this bill
+          05 AP-PURCHASE-ORDER-REF     PIC X(18).   *> Corresponding Purchase Order number
+          05 AP-BILL-DATE              PIC X(10).   *> Date the bill was issued (YYYY-MM-DD)
+          05 AP-RECEIPT-DATE           PIC X(10).   *> Date the bill was received (YYYY-MM-DD)
+          05 AP-DUE-DATE               PIC X(10).   *> Date payment is due (YYYY-MM-DD)
+          05 AP-PAYMENT-TERMS-CODE     PIC X(03).   *> E.g., NET30, DUEONR, 10-15 (for payment terms)
+          05 AP-CURRENCY-CODE          PIC X(03).   *> E.g., USD, EUR, JPY (currency of the bill)
+          05 AP-DESCRIPTION            PIC X(100).  *> General description or purpose of the bill
+      *
+      * Financial Amounts
+      *
+          05 AP-BILL-SUBTOTAL          PIC S9(11)V99 COMP-3. *> Sum of all line items before tax/shipping/discounts
+          05 AP-BILL-TAX-AMOUNT        PIC S9(09)V99 COMP-3. *> Total tax amount on the bill
+          05 AP-BILL-SHIPPING-COST     PIC S9(09)V99 COMP-3. *> Total shipping or freight cost
+          05 AP-BILL-DISCOUNT-AMOUNT   PIC S9(09)V99 COMP-3. *> Total discount applied to the bill
+          05 AP-BILL-TOTAL             PIC S9(11)V99 COMP-3. *> Final total amount of the bill
+          05 AP-PAYMENT-AMOUNT         PIC S9(11)V99 COMP-3. *> Amount actually paid for this bill
+      *
+      * Status and Payment Details
+      *
+          05 AP-STATUS                 PIC X(01).   *> Current status of the bill
+             88 AP-UNPAID              VALUE 'U'.    *> Bill is unpaid
+             88 AP-PAID                VALUE 'P'.    *> Bill has been paid
+             88 AP-PENDING-APPROVAL    VALUE 'A'.    *> Awaiting manual approval
+             88 AP-ON-HOLD             VALUE 'H'.    *> Temporarily held for review
+             88 AP-REJECTED            VALUE 'R'.    *> Bill has been rejected
+             88 AP-IN-DISPUTE          VALUE 'D'.    *> Bill is under dispute
+             88 AP-CANCELLED           VALUE 'C'.    *> Bill has been cancelled
+          05 AP-PAYMENT-DATE           PIC X(10).   *> Actual date payment was made (YYYY-MM-DD)
+          05 AP-PAYMENT-METHOD-CODE    PIC X(02).   *> E.g., 'CK' (Check), 'TR' (Bank Transfer), 'CC' (Credit Card)
+          05 AP-APPROVER-USER-ID       PIC X(08).   *> User ID of the individual who approved the bill
+          05 AP-APPROVAL-DATE          PIC X(10).   *> Date of manual approval (YYYY-MM-DD)
+          05 AP-LINE-ITEM-COUNT        PIC 9(05).   *> Number of distinct line items on the bill
+      *
+      * AI-Driven Automation and Insight Fields
+      * These fields capture the results of AI analysis, enabling
+      * smart automation and providing insights into the billing process.
+      * The goal is to enhance efficiency, accuracy, and operational
+      * transparency by leveraging advanced analytical capabilities.
+      *
+          05 AI-PROCESS-INDICATOR      PIC X(01).   *> Indicates if AI has processed this record
+             88 AI-PROCESSED           VALUE 'Y'.    *> AI analysis completed successfully
+             88 AI-NOT-PROCESSED       VALUE 'N'.    *> AI analysis not yet performed
+             88 AI-PROCESSING-ERROR    VALUE 'E'.    *> Error during AI analysis
+          05 AI-LAST-PROCESS-TIMESTAMP.              *> Timestamp of the last AI processing
+             10 AI-PROC-DATE           PIC X(10).   *> YYYY-MM-DD
+             10 AI-PROC-TIME           PIC X(08).   *> HH.MM.SS
+          05 AI-RECOMMENDATION-CODE    PIC X(02).   *> AI's primary action recommendation for the bill
+             88 AI-REC-APPROVE         VALUE 'AP'.  *> Recommend approval for payment
+             88 AI-REC-HOLD            VALUE 'HL'.  *> Recommend holding for manual review
+             88 AI-REC-INVESTIGATE     VALUE 'IN'.  *> Recommend investigation due to discrepancies
+             88 AI-REC-DUPLICATE       VALUE 'DU'.  *> Suspected duplicate bill
+             88 AI-REC-OUTLIER         VALUE 'OL'.  *> Identified as an statistical outlier
+             88 AI-REC-AUTO-PAY        VALUE 'AT'.  *> Recommended for fully automated payment processing
+             88 AI-REC-REJECT          VALUE 'RJ'.  *> Recommend rejection
+          05 AI-CONFIDENCE-SCORE       PIC 9(03)V99 COMP-3. *> AI's confidence level in its recommendation (0.00-100.00)
+          05 AI-ANOMALY-SCORE          PIC 9(03)V99 COMP-3. *> Score indicating how unusual or anomalous the bill is (0.00-100.00)
+          05 AI-SIMILARITY-SCORE       PIC 9(03)V99 COMP-3. *> Score for similarity to historical bills from the same vendor (0.00-100.00)
+          05 AI-RISK-LEVEL             PIC X(01).   *> Assessed risk level associated with the bill
+             88 AI-RISK-LOW            VALUE 'L'.
+             88 AI-RISK-MEDIUM         VALUE 'M'.
+             88 AI-RISK-HIGH           VALUE 'H'.
+          05 AI-PRIMARY-REASON-CODE    PIC X(05).   *> Code for the primary reason behind AI's recommendation/score
+          05 AI-SECONDARY-REASON-CODE  PIC X(05).   *> Code for a secondary reason, if applicable
+          05 AI-GENERATED-COMMENT-KEY  PIC X(20).   *> Key to retrieve a detailed AI-generated summary or explanation
+          05 AI-AUTO-PAY-ELIGIBILITY   PIC X(01).   *> Flag for AI-driven auto-payment eligibility
+             88 AI-ELIGIBLE-FOR-AUTO-PAY VALUE 'Y'.
+             88 AI-NOT-ELIGIBLE-FOR-AUTO-PAY VALUE 'N'.
+          05 AI-HUMAN-REVIEW-REQUIRED  PIC X(01).   *> Flag indicating if human review is explicitly needed after AI processing
+             88 AI-NEEDS-HUMAN-REVIEW  VALUE 'Y'.
+             88 AI-NO-HUMAN-REVIEW-NEEDED VALUE 'N'.
+          05 AI-MODEL-VERSION          PIC X(15).   *> Version identifier of the AI model used for processing
+          05 AI-COMPLIANCE-CHECK-RESULT PIC X(01).   *> Result of AI-driven compliance checks
+             88 AI-COMPLIANT           VALUE 'Y'.
+             88 AI-NON-COMPLIANT       VALUE 'N'.
+             88 AI-COMPLIANCE-UNCLEAR  VALUE 'U'.
+      *
+      * Audit and System Fields
+      * These fields track the lifecycle and integrity of the record.
+      *
+          05 RECORD-CREATION-TIMESTAMP.              *> Timestamp when the record was first created
+             10 REC-CREATE-DATE        PIC X(10).   *> YYYY-MM-DD
+             10 REC-CREATE-TIME        PIC X(08).   *> HH.MM.SS
+          05 RECORD-CREATION-USER-ID   PIC X(08).   *> User ID who created the record
+          05 RECORD-LAST-UPDATE-TIMESTAMP.           *> Timestamp of the last update to the record
+             10 REC-UPDATE-DATE        PIC X(10).   *> YYYY-MM-DD
+             10 REC-UPDATE-TIME        PIC X(08).   *> HH.MM.SS
+          05 RECORD-UPDATE-USER-ID     PIC X(08).   *> User ID who performed the last update
+          05 RECORD-VERSION-NUMBER     PIC 9(05).   *> Version count of the record, increments on update
+          05 RECORD-STATUS-CODE        PIC X(01).   *> General record status (e.g., 'A'ctive, 'I'nactive, 'D'eleted)
+             88 REC-STATUS-ACTIVE      VALUE 'A'.
+             88 REC-STATUS-INACTIVE    VALUE 'I'.
+             88 REC-STATUS-DELETED     VALUE 'D'.
+      *
+      * Reserved for Future Expansion
+      *
+          05 FILLER                    PIC X(100).  *> Placeholder for future additions

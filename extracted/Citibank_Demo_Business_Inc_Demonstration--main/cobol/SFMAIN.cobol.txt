@@ -1,0 +1,250 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. SFMAIN.
+       AUTHOR. MAINFRAME-DEVELOPER.
+      ******************************************************************
+      * VAULTGUARD SYSTEMS - SAFE DEPOSIT BOX MAIN MENU MANAGER
+      *
+      * This program serves as the central hub for the VaultGuard Safe
+      * Deposit Box Management System (SDS). It provides a user-friendly
+      * interface to access various core functionalities such as renting
+      * boxes, logging access, checking status, processing payments,
+      * and leveraging advanced AI-driven insights.
+      *
+      * Key Features:
+      * - Main menu navigation to critical SDS modules.
+      * - Robust input validation and error handling for menu selections.
+      * - Integration point for AI-powered analytics (ChronosMind AI),
+      *   offering predictive insights and optimization suggestions.
+      * - Display of comprehensive system and program configuration.
+      * - Simulated audit logging for recent system activities.
+      *
+      * Future Enhancements:
+      * - Direct integration with security and biometric systems for enhanced access control.
+      * - Advanced reporting and reconciliation features for financial and operational oversight.
+      * - Dynamic menu generation based on authenticated user roles and permissions.
+      * - Real-time monitoring dashboards for system administrators.
+      ******************************************************************
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01 WS-MENU-CONTROLS.
+          05 WS-USER-CHOICE       PIC X(01).
+             88 EXIT-SF-MENU      VALUE 'X'.
+             88 VALID-MENU-OPTION VALUES ARE '1', '2', '3', '4', '5', 'P', 'C', 'L', 'X'.
+          05 WS-VALID-INPUT-FLAG  PIC X(01) VALUE 'N'.
+             88 INPUT-IS-VALID    VALUE 'Y'.
+             88 INPUT-IS-INVALID  VALUE 'N'.
+          05 WS-RETRY-COUNT       PIC 9(01) VALUE 0.
+             88 MAX-RETRIES-REACHED VALUE 3.
+
+       01 WS-SYSTEM-STATUS-INFO.
+          05 WS-VERSION-NO        PIC X(05) VALUE '3.0.0'.
+          05 WS-BUILD-DATE        PIC X(10) VALUE '2024-07-30'.
+          05 WS-SYSTEM-NAME       PIC X(25) VALUE 'VaultGuard SDS Core'.
+          05 WS-CURRENT-USER      PIC X(10) VALUE 'SYSADMIN'.
+          05 WS-ENVIRONMENT       PIC X(10) VALUE 'PRODUCTION'.
+          05 WS-LAST-SYS-CHECK    PIC X(16) VALUE '2024-07-30 14:30'.
+
+       01 WS-AI-ASSISTANT-INFO.
+          05 WS-AI-MODULE-ID      PIC X(15) VALUE 'ChronosMind v2.1'.
+          05 WS-AI-STATUS         PIC X(10) VALUE 'ONLINE'.
+          05 WS-AI-LAST-UPDATE    PIC X(10) VALUE '2024-07-29'.
+          05 WS-AI-ASSISTANT-NAME PIC X(15) VALUE 'ChronosMind AI'.
+          05 WS-AI-PREDICTIONS.
+             10 WS-OCCUPANCY-FORECAST PIC 9(03) VALUE 92.
+             10 WS-HIGH-DEMAND-ZONE   PIC X(20) VALUE 'WESTERN SECTOR A'.
+             10 WS-MAINT-RECOMMEND    PIC X(40) VALUE 'SCHEDULE DEEP CLEANING FOR SECTION C'.
+             10 WS-SECURITY-ALERT-LVL PIC X(10) VALUE 'NORMAL'.
+             10 WS-ENERGY-OPTIM-SUG   PIC X(30) VALUE 'ADJUST LIGHTING IN EAST HALL'.
+             10 WS-BOX-SIZE-TREND     PIC X(25) VALUE 'INCREASING LARGE BOX DEMAND'.
+             10 WS-PRED-AVAILABILITY  PIC 9(03) VALUE 8.
+             10 WS-LONG-TERM-FORECAST PIC X(40) VALUE 'SUSTAINED GROWTH OVER NEXT 5 YEARS'.
+
+       01 WS-CONFIG-SETTINGS.
+          05 WS-MAX-BOXES         PIC 9(05) VALUE 5000.
+          05 WS-CURRENT-RENTED    PIC 9(05) VALUE 4500.
+          05 WS-NEXT-AUDIT-DATE   PIC X(10) VALUE '2024-09-15'.
+          05 WS-ACCESS-LOG-RETENTION PIC X(10) VALUE '5 YEARS'.
+          05 WS-PAYMENT-GATEWAY   PIC X(15) VALUE 'SECUREPAYMENT-V3'.
+          05 WS-TEMP-THRESHOLD    PIC 9(02) VALUE 25. *> Degrees Celsius
+          05 WS-HUMID-THRESHOLD   PIC 9(02) VALUE 60. *> Percentage
+
+       01 WS-AUDIT-LOG-SIMULATION.
+          05 WS-LOG-ENTRY-1       PIC X(70) VALUE '2024-07-30 14:35: User SYSADMIN accessed Box 00123.'.
+          05 WS-LOG-ENTRY-2       PIC X(70) VALUE '2024-07-30 14:31: System performed daily integrity check.'.
+          05 WS-LOG-ENTRY-3       PIC X(70) VALUE '2024-07-30 14:28: Box 00456 payment processed successfully.'.
+          05 WS-LOG-ENTRY-4       PIC X(70) VALUE '2024-07-30 14:20: New box 00789 rented by ClientXYZ.'.
+          05 WS-LOG-ENTRY-5       PIC X(70) VALUE '2024-07-30 14:15: ChronosMind AI initiated predictive analysis.'.
+          05 WS-LOG-ENTRY-6       PIC X(70) VALUE '2024-07-30 14:10: User JSMITH updated contact for Box 00100.'.
+          05 WS-LOG-ENTRY-7       PIC X(70) VALUE '2024-07-30 14:05: Automated payment reminder sent for Box 00321.'.
+          05 WS-LOG-ENTRY-8       PIC X(70) VALUE '2024-07-30 14:00: Box 00555 maintenance flag set.'.
+          05 WS-LOG-ENTRY-9       PIC X(70) VALUE '2024-07-30 13:55: Security sensor check: all clear.'.
+          05 WS-LOG-ENTRY-10      PIC X(70) VALUE '2024-07-30 13:50: Monthly report generation initiated.'.
+
+
+       PROCEDURE DIVISION.
+       MAIN-LOGIC.
+           PERFORM 1000-CONTROL-LOOP UNTIL EXIT-SF-MENU.
+           GOBACK.
+
+       1000-CONTROL-LOOP.
+           SET INPUT-IS-INVALID TO TRUE.
+           MOVE 0 TO WS-RETRY-COUNT.
+
+           PERFORM UNTIL INPUT-IS-VALID OR MAX-RETRIES-REACHED
+               PERFORM 1100-DISPLAY-MENU
+               PERFORM 1200-ACCEPT-CHOICE
+               IF VALID-MENU-OPTION
+                   SET INPUT-IS-VALID TO TRUE
+               ELSE
+                   ADD 1 TO WS-RETRY-COUNT
+                   DISPLAY "INVALID SELECTION: '" WS-USER-CHOICE "'. Please enter a valid option."
+                   IF NOT MAX-RETRIES-REACHED
+                       PERFORM 1400-WAIT-FOR-ACK
+                   ELSE
+                       DISPLAY "Maximum retry attempts reached. Exiting Safe Deposit System."
+                       MOVE 'X' TO WS-USER-CHOICE *> Force exit
+                   END-IF
+           END-PERFORM.
+
+           PERFORM 1300-PROCESS-CHOICE.
+           
+           IF NOT EXIT-SF-MENU AND INPUT-IS-VALID
+               PERFORM 1400-WAIT-FOR-ACK *> Pause after action, before menu redraw
+           END-IF.
+
+       1100-DISPLAY-MENU.
+           DISPLAY " ".
+           DISPLAY "*************************************************".
+           DISPLAY "*          VAULTGUARD SDS - MAIN MENU           *".
+           DISPLAY "*           Version: " WS-VERSION-NO " (Build " WS-BUILD-DATE ")          *".
+           DISPLAY "*************************************************".
+           DISPLAY "*   1. RENT NEW BOX                             *".
+           DISPLAY "*   2. LOG BOX ACCESS                           *".
+           DISPLAY "*   3. CHECK BOX STATUS (SFSTAT)                *".
+           DISPLAY "*   4. PROCESS PAYMENTS (SFPAYM)                *".
+           DISPLAY "*   5. AI-DRIVEN ASSISTANT (ChronosMind AI)     *".
+           DISPLAY "*   C. SYSTEM CONFIGURATION                     *".
+           DISPLAY "*   L. VIEW AUDIT LOG                           *".
+           DISPLAY "*   P. PROGRAM INFORMATION                      *".
+           DISPLAY "*   X. EXIT TO MAIN MENU                        *".
+           DISPLAY "*************************************************".
+           DISPLAY " ".
+           DISPLAY "ENTER YOUR SELECTION: " WITH NO ADVANCING.
+
+       1200-ACCEPT-CHOICE.
+           ACCEPT WS-USER-CHOICE.
+           MOVE FUNCTION UPPER-CASE(WS-USER-CHOICE) TO WS-USER-CHOICE.
+
+       1300-PROCESS-CHOICE.
+           EVALUATE WS-USER-CHOICE
+               WHEN "1"
+                   DISPLAY "Calling SFRENT - Initiating new box rental process..."
+                   CALL "SFRENT"
+                   DISPLAY "SFRENT module completed, returning to main menu."
+               WHEN "2"
+                   DISPLAY "Calling SFACCS - Logging safe deposit box access..."
+                   CALL "SFACCS"
+                   DISPLAY "SFACCS module completed, returning to main menu."
+               WHEN "3"
+                   DISPLAY "Calling SFSTAT - Retrieving box status information..."
+                   CALL "SFSTAT" USING WS-SYSTEM-NAME
+                   DISPLAY "SFSTAT module completed, returning to main menu."
+               WHEN "4"
+                   DISPLAY "Calling SFPAYM - Processing payments for box rentals..."
+                   CALL "SFPAYM" USING WS-SYSTEM-NAME
+                   DISPLAY "SFPAYM module completed, returning to main menu."
+               WHEN "5"
+                   PERFORM 3000-AI-ASSISTANT-MODULE
+               WHEN "C"
+                   PERFORM 4000-DISPLAY-CONFIG
+               WHEN "L"
+                   PERFORM 5000-DISPLAY-AUDIT-LOG
+               WHEN "P"
+                   PERFORM 2000-DISPLAY-PROGRAM-INFO
+               WHEN "X"
+                   DISPLAY "Returning to the overarching Mainframe Menu..."
+               WHEN OTHER
+                   CONTINUE *> Error message already displayed in 1000-CONTROL-LOOP
+           END-EVALUATE.
+
+       1400-WAIT-FOR-ACK.
+           DISPLAY " ".
+           DISPLAY "PRESS ENTER TO CONTINUE..." WITH NO ADVANCING.
+           ACCEPT WS-USER-CHOICE. *> Just to pause, input is discarded.
+
+       2000-DISPLAY-PROGRAM-INFO.
+           DISPLAY " ".
+           DISPLAY "*************************************************".
+           DISPLAY "*          VAULTGUARD SDS - SYSTEM INFO         *".
+           DISPLAY "*************************************************".
+           DISPLAY "*   PROGRAM ID:    SFMAIN                       *".
+           DISPLAY "*   VERSION:       " WS-VERSION-NO "                  *".
+           DISPLAY "*   BUILD DATE:    " WS-BUILD-DATE "           *".
+           DISPLAY "*   SYSTEM NAME:   " WS-SYSTEM-NAME "     *".
+           DISPLAY "*   CURRENT USER:  " WS-CURRENT-USER "               *".
+           DISPLAY "*   ENVIRONMENT:   " WS-ENVIRONMENT "              *".
+           DISPLAY "*   LAST SYS CHECK:" WS-LAST-SYS-CHECK "         *".
+           DISPLAY "*************************************************".
+           PERFORM 1400-WAIT-FOR-ACK.
+
+       3000-AI-ASSISTANT-MODULE.
+           DISPLAY " ".
+           DISPLAY "*************************************************".
+           DISPLAY "*     CHRONOSMIND AI - INSIGHTS & ANALYTICS     *".
+           DISPLAY "*           Module: " WS-AI-MODULE-ID "          *".
+           DISPLAY "*           Status: " WS-AI-STATUS "            *".
+           DISPLAY "*************************************************".
+           DISPLAY "*   Hello, " WS-CURRENT-USER "! " WS-AI-ASSISTANT-NAME " is here to assist. *".
+           DISPLAY "*   Based on current trends and predictive models: *".
+           DISPLAY "*                                               *".
+           DISPLAY "*   -> Current Box Occupancy Forecast: " WS-OCCUPANCY-FORECAST "%      *".
+           DISPLAY "*   -> Predicted Available Boxes:      " WS-PRED-AVAILABILITY " %      *".
+           DISPLAY "*   -> High Demand Zone Identified:    " WS-HIGH-DEMAND-ZONE " *".
+           DISPLAY "*   -> Maintenance Recommendation:     " WS-MAINT-RECOMMEND " *".
+           DISPLAY "*   -> Overall Security Alert Level:   " WS-SECURITY-ALERT-LVL "     *".
+           DISPLAY "*   -> Energy Optimization Suggestion: " WS-ENERGY-OPTIM-SUG " *".
+           DISPLAY "*   -> Market Trend Observation:       " WS-BOX-SIZE-TREND "     *".
+           DISPLAY "*   -> Long-term Growth Forecast:      " WS-LONG-TERM-FORECAST " *".
+           DISPLAY "*                                               *".
+           DISPLAY "*   " WS-AI-ASSISTANT-NAME " provides these insights to   *".
+           DISPLAY "*   help optimize operations and resource      *".
+           DISPLAY "*   allocation within VaultGuard SDS.          *".
+           DISPLAY "*************************************************".
+           PERFORM 1400-WAIT-FOR-ACK.
+
+       4000-DISPLAY-CONFIG.
+           DISPLAY " ".
+           DISPLAY "*************************************************".
+           DISPLAY "*         VAULTGUARD SDS - CONFIGURATION        *".
+           DISPLAY "*************************************************".
+           DISPLAY "*   MAXIMUM BOX CAPACITY: " WS-MAX-BOXES "            *".
+           DISPLAY "*   CURRENTLY RENTED:     " WS-CURRENT-RENTED "            *".
+           DISPLAY "*   AVAILABILITY:         " FUNCTION NUMVAL(WS-MAX-BOXES - WS-CURRENT-RENTED) "            *".
+           DISPLAY "*   NEXT SYSTEM AUDIT:    " WS-NEXT-AUDIT-DATE "        *".
+           DISPLAY "*   ACCESS LOG RETENTION: " WS-ACCESS-LOG-RETENTION "     *".
+           DISPLAY "*   PAYMENT GATEWAY:      " WS-PAYMENT-GATEWAY "      *".
+           DISPLAY "*   MAX VAULT TEMP (C):   " WS-TEMP-THRESHOLD "                *".
+           DISPLAY "*   MAX VAULT HUMID (%):  " WS-HUMID-THRESHOLD "                *".
+           DISPLAY "*************************************************".
+           PERFORM 1400-WAIT-FOR-ACK.
+
+       5000-DISPLAY-AUDIT-LOG.
+           DISPLAY " ".
+           DISPLAY "*************************************************".
+           DISPLAY "*        VAULTGUARD SDS - RECENT AUDIT LOG      *".
+           DISPLAY "*            (Last 10 Simulated Entries)        *".
+           DISPLAY "*************************************************".
+           DISPLAY "*   " WS-LOG-ENTRY-1 " *".
+           DISPLAY "*   " WS-LOG-ENTRY-2 " *".
+           DISPLAY "*   " WS-LOG-ENTRY-3 " *".
+           DISPLAY "*   " WS-LOG-ENTRY-4 " *".
+           DISPLAY "*   " WS-LOG-ENTRY-5 " *".
+           DISPLAY "*   " WS-LOG-ENTRY-6 " *".
+           DISPLAY "*   " WS-LOG-ENTRY-7 " *".
+           DISPLAY "*   " WS-LOG-ENTRY-8 " *".
+           DISPLAY "*   " WS-LOG-ENTRY-9 " *".
+           DISPLAY "*   " WS-LOG-ENTRY-10 " *".
+           DISPLAY "*************************************************".
+           PERFORM 1400-WAIT-FOR-ACK.
+
+       END PROGRAM SFMAIN.

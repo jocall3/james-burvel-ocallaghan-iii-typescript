@@ -1,0 +1,79 @@
+graph TD
+    subgraph "Input & Initial Analysis"
+        A[User Input Topic or Goal]
+        B[AI Research Task Initialization]
+        A --> B
+    end
+
+    subgraph "Deep Research & Synthesis AI Core"
+        C[Data Gathering Global Sources]
+        D[Knowledge Extraction Concept ID]
+        E[Information Synthesis Pattern Recognition]
+        F[Fact Validation and Bias Detection]
+        B --> C
+        C --> D
+        D --> E
+        E --> F
+    end
+
+    subgraph "Idea Generation & Content Structuring"
+        G[Creative Idea Generation Brainstorming]
+        H[Cross Topic Analogies AI]
+        I[Outline and Structure Drafting]
+        F --> G
+        G --Diverse Ideas--> H
+        G --Core Logic--> I
+        H --Enrich Outline--> I
+    end
+
+    subgraph "Content Generation & Refinement Loop"
+        J[Content Drafting Text Video Mermaid]
+        K[Human AI Review and QA]
+        L[Iterative Refinement and Optimization]
+        I --> J
+        J --Draft Output--> K
+        K --Feedback Required--> L
+        L --Refined Input--> J
+    end
+
+    subgraph "Final Output"
+        M[Final Content Delivery Diverse Formats]
+        K --Approved Draft--> M
+    end
+
+    style A fill:#DDEBF7,stroke:#3366CC,stroke-width:2px
+    style B fill:#E6F3FF,stroke:#3366CC,stroke-width:1px
+    style C fill:#DDF7DE,stroke:#28A745,stroke-width:1px
+    style D fill:#EAF7EB,stroke:#28A745,stroke-width:1px
+    style E fill:#F8F8DF,stroke:#FFC107,stroke-width:1px
+    style F fill:#FFFADD,stroke:#FFC107,stroke-width:1px
+    style G fill:#F0E6FA,stroke:#6F42C1,stroke-width:1px
+    style H fill:#F8F0FF,stroke:#6F42C1,stroke-width:1px
+    style I fill:#E0E0FF,stroke:#6633CC,stroke-width:1px
+    style J fill:#FFEDDD,stroke:#FD7E14,stroke-width:1px
+    style K fill:#FFFAE6,stroke:#FFC107,stroke-width:2px
+    style L fill:#FFE6FF,stroke:#DC3545,stroke-width:1px
+    style M fill:#CCEECC,stroke:#28A745,stroke-width:2px
+
+    linkStyle 0 stroke-width:2px,fill:none,stroke:black;
+    linkStyle 1 stroke-width:2px,fill:none,stroke:black;
+    linkStyle 2 stroke-width:2px,fill:none,stroke:black;
+    linkStyle 3 stroke-width:2px,fill:none,stroke:black;
+    linkStyle 4 stroke-width:2px,fill:none,stroke:black;
+    linkStyle 5 stroke-width:2px,fill:none,stroke:black;
+    linkStyle 6 stroke-width:2px,fill:none,stroke:black;
+    linkStyle 7 stroke-width:2px,fill:none,stroke:black;
+    linkStyle 8 stroke-width:2px,fill:none,stroke:black;
+    linkStyle 9 stroke-width:2px,fill:none,stroke:black;
+    linkStyle 10 stroke-width:2px,fill:none,stroke:black;
+    linkStyle 11 stroke-width:2px,fill:none,stroke:black;
+    linkStyle 12 stroke-width:2px,fill:none,stroke:black;
+
+    Note right of A: Can be text, voice, or structured data for research.
+    Note left of C: Leverages internet, databases, specialized APIs.
+    Note right of F: Ensures accuracy and removes misinformation.
+    Note left of H: Connects disparate fields for novel perspectives.
+    Note right of J: Generates articles, reports, code, visual diagrams.
+    Note left of K: Human oversight for quality; AI assists in identifying flaws.
+    Note right of L: AI learns from feedback to improve future drafts.
+    Note right of M: Delivered as document, presentation, or interactive platform.

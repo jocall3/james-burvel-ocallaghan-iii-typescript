@@ -1,0 +1,202 @@
+apiVersion: v1
+kind: APIGatewaySecurityPolicyDefinitions
+metadata:
+  name: platform-global-security-policies
+  description: "Global security and throttling policies for the Demo Bank Platform API Gateway, dynamically managed by AI. These definitions form the bedrock upon which our AI-driven sentinel operates, ensuring adaptive resilience and impenetrable security."
+  version: "1.0.0"
+
+policies:
+  - id: default-api-throttling
+    name: "Default API Throttling"
+    description: "Establishes a foundational rate limit for all public API endpoints. This acts as our baseline, ensuring stability across the digital expanse before AI-driven adjustments fine-tune the flow."
+    priority: 100
+    enabled: true
+    type: throttling
+    conditions:
+      - rule: "request.path ~ '^/api/v1/'" # Applies universally to our v1 API endpoints
+      - rule: "request.authenticated == false" # For unauthenticated access
+    actions:
+      rate_limit:
+        requests_per_minute: 60
+        burst_capacity: 120
+      on_exceed: "BLOCK_AND_LOG"
+    ai_integration:
+      adaptive_adjustment:
+        enabled: true
+        ai_model_tag: "dynamic-rate-limiter-v1"
+        parameters:
+          sensitivity: "medium" # AI will dynamically adjust based on real-time traffic patterns, resource load, and observed client behavior.
+          client_behavior_detection: "HUMAN_VS_BOT" # Intelligently differentiate between human and automated traffic.
+          resource_load_factor: true # Automatically consider downstream service load to prevent cascading failures.
+      log_level: "INFO"
+
+  - id: premium-user-adaptive-throttling
+    name: "Premium User Adaptive Throttling"
+    description: "Grants elevated API access limits for our valued authenticated premium users, with AI subtly balancing performance and fairness."
+    priority: 90 # Overrides default policy for premium users
+    enabled: true
+    type: throttling
+    conditions:
+      - rule: "request.headers['X-User-Tier'] == 'premium'" # Assumes JWT or session data translates to a 'X-User-Tier' header
+      - rule: "request.authenticated == true"
+    actions:
+      rate_limit:
+        requests_per_minute: 600
+        burst_capacity: 1200
+      on_exceed: "BLOCK_AND_LOG"
+    ai_integration:
+      adaptive_adjustment:
+        enabled: true
+        ai_model_tag: "dynamic-rate-limiter-v1"
+        parameters:
+          sensitivity: "low" # Less aggressive AI adjustments, prioritizing premium experience.
+          client_reputation_score_min: 70 # Incorporates the client's historical reputation for trusted access.
+      log_level: "INFO"
+
+  - id: bot-traffic-aggressive-throttling
+    name: "AI-Detected Bot Traffic Throttling"
+    description: "Applies aggressive throttling and mitigation strategies against traffic identified as malicious or unwanted bot activity by our advanced AI, safeguarding our resources."
+    priority: 50 # High priority to immediately mitigate bot impact
+    enabled: true
+    type: throttling
+    conditions:
+      - rule: "ai_evaluation.bot_score > 0.8" # AI model provides a real-time bot confidence score
+        source: "AI_BEHAVIORAL_BOT_DETECTION"
+    actions:
+      rate_limit:
+        requests_per_minute: 5
+        burst_capacity: 10
+      on_exceed: "CAPTCHA_CHALLENGE_AND_BLOCK" # Introduces an intelligent CAPTCHA challenge before outright blocking.
+    ai_integration:
+      adaptive_challenge_response:
+        enabled: true
+        ai_model_tag: "bot-mitigation-v2" # Specific AI model for orchestrating bot mitigation.
+        parameters:
+          detection_threshold: 0.8 # Threshold for bot identification.
+          challenge_frequency: "DYNAMIC" # AI dynamically adjusts CAPTCHA frequency based on threat severity.
+      trigger_alert:
+        severity: "WARNING"
+        channels: ["slack", "email"]
+      log_level: "WARNING"
+
+  - id: sql-injection-detection
+    name: "AI-Enhanced SQL Injection Detection"
+    description: "Deploys our sentinel AI to meticulously scan for and neutralize sophisticated SQL injection attempts within request parameters and bodies, integrating real-time threat intelligence."
+    priority: 30 # Critical security policy, taking precedence
+    enabled: true
+    type: security
+    conditions:
+      - rule: "request.body.containsAny(['SELECT * FROM', 'UNION ALL SELECT', '--', ';--', 'OR 1=1', 'xp_cmdshell']) || request.query_params.containsAny(['SELECT * FROM', 'UNION ALL SELECT', '--', ';--', 'OR 1=1', 'xp_cmdshell'])"
+        ai_enhancement:
+          enabled: true
+          ai_model_tag: "threat-intelligence-fusion-v1" # AI model dynamically updates patterns based on global and emerging threats.
+          pattern_update_frequency: "REAL_TIME" # Ensures our defenses are always current.
+    actions:
+      on_detect: "BLOCK_AND_ALERT"
+      block_response_code: 403
+      block_message: "Forbidden: Malicious input detected."
+    ai_integration:
+      root_cause_analysis:
+        enabled: true
+        ai_model_tag: "incident-analyzer-v1" # AI provides immediate, probable root cause analysis upon detection.
+      trigger_alert:
+        severity: "CRITICAL"
+        channels: ["pagerduty", "slack", "email"]
+      log_level: "ERROR"
+
+  - id: ddos-prevention-adaptive
+    name: "AI-Powered DDoS Prevention & Mitigation"
+    description: "A formidable, adaptive defense system that leverages AI to proactively detect and dynamically mitigate distributed denial-of-service attacks, ensuring unwavering service availability."
+    priority: 20 # Paramount security policy
+    enabled: true
+    type: security
+    conditions:
+      - rule: "ai_evaluation.traffic_anomaly_score > 0.95" # AI model flags severe, sustained traffic anomalies.
+        source: "AI_TRAFFIC_ANOMALY_DETECTION"
+      - rule: "request.rate_from_source > 1000/s" # Example raw rate condition for initial triggers.
+    actions:
+      on_detect: "AGGRESSIVE_THROTTLING_AND_TEMPORARY_IP_BLACKLIST"
+      aggressive_throttling_rate:
+        requests_per_second: 1 # Drastically reduce rate for suspicious IPs/sources.
+        burst_capacity: 2
+      ip_blacklist_duration: "30m" # Temporarily blacklist identified malicious IP sources.
+    ai_integration:
+      threat_intelligence_fusion:
+        enabled: true
+        source_feeds: ["global-threat-intel", "internal-anomaly-detection-feed"] # Consolidates real-time external and internal threat data.
+      auto_remediation:
+        enabled: true
+        ai_model_tag: "ddos-mitigation-orchestrator-v1" # AI orchestrates advanced mitigation strategies, including geo-blocking and content delivery network (CDN) adjustments.
+      trigger_alert:
+        severity: "URGENT"
+        channels: ["pagerduty", "sms", "slack"]
+      log_level: "CRITICAL"
+
+  - id: api-contract-validation
+    name: "Automated API Contract Enforcement"
+    description: "Strictly enforces adherence to OpenAPI/Swagger specifications for all incoming requests and outgoing responses, ensuring data integrity and impeccable interoperability across our ecosystem."
+    priority: 110 # Applied after initial throttling, critical for data quality.
+    enabled: true
+    type: security
+    conditions:
+      - rule: "true" # Applies universally to all defined API endpoints.
+    actions:
+      on_validation_failure: "REJECT_REQUEST_WITH_DETAILED_ERROR"
+      error_response_code: 400
+      error_message_detail: "Request failed API contract validation. Please check your payload and parameters against the API documentation."
+    ai_integration:
+      schema_inference_and_anomaly_flagging:
+        enabled: true
+        ai_model_tag: "schema-validator-v1" # AI continuously monitors traffic to flag consistent schema deviations, potentially identifying new attack vectors or misconfigurations.
+        description: "AI continuously monitors API traffic for compliance against the defined schema, flagging subtle deviations that indicate evolving threats or data quality issues."
+      log_level: "WARNING"
+
+  - id: suspicious-geo-location-blocking
+    name: "AI-Driven Suspicious Geo-Location Blocking"
+    description: "Proactively blocks requests originating from IP ranges identified by AI and global threat intelligence as high-risk or from specific, dynamically blacklisted geographic regions, fortifying our perimeter."
+    priority: 40
+    enabled: true
+    type: security
+    conditions:
+      - rule: "ai_evaluation.geo_risk_score > 0.9" # AI model provides a real-time risk score for geo-locations.
+        source: "AI_GEO_RISK_ANALYSIS"
+      - rule: "request.geo_ip.country_code IN ai_evaluation.dynamic_blacklist_countries" # Dynamically updated by AI.
+    actions:
+      on_detect: "BLOCK_AND_ALERT"
+      block_response_code: 403
+      block_message: "Access denied from suspicious geo-location."
+    ai_integration:
+      threat_intelligence_fusion:
+        enabled: true
+        source_feeds: ["geo-threat-intel", "internal-ip-reputation-db"]
+      dynamic_country_blacklist:
+        enabled: true
+        ai_model_tag: "geo-threat-analyzer-v1" # AI dynamically updates the list of high-risk countries/regions.
+      trigger_alert:
+        severity: "HIGH"
+        channels: ["slack"]
+      log_level: "ERROR"
+
+  - id: credential-stuffing-detection
+    name: "AI-Powered Credential Stuffing Detection"
+    description: "Leverages AI to discern and thwart credential stuffing attacks by intelligently analyzing patterns of rapid, failed login attempts from diverse credentials, safeguarding user accounts."
+    priority: 35
+    enabled: true
+    type: security
+    conditions:
+      - rule: "request.path == '/auth/login'" # Specifically targets the login endpoint.
+      - rule: "ai_evaluation.failed_login_burst_score > 0.7 AND ai_evaluation.unique_credentials_ratio > 0.5" # AI identifies the characteristic signature of credential stuffing.
+    actions:
+      on_detect: "TEMPORARY_IP_BLOCK_AND_MFA_CHALLENGE"
+      ip_block_duration: "10m" # Temporarily block the source IP.
+      mfa_challenge_prompt: true # Force MFA challenge for the affected user account, if applicable.
+    ai_integration:
+      ai_model_tag: "credential-stuffing-detector-v1"
+      parameters:
+        failed_login_threshold: 50 # Number of failed logins within a short window to trigger deep AI analysis.
+        time_window_seconds: 60
+      trigger_alert:
+        severity: "HIGH"
+        channels: ["slack", "email"]
+      log_level: "ERROR"
+```

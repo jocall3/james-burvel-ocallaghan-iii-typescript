@@ -1,0 +1,117 @@
+      ******************************************************************
+      * FINANCIAL SERVICES - DATA STRUCTURE FOR CORPORATE CREDIT LINE
+      * This copybook defines the core data elements for managing
+      * corporate credit facilities. It is designed to support advanced
+      * analytical processing, including AI-driven insights for
+      * risk assessment, credit utilization optimization, and
+      * proactive client engagement. The data elements capture both
+      * fundamental financial terms and dynamic performance metrics,
+      * alongside outputs from sophisticated AI models to enhance
+      * decision-making and operational efficiency within the mainframe
+      * environment.
+      ******************************************************************
+       01 CORP-FINANCE-RECORD.
+      *
+      *    SECTION 1: CORE IDENTIFICATION AND STATUS DETAILS
+      *    -------------------------------------------------
+           05 CF-IDENTIFICATION-DETAILS.
+              10 CF-COMPANY-ID           PIC X(10).
+              10 CF-ACCOUNT-NUMBER       PIC X(12).
+              10 CF-STATUS-CODE          PIC X(01).
+                 88 CF-STATUS-ACTIVE     VALUE 'A'.
+                 88 CF-STATUS-SUSPENDED  VALUE 'S'.
+                 88 CF-STATUS-CLOSED     VALUE 'C'.
+              10 CF-OPEN-DATE            PIC 9(08).    *> YYYYMMDD
+              10 CF-LAST-REVIEW-DATE     PIC 9(08).    *> YYYYMMDD
+              10 CF-NEXT-REVIEW-DATE     PIC 9(08).    *> YYYYMMDD
+              10 CF-RELATIONSHIP-MANAGER-ID PIC X(08).
+              10 CF-INDUSTRY-CODE        PIC X(05).    *> E.g., SIC or NAICS code
+              10 CF-GEOGRAPHIC-REGION    PIC X(03).    *> E.g., 'NAM' for North America, 'EUR' for Europe
+              10 CF-ENTITY-TYPE          PIC X(02).    *> E.g., 'SM' for Small-Medium, 'LG' for Large Enterprise
+
+      *
+      *    SECTION 2: CREDIT LINE TERMS AND CURRENT FINANCIALS
+      *    --------------------------------------------------
+           05 CF-CREDIT-LINE-TERMS.
+              10 CF-CREDIT-LINE-TOTAL    PIC S9(13)V99 COMP-3.
+              10 CF-CREDIT-AVAILABLE     PIC S9(13)V99 COMP-3.
+              10 CF-CURRENT-BALANCE      PIC S9(13)V99 COMP-3.
+              10 CF-INTEREST-RATE        PIC S9(03)V99 COMP-3.
+              10 CF-BASE-RATE-INDEX      PIC X(05).    *> E.g., 'PRIME', 'SOFR', 'LIBOR' (historical)
+              10 CF-SPREAD-RATE          PIC S9(02)V99 COMP-3.
+              10 CF-ANNUAL-FEE-AMOUNT    PIC S9(09)V99 COMP-3.
+              10 CF-FEE-RATE             PIC S9(02)V99 COMP-3.
+              10 CF-COLLATERAL-VALUE     PIC S9(13)V99 COMP-3.
+              10 CF-MATURITY-DATE        PIC 9(08).    *> YYYYMMDD
+              10 CF-RENEWAL-OPTION       PIC X(01).    *> 'A': Automatic, 'M': Manual Review
+
+      *
+      *    SECTION 3: PERFORMANCE AND USAGE METRICS
+      *    ---------------------------------------
+           05 CF-PERFORMANCE-METRICS.
+              10 CF-UTILIZATION-PERCENT  PIC S9(03)V99 COMP-3. *> Current utilization percentage
+              10 CF-LAST-PAYMENT-AMOUNT  PIC S9(11)V99 COMP-3.
+              10 CF-LAST-PAYMENT-DATE    PIC 9(08).    *> YYYYMMDD
+              10 CF-DAYS-PAST-DUE        PIC S9(04) COMP-3.
+              10 CF-PAYMENT-FREQUENCY    PIC X(01).    *> 'M': Monthly, 'Q': Quarterly, 'A': Annually
+              10 CF-NUMBER-OF-DRAWINGS-YTD PIC S9(04) COMP-3.
+              10 CF-TOTAL-DRAWN-YTD      PIC S9(13)V99 COMP-3.
+              10 CF-TOTAL-REPAID-YTD     PIC S9(13)V99 COMP-3.
+              10 CF-FEES-CHARGED-YTD     PIC S9(09)V99 COMP-3.
+              10 CF-TOTAL-INTEREST-PAID-YTD PIC S9(09)V99 COMP-3.
+              10 CF-AVERAGE-BALANCE-LAST-12M PIC S9(13)V99 COMP-3.
+              10 CF-HIGH-BALANCE-LAST-12M PIC S9(13)V99 COMP-3.
+              10 CF-LOW-BALANCE-LAST-12M  PIC S9(13)V99 COMP-3.
+
+      *
+      *    SECTION 4: EXTERNAL FINANCIAL HEALTH AND RISK INDICATORS
+      *    --------------------------------------------------------
+           05 CF-FINANCIAL-HEALTH-INDICATORS.
+              10 CF-LIQUIDITY-RATIO      PIC S9(03)V99 COMP-3.
+              10 CF-DEBT-EQUITY-RATIO    PIC S9(05)V99 COMP-3.
+              10 CF-REVENUE-GROWTH-RATE  PIC S9(03)V99 COMP-3. *> Percentage
+              10 CF-PROFIT-MARGIN        PIC S9(03)V99 COMP-3. *> Percentage
+              10 CF-CREDIT-SCORE-AGENCY  PIC X(03).    *> E.g., 'EXP', 'DUN', 'S&P'
+              10 CF-CREDIT-SCORE-VALUE   PIC S9(04) COMP-3.
+              10 CF-RISK-RATING-EXTERNAL PIC X(01).    *> E.g., 'A', 'B', 'C' from a third party
+              10 CF-ECONOMIC-SECTOR-INDEX PIC S9(05)V99 COMP-3. *> Index reflecting sector performance
+
+      *
+      *    SECTION 5: AI-DRIVEN INSIGHTS AND RECOMMENDATIONS
+      *    -------------------------------------------------
+      *    This section captures the output from various AI models,
+      *    integrating advanced predictive analytics directly into
+      *    the corporate credit line management process. These fields
+      *    enable a "story-like" interaction where the mainframe
+      *    leverages AI for smarter, proactive decision-making.
+      *
+           05 CF-AI-INTELLIGENCE-LAYER.
+              10 CF-AI-PREDICTED-RISK-CATEGORY PIC X(01).
+                 88 CF-AI-RISK-LOW       VALUE 'L'.
+                 88 CF-AI-RISK-MEDIUM    VALUE 'M'.
+                 88 CF-AI-RISK-HIGH      VALUE 'H'.
+                 88 CF-AI-RISK-CRITICAL  VALUE 'C'.
+              10 CF-AI-DEFAULT-PROBABILITY PIC S9(03)V99 COMP-3. *> Probability of default (0.00 to 100.00)
+              10 CF-AI-ANOMALY-SCORE     PIC S9(03)V99 COMP-3. *> Score indicating unusual activity (0.00 to 100.00)
+              10 CF-AI-RECOMMEND-ACTION  PIC X(01).
+                 88 CF-AI-REC-INCREASE   VALUE 'I'.
+                 88 CF-AI-REC-DECREASE   VALUE 'D'.
+                 88 CF-AI-REC-MAINTAIN   VALUE 'M'.
+                 88 CF-AI-REC-REVIEW     VALUE 'R'.
+                 88 CF-AI-REC-OFFER-NEW  VALUE 'O'.
+              10 CF-AI-OPTIMAL-RATE-SUGGESTION PIC S9(03)V99 COMP-3. *> AI-suggested interest rate for optimal return/risk
+              10 CF-AI-NEXT-BEST-OFFER-CODE PIC X(05). *> Code for a proactive, AI-identified offer (e.g., loan, treasury service)
+              10 CF-AI-LAST-EVAL-TIMESTAMP PIC 9(14).   *> YYYYMMDDHHMMSS - When AI last processed this record
+              10 CF-AI-MODEL-VERSION     PIC X(10).   *> Identifier for the specific AI model iteration used
+              10 CF-AI-TRIGGER-FLAG      PIC X(01).   *> 'Y' if AI has flagged this record for immediate attention/action
+                 88 CF-AI-FLAGGED        VALUE 'Y'.
+                 88 CF-AI-NOT-FLAGGED    VALUE 'N'.
+              10 CF-AI-PREDICTED-UTILIZATION PIC S9(03)V99 COMP-3. *> AI forecast for future utilization percentage
+              10 CF-AI-COMPLIANCE-FLAG   PIC X(01).   *> 'Y' if AI identifies potential compliance issues
+              10 CF-AI-SENTIMENT-SCORE   PIC S9(03)V99 COMP-3. *> Score derived from external news/social data (e.g., -100 to 100)
+
+      *
+      *    SECTION 6: RESERVED FOR FUTURE EXPANSION
+      *    ----------------------------------------
+           05 CF-FILLER-FUTURE-USE      PIC X(50).
+

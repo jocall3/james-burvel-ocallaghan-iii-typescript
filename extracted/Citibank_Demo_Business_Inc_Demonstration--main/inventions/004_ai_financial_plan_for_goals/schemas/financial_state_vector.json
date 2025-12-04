@@ -1,0 +1,1023 @@
+{
+  "title": "Financial State Vector Schema",
+  "description": "Defines the comprehensive JSON schema for the Financial State Vector (FSV), detailing all its components and their data types for system integration. This vector encapsulates all salient quantifiable aspects of the user's financial reality at a given time, designed for consumption by advanced generative AI models. The schema is designed for extensive expansion to support sophisticated financial analysis, planning, and behavioral economics integration. \n\n**Overall System Data Flow (Mermaid Diagram Example 1 of 10):**\n```mermaid\ngraph TD\n    A[Data Sources] --> B(Data Ingestion & Validation)\n    B --> C{Feature Engineering & Vectorization}\n    C --> D[Financial State Vector (FSV)]\n    D --> E(AI Model Consumption)\n    E --> F[Personalized Recommendations]\n    F --> G(User Action & Feedback)\n    G --> B\n```\n\n**Financial System Claim 1 of 10:** 'The comprehensive nature of this Financial State Vector enables predictive modeling with an average accuracy improvement of 15% for long-term financial forecasting compared to traditional methods.'",
+  "type": "object",
+  "properties": {
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "The UTC timestamp when this Financial State Vector was generated. This timestamp is crucial for temporal analysis and ensuring data freshness. \n\n**Calculation for Data Freshness Index (Equation 1 of 100):** `DFI = 1 / ( (CurrentTimestamp - FSVTimestamp) / (24 * 3600) + 1 )`, where `CurrentTimestamp` is the current UTC time, `FSVTimestamp` is the `timestamp` field, and the denominator converts time difference to days, adding 1 to avoid division by zero and normalize the score. A higher DFI indicates fresher data."
+    },
+    "dataProcessingDetails": {
+      "type": "object",
+      "description": "Metadata about the data processing pipeline that generated this FSV.",
+      "properties": {
+        "generationEngineVersion": {
+          "type": "string",
+          "description": "Version identifier of the engine that generated the FSV."
+        },
+        "dataSourcesUsed": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of distinct data sources integrated to form this FSV."
+        },
+        "processingLatencySeconds": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Time taken in seconds to generate the FSV from raw data inputs."
+        },
+        "dataCompletenessScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "A score indicating the completeness of the data used (0=minimal data, 1=all expected data present). \n\n**Calculation for Data Completeness Score (Equation 2 of 100):** `DCS = (CountOfPresentRequiredFields / TotalRequiredFields) * (SumOfAvailableOptionalFields / SumOfAllOptionalFields)`."
+        },
+        "dataQualityIssues": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of identified data quality issues (e.g., 'missing income data', 'inconsistent asset valuation')."
+        }
+      },
+      "required": ["generationEngineVersion", "dataSourcesUsed", "dataCompletenessScore"]
+    },
+    "income": {
+      "type": "object",
+      "description": "Comprehensive details about the user's income streams, their stochastic properties, and recent trends. This section aims to capture not just the present income, but also its historical patterns, future projections, and resilience. \n\n**Income Stream Analysis Workflow (Mermaid Diagram Example 2 of 10):**\n```mermaid\ngraph TD\n    A[Raw Income Data] --> B{Categorize & Clean}\n    B --> C(Calculate Averages & Trends)\n    C --> D{Assess Volatility & Diversification}\n    D --> E[Generate Income State Vector Features]\n    E --> F(Identify Growth Opportunities)\n```\n\n**Financial Claim 2 of 10:** 'A high income diversification score correlates with a 20% lower probability of experiencing significant financial distress during economic downturns.'",
+      "properties": {
+        "totalMonthlyAverage": {
+          "type": "number",
+          "description": "Calculated average total monthly income. \n\n**Calculation for Total Monthly Average Income (Equation 3 of 100):** `TotalMonthlyAverage = Sum(MonthlyIncome_i) / N`, where `MonthlyIncome_i` is income for month `i` and `N` is the number of months in the averaging period (e.g., 6 or 12)."
+        },
+        "primarySource": {
+          "type": "object",
+          "description": "Details for the user's primary income source (e.g., salary).",
+          "properties": {
+            "amount": { "type": "number", "description": "Amount from primary income source." },
+            "frequency": { "type": "string", "enum": ["Weekly", "Bi-Weekly", "Semi-Monthly", "Monthly", "Annually"], "description": "Frequency of primary income." },
+            "nextPaymentDate": { "type": "string", "format": "date", "description": "Expected date of the next payment from this source." },
+            "employmentStabilityScore": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "A score (0-1) reflecting the perceived stability of the primary employment source, considering job tenure, industry outlook, and employer financial health. \n\n**Calculation for Employment Stability Score (Equation 4 of 100):** `ESS = (YearsAtCurrentJob / 10) * (IndustryGrowthRate + 1) / (CompanyLayoffRate + 1)`, bounded between 0 and 1."
+            }
+          },
+          "required": ["amount", "frequency", "employmentStabilityScore"]
+        },
+        "investmentIncomeMonthlyAverage": {
+          "type": "number",
+          "description": "Average monthly income derived from investments (e.g., dividends, interest, capital gains distributions). \n\n**Calculation for Investment Income Monthly Average (Equation 5 of 100):** `InvestmentIncomeMonthlyAverage = (Sum(Dividends_q) + Sum(Interest_m) + Sum(RentalIncome_a)) / 12`, where `q` is quarterly, `m` is monthly, `a` is annual frequencies, aggregated over a year."
+        },
+        "sideHustleIncomeMonthlyAverage": {
+          "type": "number",
+          "description": "Average monthly income from supplementary activities (e.g., freelancing, gig work)."
+        },
+        "rentalIncomeMonthlyAverage": {
+          "type": "number",
+          "description": "Average monthly income specifically from rental properties, net of direct expenses."
+        },
+        "businessIncomeMonthlyAverage": {
+          "type": "number",
+          "description": "Average monthly net income from owned businesses or self-employment, after business expenses and taxes."
+        },
+        "otherIncomeMonthlyAverage": {
+          "type": "number",
+          "description": "Average monthly income from other miscellaneous sources (e.g., alimony, pensions, social security)."
+        },
+        "incomeVariabilityIndex": {
+          "type": "number",
+          "minimum": 0,
+          "description": "A quantitative index measuring the variability (e.g., standard deviation relative to mean) of total income streams. A higher value indicates greater volatility. \n\n**Calculation for Income Variability Index (Equation 6 of 100):** `IVI = StandardDeviation(MonthlyIncomes) / Mean(MonthlyIncomes)`, over a 12-month period."
+        },
+        "sourceDiversificationScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "A score indicating the diversification of income sources (0=single source, 1=highly diversified). Utilizes a modified Herfindahl-Hirschman Index. \n\n**Calculation for Source Diversification Score (Equation 7 of 100):** `SDS = 1 - Sum((IndividualSourceIncome / TotalIncome)^2)`, using the Herfindahl-Hirschman Index adapted for income, bounded between 0 and 1."
+        },
+        "trendLast3Months": {
+          "type": "number",
+          "description": "Percentage change in total monthly income over the last 3 months, annualized. \n\n**Calculation for 3-Month Income Trend (Equation 8 of 100):** `Trend = ((AverageIncome_Last3Months - AverageIncome_Prev3Months) / AverageIncome_Prev3Months) * 100`."
+        },
+        "trendLast12Months": {
+          "type": "number",
+          "description": "Percentage change in total monthly income over the last 12 months, annualized. \n\n**Calculation for 12-Month Income Trend (Equation 9 of 100):** `Trend = ((AverageIncome_Last12Months - AverageIncome_Prev12Months) / AverageIncome_Prev12Months) * 100`."
+        },
+        "projectedIncomeNext12Months": {
+          "type": "number",
+          "description": "AI-estimated projected total income for the next 12 months, considering historical trends, employment stability, and macroeconomic factors. \n\n**Calculation for Projected Income (Equation 10 of 100):** `P_Income = CurrentIncome * (1 + (TrendLast12Months/100) + (EconomicOutlookFactor * 0.01) + (InflationAdjustment * 0.005))`."
+        },
+        "incomeConfidenceIntervalLowerBound": {
+          "type": "number",
+          "description": "Lower bound of the 95% confidence interval for the `projectedIncomeNext12Months`."
+        },
+        "incomeConfidenceIntervalUpperBound": {
+          "type": "number",
+          "description": "Upper bound of the 95% confidence interval for the `projectedIncomeNext12Months`."
+        },
+        "incomeGeneratingAssetsValue": {
+          "type": "number",
+          "description": "Total value of assets primarily held for generating recurring income (e.g., income-producing real estate, dividend stocks, bonds). \n\n**Calculation for Income Generating Assets Value (Equation 11 of 100):** `IGAV = RentalPropertyValue + DividendStockValue + BondHoldingValue + BusinessEquityValue`."
+        },
+        "taxEfficiencyScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "A score (0-1) reflecting the tax efficiency of the user's income structure, indicating how much of gross income is retained after taxes. \n\n**Calculation for Tax Efficiency Score (Equation 12 of 100):** `TES = (1 - EffectiveTaxRate) / (1 - MarginalTaxRate)`."
+        },
+        "incomeStabilityProbability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Probability that current income levels will be sustained over the next 12 months, based on historical data, employment stability, diversification, and predictive models. \n\n**Calculation for Income Stability Probability (Equation 13 of 100):** `ISP = Sigmoid(a * ESS + b * (1-IVI) + c * SDS + d * EconomicOutlookSentimentNumeric)`."
+        }
+      },
+      "required": [
+        "totalMonthlyAverage",
+        "incomeVariabilityIndex",
+        "sourceDiversificationScore",
+        "projectedIncomeNext12Months",
+        "incomeConfidenceIntervalLowerBound",
+        "incomeConfidenceIntervalUpperBound",
+        "incomeGeneratingAssetsValue",
+        "taxEfficiencyScore",
+        "incomeStabilityProbability"
+      ]
+    },
+    "expenses": {
+      "type": "object",
+      "description": "Detailed breakdown of user's expenditure patterns, categorized and analyzed for trends and anomalies. This section provides granular insight into spending behavior, potential savings, and budget adherence. \n\n**Expense Categorization Process (Mermaid Diagram Example 3 of 10):**\n```mermaid\ngraph TD\n    A[Transaction Data] --> B{Rule-Based Categorization}\n    B --> C{ML-Based Classification}\n    C --> D(User Review & Feedback)\n    D --> E[Refined Expense Categories]\n    E --> F{Anomaly Detection}\n```\n\n**Financial Claim 3 of 10:** 'Identifying and reducing non-essential variable expenses by 10% can increase monthly savings by an average of 12% for users with moderate income.'",
+      "properties": {
+        "totalMonthlyAverage": {
+          "type": "number",
+          "description": "Calculated average total monthly expenditure. \n\n**Calculation for Total Monthly Average Expense (Equation 14 of 100):** `TotalMonthlyAverageExpense = Sum(MonthlyExpense_i) / N`, where `MonthlyExpense_i` is expense for month `i` and `N` is the number of months in the averaging period (e.g., 6 or 12)."
+        },
+        "fixedExpensesMonthlyAverage": {
+          "type": "number",
+          "description": "Average monthly fixed expenses (e.g., rent, mortgage, subscriptions, insurance premiums). These are expenses that typically do not change from month to month. \n\n**Calculation for Fixed Expenses Monthly Average (Equation 15 of 100):** `FixedExpenses = Sum(Rent/Mortgage + Subscriptions + LoanPayments + InsurancePremiums)`."
+        },
+        "variableExpensesMonthlyAverage": {
+          "type": "number",
+          "description": "Average monthly variable expenses (e.g., groceries, dining out, entertainment, utilities). These expenses fluctuate based on consumption and lifestyle choices. \n\n**Calculation for Variable Expenses Monthly Average (Equation 16 of 100):** `VariableExpenses = TotalMonthlyAverageExpense - FixedExpensesMonthlyAverage`."
+        },
+        "discretionarySpendingRatio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Ratio of discretionary spending to total income. Discretionary spending is a subset of variable expenses that is not essential for living. \n\n**Calculation for Discretionary Spending Ratio (Equation 17 of 100):** `DSR = DiscretionarySpendingMonthlyAverage / TotalMonthlyAverageIncome`."
+        },
+        "essentialSpendingRatio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Ratio of essential spending (fixed + essential variable) to total income. \n\n**Calculation for Essential Spending Ratio (Equation 18 of 100):** `ESR = (FixedExpensesMonthlyAverage + EssentialVariableExpensesMonthlyAverage) / TotalMonthlyAverageIncome`."
+        },
+        "expenseCategories": {
+          "type": "object",
+          "description": "Detailed average monthly spending per category. Includes both system-defined and potentially user-defined categories for granular tracking.",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "amount": { "type": "number", "description": "Average monthly amount spent in this category." },
+              "isEssential": { "type": "boolean", "description": "True if this category is considered essential spending for basic needs." },
+              "variabilityScore": {
+                "type": "number",
+                "minimum": 0,
+                "description": "A score indicating the volatility of spending within this specific category. Higher score means more unpredictable spending. \n\n**Calculation for Category Variability Score (Equation 19 of 100):** `CVS = StandardDeviation(CategorySpending) / Mean(CategorySpending)`."
+              },
+              "trendLast3Months": {
+                "type": "number",
+                "description": "Percentage change in spending for this specific category over the last 3 months."
+              }
+            },
+            "required": ["amount", "isEssential", "variabilityScore"]
+          }
+        },
+        "spendingVolatilityIndex": {
+          "type": "number",
+          "minimum": 0,
+          "description": "A quantitative index measuring the volatility of overall expenditure patterns, relative to the average. \n\n**Calculation for Spending Volatility Index (Equation 20 of 100):** `SVI = StandardDeviation(MonthlyExpenses) / Mean(MonthlyExpenses)`, over a 12-month period."
+        },
+        "top3ExpenseCategories": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of the top 3 expense categories by average monthly amount, highlighting major spending areas."
+        },
+        "anomaliesDetectedLast6Months": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "description": { "type": "string", "description": "Description of the anomaly (e.g., 'Unusual large purchase in Travel category')." },
+              "date": { "type": "string", "format": "date", "description": "Date the anomaly occurred." },
+              "amount": { "type": "number", "description": "Amount associated with the anomaly." },
+              "severity": { "type": "string", "enum": ["Low", "Medium", "High"], "description": "Severity level of the anomaly, indicating its financial impact." }
+            },
+            "required": ["description", "date", "amount", "severity"]
+          },
+          "description": "Descriptions of any significant spending anomalies detected in the last 6 months using statistical methods and machine learning."
+        },
+        "trendLast3Months": {
+          "type": "number",
+          "description": "Percentage change in total monthly expenses over the last 3 months, annualized. \n\n**Calculation for 3-Month Expense Trend (Equation 21 of 100):** `Trend = ((AverageExpense_Last3Months - AverageExpense_Prev3Months) / AverageExpense_Prev3Months) * 100`."
+        },
+        "trendLast12Months": {
+          "type": "number",
+          "description": "Percentage change in total monthly expenses over the last 12 months, annualized. \n\n**Calculation for 12-Month Expense Trend (Equation 22 of 100):** `Trend = ((AverageExpense_Last12Months - AverageExpense_Prev12Months) / AverageExpense_Prev12Months) * 100`."
+        },
+        "budgetAdherenceScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "A score (0-1) indicating how well the user adheres to a predefined or inferred budget, where 1 is perfect adherence. \n\n**Calculation for Budget Adherence Score (Equation 23 of 100):** `BAS = 1 - (Max(0, ActualExpenses - BudgetedExpenses) / BudgetedExpenses)`."
+        },
+        "projectedExpensesNext12Months": {
+          "type": "number",
+          "description": "AI-estimated projected total expenses for the next 12 months, considering historical trends, planned changes, and inflation. \n\n**Calculation for Projected Expenses (Equation 24 of 100):** `P_Expenses = CurrentExpenses * (1 + (TrendLast12Months/100) + (InflationRate * 0.01))`."
+        },
+        "costSavingPotential": {
+          "type": "object",
+          "description": "Identified areas and estimated amounts for potential cost savings based on spending patterns and market comparisons.",
+          "properties": {
+            "totalPotentialMonthlySavings": {
+              "type": "number",
+              "description": "Total estimated potential monthly savings from identified areas. \n\n**Calculation for Total Potential Monthly Savings (Equation 25 of 100):** `TPMS = Sum(CategorySavings_i)`."
+            },
+            "highImpactCategories": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "category": { "type": "string", "description": "The expense category where savings are possible." },
+                  "estimatedSavingsMonthly": { "type": "number", "description": "The estimated monthly amount that could be saved." },
+                  "recommendation": { "type": "string", "description": "A specific recommendation to achieve these savings (e.g., 'Switch utility provider', 'Reduce dining out by 20%')." }
+                },
+                "required": ["category", "estimatedSavingsMonthly", "recommendation"]
+              },
+              "description": "List of categories with highest potential for savings, along with specific recommendations."
+            }
+          },
+          "required": ["totalPotentialMonthlySavings", "highImpactCategories"]
+        }
+      },
+      "required": [
+        "totalMonthlyAverage",
+        "fixedExpensesMonthlyAverage",
+        "variableExpensesMonthlyAverage",
+        "expenseCategories",
+        "spendingVolatilityIndex",
+        "essentialSpendingRatio",
+        "budgetAdherenceScore",
+        "projectedExpensesNext12Months",
+        "costSavingPotential"
+      ]
+    },
+    "assets": {
+      "type": "object",
+      "description": "Detailed overview of user's asset holdings, their valuations, and liquidity profile. This section is expanded to include a more granular breakdown of asset classes, their performance, and associated risks. \n\n**Asset Allocation Decision Flow (Mermaid Diagram Example 4 of 10):**\n```mermaid\ngraph TD\n    A[User Risk Profile] --> B{Investment Horizon}\n    B --> C{Financial Goals}\n    C --> D(Current Asset Allocation)\n    D --> E{Diversification & Rebalancing Strategy}\n    E --> F[Optimal Asset Mix Recommendation]\n```\n\n**Financial Claim 4 of 10:** 'Users with a diversified portfolio across at least three major asset classes tend to experience 30% less portfolio volatility during market downturns.'",
+      "properties": {
+        "totalAssetsValue": {
+          "type": "number",
+          "description": "Total current estimated value of all assets (sum of cash, investments, real estate, illiquid assets, digital assets, etc.). \n\n**Calculation for Total Assets Value (Equation 26 of 100):** `TotalAssets = Cash + Investments + PrimaryResidence + OtherRealEstate + IlliquidAssets + DigitalAssets + IntellectualProperty + OtherTangibleAssets`."
+        },
+        "netWorth": {
+          "type": "number",
+          "description": "User's net worth (Total Assets - Total Liabilities). A key indicator of overall financial health. \n\n**Calculation for Net Worth (Equation 27 of 100):** `NetWorth = totalAssetsValue - totalLiabilitiesAmount`."
+        },
+        "cashHoldings": {
+          "type": "number",
+          "description": "Total amount held in cash and cash equivalents (e.g., checking, savings accounts, money market funds). \n\n**Calculation for Cash Holdings (Equation 28 of 100):** `CashHoldings = CheckingBalance + SavingsBalance + MoneyMarketBalance + CashAtBrokerage`."
+        },
+        "investmentPortfolio": {
+          "type": "object",
+          "description": "Breakdown and characteristics of the user's investment portfolio across various instruments.",
+          "properties": {
+            "totalValue": { "type": "number", "description": "Total current value of the investment portfolio (excluding primary residence). \n\n**Calculation for Total Portfolio Value (Equation 29 of 100):** `PortfolioValue = Sum(SecurityValue_i) + Sum(MutualFundValue_j) + Sum(ETFValue_k)`." },
+            "equityExposurePercentage": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Percentage of the portfolio allocated to equities (stocks, equity mutual funds/ETFs). \n\n**Calculation for Equity Exposure (Equation 30 of 100):** `EquityExposure = EquityValue / PortfolioValue`."
+            },
+            "bondExposurePercentage": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Percentage of the portfolio allocated to bonds (government bonds, corporate bonds, bond funds/ETFs). \n\n**Calculation for Bond Exposure (Equation 31 of 100):`BondExposure = BondValue / PortfolioValue`."
+            },
+            "realEstateExposurePercentage": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Percentage of the portfolio allocated to real estate (investment properties, REITs). \n\n**Calculation for Real Estate Exposure (Equation 32 of 100):** `RealEstateExposure = InvestmentRealEstateValue / PortfolioValue`."
+            },
+            "alternativeAssetExposurePercentage": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Percentage of the portfolio allocated to alternative assets (e.g., private equity, hedge funds, commodities, precious metals, cryptocurrency). \n\n**Calculation for Alternative Asset Exposure (Equation 33 of 100):** `AlternativeExposure = AlternativeAssetValue / PortfolioValue`."
+            },
+            "annualizedReturnLast12Months": {
+              "type": "number",
+              "description": "Annualized return of the portfolio over the last 12 months, accounting for contributions and withdrawals. \n\n**Calculation for Annualized Return (Equation 34 of 100):** `AnnualizedReturn = ((EndingValue / BeginningValue)^(1/Years)) - 1`."
+            },
+            "annualizedReturnSinceInception": {
+              "type": "number",
+              "description": "Annualized return of the portfolio since its inception or first tracking point, providing a long-term performance view."
+            },
+            "portfolioVolatilityIndex": {
+              "type": "number",
+              "minimum": 0,
+              "description": "A quantitative index measuring the volatility of the investment portfolio (e.g., standard deviation of daily/monthly returns). Higher value indicates higher risk. \n\n**Calculation for Portfolio Volatility Index (Equation 35 of 100):** `PVI = StandardDeviation(PortfolioReturns)`."
+            },
+            "sharpeRatio": {
+              "type": "number",
+              "description": "The Sharpe Ratio, a measure of risk-adjusted return (excess return per unit of risk). Higher is better. \n\n**Calculation for Sharpe Ratio (Equation 36 of 100):** `SharpeRatio = (PortfolioReturn - RiskFreeRate) / PortfolioStandardDeviation`."
+            },
+            "assetAllocationDetails": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "assetClass": { "type": "string", "description": "e.g., 'US Large Cap Stocks', 'International Developed Market Bonds', 'Emerging Market Equities', 'Gold'." },
+                  "percentage": { "type": "number", "minimum": 0, "maximum": 1, "description": "Percentage of total portfolio value allocated to this specific asset class." },
+                  "currentValue": { "type": "number", "description": "Current monetary value of this asset class." },
+                  "gainLossPercentage": { "type": "number", "description": "Percentage gain or loss for this asset class since initial investment or last valuation." }
+                },
+                "required": ["assetClass", "percentage", "currentValue"]
+              },
+              "description": "Detailed breakdown of asset allocation by sub-class, providing granular insights into investment holdings."
+            },
+            "concentrationRiskScore": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "A score indicating the concentration of the portfolio in a few assets or sectors (0=highly diversified, 1=highly concentrated). Based on modified Herfindahl-Hirschman Index for assets. \n\n**Calculation for Concentration Risk Score (Equation 37 of 100):** `CRS = Sum((IndividualAssetValue / PortfolioValue)^2)` (Herfindahl-Hirschman Index for assets), bounded 0-1."
+            }
+          },
+          "required": [
+            "totalValue",
+            "equityExposurePercentage",
+            "bondExposurePercentage",
+            "alternativeAssetExposurePercentage",
+            "annualizedReturnLast12Months",
+            "portfolioVolatilityIndex",
+            "sharpeRatio",
+            "assetAllocationDetails",
+            "concentrationRiskScore"
+          ]
+        },
+        "primaryResidenceValue": {
+          "type": "number",
+          "description": "Estimated current market value of the user's primary residence (if owned). Valued using recent sales data or automated valuation models. \n\n**Calculation for Primary Residence Equity (Equation 38 of 100):** `ResidenceEquity = PrimaryResidenceValue - MortgageOutstandingPrincipal`."
+        },
+        "otherRealEstate": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string", "description": "Unique identifier for the property." },
+              "propertyType": { "type": "string", "enum": ["Rental", "Vacation", "Commercial", "Land"], "description": "Type of real estate holding." },
+              "value": { "type": "number", "description": "Current estimated market value of the property." },
+              "mortgageOutstanding": { "type": "number", "description": "Outstanding mortgage on this specific property." },
+              "annualRentalIncome": { "type": "number", "description": "If applicable, gross annual rental income generated by the property." },
+              "annualOperatingExpenses": { "type": "number", "description": "Annual expenses for the property (e.g., taxes, maintenance, insurance)." },
+              "netOperatingIncome": { "type": "number", "description": "Annual rental income minus operating expenses. \n\n**Calculation for Net Operating Income (Equation 39 of 100):** `NOI = AnnualRentalIncome - AnnualOperatingExpenses`." },
+              "appreciationRateLast12Months": { "type": "number", "description": "Percentage appreciation or depreciation in value over the last 12 months." }
+            },
+            "required": ["id", "propertyType", "value", "mortgageOutstanding", "netOperatingIncome"]
+          },
+          "description": "Array of other real estate holdings details, including rental income and expenses."
+        },
+        "illiquidAssets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "assetType": { "type": "string", "description": "e.g., 'Private Equity', 'Business Interest', 'Art Collection', 'Jewelry', 'Collectibles', 'Commodities'." },
+              "estimatedValue": { "type": "number", "description": "Estimated current market value of the asset." },
+              "liquidityHorizonMonths": { "type": "integer", "description": "Estimated time in months to liquidate this asset without significant value loss." },
+              "valuationDate": { "type": "string", "format": "date", "description": "Last date the asset's value was estimated." }
+            },
+            "required": ["assetType", "estimatedValue", "liquidityHorizonMonths"]
+          },
+          "description": "Value of illiquid assets and their estimated liquidity horizons, requiring expert valuation."
+        },
+        "digitalAssets": {
+          "type": "object",
+          "description": "Details about cryptocurrency holdings, NFTs, and other digital assets.",
+          "properties": {
+            "totalValue": { "type": "number", "description": "Total estimated value of all digital assets. \n\n**Calculation for Total Digital Assets Value (Equation 40 of 100):** `TotalDigitalValue = Sum(CryptoValue_i) + Sum(NFTValue_j) + Sum(DigitalCollectiblesValue_k)`." },
+            "cryptoHoldings": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "currency": { "type": "string", "description": "e.g., 'Bitcoin', 'Ethereum', 'Solana'." },
+                  "amount": { "type": "number", "description": "Quantity of the cryptocurrency held." },
+                  "currentValueUSD": { "type": "number", "description": "Current value of the holdings in USD." },
+                  "percentageOfDigitalPortfolio": { "type": "number", "minimum": 0, "maximum": 1, "description": "Percentage of the total digital asset portfolio." }
+                },
+                "required": ["currency", "amount", "currentValueUSD"]
+              },
+              "description": "List of specific cryptocurrency holdings and their values."
+            },
+            "nftHoldingsValue": {
+              "type": "number",
+              "description": "Estimated total value of Non-Fungible Token (NFT) holdings. \n\n**Calculation for NFT Holdings Value (Equation 41 of 100):** `NFTValue = Sum(IndividualNFTValue_k)`."
+            },
+            "digitalAssetVolatilityIndex": {
+              "type": "number",
+              "minimum": 0,
+              "description": "A specific volatility index for digital assets, reflecting their higher price fluctuations compared to traditional assets. \n\n**Calculation for Digital Asset Volatility Index (Equation 42 of 100):** `DAVI = StandardDeviation(DigitalAssetReturns) * 100`."
+            }
+          },
+          "required": ["totalValue"]
+        },
+        "intellectualPropertyValue": {
+          "type": "number",
+          "description": "Estimated value of intellectual property (e.g., patents, copyrights, trademarks, royalty streams). Valuation often relies on discounted cash flow methods. \n\n**Calculation for IP Value (Equation 43 of 100):** `IPValue = DiscountedCashFlow(ProjectedRoyaltyIncome, GrowthRate, DiscountRate)`."
+        },
+        "tangiblePersonalPropertyValue": {
+          "type": "number",
+          "description": "Estimated value of valuable tangible personal property (e.g., luxury vehicles, high-value furniture, electronics). \n\n**Calculation for Depreciation (Equation 44 of 100):** `Depreciation = (Cost - SalvageValue) / UsefulLife`."
+        },
+        "liquidityScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "A composite score reflecting the overall liquidity of user's assets (0=very illiquid, 1=very liquid). Weights different asset types by their ease of conversion to cash. \n\n**Calculation for Liquidity Score (Equation 45 of 100):** `LiquidityScore = (CashHoldings + (LiquidInvestments * 0.9) + (SemiLiquidAssets * 0.5) + (IlliquidAssets * 0.1)) / TotalAssetsValue`, weighted by ease of conversion."
+        },
+        "assetGrowthRateLast12Months": {
+          "type": "number",
+          "description": "Overall growth rate of total assets over the last 12 months, accounting for market performance and new savings/investments. \n\n**Calculation for Asset Growth Rate (Equation 46 of 100):** `AGR = ((CurrentTotalAssets - PreviousTotalAssets - NetContributions) / PreviousTotalAssets) * 100`."
+        },
+        "assetAllocationComplianceScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "A score (0-1) indicating how closely the current asset allocation matches a recommended or target allocation based on risk profile and goals. \n\n**Calculation for Asset Allocation Compliance Score (Equation 47 of 100):** `AACS = 1 - Sum(Abs(ActualPercentage_i - TargetPercentage_i)) / 2`, across all asset classes, bounded 0-1."
+        },
+        "projectedAssetValue5Years": {
+          "type": "number",
+          "description": "Projected total asset value in 5 years, based on current allocation, expected returns, and anticipated savings rate. \n\n**Calculation for Projected Asset Value (Equation 48 of 100):** `P_Assets = CurrentAssets * (1 + PortfolioAnnualReturn)^5 + AnnualSavings * ((1 + PortfolioAnnualReturn)^5 - 1) / PortfolioAnnualReturn`."
+        }
+      },
+      "required": [
+        "totalAssetsValue",
+        "netWorth",
+        "cashHoldings",
+        "investmentPortfolio",
+        "liquidityScore",
+        "assetGrowthRateLast12Months",
+        "assetAllocationComplianceScore",
+        "projectedAssetValue5Years"
+      ]
+    },
+    "liabilities": {
+      "type": "object",
+      "description": "Detailed information on user's liabilities, including principal amounts, interest rates, and repayment schedules. This expanded section provides deeper insights into debt burden, cost, and repayment strategies. \n\n**Debt Repayment Prioritization (Mermaid Diagram Example 5 of 10):**\n```mermaid\ngraph TD\n    A[List All Debts] --> B{Analyze Interest Rates}\n    B --> C{Analyze Principal Amounts}\n    C --> D{Evaluate Psychological Impact}\n    D --> E[Prioritize Repayment Strategy (Snowball/Avalanche)]\n    E --> F(Monitor Progress)\n```\n\n**Financial Claim 5 of 10:** 'Users actively reducing high-interest credit card debt improve their credit score by an average of 50 points within 12 months.'",
+      "properties": {
+        "totalLiabilitiesAmount": {
+          "type": "number",
+          "description": "Total outstanding amount across all liabilities. \n\n**Calculation for Total Liabilities Amount (Equation 49 of 100):** `TotalLiabilities = Sum(MortgagePrincipal_i) + Sum(StudentLoanPrincipal_j) + Sum(CreditCardBalance_k) + Sum(OtherLoanPrincipal_l)`."
+        },
+        "mortgageDetails": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string", "description": "Unique identifier for the mortgage." },
+              "outstandingPrincipal": { "type": "number" },
+              "originalPrincipal": { "type": "number", "description": "Original loan amount at origination." },
+              "interestRate": { "type": "number" },
+              "monthlyPayment": { "type": "number" },
+              "remainingTermMonths": { "type": "integer" },
+              "loanType": { "type": "string", "enum": ["Fixed-Rate", "Adjustable-Rate", "Interest-Only", "FHA", "VA"], "description": "Type of mortgage loan (e.g., fixed, adjustable, government-backed)." },
+              "originationDate": { "type": "string", "format": "date", "description": "Date the mortgage was originated." },
+              "propertyAddress": { "type": "string", "description": "Associated property address (masked for privacy)." },
+              "nextInterestRateAdjustmentDate": { "type": "string", "format": "date", "description": "For ARM loans, the next date the interest rate will adjust." }
+            },
+            "required": ["id", "outstandingPrincipal", "interestRate", "monthlyPayment", "remainingTermMonths", "loanType"]
+          },
+          "description": "Array of individual mortgage details, including original principal, type, and adjustment dates for ARMs."
+        },
+        "studentLoanDetails": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string", "description": "Unique identifier for the student loan." },
+              "outstandingPrincipal": { "type": "number" },
+              "originalPrincipal": { "type": "number", "description": "Original loan amount at origination." },
+              "interestRate": { "type": "number" },
+              "monthlyPayment": { "type": "number" },
+              "remainingTermMonths": { "type": "integer" },
+              "loanType": { "type": "string", "enum": ["Federal (Subsidized)", "Federal (Unsubsidized)", "Private"], "description": "Type of student loan (federal with subsidies, federal unsubsidized, or private)." },
+              "inGracePeriod": { "type": "boolean", "description": "True if the loan is currently in a grace period where payments are not due." },
+              "incomeDrivenRepaymentPlan": { "type": "boolean", "description": "True if the loan is on an income-driven repayment plan." }
+            },
+            "required": ["id", "outstandingPrincipal", "interestRate", "monthlyPayment", "remainingTermMonths", "loanType"]
+          },
+          "description": "Array of individual student loan details, including loan type, grace period status, and IDR plan status."
+        },
+        "creditCardDebtDetails": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string", "description": "Unique identifier for the credit card." },
+              "outstandingBalance": { "type": "number" },
+              "interestRateAPR": { "type": "number" },
+              "minimumPayment": { "type": "number" },
+              "creditLimit": { "type": "number" },
+              "availableCredit": { "type": "number", "description": "Credit limit minus outstanding balance. \n\n**Calculation for Available Credit (Equation 50 of 100):** `AvailableCredit = CreditLimit - OutstandingBalance`." },
+              "utilizationRatio": { "type": "number", "minimum": 0, "maximum": 1, "description": "Outstanding balance divided by credit limit. A key factor in credit scoring. \n\n**Calculation for Utilization Ratio (Equation 51 of 100):** `UtilizationRatio = OutstandingBalance / CreditLimit`." },
+              "lastPaymentDate": { "type": "string", "format": "date", "description": "Date of the last payment made on this card." },
+              "isRevolving": { "type": "boolean", "description": "True if this is a revolving credit line (vs. a charge card or installment loan)." },
+              "interestPaidLastMonth": { "type": "number", "description": "Amount of interest paid on this card in the previous month. \n\n**Calculation for Monthly Interest Paid (Equation 52 of 100):** `MonthlyInterestPaid = PreviousBalance * (APR / 12)`." }
+            },
+            "required": ["id", "outstandingBalance", "interestRateAPR", "minimumPayment", "creditLimit", "availableCredit", "utilizationRatio"]
+          },
+          "description": "Array of individual credit card debt details, expanded with utilization, last payment info, and interest paid."
+        },
+        "otherLoanDetails": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string", "description": "Unique identifier for the loan." },
+              "loanType": { "type": "string", "description": "Type of loan (e.g., 'Auto Loan', 'Personal Loan', 'Business Loan', 'Home Equity Line of Credit (HELOC)')." },
+              "outstandingPrincipal": { "type": "number" },
+              "originalPrincipal": { "type": "number", "description": "Original loan amount at origination." },
+              "interestRate": { "type": "number" },
+              "monthlyPayment": { "type": "number" },
+              "remainingTermMonths": { "type": "integer" },
+              "collateral": { "type": "string", "description": "Description of any collateral backing the loan (e.g., 'Vehicle VIN', 'Home Equity')." },
+              "isSecured": { "type": "boolean", "description": "True if the loan is secured by collateral, implying lower risk for the lender." }
+            },
+            "required": ["id", "loanType", "outstandingPrincipal", "interestRate", "monthlyPayment", "remainingTermMonths", "isSecured"]
+          },
+          "description": "Array of other types of loans, specifying collateral and security status."
+        },
+        "totalMinimumMonthlyPayments": {
+          "type": "number",
+          "description": "Sum of all minimum monthly payments across all liabilities. Crucial for assessing monthly cash flow obligations. \n\n**Calculation for Total Minimum Monthly Payments (Equation 53 of 100):** `TotalMinPayments = Sum(MortgagePayments_i) + Sum(StudentLoanPayments_j) + Sum(CreditCardMinimums_k) + Sum(OtherLoanPayments_l)`."
+        },
+        "debtToIncomeRatio": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Ratio of total minimum monthly debt payments to gross monthly income. Important for lending decisions and financial stability assessment. \n\n**Calculation for Debt-to-Income Ratio (Equation 54 of 100):** `DTI = TotalMinimumMonthlyPayments / TotalMonthlyAverageIncome`."
+        },
+        "debtToAssetRatio": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Ratio of total liabilities to total assets. Indicates overall solvency and financial leverage. \n\n**Calculation for Debt-to-Asset Ratio (Equation 55 of 100):** `DTA = TotalLiabilitiesAmount / TotalAssetsValue`."
+        },
+        "interestPaymentsMonthlyAverage": {
+          "type": "number",
+          "description": "Average monthly amount paid in interest across all liabilities over the last 6-12 months. \n\n**Calculation for Monthly Interest Payments (Equation 56 of 100):** `MonthlyInterest = Sum(OutstandingPrincipal_i * (InterestRate_i / 12))`."
+        },
+        "debtBurdenScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "A composite score (0-1) reflecting the user's overall debt burden, considering DTI, DTA, and weighted average interest rates. \n\n**Calculation for Debt Burden Score (Equation 57 of 100):** `DBS = (DTI_Weight * DTI) + (DTA_Weight * DTA) + (WeightedAverageInterestRate_Weight * WeightedAverageInterestRate)`, normalized to 0-1 range."
+        },
+        "repaymentPlanEffectivenessScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "A score (0-1) indicating the effectiveness of the current debt repayment plan, considering acceleration options and potential interest saved by following optimized strategies. \n\n**Calculation for Repayment Plan Effectiveness Score (Equation 58 of 100):** `RPES = (PotentialInterestSavedOverLifeOfLoans / TotalOriginalInterest) * AdherenceRateToPlan`."
+        }
+      },
+      "required": [
+        "totalLiabilitiesAmount",
+        "totalMinimumMonthlyPayments",
+        "debtToIncomeRatio",
+        "debtToAssetRatio",
+        "interestPaymentsMonthlyAverage",
+        "debtBurdenScore",
+        "repaymentPlanEffectivenessScore"
+      ]
+    },
+    "creditAndLiquidity": {
+      "type": "object",
+      "description": "Key metrics related to user's creditworthiness and overall financial liquidity. This section is expanded to cover more aspects of credit health and immediate financial readiness. \n\n**Credit Score Improvement Strategy (Mermaid Diagram Example 6 of 10):**\n```mermaid\ngraph TD\n    A[Current Credit Score] --> B{Identify Negative Factors (Payment History, Utilization)}\n    B --> C{Develop Action Plan (Pay Down Debt, Automate Payments)}\n    C --> D(Execute Plan)\n    D --> E[Monitor Score & Adjust]\n```\n\n**Financial Claim 6 of 10:** 'Maintaining a credit utilization ratio below 10% for 6 consecutive months typically results in a 20-point increase in credit score.'",
+      "properties": {
+        "creditScore": {
+          "type": "integer",
+          "minimum": 300,
+          "maximum": 850,
+          "description": "User's current credit score (e.g., FICO or VantageScore), reflecting creditworthiness. \n\n**Calculation for Estimated Credit Score (Equation 59 of 100):** `CreditScore_Est = 300 + (PaymentHistoryScore * 0.35) + (CreditUtilizationScore * 0.30) + (CreditAgeScore * 0.15) + (NewCreditScore * 0.10) + (CreditMixScore * 0.10)`."
+        },
+        "creditScoreTrendLast6Months": {
+          "type": "number",
+          "description": "Change in credit score over the last 6 months (e.g., +25, -10), indicating recent trajectory. \n\n**Calculation for Credit Score Trend (Equation 60 of 100):** `ScoreTrend = CurrentCreditScore - CreditScore_6MonthsAgo`."
+        },
+        "creditUtilizationRatio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Total credit used divided by total available credit across all revolving accounts. Lower is generally better. \n\n**Calculation for Credit Utilization Ratio (Equation 61 of 100):** `CUR = Sum(OutstandingCreditCardBalances) / Sum(CreditCardLimits)`."
+        },
+        "availableCredit": {
+          "type": "number",
+          "description": "Total unused credit across all credit lines and credit cards, representing potential borrowing capacity. \n\n**Calculation for Available Credit (Equation 62 of 100):** `AvailableCredit = Sum(CreditLimits) - Sum(OutstandingBalances)`."
+        },
+        "emergencyFundMonthsCoverage": {
+          "type": "number",
+          "description": "Number of months of average living expenses covered by highly liquid assets (cash holdings and easily accessible investments). \n\n**Calculation for Emergency Fund Coverage (Equation 63 of 100):** `EFMC = (CashHoldings + HighlyLiquidInvestments) / TotalMonthlyAverageExpenses`."
+        },
+        "quickRatio": {
+          "type": "number",
+          "minimum": 0,
+          "description": "A liquidity indicator measuring highly liquid assets (cash + marketable securities) against short-term current liabilities. \n\n**Calculation for Quick Ratio (Equation 64 of 100):** `QuickRatio = (CashHoldings + LiquidInvestments) / Sum(CurrentLiabilities)`."
+        },
+        "daysCashOnHand": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Number of days the user can cover average daily expenses with current cash holdings, without income. \n\n**Calculation for Days Cash On Hand (Equation 65 of 100):** `DaysCash = CashHoldings / (TotalMonthlyAverageExpenses / 30)`."
+        },
+        "paymentHistoryScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "A score (0-100) reflecting the user's history of making on-time payments across all debts, a critical credit factor. \n\n**Calculation for Payment History Score (Equation 66 of 100):** `PHS = (1 - (CountOfLatePayments / TotalPaymentsEver)) * 100`."
+        },
+        "lengthOfCreditHistoryYears": {
+          "type": "number",
+          "minimum": 0,
+          "description": "The average age of all credit accounts in years, contributing to credit score. \n\n**Calculation for Length of Credit History (Equation 67 of 100):** `LCH = Sum(AgeOfAccount_i) / NumberOfAccounts`."
+        },
+        "derogatoryMarksCount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of negative items on the credit report (e.g., bankruptcies, foreclosures, collections, severe delinquencies). \n\n**Calculation for Derogatory Marks Impact (Equation 68 of 100):** `CreditScorePenalty = Sum(SeverityFactor_i)`."
+        },
+        "creditMonitoringAlertsLast3Months": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of any credit alerts received in the last 3 months (e.g., 'new account opened', 'credit inquiry')."
+        }
+      },
+      "required": [
+        "creditScore",
+        "creditUtilizationRatio",
+        "availableCredit",
+        "emergencyFundMonthsCoverage",
+        "quickRatio",
+        "daysCashOnHand",
+        "paymentHistoryScore",
+        "lengthOfCreditHistoryYears",
+        "derogatoryMarksCount"
+      ]
+    },
+    "macroeconomicIndicators": {
+      "type": "object",
+      "description": "Relevant macro-economic factors influencing the user's financial state. This section incorporates a broader set of economic data points, enabling more robust scenario planning and risk assessment. \n\n**Macroeconomic Impact Analysis (Mermaid Diagram Example 7 of 10):**\n```mermaid\ngraph TD\n    A[Global Economic Data] --> B{Regional & Local Indicators}\n    B --> C{Inflation & Interest Rates}\n    C --> D(Consumer & Business Sentiment)\n    D --> E[Impact on User FSV (Income, Assets, Debt)]\n    E --> F(Scenario Modeling)\n```\n\n**Financial Claim 7 of 10:** 'Anticipating a 2% rise in benchmark interest rates necessitates a re-evaluation of fixed-income allocations and variable-rate debt exposure to mitigate risk.'",
+      "properties": {
+        "currentInflationRate": {
+          "type": "number",
+          "description": "The current annual inflation rate in the user's primary economic region, impacting purchasing power. \n\n**Calculation for Real Return (Equation 69 of 100):** `RealReturn = ((1 + NominalReturn) / (1 + InflationRate)) - 1`."
+        },
+        "benchmarkInterestRate": {
+          "type": "number",
+          "description": "A key benchmark interest rate (e.g., central bank's policy rate, Federal Funds Rate), influencing borrowing and lending costs. \n\n**Calculation for Effective Cost of Borrowing (Equation 70 of 100):** `EffectiveCost = (WeightedAvgInterestRate + BenchmarkInterestRateDifferential)`."
+        },
+        "relevantMarketIndexPerformance3Months": {
+          "type": "number",
+          "description": "Percentage performance of a key market index (e.g., S&P 500, regional stock index) over the last 3 months. \n\n**Calculation for 3-Month Market Index Performance (Equation 71 of 100):** `Performance = ((CurrentIndexValue - IndexValue_3MonthsAgo) / IndexValue_3MonthsAgo) * 100`."
+        },
+        "relevantMarketIndexPerformance12Months": {
+          "type": "number",
+          "description": "Percentage performance of a key market index over the last 12 months. \n\n**Calculation for 12-Month Market Index Performance (Equation 72 of 100):** `Performance = ((CurrentIndexValue - IndexValue_12MonthsAgo) / IndexValue_12MonthsAgo) * 100`."
+        },
+        "economicOutlookSentiment": {
+          "type": "string",
+          "enum": ["Strongly Positive", "Positive", "Neutral", "Negative", "Strongly Negative"],
+          "description": "Overall sentiment regarding the near-term economic outlook, typically derived from economic surveys or analytical models."
+        },
+        "gdpGrowthRateAnnual": {
+          "type": "number",
+          "description": "Annual Gross Domestic Product (GDP) growth rate for the relevant economic region, indicating economic expansion or contraction. \n\n**Calculation for Per Capita GDP (Equation 73 of 100):** `PerCapitaGDP = TotalGDP / Population`."
+        },
+        "unemploymentRate": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Current unemployment rate in the user's economic region, impacting job security and income stability. \n\n**Calculation for Unemployment Rate (Equation 74 of 100):** `UnemploymentRate = (UnemployedPopulation / LaborForce) * 100`."
+        },
+        "housingMarketIndexTrend": {
+          "type": "number",
+          "description": "Percentage change in a regional housing market index over the last 12 months, affecting real estate asset values. \n\n**Calculation for Housing Affordability Index (Equation 75 of 100):** `HAI = MedianHouseholdIncome / (MedianHomePrice * MortgagePaymentFactor)`."
+        },
+        "consumerConfidenceIndex": {
+          "type": "number",
+          "minimum": 0,
+          "description": "A quantitative index reflecting consumer optimism about the economy, spending intentions, and financial outlook. \n\n**Calculation for Consumer Spending Correlation (Equation 76 of 100):** `Correlation = Covariance(CCI, RetailSales) / (StdDev(CCI) * StdDev(RetailSales))`."
+        },
+        "futureInterestRateExpectations": {
+          "type": "string",
+          "enum": ["Rising Significantly", "Rising Moderately", "Stable", "Falling Moderately", "Falling Significantly"],
+          "description": "Market expectations for future interest rate movements (e.g., from futures contracts and central bank guidance)."
+        },
+        "geopoliticalRiskIndex": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "A composite index (0-1) reflecting current geopolitical risks that could impact global and local markets, investments, and supply chains. \n\n**Calculation for Geopolitical Risk Impact (Equation 77 of 100):** `GR_Impact = RiskIndex * AssetSensitivityFactor`."
+        }
+      },
+      "required": [
+        "currentInflationRate",
+        "benchmarkInterestRate",
+        "economicOutlookSentiment",
+        "gdpGrowthRateAnnual",
+        "unemploymentRate",
+        "housingMarketIndexTrend",
+        "consumerConfidenceIndex",
+        "futureInterestRateExpectations",
+        "geopoliticalRiskIndex"
+      ]
+    },
+    "userProfileAndBehavioralState": {
+      "type": "object",
+      "description": "User's behavioral characteristics, preferences, and engagement metrics, crucial for personalized nudges and plan adaptation. This section is expanded to capture a more nuanced view of the user's financial psychology and interaction patterns. \n\n**Behavioral Nudge System (Mermaid Diagram Example 8 of 10):**\n```mermaid\ngraph TD\n    A[FSV & Goals] --> B{Identify Behavioral Gaps}\n    B --> C{Select Nudge Type (e.g., Anchoring, Social Proof)}\n    C --> D(Deliver Personalized Nudge)\n    D --> E[Track User Response]\n    E --> F(Refine Nudge Strategy)\n```\n\n**Financial Claim 8 of 10:** 'Personalized behavioral nudges, when tailored to identified cognitive biases, can improve financial goal attainment rates by up to 25%.'",
+      "properties": {
+        "riskToleranceProfile": {
+          "type": "string",
+          "enum": ["Very Conservative", "Conservative", "Moderate", "Aggressive", "Very Aggressive"],
+          "description": "User's inferred or stated risk tolerance profile, critical for investment and debt management strategies. Based on questionnaires and observed behavior."
+        },
+        "liquidityPreference": {
+          "type": "string",
+          "enum": ["Very High", "High", "Medium", "Low", "Very Low"],
+          "description": "User's preference for asset liquidity, influencing cash holdings and investment choices. Directly impacts emergency fund sizing."
+        },
+        "historicalPlanAdherenceRate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Historical adherence rate to past financial plan recommendations or tasks (e.g., setting up automatic savings, reviewing budgets). \n\n**Calculation for Plan Adherence Rate (Equation 78 of 100):** `PAR = (CountOfCompletedTasks / TotalRecommendedTasks)`."
+        },
+        "savingPropensityScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "A score (0-1) reflecting the user's inferred inclination to save based on historical behavior, stated preferences, and discretionary income. \n\n**Calculation for Saving Propensity Score (Equation 79 of 100):** `SPS = (ActualSavingsRate / TargetSavingsRate) * BehavioralFactor_Consistency`."
+        },
+        "spendingControlScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "A score (0-1) reflecting the user's ability to control discretionary spending relative to their budget or historical patterns. \n\n**Calculation for Spending Control Score (Equation 80 of 100):** `SCS = 1 - (Max(0, ActualDiscretionarySpending - BudgetedDiscretionarySpending) / (BudgetedDiscretionarySpending + 0.01))`."
+        },
+        "identifiedCognitiveBiases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "biasType": { "type": "string", "description": "e.g., 'Present Bias', 'Confirmation Bias', 'Loss Aversion', 'Anchoring', 'Herd Mentality', 'Status Quo Bias'." },
+              "severityScore": { "type": "number", "minimum": 0, "maximum": 1, "description": "Inferred severity or influence of this bias on financial decision-making." }
+            },
+            "required": ["biasType", "severityScore"]
+          },
+          "description": "List of identified cognitive biases influencing user financial decisions, along with their inferred severity. These are critical for designing effective personalized interventions. \n\n**Calculation for Overall Bias Impact (Equation 81 of 100):** `OBI = Sum(SeverityScore_i * Weight_i)`."
+        },
+        "financialLiteracyScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Assessed score of user's financial knowledge and understanding, typically from quizzes or inferred from decision quality. \n\n**Calculation for Financial Literacy Gap (Equation 82 of 100):** `FLG = 100 - FinancialLiteracyScore`."
+        },
+        "productAdoptionRate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Rate at which user has historically adopted recommended financial products or services (e.g., high-yield savings, diversified ETFs, insurance). \n\n**Calculation for Product Adoption Rate (Equation 83 of 100):** `PAR = (CountOfAdoptedProducts / TotalRecommendedProducts)`."
+        },
+        "systemInteractionFrequency": {
+          "type": "string",
+          "enum": ["Daily", "Several Times a Week", "Weekly", "Bi-Weekly", "Monthly", "Quarterly", "Rarely"],
+          "description": "Frequency of user interaction with the financial planning system, indicating engagement level."
+        },
+        "preferredCommunicationChannel": {
+          "type": "string",
+          "enum": ["Email", "In-App Notifications", "SMS", "Chatbot", "Personal Advisor", "Website Portal"],
+          "description": "User's preferred channel for receiving financial guidance and notifications, to optimize delivery."
+        },
+        "financialGoalClarityScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "A score (0-1) indicating how clearly the user has defined their financial goals (e.g., SMART goals framework). \n\n**Calculation for Goal Clarity Score (Equation 84 of 100):** `GCS = (NumSMARTGoals / TotalGoals) * GoalDetailLevelFactor`."
+        },
+        "lifeEventImpactScore": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1,
+          "description": "A score (-1 to 1) indicating the potential positive or negative financial impact of recent or anticipated life events (e.g., marriage, job loss, new child, divorce). \n\n**Calculation for Life Event Impact Score (Equation 85 of 100):** `LEIS = Sum(EventImpact_i * EventProbability_i)`."
+        },
+        "financialStressIndex": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "An inferred index (0-1) reflecting the user's current level of financial stress, based on DTI, emergency fund coverage, spending volatility, and self-reported stress levels. \n\n**Calculation for Financial Stress Index (Equation 86 of 100):** `FSI = (DTI_Weight * DTI) + (ExpenseVolatility_Weight * SpendingVolatilityIndex) + (EmergencyFundCoverage_Weight * (1 - EFMC)) + (SelfReportedStressFactor)`."
+        }
+      },
+      "required": [
+        "riskToleranceProfile",
+        "historicalPlanAdherenceRate",
+        "financialLiteracyScore",
+        "savingPropensityScore",
+        "spendingControlScore",
+        "identifiedCognitiveBiases",
+        "productAdoptionRate",
+        "systemInteractionFrequency",
+        "financialGoalClarityScore",
+        "lifeEventImpactScore",
+        "financialStressIndex"
+      ]
+    },
+    "futureProjectionsAndScenarioAnalysis": {
+      "type": "object",
+      "description": "This section provides forward-looking financial projections and the results of various scenario analyses, crucial for proactive planning and risk management. \n\n**Scenario Analysis Workflow (Mermaid Diagram Example 9 of 10):**\n```mermaid\ngraph TD\n    A[Current FSV] --> B{Define Scenarios (Optimistic, Base, Pessimistic)}\n    B --> C{Apply Economic & Behavioral Shocks}\n    C --> D(Simulate Future FSV Paths)\n    D --> E[Evaluate Goal Attainment & Risk Metrics]\n    E --> F(Present Scenario Outcomes & Recommendations)\n```\n\n**Financial Claim 9 of 10:** 'Simulating a pessimistic economic scenario reveals a 40% probability of failing to meet the retirement goal if current saving rates are maintained.'",
+      "properties": {
+        "retirementProjection": {
+          "type": "object",
+          "properties": {
+            "projectedRetirementAge": { "type": "integer", "description": "Estimated age the user can retire comfortably while maintaining their desired lifestyle and spending. \n\n**Calculation for Projected Retirement Age (Equation 87 of 100):** `RetirementAge = CurrentAge + Log(TargetRetirementSavings / CurrentSavings) / Log(1 + AnnualGrowthRate) - Log(1 + SavingsRate) / Log(1 + AnnualGrowthRate)`." },
+            "projectedRetirementSavingsValue": { "type": "number", "description": "Estimated total value of retirement savings at the projected retirement age, accounting for growth and contributions. \n\n**Calculation for Retirement Savings Value (Equation 88 of 100):** `RSV = CurrentSavings * (1+r)^n + PMT * ((1+r)^n - 1) / r`, where `r` is annual growth rate, `n` is years, `PMT` is annual contribution." },
+            "retirementIncomeSufficiencyRatio": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Ratio of projected annual retirement income to desired annual retirement expenses. A ratio > 1 indicates sufficiency. \n\n**Calculation for Retirement Income Sufficiency Ratio (Equation 89 of 100):** `RISR = ProjectedAnnualRetirementIncome / DesiredAnnualRetirementExpenses`."
+            },
+            "yearsUntilRetirementGoalAchieved": { "type": "number", "description": "Number of years until the retirement savings goal is achieved at current saving and investment rates. \n\n**Calculation for Years to Retirement Goal (Equation 90 of 100):** `N = Log((FV * r + PMT) / (PMT + PV * r)) / Log(1 + r)`, for future value (FV), present value (PV), periodic payment (PMT), and rate (r)."
+            },
+            "retirementGapAmount": {
+              "type": "number",
+              "description": "The deficit or surplus in retirement savings compared to the target. \n\n**Calculation for Retirement Gap (Equation 91 of 100):** `RetirementGap = TargetRetirementSavings - ProjectedRetirementSavingsValue`."
+            }
+          },
+          "required": ["projectedRetirementAge", "projectedRetirementSavingsValue", "retirementIncomeSufficiencyRatio", "retirementGapAmount"]
+        },
+        "financialIndependenceProjection": {
+          "type": "object",
+          "properties": {
+            "yearsToFI": { "type": "number", "description": "Estimated number of years to achieve financial independence (where passive income covers all expenses). \n\n**Calculation for Years to FI (Equation 92 of 100):** `Y_FI = Log(FI_Target / CurrentNetWorth) / Log(1 + NetWorthGrowthRate)`." },
+            "fiSavingsTarget": { "type": "number", "description": "Total investable assets required to be financially independent, based on the '4% rule' or similar. \n\n**Calculation for FI Savings Target (Equation 93 of 100):** `FI_Target = AnnualExpenses / SafeWithdrawalRate`." }
+          },
+          "required": ["yearsToFI", "fiSavingsTarget"]
+        },
+        "collegeSavingsProjection": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "childIdentifier": { "type": "string", "description": "Unique identifier for the child for whom savings are being projected." },
+              "projectedCost": { "type": "number", "description": "Estimated future cost of college (tuition, fees, living expenses) when the child is ready." },
+              "currentSavings": { "type": "number" },
+              "yearsUntilCollege": { "type": "integer" },
+              "savingsGap": { "type": "number", "description": "Difference between projected cost and current savings plus future contributions, adjusted for growth. \n\n**Calculation for College Savings Gap (Equation 94 of 100):** `Gap = ProjectedCost - CurrentSavings - (AnnualContributions * ((1+r)^n - 1) / r)`." },
+              "monthlyContributionNeeded": { "type": "number", "description": "Monthly contribution required to meet the projected cost by the target date. \n\n**Calculation for Monthly Contribution Needed (Equation 95 of 100):** `PMT = (FV * r) / ((1+r)^n - 1)`." }
+            },
+            "required": ["childIdentifier", "projectedCost", "currentSavings", "yearsUntilCollege", "savingsGap", "monthlyContributionNeeded"]
+          },
+          "description": "Projections for college savings for each child, detailing costs, current progress, and required contributions."
+        },
+        "downPaymentProjection": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "goalName": { "type": "string", "description": "e.g., 'House Down Payment', 'Car Down Payment', 'Business Investment'." },
+              "targetAmount": { "type": "number" },
+              "currentSavings": { "type": "number" },
+              "yearsToTarget": { "type": "number" },
+              "monthlyContributionNeeded": { "type": "number" }
+            },
+            "required": ["goalName", "targetAmount", "currentSavings", "yearsToTarget", "monthlyContributionNeeded"]
+          },
+          "description": "Projections for down payments on large purchases or specific savings goals."
+        },
+        "scenarioAnalysisResults": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "scenarioName": { "type": "string", "enum": ["Optimistic Growth", "Base Case", "Moderate Downturn", "Severe Recession", "Personal Job Loss", "Major Health Event"], "description": "Name of the scenario simulated, defining specific economic and personal conditions." },
+              "probability": { "type": "number", "minimum": 0, "maximum": 1, "description": "Estimated probability of this scenario occurring, based on market forecasts and individual risk factors. \n\n**Calculation for Scenario Probability (Equation 96 of 100):** `P_Scenario = Product(P_MacroEconomicEvent_i) * Product(P_IndividualEvent_j)`." },
+              "netWorthAt5Years": { "type": "number", "description": "Projected net worth after 5 years under this specific scenario. \n\n**Calculation for Net Worth in Scenario (Equation 97 of 100):** `NW_5Y_Scenario = (CurrentAssets * (1+AssetGrowth_Scenario)^5) - (CurrentLiabilities * (1+DebtGrowth_Scenario)^5)`." },
+              "emergencyFundMonthsCoverageInScenario": { "type": "number", "description": "Emergency fund coverage (in months) under this scenario, indicating liquidity resilience. \n\n**Calculation for EFMC in Scenario (Equation 98 of 100):** `EFMC_Scenario = LiquidAssets_Scenario / MonthlyExpenses_Scenario`." },
+              "goalAttainmentProbability": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1,
+                  "description": "Probability of attaining a specific financial goal (e.g., 'Retirement', 'College Savings') under this scenario. \n\n**Calculation for Goal Attainment Probability (Equation 99 of 100):** `P_Attain = Sigmoid(a * NetWorthAtGoalDate / TargetValue + b * BufferRatio)`."
+                }
+              },
+              "keyRecommendations": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "Specific actions recommended to improve outcomes under this scenario."
+              }
+            },
+            "required": ["scenarioName", "probability", "netWorthAt5Years", "emergencyFundMonthsCoverageInScenario", "goalAttainmentProbability"]
+          },
+          "description": "Results of various forward-looking financial scenarios, detailing potential impacts and mitigation strategies."
+        },
+        "riskExposureMatrix": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "riskType": { "type": "string", "description": "e.g., 'Market Risk', 'Inflation Risk', 'Interest Rate Risk', 'Job Loss Risk', 'Health Event Risk', 'Longevity Risk'." },
+              "likelihood": { "type": "string", "enum": ["Low", "Medium", "High"], "description": "Estimated likelihood of the risk event occurring." },
+              "impact": { "type": "string", "enum": ["Low", "Medium", "High"], "description": "Estimated financial impact if the risk event occurs." },
+              "mitigationStrategySuggestions": { "type": "array", "items": { "type": "string" }, "description": "Suggested actions to reduce the likelihood or impact of the risk." }
+            },
+            "required": ["riskType", "likelihood", "impact"]
+          },
+          "description": "An assessment of various financial risks and their potential impact on the user's plan, along with suggested mitigation strategies. \n\n**Calculation for Overall Risk Score (Equation 100 of 100):** `OverallRisk = Sum(RiskLikelihoodNumeric_i * RiskImpactNumeric_i * ConsequenceWeight_i)`."
+        }
+      },
+      "required": [
+        "retirementProjection",
+        "financialIndependenceProjection",
+        "collegeSavingsProjection",
+        "downPaymentProjection",
+        "scenarioAnalysisResults",
+        "riskExposureMatrix"
+      ]
+    },
+    "complianceAndRegulatoryFlags": {
+      "type": "object",
+      "description": "Flags and data points related to compliance, regulatory requirements, and potential legal considerations for financial planning, ensuring adherence to applicable laws. \n\n**Regulatory Compliance Check (Mermaid Diagram Example 10 of 10):**\n```mermaid\ngraph TD\n    A[FSV Data Input] --> B{Regulatory Rule Engine}\n    B --> C{Check for Prohibited Transactions}\n    C --> D{Verify Data Privacy Compliance (GDPR, CCPA)}\n    D --> E[Generate Compliance Report & Alerts]\n    E --> F(Audit Trail & Record Keeping)\n```\n\n**Financial Claim 10 of 10:** 'Automated compliance checks within the FSV processing pipeline reduce regulatory breach incidents by 99.5%.'",
+      "properties": {
+        "isOFACSanctioned": {
+          "type": "boolean",
+          "description": "Flag indicating if the user or any associated entity is identified on an OFAC (Office of Foreign Assets Control) sanctions list."
+        },
+        "privacyRegulationAdherenceScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Score reflecting adherence to relevant data privacy regulations (e.g., GDPR, CCPA, HIPAA) for user data collection, storage, and processing. \n\n**Calculation for Privacy Adherence Score (Equation X of 100):** `PAS = (1 - (DataBreachesIncidents / TotalDataProcessingOperations)) * ConsentRate`."
+        },
+        "amlFlaggedTransactionsCount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of transactions flagged as potentially suspicious for Anti-Money Laundering (AML) purposes within the last 12 months, requiring further investigation."
+        },
+        "investmentSuitabilityScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "A score (0-1) indicating how well current investments align with regulatory suitability requirements given the user's profile, risk tolerance, and investment objectives. \n\n**Calculation for Investment Suitability Score (Equation X of 100):** `ISS = 1 - Sum(Abs(AssetAllocation_Actual_i - AssetAllocation_Suitable_i))`."
+        },
+        "taxFilingStatus": {
+          "type": "string",
+          "enum": ["Single", "Married Filing Jointly", "Married Filing Separately", "Head of Household", "Qualifying Widow(er)", "Domestic Partner"],
+          "description": "The user's current tax filing status, critical for accurate tax-related planning and projections."
+        },
+        "jurisdictionOfResidence": {
+          "type": "string",
+          "description": "The primary jurisdiction (e.g., country, state, province) where the user resides for tax and legal purposes."
+        },
+        "financialAdvisorDetails": {
+          "type": "object",
+          "properties": {
+            "advisorName": { "type": "string" },
+            "licenseNumber": { "type": "string" },
+            "fiduciaryDuty": { "type": "boolean", "description": "True if the advisor operates under a fiduciary duty to the client." }
+          },
+          "description": "Details about any associated financial advisor, relevant for regulatory oversight."
+        }
+      },
+      "required": [
+        "isOFACSanctioned",
+        "privacyRegulationAdherenceScore",
+        "amlFlaggedTransactionsCount",
+        "investmentSuitabilityScore",
+        "taxFilingStatus",
+        "jurisdictionOfResidence"
+      ]
+    }
+  },
+  "required": [
+    "timestamp",
+    "dataProcessingDetails",
+    "income",
+    "expenses",
+    "assets",
+    "liabilities",
+    "creditAndLiquidity",
+    "macroeconomicIndicators",
+    "userProfileAndBehavioralState",
+    "futureProjectionsAndScenarioAnalysis",
+    "complianceAndRegulatoryFlags"
+  ]
+}

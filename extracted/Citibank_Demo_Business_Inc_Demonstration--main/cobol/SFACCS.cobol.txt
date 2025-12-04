@@ -1,0 +1,395 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. SFACCS.
+       AUTHOR. MAINFRAME-OPERATIONS-TEAM.
+      ******************************************************************
+      * SECURE VAULT ACCESS LOG SYSTEM
+      *
+      * This program facilitates the logging of access events for
+      * secure vault compartments (safe deposit boxes). It records
+      * details such as box number, customer ID, operator, and the
+      * date/time of access.
+      *
+      * It also incorporates a simulated AI Guardian for anomaly
+      * detection and a Cognitive Core for predictive insights,
+      * enhancing security and operational awareness in a story-like,
+      * non-controversial manner.
+      *
+      * The system interacts with a master file of safe deposit box
+      * records, updating access timestamps, counters, and AI-driven
+      * flags.
+      ******************************************************************
+       ENVIRONMENT DIVISION.
+       FILE-CONTROL.
+           SELECT SAFE-DEPOSIT-FILE ASSIGN TO SFMAST
+               ORGANIZATION IS INDEXED
+               ACCESS MODE IS DYNAMIC
+               RECORD KEY IS SF-BOX-NUMBER
+               FILE STATUS IS WS-SF-FILE-STATUS.
+       DATA DIVISION.
+       FILE SECTION.
+       FD SAFE-DEPOSIT-FILE.
+       01 SF-FILE-RECORD.
+          COPY CPSF01.
+      *    Assumed structure of SF-FILE-RECORD based on original PIC X(114)
+      *    and integration with COPY CPSF01:
+      *    01  SF-FILE-RECORD.
+      *        05  SF-BOX-NUMBER           PIC X(10).  *> Record Key
+      *        05  SF-CUSTOMER-ID          PIC 9(10).
+      *        05  SF-LAST-ACCESS-DATE     PIC 9(08).  *> YYYYMMDD
+      *        05  SF-LAST-ACCESS-TIME     PIC 9(06).  *> HHMMSS
+      *        05  SF-LAST-ACCESS-USER     PIC X(10).
+      *        05  SF-ACCESS-COUNT         PIC 9(05).
+      *        05  SF-STATUS-CODE          PIC X(01).
+      *            88 SF-STATUS-ACTIVE     VALUE 'A'.
+      *            88 SF-STATUS-INACTIVE   VALUE 'I'.
+      *            88 SF-STATUS-HOLD       VALUE 'H'.
+      *        05  SF-LAST-AI-AUDIT-DATE   PIC 9(08).  *> Date of last AI analysis
+      *        05  SF-AI-ANOMALY-FLAG      PIC X(01).  *> 'Y' if AI detects anomaly
+      *            88 AI-ANOMALY-PRESENT   VALUE 'Y'.
+      *            88 AI-ANOMALY-NONE      VALUE 'N'.
+      *        05  SF-AI-MAINT-SUGGEST-FLAG PIC X(01). *> 'Y' if AI suggests maintenance
+      *            88 AI-MAINT-SUGGESTED   VALUE 'Y'.
+      *            88 AI-MAINT-NONE        VALUE 'N'.
+      *        05  FILLER                  PIC X(22).  *> Padding to reach 114 characters
+      *    Total length: 10+10+8+6+10+5+1+8+1+1+22 = 82 characters
+      *    Original length was X(114). The FILLER should be 114 - (10+10+8+6+10+5+1+8+1+1) = 54
+      *    Correcting FILLER to 54 for a total of 114 characters.
+      *    05  FILLER                  PIC X(54).  *> Padding to reach 114 characters
+
+       WORKING-STORAGE SECTION.
+       01 WS-PROGRAM-FLAGS.
+          05 WS-PROGRAM-END              PIC X(01) VALUE 'N'.
+             88 PROGRAM-SHOULD-TERMINATE           VALUE 'Y'.
+          05 WS-RECORD-FOUND-FLAG        PIC X(01) VALUE 'N'.
+             88 RECORD-IS-FOUND                    VALUE 'Y'.
+          05 WS-VALID-INPUT-FLAG         PIC X(01) VALUE 'N'.
+             88 INPUT-IS-VALID                     VALUE 'Y'.
+          05 WS-ACCESS-GRANTED-FLAG      PIC X(01) VALUE 'N'.
+             88 ACCESS-HAS-BEEN-GRANTED            VALUE 'Y'.
+          05 WS-AI-ANOMALY-DETECTED      PIC X(01) VALUE 'N'.
+             88 AI-ANOMALY-IS-PRESENT              VALUE 'Y'.
+          05 WS-AI-MAINT-SUGGESTION      PIC X(01) VALUE 'N'.
+             88 AI-MAINTENANCE-IS-SUGGESTED        VALUE 'Y'.
+          05 WS-CONFIRM-CONTINUE         PIC X(01) VALUE 'N'.
+             88 CONTINUE-PROCESSING                VALUE 'Y'.
+             88 STOP-PROCESSING                    VALUE 'N'.
+
+       01 WS-INPUT-DETAILS.
+          05 WS-BOX-NUM                  PIC X(10).
+          05 WS-CUST-ID                  PIC 9(10).
+          05 WS-OPERATOR-ID              PIC X(10).
+
+       01 WS-CURRENT-DATE-TIME.
+          05 WS-CURRENT-DATE             PIC 9(08). *> YYYYMMDD
+          05 WS-CURRENT-TIME             PIC 9(08). *> HHMMSShh (hh = hundredths of a second)
+
+       01 WS-DISPLAY-DATE-TIME.
+          05 WS-DISPLAY-DATE-FIELDS.
+             10 WS-DISPLAY-YEAR          PIC 9(04).
+             10 WS-DISPLAY-MONTH         PIC 9(02).
+             10 WS-DISPLAY-DAY           PIC 9(02).
+          05 WS-DISPLAY-TIME-FIELDS.
+             10 WS-DISPLAY-HOUR          PIC 9(02).
+             10 WS-DISPLAY-MINUTE        PIC 9(02).
+             10 WS-DISPLAY-SECOND        PIC 9(02).
+
+       01 WS-SF-FILE-STATUS             PIC X(02).
+          88 SF-FILE-OK                 VALUE '00'.
+          88 SF-FILE-NOT-FOUND          VALUE '23'.
+          88 SF-FILE-DUPLICATE-KEY      VALUE '22'.
+          88 SF-FILE-RECORD-LOCKED      VALUE '34'.
+          88 SF-FILE-PERM-ERROR         VALUE '35'.
+          88 SF-FILE-OTHER-ERROR        VALUES '90', '9x'.
+
+      *    Working storage copy of the master record structure from CPSF01
+      *    This assumes CPSF01 defines the structure for SF-FILE-RECORD.
+       01 WS-SF-MASTER-RECORD.
+          COPY CPSF01.
+      *    Assuming CPSF01 expands to:
+      *    01  WS-SF-MASTER-RECORD.
+      *        05  SF-BOX-NUMBER           PIC X(10).
+      *        05  SF-CUSTOMER-ID          PIC 9(10).
+      *        05  SF-LAST-ACCESS-DATE     PIC 9(08).
+      *        05  SF-LAST-ACCESS-TIME     PIC 9(06).
+      *        05  SF-LAST-ACCESS-USER     PIC X(10).
+      *        05  SF-ACCESS-COUNT         PIC 9(05).
+      *        05  SF-STATUS-CODE          PIC X(01).
+      *        05  SF-LAST-AI-AUDIT-DATE   PIC 9(08).
+      *        05  SF-AI-ANOMALY-FLAG      PIC X(01).
+      *        05  SF-AI-MAINT-SUGGEST-FLAG PIC X(01).
+      *        05  FILLER                  PIC X(54). (to pad to 114)
+      *    The key `SF-BOX-NUMBER` is implicitly used from this structure
+      *    when referenced in `FILE-CONTROL`.
+
+       PROCEDURE DIVISION.
+       MAIN-LOGIC-START.
+           PERFORM INITIALIZE-PROGRAM.
+           PERFORM MAIN-PROCESS-LOOP UNTIL PROGRAM-SHOULD-TERMINATE.
+           PERFORM TERMINATE-PROGRAM.
+           STOP RUN.
+
+       INITIALIZE-PROGRAM.
+           DISPLAY "SFACCS - SECURE VAULT ACCESS LOG SYSTEM".
+           DISPLAY "Initializing secure access protocols...".
+           OPEN I-O SAFE-DEPOSIT-FILE.
+           IF NOT SF-FILE-OK
+               DISPLAY "ERROR: Failed to open SAFE-DEPOSIT-FILE. Status: "
+                       WS-SF-FILE-STATUS
+               SET PROGRAM-SHOULD-TERMINATE TO TRUE
+           ELSE
+               DISPLAY "SAFE-DEPOSIT-FILE opened successfully."
+           END-IF.
+           MOVE 'N' TO WS-PROGRAM-END.
+           MOVE 'N' TO WS-AI-ANOMALY-DETECTED.
+           MOVE 'N' TO WS-AI-MAINT-SUGGESTION.
+           MOVE 'N' TO WS-CONFIRM-CONTINUE.
+
+       MAIN-PROCESS-LOOP.
+           PERFORM GET-ACCESS-DETAILS.
+           IF INPUT-IS-VALID
+               PERFORM PROCESS-ACCESS-REQUEST
+           END-IF.
+           PERFORM PROMPT-CONTINUE-OR-EXIT.
+
+       GET-ACCESS-DETAILS.
+           MOVE 'Y' TO WS-VALID-INPUT-FLAG.
+           INITIALIZE WS-INPUT-DETAILS. *> Clear previous inputs
+
+           DISPLAY " ".
+           DISPLAY "ENTER OPERATOR ID (e.g., OPS001 - max 10 chars): ".
+           ACCEPT WS-OPERATOR-ID.
+           IF WS-OPERATOR-ID = SPACES
+               DISPLAY "ERROR: Operator ID cannot be blank."
+               SET WS-VALID-INPUT-FLAG TO FALSE
+               EXIT PARAGRAPH
+           END-IF.
+
+           DISPLAY "ENTER VAULT BOX NUMBER (10 alphanumeric chars): ".
+           ACCEPT WS-BOX-NUM.
+           IF WS-BOX-NUM = SPACES
+               DISPLAY "ERROR: Box Number cannot be blank."
+               SET WS-VALID-INPUT-FLAG TO FALSE
+               EXIT PARAGRAPH
+           END-IF.
+
+           DISPLAY "ENTER CUSTOMER ID FOR VERIFICATION (10 digits): ".
+           ACCEPT WS-CUST-ID.
+           IF WS-CUST-ID = SPACES OR NOT WS-CUST-ID IS NUMERIC OR
+              FUNCTION LENGTH(FUNCTION TRIM(WS-CUST-ID)) NOT = 10
+               DISPLAY "ERROR: Customer ID must be 10 numeric digits."
+               SET WS-VALID-INPUT-FLAG TO FALSE
+               EXIT PARAGRAPH
+           END-IF.
+           DISPLAY "Input details received. Initiating verification...".
+
+       PROCESS-ACCESS-REQUEST.
+           SET WS-RECORD-FOUND-FLAG TO FALSE.
+           SET WS-ACCESS-GRANTED-FLAG TO FALSE.
+           SET WS-AI-ANOMALY-DETECTED TO FALSE.
+           SET WS-AI-MAINT-SUGGESTION TO FALSE.
+
+           MOVE WS-BOX-NUM TO SF-BOX-NUMBER OF WS-SF-MASTER-RECORD.
+           READ SAFE-DEPOSIT-FILE INTO WS-SF-MASTER-RECORD
+               KEY IS SF-BOX-NUMBER OF WS-SF-MASTER-RECORD
+               INVALID KEY
+                   DISPLAY "ERROR: Vault Box Number " WS-BOX-NUM
+                           " not found."
+                   SET WS-RECORD-FOUND-FLAG TO FALSE
+               NOT INVALID KEY
+                   SET WS-RECORD-FOUND-FLAG TO TRUE
+           END-READ.
+
+           IF NOT RECORD-IS-FOUND
+               PERFORM ERROR-ROUTINE
+               EXIT PARAGRAPH
+           END-IF.
+
+           PERFORM VERIFY-CUSTOMER-AUTHORIZATION.
+           IF NOT ACCESS-HAS-BEEN-GRANTED
+               PERFORM ERROR-ROUTINE
+               EXIT PARAGRAPH
+           END-IF.
+
+           PERFORM PERFORM-DUAL-KEY-CHECK.
+
+           PERFORM LOG-ACCESS-EVENT.
+           PERFORM AI-GUARDIAN-ANALYSIS.
+           PERFORM AI-COGNITIVE-CORE-INSIGHTS.
+           PERFORM REWRITE-MASTER-RECORD.
+           PERFORM DISPLAY-ACCESS-CONFIRMATION.
+
+       VERIFY-CUSTOMER-AUTHORIZATION.
+           DISPLAY "Verifying customer authorization...".
+           IF WS-CUST-ID = SF-CUSTOMER-ID OF WS-SF-MASTER-RECORD
+               DISPLAY "Customer ID verified successfully."
+               SET ACCESS-HAS-BEEN-GRANTED TO TRUE
+           ELSE
+               DISPLAY "ERROR: Customer ID mismatch for Box " WS-BOX-NUM
+                       ". Access denied."
+               SET ACCESS-HAS-BEEN-GRANTED TO FALSE
+           END-IF.
+
+       PERFORM-DUAL-KEY-CHECK.
+           DISPLAY "System awaiting dual key turn confirmation...".
+      *    In a real-world scenario, this might involve an external
+      *    sensor input or a secure terminal confirmation.
+           DISPLAY "Dual key turn confirmed. Access mechanism engaging...".
+           DISPLAY "Access to Vault Box " WS-BOX-NUM " granted.".
+
+       LOG-ACCESS-EVENT.
+           DISPLAY "Logging access event for Box " WS-BOX-NUM " by "
+                   WS-OPERATOR-ID "...".
+           ACCEPT WS-CURRENT-DATE FROM DATE YYYYMMDD.
+           ACCEPT WS-CURRENT-TIME FROM TIME. *> HHMMSShh
+
+           MOVE WS-CURRENT-DATE TO SF-LAST-ACCESS-DATE OF WS-SF-MASTER-RECORD.
+           MOVE WS-CURRENT-TIME (1:6) TO SF-LAST-ACCESS-TIME OF WS-SF-MASTER-RECORD. *> HHMMSS
+           MOVE WS-OPERATOR-ID  TO SF-LAST-ACCESS-USER OF WS-SF-MASTER-RECORD.
+           ADD 1 TO SF-ACCESS-COUNT OF WS-SF-MASTER-RECORD.
+           MOVE WS-CURRENT-DATE TO SF-LAST-AI-AUDIT-DATE OF WS-SF-MASTER-RECORD.
+           MOVE 'N' TO SF-AI-ANOMALY-FLAG OF WS-SF-MASTER-RECORD.
+           MOVE 'N' TO SF-AI-MAINT-SUGGEST-FLAG OF WS-SF-MASTER-RECORD.
+           
+           DISPLAY "Access event details recorded in master record.".
+
+       AI-GUARDIAN-ANALYSIS.
+           DISPLAY " ".
+           DISPLAY "AI Guardian (Anomaly Detection System) initiated...".
+      *    Simulate AI analysis of access patterns.
+      *    Check if access is outside "normal" business hours (e.g., 8 AM - 6 PM).
+           IF WS-CURRENT-TIME (1:6) < 080000 OR WS-CURRENT-TIME (1:6) > 180000
+               DISPLAY "AI Guardian: Unusual access time detected ("
+                       WS-CURRENT-TIME (1:6) "). Potential out-of-hours activity."
+               SET AI-ANOMALY-IS-PRESENT TO TRUE
+           END-IF.
+
+      *    Simulate check for high frequency access
+      *    (e.g., if total access count suggests unusual activity compared to last audit)
+           IF SF-ACCESS-COUNT OF WS-SF-MASTER-RECORD > 50
+              AND SF-LAST-AI-AUDIT-DATE OF WS-SF-MASTER-RECORD NOT = WS-CURRENT-DATE
+               DISPLAY "AI Guardian: High historical access count detected for this box."
+               DISPLAY "AI Guardian: Recommending a deeper pattern analysis for potential "
+                       "misuse or an unscheduled audit."
+               SET AI-ANOMALY-IS-PRESENT TO TRUE
+           END-IF.
+
+           IF AI-ANOMALY-IS-PRESENT
+               DISPLAY "AI Guardian: Anomaly detected for Box " WS-BOX-NUM
+                       ". Flagging for human security review."
+               MOVE 'Y' TO SF-AI-ANOMALY-FLAG OF WS-SF-MASTER-RECORD
+           ELSE
+               DISPLAY "AI Guardian: Access pattern for Box " WS-BOX-NUM
+                       " within established parameters."
+               MOVE 'N' TO SF-AI-ANOMALY-FLAG OF WS-SF-MASTER-RECORD
+           END-IF.
+           DISPLAY "AI Guardian analysis complete.".
+
+       AI-COGNITIVE-CORE-INSIGHTS.
+           DISPLAY " ".
+           DISPLAY "Cognitive Core (Predictive Analysis Module) initiated...".
+      *    Simulate the AI providing predictive insights or maintenance suggestions.
+      *    If access count is very high, suggest physical inspection.
+           IF SF-ACCESS-COUNT OF WS-SF-MASTER-RECORD > 1000
+               DISPLAY "Cognitive Core: Box " WS-BOX-NUM
+                       " has a very high cumulative access frequency ("
+                       SF-ACCESS-COUNT OF WS-SF-MASTER-RECORD
+                       " accesses). "
+               DISPLAY "Cognitive Core: Suggesting a physical mechanism inspection "
+                       "for wear and tear within the next 30 days."
+               SET AI-MAINTENANCE-IS-SUGGESTED TO TRUE
+           END-IF.
+
+      *    Another fictional insight: Suggesting security review based on status
+           IF SF-STATUS-CODE OF WS-SF-MASTER-RECORD = 'H'
+               DISPLAY "Cognitive Core: Box " WS-BOX-NUM
+                       " is currently on 'Hold' status. "
+               DISPLAY "Cognitive Core: Recommending a comprehensive security audit "
+                       "to understand implications of hold status and ensure integrity."
+               SET AI-MAINTENANCE-IS-SUGGESTED TO TRUE
+           END-IF.
+
+           IF AI-MAINTENANCE-IS-SUGGESTED
+               DISPLAY "Cognitive Core: Actionable insight generated for Box "
+                       WS-BOX-NUM ". Recommendation recorded."
+               MOVE 'Y' TO SF-AI-MAINT-SUGGEST-FLAG OF WS-SF-MASTER-RECORD
+           ELSE
+               DISPLAY "Cognitive Core: No immediate predictive insights or "
+                       "maintenance suggestions for Box " WS-BOX-NUM "."
+               MOVE 'N' TO SF-AI-MAINT-SUGGEST-FLAG OF WS-SF-MASTER-RECORD
+           END-IF.
+           DISPLAY "Cognitive Core insights complete.".
+
+       REWRITE-MASTER-RECORD.
+           DISPLAY "Attempting to update master record for Box " WS-BOX-NUM "...".
+           REWRITE SF-FILE-RECORD FROM WS-SF-MASTER-RECORD.
+           IF NOT SF-FILE-OK
+               DISPLAY "ERROR: Failed to rewrite SAFE-DEPOSIT-FILE. Status: "
+                       WS-SF-FILE-STATUS
+               PERFORM ERROR-ROUTINE
+           ELSE
+               DISPLAY "Master record for Box " WS-BOX-NUM
+                       " successfully updated."
+           END-IF.
+
+       DISPLAY-ACCESS-CONFIRMATION.
+           DISPLAY " ".
+           DISPLAY "--------------------------------------------------".
+           DISPLAY "       VAULT ACCESS LOG CONFIRMATION              ".
+           DISPLAY "--------------------------------------------------".
+           MOVE WS-CURRENT-DATE TO WS-DISPLAY-DATE-FIELDS.
+           MOVE WS-CURRENT-TIME (1:6) TO WS-DISPLAY-TIME-FIELDS.
+           DISPLAY "  Box Number:        " WS-BOX-NUM.
+           DISPLAY "  Customer ID:       " WS-CUST-ID.
+           DISPLAY "  Operator ID:       " WS-OPERATOR-ID.
+           DISPLAY "  Access Date:       " WS-DISPLAY-MONTH "/"
+                                           WS-DISPLAY-DAY "/"
+                                           WS-DISPLAY-YEAR.
+           DISPLAY "  Access Time:       " WS-DISPLAY-HOUR ":"
+                                           WS-DISPLAY-MINUTE ":"
+                                           WS-DISPLAY-SECOND.
+           DISPLAY "  Total Accesses:    " SF-ACCESS-COUNT OF WS-SF-MASTER-RECORD.
+           IF AI-ANOMALY-IS-PRESENT
+               DISPLAY "  AI Anomaly Flag:   YES - Review Recommended"
+           ELSE
+               DISPLAY "  AI Anomaly Flag:   NO"
+           END-IF.
+           IF AI-MAINTENANCE-IS-SUGGESTED
+               DISPLAY "  AI Maintenance Rec:YES - Action Suggested"
+           ELSE
+               DISPLAY "  AI Maintenance Rec:NO"
+           END-IF.
+           DISPLAY "--------------------------------------------------".
+           DISPLAY " ".
+
+       PROMPT-CONTINUE-OR-EXIT.
+           DISPLAY "Log another access event? (Y/N)".
+           ACCEPT WS-CONFIRM-CONTINUE.
+           IF WS-CONFIRM-CONTINUE = 'N' OR WS-CONFIRM-CONTINUE = 'n'
+               SET STOP-PROCESSING TO TRUE
+               SET PROGRAM-SHOULD-TERMINATE TO TRUE
+           ELSE
+               SET CONTINUE-PROCESSING TO TRUE
+           END-IF.
+
+       ERROR-ROUTINE.
+           DISPLAY " ".
+           DISPLAY "**************************************************".
+           DISPLAY "  AN ERROR OCCURRED: " WS-SF-FILE-STATUS.
+           DISPLAY "  Processing for current request halted."
+           DISPLAY "  Please review the input and try again, "
+                   "or contact support if the issue persists."
+           DISPLAY "**************************************************".
+           SET WS-ACCESS-GRANTED-FLAG TO FALSE.
+      *     Further error logging to a dedicated error file could be
+      *     implemented here for robust system management.
+
+       TERMINATE-PROGRAM.
+           DISPLAY "Closing SAFE-DEPOSIT-FILE...".
+           CLOSE SAFE-DEPOSIT-FILE.
+           IF NOT SF-FILE-OK
+               DISPLAY "ERROR: Failed to close SAFE-DEPOSIT-FILE. Status: "
+                       WS-SF-FILE-STATUS
+           ELSE
+               DISPLAY "SAFE-DEPOSIT-FILE closed successfully."
+           END-IF.
+           DISPLAY "SFACCS - Secure Vault Access Log System Terminated.".

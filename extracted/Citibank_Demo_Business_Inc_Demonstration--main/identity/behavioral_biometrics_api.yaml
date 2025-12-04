@@ -1,0 +1,315 @@
+openapi: 3.0.0
+info:
+  title: Behavioral Biometrics API - Hall of Faces Module
+  version: 1.0.0
+  description: |
+    The Behavioral Biometrics API is the central nervous system for the Hall of Faces, our
+    AI-driven Zero-Trust Identity Fabric. This API orchestrates the continuous ingestion of
+    subtle user interaction patterns and provides real-time, adaptive risk scores crucial
+    for continuous authentication and dynamic authorization decisions.
+
+    It processes a rich tapestry of behavioral signals—typing cadence, mouse movements,
+    gaze patterns, device posture, and network whispers—to construct a unique
+    "behavioral fingerprint" for each user. Any significant deviation from this learned baseline
+    triggers an immediate risk assessment, ensuring an unyielding, yet frictionless,
+    security perimeter. This is where identity transcends static credentials, becoming
+    a living, breathing aspect of every interaction, safeguarding access with prescient
+    intelligence.
+
+servers:
+  - url: https://api.demobank.com/identity/v1
+    description: Production environment for the Identity module APIs.
+
+paths:
+  /behavioral-data:
+    post:
+      summary: Ingest Behavioral Biometric Data
+      operationId: ingestBehavioralData
+      description: |
+        Ingests a stream of raw behavioral biometric events from user sessions. These events
+        are meticulously analyzed by the AI Behavioral Biometrics Engine to continuously
+        update the user's unique "behavioral fingerprint" and inform real-time risk assessments.
+        This high-volume endpoint is designed for low-latency data submission, fueling
+        the continuous authentication process.
+      requestBody:
+        description: A collection of behavioral events to be processed.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/BehavioralEvent'
+            examples:
+              singleMouseMovement:
+                value:
+                  - userId: "user123"
+                    sessionId: "sessionABC"
+                    timestamp: "2023-10-27T10:00:00.123Z"
+                    eventType: "mouse_movement"
+                    data:
+                      x: 150
+                      y: 200
+                      speed: 25
+                      direction: "NW"
+              multipleEvents:
+                value:
+                  - userId: "user123"
+                    sessionId: "sessionABC"
+                    timestamp: "2023-10-27T10:00:00.123Z"
+                    eventType: "typing_cadence"
+                    data:
+                      keyPresses: ["a", "s", "d"]
+                      keyDurations: [50, 60, 45]
+                      interval: 100
+                  - userId: "user123"
+                    sessionId: "sessionABC"
+                    timestamp: "2023-10-27T10:00:00.250Z"
+                    eventType: "mouse_click"
+                    data:
+                      x: 800
+                      y: 450
+                      button: "left"
+      responses:
+        '202':
+          description: |
+            Behavioral data successfully accepted for asynchronous processing. The Hall of Faces
+            engine will update the user's behavioral profile and continuous risk assessment.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Behavioral events accepted for processing."
+        '400':
+          description: |
+            Bad Request. The provided behavioral data is malformed or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /risk-score:
+    post:
+      summary: Retrieve Real-time Behavioral Risk Score
+      operationId: getRealtimeRiskScore
+      description: |
+        Requests a real-time risk score for a specific user session, based on continuously
+        analyzed behavioral data. This endpoint is crucial for adaptive authentication flows,
+        allowing the system to dynamically adjust access requirements (e.g., step-up authentication)
+        or flag anomalous activity. The response provides a score, a clear explanation of
+        contributing factors, and a recommended action, empowering intelligent access decisions.
+      requestBody:
+        description: Details for requesting a risk score, optionally including current contextual behavioral data.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RiskScoreRequest'
+            examples:
+              sessionOnly:
+                value:
+                  userId: "user123"
+                  sessionId: "sessionABC"
+              withContextualData:
+                value:
+                  userId: "user123"
+                  sessionId: "sessionABC"
+                  currentContext:
+                    device_posture: "mobile"
+                    network_location: "unusual_country"
+                    recent_activity_spike: true
+      responses:
+        '200':
+          description: |
+            Successfully retrieved the real-time behavioral risk score and recommended action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskScoreResponse'
+        '400':
+          description: |
+            Bad Request. The request for the risk score is malformed or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: |
+            User or session not found, or no sufficient behavioral profile exists for the given identifiers.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    BehavioralEvent:
+      type: object
+      required:
+        - userId
+        - sessionId
+        - timestamp
+        - eventType
+        - data
+      properties:
+        userId:
+          type: string
+          description: Unique identifier for the user generating the behavioral event.
+          example: "user12345"
+        sessionId:
+          type: string
+          description: Unique identifier for the current user session.
+          example: "sess67890"
+        timestamp:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of when the event occurred.
+          example: "2023-10-27T10:05:30.456Z"
+        eventType:
+          type: string
+          description: Categorization of the behavioral event (e.g., typing_cadence, mouse_movement, gaze_pattern, device_posture, location_change).
+          enum:
+            - typing_cadence
+            - mouse_movement
+            - mouse_click
+            - scroll_event
+            - gaze_pattern
+            - device_posture
+            - network_location
+            - application_interaction
+            - other
+          example: "typing_cadence"
+        data:
+          type: object
+          description: |
+            Contextual data specific to the eventType. This object can contain various
+            metrics such as coordinates, speeds, durations, key sequences, network details,
+            device orientation, etc. The specific schema for 'data' will vary significantly
+            based on the 'eventType'.
+          properties:
+            # Example properties, actual schema would be defined per eventType for robust validation
+            details:
+              type: string
+              description: Placeholder for detailed event data.
+          example:
+            keyPresses: ["h", "e", "l", "l", "o"]
+            keyDurations: [50, 60, 45, 55, 62]
+            flightTimes: [120, 110, 130, 100] # Time between key releases and next key press
+            x: 100
+            y: 250
+            speed: 30
+            acceleration: 5
+            direction: "E"
+            orientation: "portrait"
+            accuracy: "high"
+            ip_address: "203.0.113.45"
+            geo_location: "New York, USA"
+
+    RiskScoreRequest:
+      type: object
+      required:
+        - userId
+        - sessionId
+      properties:
+        userId:
+          type: string
+          description: Unique identifier for the user.
+          example: "user12345"
+        sessionId:
+          type: string
+          description: Unique identifier for the session.
+          example: "sess67890"
+        currentContext:
+          type: object
+          description: |
+            Optional. Additional real-time contextual data to be considered in the
+            immediate risk calculation. This could include device state, network
+            conditions, or recent security events that might not be part of
+            continuous behavioral ingestion but are relevant for a synchronous risk assessment.
+          nullable: true
+          example:
+            device_os: "iOS"
+            vpn_active: true
+            time_since_last_successful_mfa: "120s"
+            resource_accessed_sensitivity: "high"
+
+    RiskScoreResponse:
+      type: object
+      required:
+        - userId
+        - sessionId
+        - score
+        - explanation
+        - recommendedAction
+        - timestamp
+      properties:
+        userId:
+          type: string
+          description: Unique identifier for the user.
+          example: "user12345"
+        sessionId:
+          type: string
+          description: Unique identifier for the session.
+          example: "sess67890"
+        score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          description: |
+            The real-time risk score calculated by the AI, ranging from 0 (very low risk)
+            to 100 (very high risk). This score continuously adapts based on evolving behavioral patterns.
+          example: 78.5
+        explanation:
+          type: string
+          description: |
+            A concise, plain-English explanation of the primary factors contributing to the
+            current risk score. This illuminates the "why" behind the AI's assessment,
+            highlighting anomalies or confirmations.
+          example: "High deviation in typing cadence and unusual network location detected compared to established baseline for this user and device, combined with access to a sensitive resource."
+        recommendedAction:
+          type: string
+          description: |
+            The AI-driven recommendation for the next appropriate security action based on the
+            risk score and contextual factors.
+          enum:
+            - ALLOW_ACCESS
+            - STEP_UP_AUTHENTICATION
+            - FLAG_FOR_REVIEW
+            - BLOCK_ACCESS
+            - CHALLENGE_MFA
+          example: "STEP_UP_AUTHENTICATION"
+        timestamp:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of when the risk score was calculated.
+          example: "2023-10-27T10:05:40.000Z"
+        riskFactors:
+          type: array
+          items:
+            type: string
+          description: |
+            A list of specific factors or behavioral deviations that contributed to the risk score.
+          example:
+            - "typing_cadence_deviation"
+            - "unusual_geo_location"
+            - "new_device_signature"
+            - "access_to_critical_resource"
+
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: A unique error code identifying the type of error.
+          example: "INVALID_BEHAVIORAL_DATA"
+        message:
+          type: string
+          description: A human-readable description of the error.
+          example: "The provided behavioral event data is missing required fields for eventType 'typing_cadence'."

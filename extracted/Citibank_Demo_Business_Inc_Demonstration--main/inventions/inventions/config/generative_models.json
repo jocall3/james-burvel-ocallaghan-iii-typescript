@@ -1,0 +1,196 @@
+{
+  "generative_models": {
+    "stable_diffusion_xl_v1_0": {
+      "name": "Stable Diffusion XL (SDXL) v1.0",
+      "description": "A robust open-source diffusion model excelling in high-resolution image generation and artistic versatility, suitable for a broad range of prompts.",
+      "api_endpoint": "https://api.generativeui.com/sdxl/v1_0/generate",
+      "authentication": {
+        "type": "api_key_header",
+        "header_name": "X-API-KEY",
+        "key_env_var": "SDXL_API_KEY"
+      },
+      "default_parameters": {
+        "resolution": "1024x1024",
+        "aspect_ratios": ["1:1", "16:9", "21:9", "9:16", "9:21"],
+        "guidance_scale": 7.5,
+        "steps": 30,
+        "sampler": "EulerA",
+        "negative_prompt_template": "blurry, low quality, bad anatomy, ugly, disfigured, text, watermark, signature, error, out of frame, pixelated, jpeg artifacts"
+      },
+      "cost_per_generation_unit": 0.008,
+      "quality_tier": "standard_high",
+      "supported_styles": [
+        "photorealistic", "digital art", "fantasy art", "sci-fi art",
+        "anime", "cartoon", "oil painting", "watercolor", "sketch",
+        "abstract", "minimalist", "impressionistic", "vaporwave"
+      ],
+      "max_prompt_length": 77,
+      "multi_model_fusion_enabled": false,
+      "custom_model_deployment_enabled": true,
+      "model_weaknesses": [
+        "subtle anatomical distortions in complex poses",
+        "occasionally struggles with specific text rendering",
+        "can exhibit minor artifacts on very high guidance scales"
+      ],
+      "available_in_tiers": ["free", "basic", "premium", "enterprise"],
+      "performance_metrics": {
+        "average_generation_latency_ms": 1500,
+        "max_concurrent_requests": 1000
+      }
+    },
+    "dalle_3_openai": {
+      "name": "DALL-E 3 (OpenAI)",
+      "description": "OpenAI's flagship generative image model, renowned for its strong adherence to prompt instructions and understanding of nuanced semantic intent, particularly effective for detailed and complex scenes.",
+      "api_endpoint": "https://api.openai.com/v1/images/generations",
+      "authentication": {
+        "type": "bearer_token",
+        "key_env_var": "OPENAI_API_KEY"
+      },
+      "default_parameters": {
+        "resolution": "1024x1024",
+        "aspect_ratios": ["1:1", "16:9", "9:16"],
+        "quality": "standard",
+        "style": "vivid",
+        "negative_prompt_template": ""
+      },
+      "cost_per_generation_unit": 0.04,
+      "quality_tier": "premium_plus",
+      "supported_styles": [
+        "photorealistic", "illustration", "concept art", "stylized rendering",
+        "cubism", "surrealism", "pop art", "pixel art"
+      ],
+      "max_prompt_length": 4000,
+      "multi_model_fusion_enabled": false,
+      "custom_model_deployment_enabled": false,
+      "model_weaknesses": [
+        "higher generation cost",
+        "less granular control over specific noise parameters",
+        "can sometimes over-interpret abstract concepts"
+      ],
+      "available_in_tiers": ["premium", "enterprise"],
+      "performance_metrics": {
+        "average_generation_latency_ms": 3000,
+        "max_concurrent_requests": 500
+      }
+    },
+    "midjourney_v6_pro": {
+      "name": "Midjourney v6 Pro (Internal API)",
+      "description": "An internally integrated, highly curated generative model known for its exceptional aesthetic quality, artistic flair, and cinematic rendering capabilities. Primarily used for high-end creative prompts.",
+      "api_endpoint": "https://api.generativeui.com/midjourney/v6_pro/generate",
+      "authentication": {
+        "type": "jwt_token",
+        "audience": "generativeui-internal",
+        "secret_env_var": "MJ_INTERNAL_SECRET"
+      },
+      "default_parameters": {
+        "resolution": "1024x1024",
+        "aspect_ratios": ["1:1", "3:2", "2:3", "16:9", "9:16"],
+        "stylize_level": 750,
+        "chaos_level": 0.05,
+        "seed": -1,
+        "negative_prompt_template": "ugly, text, signature, low-resolution, disfigured, cartoonish (unless specified)"
+      },
+      "cost_per_generation_unit": 0.06,
+      "quality_tier": "ultra_premium",
+      "supported_styles": [
+        "cinematic photography", "epic fantasy", "hyperrealistic portraits",
+        "architectural visualization", "dark fantasy", "space opera",
+        "detailed environments", "character design"
+      ],
+      "max_prompt_length": 1000,
+      "multi_model_fusion_enabled": true,
+      "custom_model_deployment_enabled": false,
+      "model_weaknesses": [
+        "occasionally imposes strong stylistic bias",
+        "slower generation times",
+        "limited availability due to resource intensity"
+      ],
+      "available_in_tiers": ["enterprise_pro"],
+      "performance_metrics": {
+        "average_generation_latency_ms": 6000,
+        "max_concurrent_requests": 100
+      }
+    },
+    "abstract_pattern_generator_v2": {
+      "name": "Abstract Pattern Generator v2",
+      "description": "A lightweight, specialized model optimized for fast generation of abstract, geometric, or subtle background patterns, ideal for minimalist and thematic UI elements.",
+      "api_endpoint": "https://api.generativeui.com/pattern/v2/generate",
+      "authentication": {
+        "type": "internal_service_account",
+        "service_id_env_var": "PATTERN_GEN_SERVICE_ID"
+      },
+      "default_parameters": {
+        "resolution": "512x512",
+        "aspect_ratios": ["1:1", "16:9"],
+        "complexity_level": 0.5,
+        "color_palette_hint": "dynamic",
+        "tileable": true,
+        "animation_frames": 0
+      },
+      "cost_per_generation_unit": 0.001,
+      "quality_tier": "basic_utility",
+      "supported_styles": [
+        "geometric", "minimalist", "gradient", "fluid patterns",
+        "glitch art (subtle)", "bokeh", "subtle textures"
+      ],
+      "max_prompt_length": 250,
+      "multi_model_fusion_enabled": true,
+      "custom_model_deployment_enabled": false,
+      "model_weaknesses": [
+        "poor for complex scene generation",
+        "lacks photorealistic capabilities",
+        "limited artistic expression beyond patterns"
+      ],
+      "available_in_tiers": ["free", "basic", "premium", "enterprise"],
+      "performance_metrics": {
+        "average_generation_latency_ms": 300,
+        "max_concurrent_requests": 5000
+      }
+    }
+  },
+  "dynamic_selection_criteria": {
+    "default_model": "stable_diffusion_xl_v1_0",
+    "priority_order": ["midjourney_v6_pro", "dalle_3_openai", "stable_diffusion_xl_v1_0", "abstract_pattern_generator_v2"],
+    "rules": [
+      {
+        "condition": "user_tier == 'enterprise_pro'",
+        "action": "prioritize('midjourney_v6_pro')"
+      },
+      {
+        "condition": "user_tier == 'premium' || user_tier == 'enterprise'",
+        "action": "prioritize('dalle_3_openai', 'stable_diffusion_xl_v1_0')"
+      },
+      {
+        "condition": "prompt_contains_keywords('abstract', 'pattern', 'geometric', 'gradient')",
+        "action": "if_available_and_cost_effective('abstract_pattern_generator_v2')"
+      },
+      {
+        "condition": "requested_resolution_gt('1024x1024')",
+        "action": "filter_models_by_capability('resolution_support')"
+      },
+      {
+        "condition": "realtime_cost_budget_exceeded(0.03)",
+        "action": "downgrade_to_cheapest_viable()"
+      },
+      {
+        "condition": "model_load_exceeds(0.8)",
+        "action": "route_to_next_available_in_priority()"
+      }
+    ]
+  },
+  "post_processing_defaults": {
+    "default_compression_format": "webp",
+    "default_compression_quality": 85,
+    "default_contrast_adjustment": 1.1,
+    "default_saturation_adjustment": 1.05,
+    "accessibility_min_contrast_ratio": 4.5,
+    "overlay_adaptive_blur_strength_range": [0, 10],
+    "overlay_adaptive_opacity_range": [0.2, 0.7]
+  },
+  "content_moderation_config": {
+    "prompt_safety_threshold": 0.85,
+    "image_safety_threshold": 0.90,
+    "human_review_queue_threshold": 0.95,
+    "bias_detection_sensitivity": "medium"
+  }
+}

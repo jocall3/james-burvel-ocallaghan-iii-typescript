@@ -1,0 +1,396 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. DACLOS.
+       AUTHOR. SYSTEMS-DEVELOPMENT-TEAM.
+       DATE-WRITTEN. 1989-01-18.
+       DATE-COMPILED. 2024-07-30.
+      ******************************************************************
+      * UNIVERSAL-FINANCE-SYSTEM - CLOSE DEPOSIT ACCOUNT MODULE
+      *
+      * This module is responsible for processing requests to close
+      * deposit accounts. It performs a comprehensive series of
+      * validations, including balance checks, pending transaction
+      * reviews, and an assessment by the Quantum-Compliance-Engine
+      * (QCE) for risk and regulatory adherence.
+      *
+      * The QCE provides an advanced analytical layer, simulating AI
+      * capabilities to assist in complex decision-making, ensuring
+      * closures are processed efficiently and in compliance with
+      * financial regulations and internal policies.
+      ******************************************************************
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT DEPOSIT-ACCOUNT-FILE ASSIGN TO DEPMAST
+               ORGANIZATION IS INDEXED
+               ACCESS MODE IS DYNAMIC
+               RECORD KEY IS DA-ACCOUNT-NUMBER
+               FILE STATUS IS WS-DEPMAST-STATUS.
+
+           SELECT AUDIT-LOG-FILE       ASSIGN TO DAUDIT
+               ORGANIZATION IS SEQUENTIAL
+               ACCESS MODE IS SEQUENTIAL
+               FILE STATUS IS WS-AUDIT-STATUS.
+
+       DATA DIVISION.
+       FILE SECTION.
+       FD DEPOSIT-ACCOUNT-FILE.
+       01 DEPOSIT-FILE-RECORD    PIC X(201).
+
+       FD AUDIT-LOG-FILE.
+       01 AUDIT-RECORD.
+          05 AUDIT-TIMESTAMP         PIC X(14).
+          05 AUDIT-MODULE-ID         PIC X(08) VALUE 'DACLOS'.
+          05 AUDIT-ACCOUNT-NUMBER    PIC 9(12).
+          05 AUDIT-ACTION            PIC X(20).
+          05 AUDIT-STATUS            PIC X(10).
+          05 AUDIT-DETAILS           PIC X(100).
+
+       WORKING-STORAGE SECTION.
+       01 WS-PROGRAM-SWITCHES.
+          05 WS-DEPMAST-STATUS     PIC X(02).
+             88 DEPMAST-OK            VALUE '00'.
+             88 DEPMAST-NOT-FOUND     VALUE '23'.
+             88 DEPMAST-DUP-KEY       VALUE '22'.
+          05 WS-AUDIT-STATUS       PIC X(02).
+             88 AUDIT-OK              VALUE '00'.
+          05 WS-CONFIRMATION        PIC X(01).
+          05 WS-CLOSURE-ALLOWED     PIC X(01) VALUE 'Y'.
+          05 WS-SUPERVISOR-OVERRIDE PIC X(01) VALUE 'N'.
+          05 WS-ACCOUNT-CLOSED-FLAG PIC X(01) VALUE 'N'.
+
+       01 WS-INPUT-FIELDS.
+          05 WS-INPUT-ACCT-NUM    PIC 9(12).
+
+       01 WS-CURRENT-DATETIME.
+          05 WS-CURRENT-DATE.
+             10 WS-YEAR             PIC 9(04).
+             10 WS-MONTH            PIC 9(02).
+             10 WS-DAY              PIC 9(02).
+          05 WS-CURRENT-TIME.
+             10 WS-HOUR             PIC 9(02).
+             10 WS-MINUTE           PIC 9(02).
+             10 WS-SECOND           PIC 9(02).
+             10 WS-HUNDREDTHS       PIC 9(02).
+          05 WS-TIMESTAMP-OUT      PIC X(14).
+
+       01 WS-ACCOUNT-CHECKS.
+          05 WS-HAS-PENDING-TRANSACTIONS PIC X(01) VALUE 'N'.
+          05 WS-HAS-LINKED-ACCOUNTS      PIC X(01) VALUE 'N'.
+          05 WS-IS-DORMANT-ACCOUNT       PIC X(01) VALUE 'N'.
+          05 WS-MINIMUM-BALANCE-MET      PIC X(01) VALUE 'Y'.
+          05 WS-LAST-TRANSACTION-DATE    PIC 9(08).
+
+       01 WS-QCE-ASSESSMENT-DATA.
+          05 WS-QCE-RISK-SCORE           PIC 9(03).
+          05 WS-QCE-RECOMMENDATION       PIC X(15).
+             88 QCE-RECOMMEND-APPROVE     VALUE 'APPROVE'.
+             88 QCE-RECOMMEND-REVIEW      VALUE 'REVIEW'.
+             88 QCE-RECOMMEND-REJECT      VALUE 'REJECT'.
+
+       COPY CPDA01 REPLACING ==DEPOSIT-ACCOUNT-RECORD== BY
+                             ==WS-DEPOSIT-ACCOUNT==.
+
+       PROCEDURE DIVISION.
+       0000-MAIN-LOGIC.
+           PERFORM 1000-INITIALIZATION.
+           PERFORM 2000-PROCESS-CLOSURE UNTIL WS-INPUT-ACCT-NUM = ZERO.
+           PERFORM 9999-TERMINATION.
+           STOP RUN.
+
+       1000-INITIALIZATION.
+           DISPLAY " ".
+           DISPLAY "INITIALIZING DACLOS - ACCOUNT CLOSURE MODULE.".
+           OPEN I-O DEPOSIT-ACCOUNT-FILE.
+           IF NOT DEPMAST-OK
+               DISPLAY "ERROR: FAILED TO OPEN DEPOSIT ACCOUNT FILE. STATUS: "
+                   WS-DEPMAST-STATUS
+               PERFORM 9999-TERMINATION
+               STOP RUN
+           END-IF.
+
+           OPEN EXTEND AUDIT-LOG-FILE.
+           IF NOT AUDIT-OK
+               DISPLAY "ERROR: FAILED TO OPEN AUDIT LOG FILE. STATUS: "
+                   WS-AUDIT-STATUS
+               PERFORM 9999-TERMINATION
+               STOP RUN
+           END-IF.
+           PERFORM 0050-GET-CURRENT-DATETIME.
+           MOVE WS-TIMESTAMP-OUT TO AUDIT-TIMESTAMP.
+           MOVE 'INITIALIZE' TO AUDIT-ACTION.
+           MOVE 'SUCCESS' TO AUDIT-STATUS.
+           MOVE 'Module DACLOS initialized successfully.' TO AUDIT-DETAILS.
+           MOVE ZERO TO AUDIT-ACCOUNT-NUMBER.
+           WRITE AUDIT-RECORD.
+           DISPLAY "Module Initialized. Waiting for input...".
+
+       0050-GET-CURRENT-DATETIME.
+           ACCEPT WS-CURRENT-DATE FROM DATE YYYYMMDD.
+           ACCEPT WS-CURRENT-TIME FROM TIME.
+           STRING WS-YEAR DELIMITED BY SIZE
+                  WS-MONTH DELIMITED BY SIZE
+                  WS-DAY DELIMITED BY SIZE
+                  WS-HOUR DELIMITED BY SIZE
+                  WS-MINUTE DELIMITED BY SIZE
+                  WS-SECOND DELIMITED BY SIZE
+             INTO WS-TIMESTAMP-OUT.
+
+       2000-PROCESS-CLOSURE.
+           MOVE SPACES TO WS-INPUT-ACCT-NUM.
+           DISPLAY " ".
+           DISPLAY "ENTER ACCOUNT NUMBER TO CLOSE (OR 0 TO EXIT): ".
+           ACCEPT WS-INPUT-ACCT-NUM.
+
+           IF WS-INPUT-ACCT-NUM = ZERO
+              EXIT PARAGRAPH
+           END-IF.
+
+           PERFORM 0050-GET-CURRENT-DATETIME.
+           MOVE WS-TIMESTAMP-OUT TO AUDIT-TIMESTAMP.
+           MOVE WS-INPUT-ACCT-NUM TO AUDIT-ACCOUNT-NUMBER.
+           MOVE 'CLOSURE REQUEST' TO AUDIT-ACTION.
+           MOVE 'PENDING' TO AUDIT-STATUS.
+           MOVE 'Received closure request for account.' TO AUDIT-DETAILS.
+           WRITE AUDIT-RECORD.
+
+           MOVE WS-INPUT-ACCT-NUM TO DA-ACCOUNT-NUMBER.
+           READ DEPOSIT-ACCOUNT-FILE INTO WS-DEPOSIT-ACCOUNT
+               INVALID KEY MOVE '23' TO WS-DEPMAST-STATUS
+               NOT INVALID KEY
+                   IF DA-IS-CLOSED
+                       MOVE '1' TO WS-DEPMAST-STATUS
+                   END-IF
+           END-READ.
+
+           IF DEPMAST-NOT-FOUND
+              DISPLAY "ERROR: ACCOUNT NUMBER NOT FOUND."
+              PERFORM 2300-AUDIT-LOG-WRITE
+                 USING WS-INPUT-ACCT-NUM, 'CLOSURE ATTEMPT', 'FAILED',
+                       'Account not found in system.'
+           ELSE IF WS-DEPMAST-STATUS = '1'  *> Custom status for already closed
+              DISPLAY "ERROR: ACCOUNT " DA-ACCOUNT-NUMBER " IS ALREADY CLOSED."
+              PERFORM 2300-AUDIT-LOG-WRITE
+                 USING WS-INPUT-ACCT-NUM, 'CLOSURE ATTEMPT', 'FAILED',
+                       'Account already marked as closed.'
+           ELSE
+              PERFORM 2050-PRE-CLOSURE-CHECKS
+              IF WS-CLOSURE-ALLOWED = 'Y'
+                 PERFORM 2150-AI-ASSESSMENT
+                 PERFORM 2100-VALIDATE-AND-CLOSE
+              ELSE
+                 DISPLAY "CLOSURE NOT PERMITTED DUE TO PRE-CHECKS."
+                 PERFORM 2300-AUDIT-LOG-WRITE
+                    USING WS-INPUT-ACCT-NUM, 'CLOSURE ATTEMPT', 'REJECTED',
+                          'Pre-closure checks failed.'
+              END-IF
+           END-IF.
+
+       2050-PRE-CLOSURE-CHECKS.
+           DISPLAY "Performing pre-closure checks for account " DA-ACCOUNT-NUMBER "..."
+           MOVE 'Y' TO WS-CLOSURE-ALLOWED.
+           MOVE 'N' TO WS-HAS-PENDING-TRANSACTIONS.
+           MOVE 'N' TO WS-HAS-LINKED-ACCOUNTS.
+           MOVE 'N' TO WS-IS-DORMANT-ACCOUNT.
+
+           *> Simulate checking for pending transactions
+           IF DA-PENDING-TRANSACTIONS > 0
+              MOVE 'N' TO WS-CLOSURE-ALLOWED
+              MOVE 'Y' TO WS-HAS-PENDING-TRANSACTIONS
+              DISPLAY "WARNING: PENDING TRANSACTIONS EXIST. CLOSURE BLOCKED."
+              PERFORM 2300-AUDIT-LOG-WRITE
+                 USING DA-ACCOUNT-NUMBER, 'PRE-CHECK', 'WARNING',
+                       'Pending transactions detected.'
+           END-IF.
+
+           *> Simulate checking for linked accounts (e.g., joint accounts, loan linkages)
+           IF DA-LINKED-ACCOUNTS-COUNT > 0
+              MOVE 'N' TO WS-CLOSURE-ALLOWED
+              MOVE 'Y' TO WS-HAS-LINKED-ACCOUNTS
+              DISPLAY "WARNING: LINKED ACCOUNTS DETECTED. CLOSURE BLOCKED."
+              PERFORM 2300-AUDIT-LOG-WRITE
+                 USING DA-ACCOUNT-NUMBER, 'PRE-CHECK', 'WARNING',
+                       'Linked accounts detected.'
+           END-IF.
+
+           *> Simulate dormant account check (e.g., last activity > X years)
+           IF DA-LAST-ACTIVITY-DATE < (FUNCTION CURRENT-DATE (1:8) - 30000)
+              MOVE 'Y' TO WS-IS-DORMANT-ACCOUNT
+              DISPLAY "NOTE: Account is dormant. Requires additional review."
+              PERFORM 2300-AUDIT-LOG-WRITE
+                 USING DA-ACCOUNT-NUMBER, 'PRE-CHECK', 'NOTE',
+                       'Account identified as dormant.'
+           END-IF.
+
+           *> Simulate minimum balance check (though main check is for ZERO)
+           IF DA-CURRENT-BALANCE < 0
+              MOVE 'N' TO WS-CLOSURE-ALLOWED
+              MOVE 'N' TO WS-MINIMUM-BALANCE-MET
+              DISPLAY "ERROR: Account has negative balance. Resolution required."
+              PERFORM 2300-AUDIT-LOG-WRITE
+                 USING DA-ACCOUNT-NUMBER, 'PRE-CHECK', 'ERROR',
+                       'Account has negative balance.'
+           END-IF.
+
+           IF WS-CLOSURE-ALLOWED = 'Y'
+              DISPLAY "Pre-closure checks passed."
+           ELSE
+              DISPLAY "Pre-closure checks failed. Cannot proceed."
+           END-IF.
+
+       2150-AI-ASSESSMENT.
+           DISPLAY "Consulting Quantum-Compliance-Engine (QCE) for risk assessment..."
+           MOVE 0 TO WS-QCE-RISK-SCORE.
+           MOVE SPACES TO WS-QCE-RECOMMENDATION.
+
+           *> Simulate QCE logic based on account attributes
+           IF DA-CURRENT-BALANCE NOT = ZERO
+              ADD 50 TO WS-QCE-RISK-SCORE
+           END-IF.
+           IF WS-HAS-PENDING-TRANSACTIONS = 'Y'
+              ADD 70 TO WS-QCE-RISK-SCORE
+           END-IF.
+           IF WS-HAS-LINKED-ACCOUNTS = 'Y'
+              ADD 30 TO WS-QCE-RISK-SCORE
+           END-IF.
+           IF WS-IS-DORMANT-ACCOUNT = 'Y'
+              ADD 10 TO WS-QCE-RISK-SCORE
+           END-IF.
+           IF DA-ACCOUNT-TYPE = 'S' *> High-value/sensitive account type
+              ADD 20 TO WS-QCE-RISK-SCORE
+           END-IF.
+
+           *> QCE Recommendation Logic
+           IF WS-QCE-RISK-SCORE >= 100
+              SET QCE-RECOMMEND-REJECT TO TRUE
+              DISPLAY "QCE Recommendation: REJECT (High Risk Score: " WS-QCE-RISK-SCORE ")"
+           ELSE IF WS-QCE-RISK-SCORE >= 50
+              SET QCE-RECOMMEND-REVIEW TO TRUE
+              DISPLAY "QCE Recommendation: REVIEW (Moderate Risk Score: " WS-QCE-RISK-SCORE ")"
+           ELSE
+              SET QCE-RECOMMEND-APPROVE TO TRUE
+              DISPLAY "QCE Recommendation: APPROVE (Low Risk Score: " WS-QCE-RISK-SCORE ")"
+           END-IF.
+
+           PERFORM 2300-AUDIT-LOG-WRITE
+              USING DA-ACCOUNT-NUMBER, 'QCE ASSESSMENT', 'COMPLETE',
+                    'QCE Score: ' WS-QCE-RISK-SCORE ' Rec: ' WS-QCE-RECOMMENDATION.
+
+       2100-VALIDATE-AND-CLOSE.
+           MOVE 'N' TO WS-ACCOUNT-CLOSED-FLAG.
+
+           IF DA-CURRENT-BALANCE NOT = ZERO
+              DISPLAY "ERROR: ACCOUNT CANNOT BE CLOSED. "
+              DISPLAY "CURRENT BALANCE IS NOT ZERO: " DA-CURRENT-BALANCE
+              PERFORM 2300-AUDIT-LOG-WRITE
+                 USING DA-ACCOUNT-NUMBER, 'CLOSURE VALIDATION', 'FAILED',
+                       'Non-zero balance detected.'
+              EXIT PARAGRAPH
+           END-IF.
+
+           IF QCE-RECOMMEND-REJECT
+              DISPLAY "QCE has REJECTED this closure due to high risk."
+              DISPLAY "Requires supervisor override to proceed. Override? (Y/N)"
+              ACCEPT WS-SUPERVISOR-OVERRIDE
+              IF WS-SUPERVISOR-OVERRIDE NOT = 'Y' AND WS-SUPERVISOR-OVERRIDE NOT = 'y'
+                 DISPLAY "CLOSURE REJECTED BY SYSTEM/OPERATOR."
+                 PERFORM 2300-AUDIT-LOG-WRITE
+                    USING DA-ACCOUNT-NUMBER, 'CLOSURE REJECTED', 'FAILED',
+                          'QCE rejected, no supervisor override.'
+                 EXIT PARAGRAPH
+              ELSE
+                 DISPLAY "Supervisor override accepted. Proceeding with caution."
+                 PERFORM 2300-AUDIT-LOG-WRITE
+                    USING DA-ACCOUNT-NUMBER, 'QCE OVERRIDE', 'APPROVED',
+                          'Supervisor override for QCE rejection.'
+              END-IF
+           END-IF.
+
+           IF QCE-RECOMMEND-REVIEW
+              DISPLAY "QCE recommends REVIEW for this closure."
+              DISPLAY "Do you wish to proceed after review? (Y/N)"
+              ACCEPT WS-CONFIRMATION
+              IF WS-CONFIRMATION NOT = 'Y' AND WS-CONFIRMATION NOT = 'y'
+                 DISPLAY "CLOSURE CANCELLED BY OPERATOR AFTER QCE REVIEW RECOMMENDATION."
+                 PERFORM 2300-AUDIT-LOG-WRITE
+                    USING DA-ACCOUNT-NUMBER, 'CLOSURE REVIEW', 'CANCELLED',
+                          'Operator cancelled after QCE review recommendation.'
+                 EXIT PARAGRAPH
+              ELSE
+                 DISPLAY "Operator confirmed to proceed after QCE review."
+                 PERFORM 2300-AUDIT-LOG-WRITE
+                    USING DA-ACCOUNT-NUMBER, 'CLOSURE REVIEW', 'APPROVED',
+                          'Operator confirmed after QCE review.'
+              END-IF
+           END-IF.
+
+           DISPLAY "ACCOUNT " DA-ACCOUNT-NUMBER " HAS ZERO BALANCE."
+           DISPLAY "PROCEED WITH CLOSURE? (Y/N)"
+           ACCEPT WS-CONFIRMATION.
+
+           IF WS-CONFIRMATION = 'Y' OR 'y'
+              SET DA-IS-CLOSED TO TRUE
+              MOVE DA-ACCOUNT-NUMBER TO DA-ACCOUNT-NUMBER OF DEPOSIT-FILE-RECORD
+              MOVE WS-DEPOSIT-ACCOUNT TO DEPOSIT-FILE-RECORD
+              REWRITE DEPOSIT-FILE-RECORD
+                 INVALID KEY
+                    DISPLAY "ERROR: FAILED TO REWRITE ACCOUNT RECORD. STATUS: " WS-DEPMAST-STATUS
+                    PERFORM 2300-AUDIT-LOG-WRITE
+                       USING DA-ACCOUNT-NUMBER, 'CLOSURE UPDATE', 'FAILED',
+                             'Failed to rewrite account record.'
+                 NOT INVALID KEY
+                    DISPLAY "ACCOUNT " DA-ACCOUNT-NUMBER " CLOSED SUCCESSFULLY."
+                    MOVE 'Y' TO WS-ACCOUNT-CLOSED-FLAG
+                    PERFORM 2300-AUDIT-LOG-WRITE
+                       USING DA-ACCOUNT-NUMBER, 'CLOSURE', 'SUCCESS',
+                             'Account successfully closed.'
+                    PERFORM 2200-CUSTOMER-NOTIFICATION-PREP
+              END-REWRITE
+           ELSE
+              DISPLAY "CLOSURE CANCELLED BY OPERATOR."
+              PERFORM 2300-AUDIT-LOG-WRITE
+                 USING DA-ACCOUNT-NUMBER, 'CLOSURE', 'CANCELLED',
+                       'Closure cancelled by operator.'
+           END-IF.
+
+       2200-CUSTOMER-NOTIFICATION-PREP.
+           IF WS-ACCOUNT-CLOSED-FLAG = 'Y'
+              DISPLAY "Initiating customer notification process for account " DA-ACCOUNT-NUMBER "."
+              *> In a real system, this would involve a CALL to a messaging service
+              *> or a dedicated customer communication module.
+              *> For this simulation, we just log it.
+              PERFORM 2300-AUDIT-LOG-WRITE
+                 USING DA-ACCOUNT-NUMBER, 'NOTIFICATION', 'INITIATED',
+                       'Customer notification for closure initiated.'
+           END-IF.
+
+       2300-AUDIT-LOG-WRITE USING P-ACCT-NUM, P-ACTION, P-STATUS, P-DETAILS.
+       01 P-ACCT-NUM             PIC 9(12).
+       01 P-ACTION               PIC X(20).
+       01 P-STATUS               PIC X(10).
+       01 P-DETAILS              PIC X(100).
+           PERFORM 0050-GET-CURRENT-DATETIME.
+           MOVE WS-TIMESTAMP-OUT TO AUDIT-TIMESTAMP.
+           MOVE P-ACCT-NUM       TO AUDIT-ACCOUNT-NUMBER.
+           MOVE P-ACTION         TO AUDIT-ACTION.
+           MOVE P-STATUS         TO AUDIT-STATUS.
+           MOVE P-DETAILS        TO AUDIT-DETAILS.
+           WRITE AUDIT-RECORD.
+           IF NOT AUDIT-OK
+               DISPLAY "WARNING: FAILED TO WRITE TO AUDIT LOG FILE. STATUS: " WS-AUDIT-STATUS
+           END-IF.
+
+       9999-TERMINATION.
+           PERFORM 0050-GET-CURRENT-DATETIME.
+           MOVE WS-TIMESTAMP-OUT TO AUDIT-TIMESTAMP.
+           MOVE 'TERMINATE' TO AUDIT-ACTION.
+           MOVE 'SUCCESS' TO AUDIT-STATUS.
+           MOVE 'Module DACLOS terminated.' TO AUDIT-DETAILS.
+           MOVE ZERO TO AUDIT-ACCOUNT-NUMBER.
+           WRITE AUDIT-RECORD.
+           IF NOT AUDIT-OK
+               DISPLAY "WARNING: FAILED TO WRITE TO AUDIT LOG FILE DURING TERMINATION. STATUS: " WS-AUDIT-STATUS
+           END-IF.
+           CLOSE DEPOSIT-ACCOUNT-FILE.
+           CLOSE AUDIT-LOG-FILE.
+           DISPLAY "DACLOS MODULE TERMINATED.".
+           DISPLAY " ".
