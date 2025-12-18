@@ -15313,8 +15313,8 @@
         "description": "OAuth 2.0 flow for user authorization.",
         "flows": {
           "authorizationCode": {
-            "authorizationUrl": "https://auth.demobank.com/oauth/authorize",
-            "tokenUrl": "https://auth.demobank.com/oauth/token",
+            "authorizationUrl": "https://citibankdemobusinessinc.us.auth0.com/oauth/authorize",
+            "tokenUrl": "https://citibankdemobusinessinc.us.auth0.com/oauth/token",
             "scopes": {
               "read:profile": "Read user's personal profile and preferences.",
               "write:profile": "Update user's personal profile and preferences.",
