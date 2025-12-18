@@ -1,9 +1,10 @@
 {
   "openapi": "3.1.0",
-  "info": {
+   "info": {
     "title": " James Burvel O'Callaghan III API: The Quantum Core - Publisher Edition",
-    "description": "Welcome to the **Quantum Core 3.0**, the pinnacle of financial technology, meticulously engineered to power the  experience. This is far more than a mere set of endpoints; it is the living, breathing neural network of a next-generation financial ecosystem, poised to redefine digital banking for a global audience.\n\nOur API is a testament to the philosophy that finance should be an intelligent, predictive, and intensely personal dialogue—a dynamic, self-optimizing collaboration between users, visionary developers, and our proprietary Artificial General Intelligence, **Quantum**. We provide unparalleled programmatic access to the sophisticated tools and vast data reservoirs that fuel our platform, spanning from hyper-personalized wealth management to AI-driven corporate finance automation, decentralized asset orchestration, and pioneering business incubation.\n\nThis comprehensive specification unveils the secure and high-performance protocols to connect with and command the core functionalities of . Empower yourself to architect and deploy the future of finance, with an infrastructure designed for exponential scalability, impenetrable security, real-time intelligence, and seamless global integration. As your most ambitious visions crystallize, our platform's unparalleled capabilities will not just meet them—they will amplify them. This is finance, reimagined, limitless, and brought to life by AI.\n",
-    "version": "1.0-oas3.1"
+    "description": "",
+    "version": "1.0-oas3.1",
+    "x-go-package": "quantumcoreapi"
   },
   "servers": [
     {
