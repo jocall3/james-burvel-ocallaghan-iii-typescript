@@ -21,7 +21,13 @@ describe('resource cards', () => {
   test('list: request options and params are passed correctly', async () => {
     // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
     await expect(
-      client.corporate.cards.list({ limit: {}, offset: {} }, { path: '/_stainless_unknown_path' }),
+      client.corporate.cards.list(
+        {
+          limit: {},
+          offset: {},
+        },
+        { path: '/_stainless_unknown_path' },
+      ),
     ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);
   });
 
@@ -93,7 +99,12 @@ describe('resource cards', () => {
     await expect(
       client.corporate.cards.listTransactions(
         'corp_card_xyz987654',
-        { endDate: '2024-12-31', limit: {}, offset: {}, startDate: '2024-01-01' },
+        {
+          endDate: '2024-12-31',
+          limit: {},
+          offset: {},
+          startDate: '2024-01-01',
+        },
         { path: '/_stainless_unknown_path' },
       ),
     ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);

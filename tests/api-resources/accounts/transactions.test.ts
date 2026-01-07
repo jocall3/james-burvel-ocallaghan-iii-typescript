@@ -23,7 +23,10 @@ describe('resource transactions', () => {
     await expect(
       client.accounts.transactions.listPendingTransactions(
         'acc_chase_checking_4567',
-        { limit: {}, offset: {} },
+        {
+          limit: {},
+          offset: {},
+        },
         { path: '/_stainless_unknown_path' },
       ),
     ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);

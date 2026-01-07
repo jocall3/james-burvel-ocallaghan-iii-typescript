@@ -39,7 +39,11 @@ describe('resource applications', () => {
       loanPurpose: 'home_improvement',
       repaymentTermMonths: 36,
       additionalNotes: 'Funds needed to replace a broken HVAC system.',
-      coApplicant: { email: 'jane.doe@example.com', income: 75000, name: 'Jane Doe' },
+      coApplicant: {
+        email: 'jane.doe@example.com',
+        income: 75000,
+        name: 'Jane Doe',
+      },
     });
   });
 });

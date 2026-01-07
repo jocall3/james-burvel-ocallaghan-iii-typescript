@@ -21,7 +21,13 @@ describe('resource wallets', () => {
   test('list: request options and params are passed correctly', async () => {
     // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
     await expect(
-      client.web3.wallets.list({ limit: {}, offset: {} }, { path: '/_stainless_unknown_path' }),
+      client.web3.wallets.list(
+        {
+          limit: {},
+          offset: {},
+        },
+        { path: '/_stainless_unknown_path' },
+      ),
     ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);
   });
 
@@ -69,7 +75,10 @@ describe('resource wallets', () => {
     await expect(
       client.web3.wallets.retrieveBalances(
         'wallet_conn_eth_0xabc123',
-        { limit: {}, offset: {} },
+        {
+          limit: {},
+          offset: {},
+        },
         { path: '/_stainless_unknown_path' },
       ),
     ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);

@@ -22,7 +22,13 @@ describe('resource products', () => {
     // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
     await expect(
       client.marketplace.products.list(
-        { aiPersonalizationLevel: 'high', category: 'insurance', limit: {}, minRating: 4, offset: {} },
+        {
+          aiPersonalizationLevel: 'high',
+          category: 'insurance',
+          limit: {},
+          minRating: 4,
+          offset: {},
+        },
         { path: '/_stainless_unknown_path' },
       ),
     ).rejects.toThrow(JamesBurvelOcallaghanIii.NotFoundError);
