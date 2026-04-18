@@ -1,6 +1,6 @@
 {
   "name": "james-burvel-ocallaghan-iii",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "The official TypeScript library for the James Burvel Ocallaghan Iii API",
   "author": "James Burvel Ocallaghan Iii <>",
   "types": "dist/index.d.ts",
