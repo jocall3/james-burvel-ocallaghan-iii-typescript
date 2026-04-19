@@ -7,6 +7,9 @@ import { buildHeaders } from '../../../internal/headers';
 import { RequestOptions } from '../../../internal/request-options';
 import { path } from '../../../internal/utils/path';
 
+/**
+ * Unleash the power of 'what-if' scenario modeling. Run complex, multi-variable financial simulations with AI-powered foresight to understand future impacts and optimize strategies.
+ */
 export class Simulations extends APIResource {
   /**
    * Retrieves the full, detailed results of a specific financial simulation by its

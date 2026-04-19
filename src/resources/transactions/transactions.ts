@@ -16,6 +16,9 @@ import { APIPromise } from '../../core/api-promise';
 import { RequestOptions } from '../../internal/request-options';
 import { path } from '../../internal/utils/path';
 
+/**
+ * Access, intelligent categorization, real-time analysis, and AI-driven insights into transaction data, including advanced dispute resolution and trend detection.
+ */
 export class Transactions extends APIResource {
   recurring: RecurringAPI.Recurring = new RecurringAPI.Recurring(this._client);
   insights: InsightsAPI.Insights = new InsightsAPI.Insights(this._client);

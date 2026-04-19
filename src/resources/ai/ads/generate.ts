@@ -4,6 +4,9 @@ import { APIResource } from '../../../core/resource';
 import { APIPromise } from '../../../core/api-promise';
 import { RequestOptions } from '../../../internal/request-options';
 
+/**
+ * Programmatically generate high-fidelity, commercially viable video content from text prompts, leveraging cutting-edge generative AI models for targeted marketing campaigns.
+ */
 export class Generate extends APIResource {
   /**
    * Submits a highly customized request to generate a video ad, allowing

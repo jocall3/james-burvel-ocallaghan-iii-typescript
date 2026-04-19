@@ -6,6 +6,9 @@ import { APIPromise } from '../../../core/api-promise';
 import { RequestOptions } from '../../../internal/request-options';
 import { path } from '../../../internal/utils/path';
 
+/**
+ * Advanced access to compliance cases, AI-powered financial anomaly detection, real-time risk assessments, and automated sanction screening for enterprise clients.
+ */
 export class Audits extends APIResource {
   /**
    * Initiates an AI-powered compliance audit for a specific period or scope,

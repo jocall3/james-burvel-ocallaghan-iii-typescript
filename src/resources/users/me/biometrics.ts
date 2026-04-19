@@ -5,6 +5,9 @@ import { APIPromise } from '../../../core/api-promise';
 import { buildHeaders } from '../../../internal/headers';
 import { RequestOptions } from '../../../internal/request-options';
 
+/**
+ * Comprehensive management of user profiles, advanced biometric authentication, multi-factor security, and digital identity verification (KYC/AML).
+ */
 export class Biometrics extends APIResource {
   /**
    * Removes all enrolled biometric data associated with the user's account for

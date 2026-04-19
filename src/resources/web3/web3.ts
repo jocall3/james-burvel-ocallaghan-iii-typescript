@@ -20,6 +20,9 @@ import {
 import { APIPromise } from '../../core/api-promise';
 import { RequestOptions } from '../../internal/request-options';
 
+/**
+ * Seamless integration with digital assets, cryptocurrencies, NFTs, and DeFi protocols. Connect wallets, execute on-chain transactions, and manage your Web3 portfolio.
+ */
 export class Web3 extends APIResource {
   wallets: WalletsAPI.Wallets = new WalletsAPI.Wallets(this._client);
   transactions: TransactionsAPI.Transactions = new TransactionsAPI.Transactions(this._client);

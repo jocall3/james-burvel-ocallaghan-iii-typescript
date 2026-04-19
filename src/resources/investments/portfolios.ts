@@ -6,6 +6,9 @@ import { APIPromise } from '../../core/api-promise';
 import { RequestOptions } from '../../internal/request-options';
 import { path } from '../../internal/utils/path';
 
+/**
+ * Sophisticated management of investment portfolios, AI-driven asset discovery, ESG impact analysis, predictive growth simulations, and automated rebalancing strategies.
+ */
 export class Portfolios extends APIResource {
   /**
    * Creates a new investment portfolio, with options for initial asset allocation.

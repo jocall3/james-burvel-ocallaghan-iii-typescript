@@ -22,6 +22,9 @@ import {
 import { APIPromise } from '../../../core/api-promise';
 import { RequestOptions } from '../../../internal/request-options';
 
+/**
+ * Comprehensive management of user profiles, advanced biometric authentication, multi-factor security, and digital identity verification (KYC/AML).
+ */
 export class Me extends APIResource {
   preferences: PreferencesAPI.Preferences = new PreferencesAPI.Preferences(this._client);
   devices: DevicesAPI.Devices = new DevicesAPI.Devices(this._client);

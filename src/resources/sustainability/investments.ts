@@ -5,6 +5,9 @@ import * as InsightsAPI from '../transactions/insights';
 import { APIPromise } from '../../core/api-promise';
 import { RequestOptions } from '../../internal/request-options';
 
+/**
+ * Sophisticated management of investment portfolios, AI-driven asset discovery, ESG impact analysis, predictive growth simulations, and automated rebalancing strategies.
+ */
 export class Investments extends APIResource {
   /**
    * Provides an AI-driven analysis of the Environmental, Social, and Governance

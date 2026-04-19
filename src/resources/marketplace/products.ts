@@ -6,6 +6,9 @@ import { APIPromise } from '../../core/api-promise';
 import { RequestOptions } from '../../internal/request-options';
 import { path } from '../../internal/utils/path';
 
+/**
+ * Access a dynamic, AI-curated marketplace offering hyper-personalized product recommendations, simulate purchase impacts, and discover exclusive partner offers.
+ */
 export class Products extends APIResource {
   /**
    * Retrieves a personalized, AI-curated list of products and services from the

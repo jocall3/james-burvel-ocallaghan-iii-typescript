@@ -6,6 +6,9 @@ import { APIPromise } from '../../core/api-promise';
 import { RequestOptions } from '../../internal/request-options';
 import { path } from '../../internal/utils/path';
 
+/**
+ * Comprehensive access to credit scores, detailed history, AI-generated improvement plans, and personalized lending offers with instant underwriting.
+ */
 export class Applications extends APIResource {
   /**
    * Retrieves the current status and detailed information for a submitted loan

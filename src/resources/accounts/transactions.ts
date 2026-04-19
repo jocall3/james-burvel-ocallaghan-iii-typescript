@@ -1,11 +1,14 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
 import { APIResource } from '../../core/resource';
-import * as TransactionsTransactionsAPI from '../transactions/transactions';
 import { APIPromise } from '../../core/api-promise';
 import { RequestOptions } from '../../internal/request-options';
 import { path } from '../../internal/utils/path';
+import * as TransactionsAPI_ from '../transactions/transactions';
 
+/**
+ * Real-time interaction with all linked financial accounts, including comprehensive balance sheets, predictive cash flow, and intelligent overdraft management.
+ */
 export class Transactions extends APIResource {
   /**
    * Retrieves a list of pending transactions that have not yet cleared for a
@@ -44,7 +47,7 @@ export interface TransactionListPendingTransactionsResponse {
    */
   total: unknown;
 
-  data?: Array<TransactionsTransactionsAPI.Transaction>;
+  data?: Array<TransactionsAPI_.Transaction>;
 
   /**
    * The offset for the next page of results, if available. Null if no more pages.

@@ -6,6 +6,9 @@ import { buildHeaders } from '../../internal/headers';
 import { RequestOptions } from '../../internal/request-options';
 import { path } from '../../internal/utils/path';
 
+/**
+ * Tools for developers to integrate deeply with , including webhook management, API key lifecycle, event logging, and SDK access.
+ */
 export class Webhooks extends APIResource {
   /**
    * Establishes a new webhook subscription, allowing a developer application to

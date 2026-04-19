@@ -5,6 +5,9 @@ import * as InsightsAPI from '../../transactions/insights';
 import { APIPromise } from '../../../core/api-promise';
 import { RequestOptions } from '../../../internal/request-options';
 
+/**
+ * Unleash the power of 'what-if' scenario modeling. Run complex, multi-variable financial simulations with AI-powered foresight to understand future impacts and optimize strategies.
+ */
 export class Simulate extends APIResource {
   /**
    * Engages the Quantum Oracle for highly complex, multi-variable simulations,

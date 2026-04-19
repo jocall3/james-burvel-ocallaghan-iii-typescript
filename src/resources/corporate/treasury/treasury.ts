@@ -7,6 +7,9 @@ import { CashFlow, CashFlowForecastParams, CashFlowForecastResponse } from './ca
 import { APIPromise } from '../../../core/api-promise';
 import { RequestOptions } from '../../../internal/request-options';
 
+/**
+ * Unlocking advanced, AI-driven analytics dashboards, predictive financial forecasting, and custom report generation for both personal and corporate users.
+ */
 export class Treasury extends APIResource {
   cashFlow: CashFlowAPI.CashFlow = new CashFlowAPI.CashFlow(this._client);
 

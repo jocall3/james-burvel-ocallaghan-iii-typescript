@@ -6,6 +6,9 @@ import { buildHeaders } from '../../../../internal/headers';
 import { RequestOptions } from '../../../../internal/request-options';
 import { path } from '../../../../internal/utils/path';
 
+/**
+ * Advanced access to compliance cases, AI-powered financial anomaly detection, real-time risk assessments, and automated sanction screening for enterprise clients.
+ */
 export class Rules extends APIResource {
   /**
    * Creates a new custom AI-powered fraud detection rule, allowing organizations to

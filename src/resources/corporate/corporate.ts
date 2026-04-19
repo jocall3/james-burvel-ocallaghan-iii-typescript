@@ -31,6 +31,9 @@ import { Treasury, TreasuryGetLiquidityPositionsResponse } from './treasury/trea
 import { APIPromise } from '../../core/api-promise';
 import { RequestOptions } from '../../internal/request-options';
 
+/**
+ * Advanced access to compliance cases, AI-powered financial anomaly detection, real-time risk assessments, and automated sanction screening for enterprise clients.
+ */
 export class Corporate extends APIResource {
   cards: CardsAPI.Cards = new CardsAPI.Cards(this._client);
   anomalies: AnomaliesAPI.Anomalies = new AnomaliesAPI.Anomalies(this._client);

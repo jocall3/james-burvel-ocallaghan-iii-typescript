@@ -15,6 +15,9 @@ import * as PreferencesAPI from './me/preferences';
 import { APIPromise } from '../../core/api-promise';
 import { RequestOptions } from '../../internal/request-options';
 
+/**
+ * Comprehensive management of user profiles, advanced biometric authentication, multi-factor security, and digital identity verification (KYC/AML).
+ */
 export class Users extends APIResource {
   passwordReset: PasswordResetAPI.PasswordReset = new PasswordResetAPI.PasswordReset(this._client);
   me: MeAPI.Me = new MeAPI.Me(this._client);

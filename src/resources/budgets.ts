@@ -7,6 +7,9 @@ import { buildHeaders } from '../internal/headers';
 import { RequestOptions } from '../internal/request-options';
 import { path } from '../internal/utils/path';
 
+/**
+ * AI-powered creation and dynamic management of user spending budgets, real-time progress tracking, and proactive alert systems.
+ */
 export class Budgets extends APIResource {
   /**
    * Creates a new financial budget for the user, with optional AI auto-population of

@@ -5,6 +5,9 @@ import { APIPromise } from '../../core/api-promise';
 import { RequestOptions } from '../../internal/request-options';
 import { path } from '../../internal/utils/path';
 
+/**
+ * Streamlined management of payment orders, automated invoice processing, multi-currency transactions, international transfers, and AI-driven treasury optimization.
+ */
 export class International extends APIResource {
   /**
    * Facilitates the secure initiation of an international wire transfer to a

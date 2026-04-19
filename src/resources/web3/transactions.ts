@@ -4,6 +4,9 @@ import { APIResource } from '../../core/resource';
 import { APIPromise } from '../../core/api-promise';
 import { RequestOptions } from '../../internal/request-options';
 
+/**
+ * Seamless integration with digital assets, cryptocurrencies, NFTs, and DeFi protocols. Connect wallets, execute on-chain transactions, and manage your Web3 portfolio.
+ */
 export class Transactions extends APIResource {
   /**
    * Prepares and initiates a cryptocurrency transfer from a connected wallet to a

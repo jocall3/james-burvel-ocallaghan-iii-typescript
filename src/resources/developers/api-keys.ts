@@ -6,6 +6,9 @@ import { buildHeaders } from '../../internal/headers';
 import { RequestOptions } from '../../internal/request-options';
 import { path } from '../../internal/utils/path';
 
+/**
+ * Manage advanced security settings, monitor login activity, control third-party application connections, and oversee API key access for external integrations.
+ */
 export class APIKeys extends APIResource {
   /**
    * Generates a new API key for the developer application with specified scopes and

@@ -5,6 +5,9 @@ import { APIPromise } from '../../../core/api-promise';
 import { RequestOptions } from '../../../internal/request-options';
 import { path } from '../../../internal/utils/path';
 
+/**
+ * The AI-driven seed funding and incubation platform. Submit, refine, and track business plans, receive AI-generated feedback, and secure investment capital.
+ */
 export class Pitch extends APIResource {
   /**
    * Retrieves the granular AI-driven analysis, strategic feedback, market validation

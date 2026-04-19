@@ -7,6 +7,9 @@ import * as InsightsAPI from '../transactions/insights';
 import { APIPromise } from '../../core/api-promise';
 import { RequestOptions } from '../../internal/request-options';
 
+/**
+ * Measure, track, and improve personal and corporate environmental, social, and governance (ESG) impact, including carbon footprint analysis and green investment opportunities.
+ */
 export class Sustainability extends APIResource {
   investments: InvestmentsAPI.Investments = new InvestmentsAPI.Investments(this._client);
 

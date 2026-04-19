@@ -5,6 +5,9 @@ import { APIPromise } from '../../core/api-promise';
 import { RequestOptions } from '../../internal/request-options';
 import { path } from '../../internal/utils/path';
 
+/**
+ * Seamless integration with digital assets, cryptocurrencies, NFTs, and DeFi protocols. Connect wallets, execute on-chain transactions, and manage your Web3 portfolio.
+ */
 export class Wallets extends APIResource {
   /**
    * Retrieves a list of all securely linked cryptocurrency wallets (e.g., MetaMask,

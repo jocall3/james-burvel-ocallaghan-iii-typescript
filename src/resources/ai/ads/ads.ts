@@ -14,6 +14,9 @@ import { APIPromise } from '../../../core/api-promise';
 import { RequestOptions } from '../../../internal/request-options';
 import { path } from '../../../internal/utils/path';
 
+/**
+ * Programmatically generate high-fidelity, commercially viable video content from text prompts, leveraging cutting-edge generative AI models for targeted marketing campaigns.
+ */
 export class Ads extends APIResource {
   generate: GenerateAPI.Generate = new GenerateAPI.Generate(this._client);
 

@@ -12,6 +12,9 @@ import {
 import { APIPromise } from '../../../core/api-promise';
 import { RequestOptions } from '../../../internal/request-options';
 
+/**
+ * The AI-driven seed funding and incubation platform. Submit, refine, and track business plans, receive AI-generated feedback, and secure investment capital.
+ */
 export class Incubator extends APIResource {
   pitch: PitchAPI.Pitch = new PitchAPI.Pitch(this._client);
 

@@ -5,6 +5,9 @@ import * as InsightsAPI from '../../transactions/insights';
 import { APIPromise } from '../../../core/api-promise';
 import { RequestOptions } from '../../../internal/request-options';
 
+/**
+ * Streamlined management of payment orders, automated invoice processing, multi-currency transactions, international transfers, and AI-driven treasury optimization.
+ */
 export class CashFlow extends APIResource {
   /**
    * Retrieves an advanced AI-driven cash flow forecast for the organization,

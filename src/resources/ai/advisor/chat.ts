@@ -5,6 +5,9 @@ import * as InsightsAPI from '../../transactions/insights';
 import { APIPromise } from '../../../core/api-promise';
 import { RequestOptions } from '../../../internal/request-options';
 
+/**
+ * Engage with our state-of-the-art conversational AI, Quantum, for deeply personalized financial insights, proactive advice, and autonomous task execution via a rich tool ecosystem.
+ */
 export class Chat extends APIResource {
   /**
    * Fetches the full conversation history with the Quantum AI Advisor for a given

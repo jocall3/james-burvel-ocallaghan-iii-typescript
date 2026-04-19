@@ -6,6 +6,9 @@ import { APIPromise } from '../../core/api-promise';
 import { RequestOptions } from '../../internal/request-options';
 import { path } from '../../internal/utils/path';
 
+/**
+ * Sophisticated management of corporate card programs, granular spending controls, virtual card issuance, and intelligent compliance monitoring.
+ */
 export class Cards extends APIResource {
   /**
    * Retrieves a comprehensive list of all physical and virtual corporate cards

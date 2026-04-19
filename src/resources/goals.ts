@@ -7,6 +7,9 @@ import { buildHeaders } from '../internal/headers';
 import { RequestOptions } from '../internal/request-options';
 import { path } from '../internal/utils/path';
 
+/**
+ * Define, manage, and accelerate progress towards long-term financial goals with AI-generated strategic plans, real-time progress tracking, and adaptive adjustments.
+ */
 export class Goals extends APIResource {
   /**
    * Creates a new long-term financial goal, with optional AI plan generation.
