@@ -1,7 +1,6 @@
 import fs from 'fs';
 import type { ResponseLike } from 'james-burvel-ocallaghan-iii/internal/to-file';
 import { toFile } from 'james-burvel-ocallaghan-iii/core/uploads';
-import { File } from 'node:buffer';
 
 class MyClass {
   name: string = 'foo';
